@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, lazy, Suspense } from "react";
 import SamiChatbot from "@/components/SamiChatbot";
 const unifyMarkWhite = { url: "/branding/icon-white.png" };
 import unifyLogoVertical from "@/assets/unify-logo-vertical-v2-opt.webp";
-import authHeroBg from "@/assets/auth-hero-sunrise.jpg";
+import authHeroBg from "@/assets/auth-hero-dusk.jpg";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable/index";
@@ -393,23 +393,24 @@ const AuthPage = () => {
   };
 
   const inputStyle = {
-    background: 'rgba(255,255,255,0.22)',
-    border: '1px solid rgba(13,27,46,0.14)',
-    color: '#0D1B2E',
+    background: 'rgba(255,255,255,0.08)',
+    border: '1px solid rgba(255,255,255,0.22)',
+    color: '#FFFFFF',
     fontWeight: 300 as const,
     backdropFilter: 'blur(8px)',
     WebkitBackdropFilter: 'blur(8px)',
+    colorScheme: 'dark' as const,
   };
 
   const inputFocusHandlers = {
     onFocus: (e: React.FocusEvent<HTMLInputElement>) => {
-      e.target.style.borderColor = '#0D1B2E';
-      e.target.style.background = 'rgba(255,255,255,0.40)';
-      e.target.style.boxShadow = '0 0 0 3px rgba(13,27,46,0.08)';
+      e.target.style.borderColor = 'rgba(255,255,255,0.65)';
+      e.target.style.background = 'rgba(255,255,255,0.14)';
+      e.target.style.boxShadow = '0 0 0 3px rgba(255,255,255,0.10)';
     },
     onBlur: (e: React.FocusEvent<HTMLInputElement>) => {
-      e.target.style.borderColor = 'rgba(13,27,46,0.14)';
-      e.target.style.background = 'rgba(255,255,255,0.22)';
+      e.target.style.borderColor = 'rgba(255,255,255,0.22)';
+      e.target.style.background = 'rgba(255,255,255,0.08)';
       e.target.style.boxShadow = 'none';
     },
   };
@@ -419,7 +420,7 @@ const AuthPage = () => {
   return (
     <>
     <div className="h-screen flex flex-col relative overflow-hidden" dir="ltr">
-      {/* Full-screen luxury background — 8K night skyline */}
+      {/* Full-screen dusk skyline background */}
       <img
         src={authHeroBg}
         alt=""
@@ -432,72 +433,81 @@ const AuthPage = () => {
       />
       <div
         className="absolute inset-0 pointer-events-none"
-        style={{ background: 'linear-gradient(180deg, rgba(255,255,255,0.10) 0%, rgba(255,255,255,0.02) 40%, rgba(255,255,255,0.18) 100%)' }}
+        style={{ background: 'linear-gradient(180deg, rgba(5,10,20,0.25) 0%, rgba(5,10,20,0.05) 40%, rgba(5,10,20,0.35) 100%)' }}
       />
 
-      {/* Top Nav — transparent over the skyline; pushed below the iPhone notch/status bar */}
+      {/* Top Nav — transparent over the photo; pushed below the iPhone notch/status bar */}
       <nav
         className="relative z-50 w-full flex items-center justify-between px-4 sm:px-12 shrink-0" dir={pageDir}
-        style={{ background: 'linear-gradient(180deg, rgba(255,255,255,0.35) 0%, rgba(255,255,255,0) 100%)', borderBottom: 'none', minHeight: 'calc(56px + env(safe-area-inset-top))', paddingTop: 'env(safe-area-inset-top)' }}
+        style={{ borderBottom: 'none', minHeight: 'calc(56px + env(safe-area-inset-top))', paddingTop: 'env(safe-area-inset-top)' }}
       >
-        <img src={unifyMarkWhite.url} alt="Unify يونيفاي" className="h-9 w-auto object-contain" style={{ filter: 'drop-shadow(0 1px 6px rgba(13,27,46,0.45))' }} />
+        <img src={unifyMarkWhite.url} alt="Unify يونيفاي" className="h-9 w-auto object-contain" style={{ filter: 'drop-shadow(0 1px 6px rgba(0,0,0,0.45))' }} />
         <div className="flex items-center gap-3">
           <LanguageSwitcher />
           <button
             className="px-6 py-2 rounded-lg text-sm transition-all"
-            style={{ background: 'rgba(255,255,255,0.35)', color: '#0D1B2E', fontWeight: 400, letterSpacing: '0.01em', border: '1.5px solid rgba(13,27,46,0.35)', backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)' }}
+            style={{ background: 'rgba(255,255,255,0.10)', color: '#FFFFFF', fontWeight: 400, letterSpacing: '0.01em', border: '1.5px solid rgba(255,255,255,0.45)', backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)' }}
             onClick={() => setMode("signup")}
-            onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.55)'; }}
-            onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.35)'; }}
+            onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.22)'; }}
+            onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.10)'; }}
           >
             {t("common:auth.startFree")}
           </button>
         </div>
       </nav>
 
-      <div className="flex-1 flex flex-row relative z-10">
-        {/* LEFT — pure cinematic photo panel (image shows through) */}
-        <div className="hidden lg:block lg:w-1/2 relative overflow-hidden" dir={pageDir}>
+      <div className="flex-1 flex flex-row relative z-10 min-h-0">
+        {/* Photo side — pure cinematic panel with the brand message */}
+        <div className="hidden lg:flex lg:w-[55%] relative overflow-hidden flex-col justify-end" dir={pageDir}>
           <div
             className="absolute inset-0 pointer-events-none"
-            style={{ background: 'linear-gradient(90deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0.0) 60%, rgba(255,255,255,0.15) 100%)' }}
+            style={{ background: 'linear-gradient(0deg, rgba(5,10,20,0.55) 0%, rgba(5,10,20,0.0) 45%)' }}
           />
-          <div className="absolute bottom-8 inset-x-0 flex justify-center px-10">
-            <p style={{ color: 'rgba(13,27,46,0.75)', fontSize: 11, fontWeight: 400, letterSpacing: '0.18em', textTransform: 'uppercase' as const, textShadow: '0 1px 8px rgba(255,255,255,0.6)' }}>
-              UNIFY ERP · CONNECT WITHOUT BOUNDARIES
+          <div className="relative px-12 pb-12 space-y-4">
+            <h1 style={{ color: '#FFFFFF', fontSize: 44, fontWeight: 300, lineHeight: 1.25, fontFamily: 'Tajawal', textShadow: '0 2px 20px rgba(0,0,0,0.45)' }}>
+              {t("common:auth.heroLine1")}
+              <br />
+              <span style={{ fontWeight: 500 }}>{t("common:auth.heroLine2")}</span>
+            </h1>
+            <p style={{ color: 'rgba(255,255,255,0.80)', fontSize: 15, fontWeight: 300, fontFamily: 'Tajawal', textShadow: '0 1px 10px rgba(0,0,0,0.5)' }}>
+              {t("common:auth.heroSubtitle")}
             </p>
+            <div className="flex flex-wrap gap-x-6 gap-y-2 pt-1">
+              {features.map((f, i) => (
+                <span key={i} className="flex items-center gap-2" style={{ color: 'rgba(255,255,255,0.85)', fontSize: 13, fontWeight: 300, fontFamily: 'Tajawal', textShadow: '0 1px 8px rgba(0,0,0,0.5)' }}>
+                  <Check className="h-3.5 w-3.5" style={{ color: '#FFFFFF' }} />
+                  {f}
+                </span>
+              ))}
+            </div>
           </div>
         </div>
 
-        {/* RIGHT — frosted panel with the login card, mirroring the reference layout */}
+        {/* Glass side — full-height frosted panel, no card box, form sits directly on the glass */}
         <div
-          className="flex-1 lg:w-1/2 flex flex-col items-center justify-center px-4 sm:px-10 py-6 overflow-y-auto relative"
+          className="flex-1 lg:w-[45%] flex flex-col items-center justify-center px-4 sm:px-10 py-6 overflow-y-auto relative"
           dir={pageDir}
-          style={{ background: 'transparent' }}
+          style={{
+            background: 'linear-gradient(160deg, rgba(10,16,28,0.42) 0%, rgba(10,16,28,0.30) 100%)',
+            backdropFilter: 'blur(26px) saturate(150%)',
+            WebkitBackdropFilter: 'blur(26px) saturate(150%)',
+            borderInlineStart: '1px solid rgba(255,255,255,0.14)',
+          }}
         >
-          <div
-            className="w-full max-w-[400px] my-auto rounded-3xl px-6 sm:px-8 py-5 max-h-[calc(100vh-96px)] overflow-y-auto"
-            style={{
-              background: 'linear-gradient(160deg, rgba(180,205,235,0.22) 0%, rgba(150,180,220,0.10) 100%)',
-              backdropFilter: 'blur(16px) saturate(160%) brightness(0.97)',
-              WebkitBackdropFilter: 'blur(16px) saturate(160%) brightness(0.97)',
-              boxShadow: '0 30px 90px rgba(13,27,46,0.20), inset 0 1px 0 rgba(255,255,255,0.55), inset 0 0 60px rgba(255,255,255,0.06)',
-              border: '1px solid rgba(255,255,255,0.50)',
-            }}
-          >
+          <div className="w-full max-w-[400px] my-auto py-2">
 
 
-            {/* Logo — vertical stacked mark on the card */}
+            {/* Logo — vertical stacked mark */}
             <div className="w-full flex items-center justify-center pt-1 pb-0 -mb-3 md:-mb-4">
-              <img src={unifyLogoVertical} alt="Unify يونيفاي — Connect Without Boundaries" className="h-36 md:h-44 w-auto mx-auto block object-contain select-none" draggable={false} />
+              <img src={unifyLogoVertical} alt="Unify يونيفاي — Connect Without Boundaries" className="h-36 md:h-44 w-auto mx-auto block object-contain select-none" draggable={false} style={{ filter: 'drop-shadow(0 2px 14px rgba(0,0,0,0.35))' }} />
             </div>
 
             {/* Header — thin Tajawal, generous tracking */}
             <div className="text-center mt-0 mb-6">
-              <h2 style={{ color: '#071D49', fontSize: 28, fontWeight: 300, letterSpacing: '-0.02em', marginBottom: 6, fontFamily: 'Tajawal', lineHeight: 1.15 }}>
+              <h2 style={{ color: '#FFFFFF', fontSize: 28, fontWeight: 300, letterSpacing: '-0.02em', marginBottom: 6, fontFamily: 'Tajawal', lineHeight: 1.15, textShadow: '0 1px 12px rgba(0,0,0,0.35)' }}>
                 {mode === "login" ? t("common:auth.welcome") : mode === "signup" ? t("common:auth.createAccount") : t("common:auth.resetPassword")}
               </h2>
-              <p style={{ color: '#8896A4', fontSize: 14, fontWeight: 300, fontFamily: 'Tajawal' }}>
+              <p style={{ color: 'rgba(255,255,255,0.70)', fontSize: 14, fontWeight: 300, fontFamily: 'Tajawal' }}>
                 {mode === "login" ? t("common:auth.loginSubtitle") : mode === "signup" ? t("common:auth.signupSubtitle") : t("common:auth.forgotSubtitle")}
               </p>
             </div>
@@ -545,11 +555,11 @@ const AuthPage = () => {
                 onClick={handleBiometricSignIn}
                 disabled={loading}
                 className="w-full flex items-center justify-center gap-3 h-11 rounded-xl text-sm transition-all mb-3"
-                style={{ border: '1px solid rgba(13,27,46,0.14)', background: 'rgba(255,255,255,0.22)', color: '#0D1B2E', fontWeight: 400, backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)' }}
-                onMouseEnter={e => { e.currentTarget.style.borderColor = '#0D1B2E'; }}
-                onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(13,27,46,0.14)'; }}
+                style={{ border: '1px solid rgba(255,255,255,0.22)', background: 'rgba(255,255,255,0.08)', color: '#FFFFFF', fontWeight: 400, backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)' }}
+                onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.65)'; }}
+                onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.22)'; }}
               >
-                <ScanFace className="h-5 w-5" style={{ color: '#0D1B2E' }} />
+                <ScanFace className="h-5 w-5" style={{ color: '#FFFFFF' }} />
                 {t("common:auth.faceId")}
               </button>
             )}
@@ -560,9 +570,9 @@ const AuthPage = () => {
                 onClick={handleGoogleSignIn}
                 disabled={loading}
                 className="w-full flex items-center justify-center gap-3 h-11 rounded-xl text-sm transition-all mb-5"
-                style={{ border: '1px solid rgba(13,27,46,0.14)', background: 'rgba(255,255,255,0.22)', color: '#0D1B2E', fontWeight: 400, fontFamily: 'Tajawal', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)' }}
-                onMouseEnter={e => { e.currentTarget.style.borderColor = '#0D1B2E'; }}
-                onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(13,27,46,0.14)'; }}
+                style={{ border: '1px solid rgba(255,255,255,0.22)', background: 'rgba(255,255,255,0.22)', color: '#FFFFFF', fontWeight: 400, fontFamily: 'Tajawal', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)' }}
+                onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.65)'; }}
+                onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.22)'; }}
               >
                 <svg className="h-4 w-4" viewBox="0 0 24 24">
                   <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4"/>
@@ -577,9 +587,9 @@ const AuthPage = () => {
             {/* Divider */}
             {mode !== "forgot" && (
               <div className="flex items-center gap-3 mb-5">
-                <div className="flex-1 h-px" style={{ background: '#E8EDF2' }} />
-                <span style={{ color: '#B0BAC4', fontSize: 12, fontWeight: 300 }}>{t("common:auth.or")}</span>
-                <div className="flex-1 h-px" style={{ background: '#E8EDF2' }} />
+                <div className="flex-1 h-px" style={{ background: 'rgba(255,255,255,0.25)' }} />
+                <span style={{ color: 'rgba(255,255,255,0.50)', fontSize: 12, fontWeight: 300 }}>{t("common:auth.or")}</span>
+                <div className="flex-1 h-px" style={{ background: 'rgba(255,255,255,0.25)' }} />
               </div>
             )}
 
@@ -597,7 +607,7 @@ const AuthPage = () => {
                 <>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div className="space-y-1.5">
-                      <label style={{ color: '#8896A4', fontSize: 12, fontWeight: 300 }}>{t("common:auth.fullName")}</label>
+                      <label style={{ color: 'rgba(255,255,255,0.65)', fontSize: 12, fontWeight: 300 }}>{t("common:auth.fullName")}</label>
                       <input
                         type="text"
                         placeholder={t("common:auth.fullNamePlaceholder")}
@@ -610,7 +620,7 @@ const AuthPage = () => {
                       />
                     </div>
                     <div className="space-y-1.5">
-                      <label style={{ color: '#8896A4', fontSize: 12, fontWeight: 300 }}>{t("common:auth.businessName")}</label>
+                      <label style={{ color: 'rgba(255,255,255,0.65)', fontSize: 12, fontWeight: 300 }}>{t("common:auth.businessName")}</label>
                       <input
                         type="text"
                         placeholder={t("common:auth.businessNamePlaceholder")}
@@ -625,7 +635,7 @@ const AuthPage = () => {
                   </div>
 
                   <div className="space-y-1.5">
-                    <label style={{ color: '#8896A4', fontSize: 12, fontWeight: 300 }}>{t("common:auth.phone")}</label>
+                    <label style={{ color: 'rgba(255,255,255,0.65)', fontSize: 12, fontWeight: 300 }}>{t("common:auth.phone")}</label>
                     <div className="flex gap-2" dir="ltr">
                       <select
                         value={countryCode}
@@ -668,7 +678,7 @@ const AuthPage = () => {
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div className="space-y-1.5">
-                      <label style={{ color: '#8896A4', fontSize: 12, fontWeight: 300 }}>{t("common:auth.businessType")}</label>
+                      <label style={{ color: 'rgba(255,255,255,0.65)', fontSize: 12, fontWeight: 300 }}>{t("common:auth.businessType")}</label>
                       <select
                         value={businessType}
                         onChange={e => setBusinessType(e.target.value)}
@@ -687,7 +697,7 @@ const AuthPage = () => {
                       </select>
                     </div>
                     <div className="space-y-1.5">
-                      <label style={{ color: '#8896A4', fontSize: 12, fontWeight: 300 }}>{t("common:auth.companySize")}</label>
+                      <label style={{ color: 'rgba(255,255,255,0.65)', fontSize: 12, fontWeight: 300 }}>{t("common:auth.companySize")}</label>
                       <select
                         value={employeesCount}
                         onChange={e => setEmployeesCount(e.target.value)}
@@ -705,7 +715,7 @@ const AuthPage = () => {
                     </div>
                   </div>
                   <div className="space-y-1.5">
-                    <label style={{ color: '#8896A4', fontSize: 12, fontWeight: 300 }}>{t("common:auth.address")}</label>
+                    <label style={{ color: 'rgba(255,255,255,0.65)', fontSize: 12, fontWeight: 300 }}>{t("common:auth.address")}</label>
                     <input
                       type="text"
                       placeholder={t("common:auth.addressPlaceholder")}
@@ -719,9 +729,9 @@ const AuthPage = () => {
               )}
               {/* Email */}
               <div className="space-y-1.5">
-                <label style={{ color: '#8896A4', fontSize: 12, fontWeight: 300 }}>{t("common:auth.email")}</label>
+                <label style={{ color: 'rgba(255,255,255,0.65)', fontSize: 12, fontWeight: 300 }}>{t("common:auth.email")}</label>
                 <div className="relative">
-                  <Mail className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 pointer-events-none" style={{ color: '#B0BAC4' }} />
+                  <Mail className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 pointer-events-none" style={{ color: 'rgba(255,255,255,0.50)' }} />
                   <input
                     type="email"
                     placeholder="example@email.com"
@@ -743,22 +753,22 @@ const AuthPage = () => {
               {mode !== "forgot" && (
                 <div className="space-y-1.5">
                   <div className="flex items-center justify-between">
-                    <label style={{ color: '#8896A4', fontSize: 12, fontWeight: 300 }}>{t("common:auth.password")}</label>
+                    <label style={{ color: 'rgba(255,255,255,0.65)', fontSize: 12, fontWeight: 300 }}>{t("common:auth.password")}</label>
                     {mode === "login" && (
                       <button
                         type="button"
                         onClick={() => setMode("forgot")}
                         className="transition-colors"
-                        style={{ color: '#8896A4', fontSize: 12, fontWeight: 300 }}
-                        onMouseEnter={e => { e.currentTarget.style.color = '#0D1B2E'; }}
-                        onMouseLeave={e => { e.currentTarget.style.color = '#8896A4'; }}
+                        style={{ color: 'rgba(255,255,255,0.65)', fontSize: 12, fontWeight: 300 }}
+                        onMouseEnter={e => { e.currentTarget.style.color = '#FFFFFF'; }}
+                        onMouseLeave={e => { e.currentTarget.style.color = 'rgba(255,255,255,0.65)'; }}
                       >
                         {t("common:auth.forgotPassword")}
                       </button>
                     )}
                   </div>
                   <div className="relative">
-                    <Lock className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 pointer-events-none" style={{ color: '#B0BAC4' }} />
+                    <Lock className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 pointer-events-none" style={{ color: 'rgba(255,255,255,0.50)' }} />
                     <input
                       type={showPassword ? "text" : "password"}
                       placeholder={mode === "signup" ? t("common:auth.passwordHint") : "••••••••"}
@@ -775,7 +785,7 @@ const AuthPage = () => {
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
                       className="absolute left-3 top-1/2 -translate-y-1/2 transition-colors"
-                      style={{ color: '#B0BAC4' }}
+                      style={{ color: 'rgba(255,255,255,0.50)' }}
                     >
                       {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                     </button>
@@ -786,9 +796,9 @@ const AuthPage = () => {
               {/* Confirm password */}
               {mode === "signup" && (
                 <div className="space-y-1.5">
-                  <label style={{ color: '#8896A4', fontSize: 12, fontWeight: 300 }}>{t("common:auth.confirmPassword")}</label>
+                  <label style={{ color: 'rgba(255,255,255,0.65)', fontSize: 12, fontWeight: 300 }}>{t("common:auth.confirmPassword")}</label>
                   <div className="relative">
-                    <Lock className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 pointer-events-none" style={{ color: '#B0BAC4' }} />
+                    <Lock className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 pointer-events-none" style={{ color: 'rgba(255,255,255,0.50)' }} />
                     <input
                       type={showPassword ? "text" : "password"}
                       placeholder={t("common:auth.confirmPassword")}
@@ -805,7 +815,7 @@ const AuthPage = () => {
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
                       className="absolute left-3 top-1/2 -translate-y-1/2 transition-colors"
-                      style={{ color: '#B0BAC4' }}
+                      style={{ color: 'rgba(255,255,255,0.50)' }}
                     >
                       {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                     </button>
@@ -815,7 +825,7 @@ const AuthPage = () => {
 
               {/* Terms */}
               {mode === "signup" && (
-                <label className="flex items-start gap-2 text-xs cursor-pointer" style={{ color: '#8896A4', fontWeight: 300 }}>
+                <label className="flex items-start gap-2 text-xs cursor-pointer" style={{ color: 'rgba(255,255,255,0.65)', fontWeight: 300 }}>
                   <input
                     type="checkbox"
                     checked={agreedToTerms}
@@ -825,9 +835,9 @@ const AuthPage = () => {
                   />
                   <span>
                     {t("common:auth.agreeTo")}{" "}
-                    <Link to="/terms" style={{ color: '#0D1B2E' }} className="hover:underline">{t("common:auth.terms")}</Link>
+                    <Link to="/terms" style={{ color: '#FFFFFF' }} className="hover:underline">{t("common:auth.terms")}</Link>
                     {" "}{t("common:auth.and")}{" "}
-                    <Link to="/privacy" style={{ color: '#0D1B2E' }} className="hover:underline">{t("common:auth.privacy")}</Link>
+                    <Link to="/privacy" style={{ color: '#FFFFFF' }} className="hover:underline">{t("common:auth.privacy")}</Link>
                   </span>
                 </label>
               )}
@@ -877,7 +887,7 @@ const AuthPage = () => {
                         }
                       }}
                       className="px-3 py-1.5 rounded-lg text-xs"
-                      style={{ background: '#FFFFFF', color: '#0D1B2E', border: '1px solid #0D1B2E', fontWeight: 400 }}
+                      style={{ background: 'rgba(255,255,255,0.10)', color: '#FFFFFF', border: '1px solid rgba(255,255,255,0.55)', fontWeight: 400 }}
                     >
                       {t("common:auth.resendCode")}
                     </button>
@@ -892,9 +902,9 @@ const AuthPage = () => {
                   disabled={loading}
                   className="w-full h-11 rounded-xl text-sm transition-all active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none flex items-center justify-center gap-2"
                   style={{
-                    background: '#FFFFFF',
-                    color: '#0D1B2E',
-                    border: '1px solid #0D1B2E',
+                    background: 'rgba(255,255,255,0.10)',
+                    color: '#FFFFFF',
+                    border: '1px solid rgba(255,255,255,0.55)',
                     fontWeight: 400,
                     letterSpacing: '0.02em',
                     fontFamily: 'Tajawal',
@@ -913,8 +923,8 @@ const AuthPage = () => {
                   style={{ background: 'rgba(255,255,255,0.14)', border: '1px solid rgba(255,255,255,0.35)' }}
                 >
                   <div className="text-start flex-1 min-w-0">
-                    <p style={{ color: '#0D1B2E', fontSize: 13, fontWeight: 400 }}>{t("common:auth.trialTitle")}</p>
-                    <p className="leading-snug" style={{ color: '#8896A4', fontSize: 11, fontWeight: 300 }}>{t("common:auth.trialSubtitle")}</p>
+                    <p style={{ color: '#FFFFFF', fontSize: 13, fontWeight: 400 }}>{t("common:auth.trialTitle")}</p>
+                    <p className="leading-snug" style={{ color: 'rgba(255,255,255,0.65)', fontSize: 11, fontWeight: 300 }}>{t("common:auth.trialSubtitle")}</p>
                   </div>
                   <button
                     onClick={() => setMode("signup")}
@@ -928,18 +938,18 @@ const AuthPage = () => {
                 </div>
               )}
               {mode === "signup" && (
-                <p style={{ color: '#8896A4', fontSize: 14, fontWeight: 300 }}>
+                <p style={{ color: 'rgba(255,255,255,0.65)', fontSize: 14, fontWeight: 300 }}>
                   {t("common:auth.haveAccount")}{" "}
-                  <button onClick={() => setMode("login")} className="hover:underline" style={{ color: '#0D1B2E', fontWeight: 400 }}>{t("common:auth.submitLogin")}</button>
+                  <button onClick={() => setMode("login")} className="hover:underline" style={{ color: '#FFFFFF', fontWeight: 400 }}>{t("common:auth.submitLogin")}</button>
                 </p>
               )}
               {mode === "forgot" && (
-                <p style={{ color: '#8896A4', fontSize: 14, fontWeight: 300 }}>
-                  <button onClick={() => setMode("login")} className="hover:underline" style={{ color: '#0D1B2E', fontWeight: 400 }}>{t("common:auth.backToLogin")}</button>
+                <p style={{ color: 'rgba(255,255,255,0.65)', fontSize: 14, fontWeight: 300 }}>
+                  <button onClick={() => setMode("login")} className="hover:underline" style={{ color: '#FFFFFF', fontWeight: 400 }}>{t("common:auth.backToLogin")}</button>
                 </p>
               )}
               {mode === "forgot" && (
-                <p className="mt-3 text-xs leading-relaxed" style={{ color: '#8896A4', fontWeight: 300 }}>
+                <p className="mt-3 text-xs leading-relaxed" style={{ color: 'rgba(255,255,255,0.65)', fontWeight: 300 }}>
                   {t("common:auth.forgotHint")}
                 </p>
               )}
