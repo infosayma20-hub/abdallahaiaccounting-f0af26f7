@@ -158,6 +158,8 @@ export default function JobApplicationPage() {
   const [courses, setCourses] = useState<Row[]>([emptyCourse()]);
   const [languages, setLanguages] = useState<Row[]>([emptyLang()]);
   const [experience, setExperience] = useState<Row[]>([emptyExp()]);
+  /** إقرار صريح بعدم وجود خبرات عمل سابقة — الإجابة على قسم الخبرات إلزامية. */
+  const [noExperience, setNoExperience] = useState(false);
   const [referees, setReferees] = useState<Row[]>([emptyRef()]);
 
   // Preferences
