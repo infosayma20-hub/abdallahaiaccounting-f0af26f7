@@ -436,17 +436,17 @@ const AuthPage = () => {
       {/* Top Nav — transparent over the skyline; pushed below the iPhone notch/status bar */}
       <nav
         className="relative z-50 w-full flex items-center justify-between px-4 sm:px-12 shrink-0" dir={pageDir}
-        style={{ background: 'linear-gradient(180deg, rgba(5,14,28,0.55) 0%, rgba(5,14,28,0) 100%)', borderBottom: 'none', minHeight: 'calc(56px + env(safe-area-inset-top))', paddingTop: 'env(safe-area-inset-top)' }}
+        style={{ background: 'linear-gradient(180deg, rgba(255,255,255,0.35) 0%, rgba(255,255,255,0) 100%)', borderBottom: 'none', minHeight: 'calc(56px + env(safe-area-inset-top))', paddingTop: 'env(safe-area-inset-top)' }}
       >
-        <img src={unifyMarkWhite.url} alt="Unify يونيفاي" className="h-9 w-auto object-contain" />
+        <img src={unifyMarkWhite.url} alt="Unify يونيفاي" className="h-9 w-auto object-contain" style={{ filter: 'drop-shadow(0 1px 6px rgba(13,27,46,0.45))' }} />
         <div className="flex items-center gap-3">
           <LanguageSwitcher />
           <button
             className="px-6 py-2 rounded-lg text-sm transition-all"
-            style={{ background: 'transparent', color: '#FFFFFF', fontWeight: 400, letterSpacing: '0.01em', border: '1.5px solid rgba(255,255,255,0.5)' }}
+            style={{ background: 'rgba(255,255,255,0.35)', color: '#0D1B2E', fontWeight: 400, letterSpacing: '0.01em', border: '1.5px solid rgba(13,27,46,0.35)', backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)' }}
             onClick={() => setMode("signup")}
-            onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.1)'; }}
-            onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
+            onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.55)'; }}
+            onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.35)'; }}
           >
             {t("common:auth.startFree")}
           </button>
@@ -458,10 +458,10 @@ const AuthPage = () => {
         <div className="hidden lg:block lg:w-1/2 relative overflow-hidden" dir={pageDir}>
           <div
             className="absolute inset-0 pointer-events-none"
-            style={{ background: 'linear-gradient(90deg, rgba(3,10,22,0.20) 0%, rgba(3,10,22,0.05) 60%, rgba(3,10,22,0.35) 100%)' }}
+            style={{ background: 'linear-gradient(90deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0.0) 60%, rgba(255,255,255,0.15) 100%)' }}
           />
           <div className="absolute bottom-8 inset-x-0 flex justify-center px-10">
-            <p style={{ color: 'rgba(255,255,255,0.85)', fontSize: 11, fontWeight: 300, letterSpacing: '0.18em', textTransform: 'uppercase' as const, textShadow: '0 1px 8px rgba(2,8,20,0.45)' }}>
+            <p style={{ color: 'rgba(13,27,46,0.75)', fontSize: 11, fontWeight: 400, letterSpacing: '0.18em', textTransform: 'uppercase' as const, textShadow: '0 1px 8px rgba(255,255,255,0.6)' }}>
               UNIFY ERP · CONNECT WITHOUT BOUNDARIES
             </p>
           </div>
