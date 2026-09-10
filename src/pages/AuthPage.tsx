@@ -791,13 +791,28 @@ const AuthPage = () => {
                     <button
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
-                      className="absolute left-3 top-1/2 -translate-y-1/2 transition-colors"
-                      style={{ color: 'rgba(255,255,255,0.50)' }}
+                      aria-label={showPassword ? "Hide password" : "Show password"}
+                      className="absolute left-2 top-1/2 -translate-y-1/2 h-7 w-7 flex items-center justify-center rounded-full transition-all hover:bg-white/[0.18] active:scale-90"
+                      style={{ color: 'rgba(255,255,255,0.65)' }}
                     >
                       {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                     </button>
                   </div>
                 </div>
+              )}
+
+              {/* Remember me */}
+              {mode === "login" && (
+                <label className="flex items-center gap-2 cursor-pointer select-none" style={{ color: 'rgba(255,255,255,0.70)', fontSize: 13, fontWeight: 300 }}>
+                  <input
+                    type="checkbox"
+                    checked={rememberMe}
+                    onChange={e => setRememberMe(e.target.checked)}
+                    className="h-4 w-4 rounded"
+                    style={{ accentColor: '#0D1B2E' }}
+                  />
+                  {t("common:auth.rememberMe")}
+                </label>
               )}
 
               {/* Confirm password */}
@@ -821,8 +836,9 @@ const AuthPage = () => {
                     <button
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
-                      className="absolute left-3 top-1/2 -translate-y-1/2 transition-colors"
-                      style={{ color: 'rgba(255,255,255,0.50)' }}
+                      aria-label={showPassword ? "Hide password" : "Show password"}
+                      className="absolute left-2 top-1/2 -translate-y-1/2 h-7 w-7 flex items-center justify-center rounded-full transition-all hover:bg-white/[0.18] active:scale-90"
+                      style={{ color: 'rgba(255,255,255,0.65)' }}
                     >
                       {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                     </button>
@@ -866,7 +882,9 @@ const AuthPage = () => {
                 onMouseLeave={e => { e.currentTarget.style.background = '#0D1B2E'; }}
               >
                 {loading && <Loader2 className="h-4 w-4 animate-spin" />}
-                {mode === "login" ? t("common:auth.submitLogin") : mode === "signup" ? t("common:auth.submitSignup") : t("common:auth.submitForgot")}
+                {loading && mode === "login"
+                  ? t("common:auth.signingIn")
+                  : mode === "login" ? t("common:auth.submitLogin") : mode === "signup" ? t("common:auth.submitSignup") : t("common:auth.submitForgot")}
               </button>
 
               {mode === "login" && unconfirmedEmail && (
@@ -940,6 +958,22 @@ const AuthPage = () => {
                   {t("common:auth.forgotHint")}
                 </p>
               )}
+            </div>
+
+            {/* Support + legal footer */}
+            <div className="text-center mt-6 space-y-3">
+              <p className="flex items-center justify-center gap-1.5" style={{ color: 'rgba(255,255,255,0.65)', fontSize: 12.5, fontWeight: 300 }}>
+                <LifeBuoy className="h-3.5 w-3.5" style={{ color: 'rgba(255,255,255,0.55)' }} />
+                {t("common:auth.needHelp")}{" "}
+                <a href="mailto:support@unifyerp.app" className="hover:underline" style={{ color: '#FFFFFF', fontWeight: 400 }}>
+                  {t("common:auth.contactSupport")}
+                </a>
+              </p>
+              <p style={{ color: 'rgba(255,255,255,0.40)', fontSize: 11.5, fontWeight: 300 }}>
+                <Link to="/privacy" className="hover:underline">{t("common:auth.footerPrivacy")}</Link>
+                <span className="mx-2">·</span>
+                <Link to="/terms" className="hover:underline">{t("common:auth.footerTerms")}</Link>
+              </p>
             </div>
           </div>
         </div>
