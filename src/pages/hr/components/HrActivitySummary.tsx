@@ -80,7 +80,7 @@ export function HrActivitySummary() {
       const [auditRes, printsRes, usersRes] = await Promise.all([
         supabase
           .from("employee_form_audit_log")
-          .select("id, created_at, action, actor_name, employee_forms(id, form_type, employees(full_name))")
+          .select("id, created_at, action, actor_name, employee_forms(id, form_type, title, employees(full_name))")
           .gte("created_at", since)
           .order("created_at", { ascending: false })
           .limit(150),
