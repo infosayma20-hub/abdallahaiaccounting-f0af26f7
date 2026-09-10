@@ -429,15 +429,17 @@ const AuthPage = () => {
 
   return (
     <>
-    <div className="h-screen flex flex-col relative overflow-hidden" dir="ltr">
+    {/* Dark base colour so the very first paint is already dark — the photo
+        fades in on top instead of flashing white underneath it. */}
+    <div className="h-screen flex flex-col relative overflow-hidden" dir="ltr" style={{ background: '#0A1018' }}>
       {/* Full-screen dusk skyline background */}
       <img
         src={authHeroBg}
         alt=""
         width={1920}
-        height={1280}
+        height={1088}
         fetchPriority="high"
-        decoding="async"
+        decoding="sync"
         className="absolute inset-0 h-full w-full object-cover pointer-events-none select-none"
         draggable={false}
       />
