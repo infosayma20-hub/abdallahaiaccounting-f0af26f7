@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, lazy, Suspense } from "react";
 import SamiChatbot from "@/components/SamiChatbot";
 const unifyMarkWhite = { url: "/branding/icon-white.png" };
 import unifyLogoVertical from "@/assets/unify-logo-vertical-v2-opt.webp";
-import authHeroBg from "@/assets/auth-hero-bg-opt.webp";
+import authHeroBg from "@/assets/auth-hero-sunrise.jpg";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable/index";
@@ -393,21 +393,23 @@ const AuthPage = () => {
   };
 
   const inputStyle = {
-    background: '#FFFFFF',
-    border: '1px solid #E8EDF2',
+    background: 'rgba(255,255,255,0.65)',
+    border: '1px solid rgba(13,27,46,0.10)',
     color: '#0D1B2E',
     fontWeight: 300 as const,
+    backdropFilter: 'blur(6px)',
+    WebkitBackdropFilter: 'blur(6px)',
   };
 
   const inputFocusHandlers = {
     onFocus: (e: React.FocusEvent<HTMLInputElement>) => {
       e.target.style.borderColor = '#0D1B2E';
-      e.target.style.background = '#FFFFFF';
-      e.target.style.boxShadow = '0 0 0 3px rgba(13,27,46,0.06)';
+      e.target.style.background = 'rgba(255,255,255,0.85)';
+      e.target.style.boxShadow = '0 0 0 3px rgba(13,27,46,0.08)';
     },
     onBlur: (e: React.FocusEvent<HTMLInputElement>) => {
-      e.target.style.borderColor = '#E8EDF2';
-      e.target.style.background = '#FFFFFF';
+      e.target.style.borderColor = 'rgba(13,27,46,0.10)';
+      e.target.style.background = 'rgba(255,255,255,0.65)';
       e.target.style.boxShadow = 'none';
     },
   };
@@ -421,8 +423,8 @@ const AuthPage = () => {
       <img
         src={authHeroBg}
         alt=""
-        width={1600}
-        height={1067}
+        width={1920}
+        height={1280}
         fetchPriority="high"
         decoding="async"
         className="absolute inset-0 h-full w-full object-cover pointer-events-none select-none"
@@ -430,23 +432,23 @@ const AuthPage = () => {
       />
       <div
         className="absolute inset-0 pointer-events-none"
-        style={{ background: 'linear-gradient(180deg, rgba(5,14,28,0.62) 0%, rgba(5,14,28,0.35) 40%, rgba(5,14,28,0.78) 100%)' }}
+        style={{ background: 'linear-gradient(180deg, rgba(255,255,255,0.10) 0%, rgba(255,255,255,0.02) 40%, rgba(255,255,255,0.18) 100%)' }}
       />
 
       {/* Top Nav — transparent over the skyline; pushed below the iPhone notch/status bar */}
       <nav
         className="relative z-50 w-full flex items-center justify-between px-4 sm:px-12 shrink-0" dir={pageDir}
-        style={{ background: 'linear-gradient(180deg, rgba(5,14,28,0.55) 0%, rgba(5,14,28,0) 100%)', borderBottom: 'none', minHeight: 'calc(56px + env(safe-area-inset-top))', paddingTop: 'env(safe-area-inset-top)' }}
+        style={{ background: 'linear-gradient(180deg, rgba(255,255,255,0.35) 0%, rgba(255,255,255,0) 100%)', borderBottom: 'none', minHeight: 'calc(56px + env(safe-area-inset-top))', paddingTop: 'env(safe-area-inset-top)' }}
       >
-        <img src={unifyMarkWhite.url} alt="Unify يونيفاي" className="h-9 w-auto object-contain" />
+        <img src={unifyMarkWhite.url} alt="Unify يونيفاي" className="h-9 w-auto object-contain" style={{ filter: 'drop-shadow(0 1px 6px rgba(13,27,46,0.45))' }} />
         <div className="flex items-center gap-3">
           <LanguageSwitcher />
           <button
             className="px-6 py-2 rounded-lg text-sm transition-all"
-            style={{ background: 'transparent', color: '#FFFFFF', fontWeight: 400, letterSpacing: '0.01em', border: '1.5px solid rgba(255,255,255,0.5)' }}
+            style={{ background: 'rgba(255,255,255,0.35)', color: '#0D1B2E', fontWeight: 400, letterSpacing: '0.01em', border: '1.5px solid rgba(13,27,46,0.35)', backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)' }}
             onClick={() => setMode("signup")}
-            onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.1)'; }}
-            onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
+            onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.55)'; }}
+            onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.35)'; }}
           >
             {t("common:auth.startFree")}
           </button>
@@ -458,10 +460,10 @@ const AuthPage = () => {
         <div className="hidden lg:block lg:w-1/2 relative overflow-hidden" dir={pageDir}>
           <div
             className="absolute inset-0 pointer-events-none"
-            style={{ background: 'linear-gradient(90deg, rgba(3,10,22,0.20) 0%, rgba(3,10,22,0.05) 60%, rgba(3,10,22,0.35) 100%)' }}
+            style={{ background: 'linear-gradient(90deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0.0) 60%, rgba(255,255,255,0.15) 100%)' }}
           />
           <div className="absolute bottom-8 inset-x-0 flex justify-center px-10">
-            <p style={{ color: 'rgba(255,255,255,0.85)', fontSize: 11, fontWeight: 300, letterSpacing: '0.18em', textTransform: 'uppercase' as const, textShadow: '0 1px 8px rgba(2,8,20,0.45)' }}>
+            <p style={{ color: 'rgba(13,27,46,0.75)', fontSize: 11, fontWeight: 400, letterSpacing: '0.18em', textTransform: 'uppercase' as const, textShadow: '0 1px 8px rgba(255,255,255,0.6)' }}>
               UNIFY ERP · CONNECT WITHOUT BOUNDARIES
             </p>
           </div>
@@ -472,20 +474,20 @@ const AuthPage = () => {
           className="flex-1 lg:w-1/2 flex flex-col items-center justify-center px-4 sm:px-10 py-6 overflow-y-auto relative"
           dir={pageDir}
           style={{
-            background: 'rgba(10,18,32,0.42)',
-            backdropFilter: 'blur(26px)',
-            WebkitBackdropFilter: 'blur(26px)',
-            borderInlineStart: '1px solid rgba(255,255,255,0.10)',
+            background: 'rgba(255,255,255,0.14)',
+            backdropFilter: 'blur(22px)',
+            WebkitBackdropFilter: 'blur(22px)',
+            borderInlineStart: '1px solid rgba(255,255,255,0.35)',
           }}
         >
           <div
             className="w-full max-w-[400px] my-auto rounded-3xl px-6 sm:px-8 py-5 max-h-[calc(100vh-96px)] overflow-y-auto"
             style={{
-              background: 'rgba(255,255,255,0.96)',
-              backdropFilter: 'blur(18px)',
-              WebkitBackdropFilter: 'blur(18px)',
-              boxShadow: '0 40px 110px rgba(2,8,20,0.55), 0 8px 26px rgba(2,8,20,0.30)',
-              border: '1px solid rgba(255,255,255,0.7)',
+              background: 'rgba(255,255,255,0.38)',
+              backdropFilter: 'blur(30px) saturate(150%)',
+              WebkitBackdropFilter: 'blur(30px) saturate(150%)',
+              boxShadow: '0 30px 90px rgba(13,27,46,0.18), 0 8px 24px rgba(13,27,46,0.10), inset 0 1px 0 rgba(255,255,255,0.65)',
+              border: '1px solid rgba(255,255,255,0.55)',
             }}
           >
 
@@ -913,7 +915,7 @@ const AuthPage = () => {
               {mode === "login" && (
                 <div
                   className="flex items-center justify-between gap-3 rounded-xl px-4 py-3"
-                  style={{ background: '#F7F8FA', border: '1px solid #E8EDF2' }}
+                  style={{ background: 'rgba(255,255,255,0.45)', border: '1px solid rgba(255,255,255,0.6)' }}
                 >
                   <div className="text-start flex-1 min-w-0">
                     <p style={{ color: '#0D1B2E', fontSize: 13, fontWeight: 400 }}>{t("common:auth.trialTitle")}</p>
