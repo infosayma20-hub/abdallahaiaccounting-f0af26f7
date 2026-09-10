@@ -507,7 +507,7 @@ const AuthPage = () => {
 
         {/* Glass side — full-height frosted panel, no card box, form sits directly on the glass */}
         <div
-          className="flex-1 lg:w-[45%] flex flex-col items-center justify-center px-4 sm:px-10 overflow-y-auto relative"
+          className="flex-1 lg:w-[38%] flex flex-col items-center justify-center px-4 sm:px-8 overflow-y-auto relative"
           dir={pageDir}
           style={{
             background: 'linear-gradient(160deg, rgba(10,16,28,0.42) 0%, rgba(10,16,28,0.30) 100%)',
@@ -518,7 +518,7 @@ const AuthPage = () => {
             paddingBottom: 'env(safe-area-inset-bottom)',
           }}
         >
-          <div className="w-full max-w-[440px] my-auto py-2">
+          <div className="w-full max-w-[380px] my-auto py-2">
 
 
             {/* Logo — vertical stacked mark */}
