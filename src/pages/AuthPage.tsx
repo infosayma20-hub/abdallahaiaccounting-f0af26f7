@@ -965,7 +965,13 @@ const AuthPage = () => {
               <p className="flex items-center justify-center gap-1.5" style={{ color: 'rgba(255,255,255,0.65)', fontSize: 12.5, fontWeight: 300 }}>
                 <LifeBuoy className="h-3.5 w-3.5" style={{ color: 'rgba(255,255,255,0.55)' }} />
                 {t("common:auth.needHelp")}{" "}
-                <a href="mailto:support@unifyerp.app" className="hover:underline" style={{ color: '#FFFFFF', fontWeight: 400 }}>
+                <a
+                  href="https://wa.me/970599000000"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="hover:underline"
+                  style={{ color: '#FFFFFF', fontWeight: 400 }}
+                >
                   {t("common:auth.contactSupport")}
                 </a>
               </p>
