@@ -34,7 +34,7 @@ import FeedbackShell from "./components/layout/FeedbackShell";
 import RoleGuard from "./components/RoleGuard";
 import { OnboardingGate } from "@/components/auth/OnboardingGate";
 import HRPermGuard from "./components/HRPermGuard";
-import HRShell from "./components/hr/HRShell";
+const HRShell = lazy(() => import("./components/hr/HRShell"));
 const InvoicesPage = lazy(() => import("./pages/InvoicesPage"));
 const BirthdayPreview = lazy(() => import("@/pages/__BirthdayPreview"));
 const ModuleGuard = lazy(() => import("./components/layout/ModuleGuard"));
