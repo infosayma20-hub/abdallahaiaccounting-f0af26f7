@@ -351,7 +351,7 @@ export default function JobApplicationPage() {
           education: cfg.sections.education ? clean(education) : [],
           courses: cfg.sections.courses ? clean(courses) : [],
           languages: cfg.sections.languages ? clean(languages) : [],
-          experience: cfg.sections.experience ? clean(experience) : [],
+          experience: cfg.sections.experience && !noExperience ? clean(experience) : [],
           referees: cfg.sections.referees ? clean(referees) : [],
           shift_preference: cfg.sections.preferences ? shift : "",
           job_type: cfg.sections.preferences ? jobType : "",
