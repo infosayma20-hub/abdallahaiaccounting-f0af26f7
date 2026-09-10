@@ -472,20 +472,20 @@ const AuthPage = () => {
           className="flex-1 lg:w-1/2 flex flex-col items-center justify-center px-4 sm:px-10 py-6 overflow-y-auto relative"
           dir={pageDir}
           style={{
-            background: 'rgba(10,18,32,0.42)',
-            backdropFilter: 'blur(26px)',
-            WebkitBackdropFilter: 'blur(26px)',
-            borderInlineStart: '1px solid rgba(255,255,255,0.10)',
+            background: 'rgba(255,255,255,0.14)',
+            backdropFilter: 'blur(22px)',
+            WebkitBackdropFilter: 'blur(22px)',
+            borderInlineStart: '1px solid rgba(255,255,255,0.35)',
           }}
         >
           <div
             className="w-full max-w-[400px] my-auto rounded-3xl px-6 sm:px-8 py-5 max-h-[calc(100vh-96px)] overflow-y-auto"
             style={{
-              background: 'rgba(255,255,255,0.96)',
-              backdropFilter: 'blur(18px)',
-              WebkitBackdropFilter: 'blur(18px)',
-              boxShadow: '0 40px 110px rgba(2,8,20,0.55), 0 8px 26px rgba(2,8,20,0.30)',
-              border: '1px solid rgba(255,255,255,0.7)',
+              background: 'rgba(255,255,255,0.38)',
+              backdropFilter: 'blur(30px) saturate(150%)',
+              WebkitBackdropFilter: 'blur(30px) saturate(150%)',
+              boxShadow: '0 30px 90px rgba(13,27,46,0.18), 0 8px 24px rgba(13,27,46,0.10), inset 0 1px 0 rgba(255,255,255,0.65)',
+              border: '1px solid rgba(255,255,255,0.55)',
             }}
           >
 
