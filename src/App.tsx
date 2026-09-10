@@ -26,6 +26,10 @@ import { ThemeProvider } from "@/hooks/useTheme";
 import { CompanyProvider } from "@/hooks/useCompanyContext";
 import { CompanyThemeProvider } from "@/hooks/useCompanyTheme";
 import { ReadOnlyProvider } from "@/contexts/ReadOnlyContext";
+// Keep the login page in the initial bundle. Lazy-loading it created a first
+// full-screen fallback before the separate account check, which looked like
+// two consecutive loading screens on every hard refresh.
+import AuthPage from "./pages/AuthPage";
 // Authenticated-app shells load on demand — keeping them out of the initial
 // bundle means the login screen no longer waits for the whole app UI
 // (top bar widgets, calculator, markdown support widget, HR bell …).
@@ -66,7 +70,6 @@ const ExportPage = lazy(() => import("./pages/ExportPage"));
 const SmartReportPage = lazy(() => import("./pages/SmartReportPage"));
 const JournalEntriesPage = lazy(() => import("./pages/JournalEntriesPage"));
 const TrialBalancePage = lazy(() => import("./pages/TrialBalancePage"));
-const AuthPage = lazy(() => import("./pages/AuthPage"));
 const AuthVerifyPage = lazy(() => import("./pages/AuthVerifyPage"));
 const ResetPasswordPage = lazy(() => import("./pages/ResetPasswordPage"));
 const PricingPage = lazy(() => import("./pages/PricingPage"));
