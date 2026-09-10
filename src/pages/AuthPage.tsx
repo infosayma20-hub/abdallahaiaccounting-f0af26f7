@@ -419,7 +419,7 @@ const AuthPage = () => {
   return (
     <>
     <div className="h-screen flex flex-col relative overflow-hidden" dir="ltr">
-      {/* Full-screen luxury background — 8K night skyline */}
+      {/* Full-screen dusk skyline background */}
       <img
         src={authHeroBg}
         alt=""
@@ -432,72 +432,81 @@ const AuthPage = () => {
       />
       <div
         className="absolute inset-0 pointer-events-none"
-        style={{ background: 'linear-gradient(180deg, rgba(255,255,255,0.10) 0%, rgba(255,255,255,0.02) 40%, rgba(255,255,255,0.18) 100%)' }}
+        style={{ background: 'linear-gradient(180deg, rgba(5,10,20,0.25) 0%, rgba(5,10,20,0.05) 40%, rgba(5,10,20,0.35) 100%)' }}
       />
 
-      {/* Top Nav — transparent over the skyline; pushed below the iPhone notch/status bar */}
+      {/* Top Nav — transparent over the photo; pushed below the iPhone notch/status bar */}
       <nav
         className="relative z-50 w-full flex items-center justify-between px-4 sm:px-12 shrink-0" dir={pageDir}
-        style={{ background: 'linear-gradient(180deg, rgba(255,255,255,0.35) 0%, rgba(255,255,255,0) 100%)', borderBottom: 'none', minHeight: 'calc(56px + env(safe-area-inset-top))', paddingTop: 'env(safe-area-inset-top)' }}
+        style={{ borderBottom: 'none', minHeight: 'calc(56px + env(safe-area-inset-top))', paddingTop: 'env(safe-area-inset-top)' }}
       >
-        <img src={unifyMarkWhite.url} alt="Unify يونيفاي" className="h-9 w-auto object-contain" style={{ filter: 'drop-shadow(0 1px 6px rgba(13,27,46,0.45))' }} />
+        <img src={unifyMarkWhite.url} alt="Unify يونيفاي" className="h-9 w-auto object-contain" style={{ filter: 'drop-shadow(0 1px 6px rgba(0,0,0,0.45))' }} />
         <div className="flex items-center gap-3">
           <LanguageSwitcher />
           <button
             className="px-6 py-2 rounded-lg text-sm transition-all"
-            style={{ background: 'rgba(255,255,255,0.35)', color: '#0D1B2E', fontWeight: 400, letterSpacing: '0.01em', border: '1.5px solid rgba(13,27,46,0.35)', backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)' }}
+            style={{ background: 'rgba(255,255,255,0.10)', color: '#FFFFFF', fontWeight: 400, letterSpacing: '0.01em', border: '1.5px solid rgba(255,255,255,0.45)', backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)' }}
             onClick={() => setMode("signup")}
-            onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.55)'; }}
-            onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.35)'; }}
+            onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.22)'; }}
+            onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.10)'; }}
           >
             {t("common:auth.startFree")}
           </button>
         </div>
       </nav>
 
-      <div className="flex-1 flex flex-row relative z-10">
-        {/* LEFT — pure cinematic photo panel (image shows through) */}
-        <div className="hidden lg:block lg:w-1/2 relative overflow-hidden" dir={pageDir}>
+      <div className="flex-1 flex flex-row relative z-10 min-h-0">
+        {/* Photo side — pure cinematic panel with the brand message */}
+        <div className="hidden lg:flex lg:w-[55%] relative overflow-hidden flex-col justify-end" dir={pageDir}>
           <div
             className="absolute inset-0 pointer-events-none"
-            style={{ background: 'linear-gradient(90deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0.0) 60%, rgba(255,255,255,0.15) 100%)' }}
+            style={{ background: 'linear-gradient(0deg, rgba(5,10,20,0.55) 0%, rgba(5,10,20,0.0) 45%)' }}
           />
-          <div className="absolute bottom-8 inset-x-0 flex justify-center px-10">
-            <p style={{ color: 'rgba(13,27,46,0.75)', fontSize: 11, fontWeight: 400, letterSpacing: '0.18em', textTransform: 'uppercase' as const, textShadow: '0 1px 8px rgba(255,255,255,0.6)' }}>
-              UNIFY ERP · CONNECT WITHOUT BOUNDARIES
+          <div className="relative px-12 pb-12 space-y-4">
+            <h1 style={{ color: '#FFFFFF', fontSize: 44, fontWeight: 300, lineHeight: 1.25, fontFamily: 'Tajawal', textShadow: '0 2px 20px rgba(0,0,0,0.45)' }}>
+              {t("common:auth.heroLine1")}
+              <br />
+              <span style={{ fontWeight: 500 }}>{t("common:auth.heroLine2")}</span>
+            </h1>
+            <p style={{ color: 'rgba(255,255,255,0.80)', fontSize: 15, fontWeight: 300, fontFamily: 'Tajawal', textShadow: '0 1px 10px rgba(0,0,0,0.5)' }}>
+              {t("common:auth.heroSubtitle")}
             </p>
+            <div className="flex flex-wrap gap-x-6 gap-y-2 pt-1">
+              {features.map((f, i) => (
+                <span key={i} className="flex items-center gap-2" style={{ color: 'rgba(255,255,255,0.85)', fontSize: 13, fontWeight: 300, fontFamily: 'Tajawal', textShadow: '0 1px 8px rgba(0,0,0,0.5)' }}>
+                  <Check className="h-3.5 w-3.5" style={{ color: '#FFFFFF' }} />
+                  {f}
+                </span>
+              ))}
+            </div>
           </div>
         </div>
 
-        {/* RIGHT — frosted panel with the login card, mirroring the reference layout */}
+        {/* Glass side — full-height frosted panel, no card box, form sits directly on the glass */}
         <div
-          className="flex-1 lg:w-1/2 flex flex-col items-center justify-center px-4 sm:px-10 py-6 overflow-y-auto relative"
+          className="flex-1 lg:w-[45%] flex flex-col items-center justify-center px-4 sm:px-10 py-6 overflow-y-auto relative"
           dir={pageDir}
-          style={{ background: 'transparent' }}
+          style={{
+            background: 'linear-gradient(160deg, rgba(10,16,28,0.42) 0%, rgba(10,16,28,0.30) 100%)',
+            backdropFilter: 'blur(26px) saturate(150%)',
+            WebkitBackdropFilter: 'blur(26px) saturate(150%)',
+            borderInlineStart: '1px solid rgba(255,255,255,0.14)',
+          }}
         >
-          <div
-            className="w-full max-w-[400px] my-auto rounded-3xl px-6 sm:px-8 py-5 max-h-[calc(100vh-96px)] overflow-y-auto"
-            style={{
-              background: 'linear-gradient(160deg, rgba(180,205,235,0.22) 0%, rgba(150,180,220,0.10) 100%)',
-              backdropFilter: 'blur(16px) saturate(160%) brightness(0.97)',
-              WebkitBackdropFilter: 'blur(16px) saturate(160%) brightness(0.97)',
-              boxShadow: '0 30px 90px rgba(13,27,46,0.20), inset 0 1px 0 rgba(255,255,255,0.55), inset 0 0 60px rgba(255,255,255,0.06)',
-              border: '1px solid rgba(255,255,255,0.50)',
-            }}
-          >
+          <div className="w-full max-w-[400px] my-auto py-2">
 
 
-            {/* Logo — vertical stacked mark on the card */}
+            {/* Logo — vertical stacked mark */}
             <div className="w-full flex items-center justify-center pt-1 pb-0 -mb-3 md:-mb-4">
-              <img src={unifyLogoVertical} alt="Unify يونيفاي — Connect Without Boundaries" className="h-36 md:h-44 w-auto mx-auto block object-contain select-none" draggable={false} />
+              <img src={unifyLogoVertical} alt="Unify يونيفاي — Connect Without Boundaries" className="h-36 md:h-44 w-auto mx-auto block object-contain select-none" draggable={false} style={{ filter: 'drop-shadow(0 2px 14px rgba(0,0,0,0.35))' }} />
             </div>
 
             {/* Header — thin Tajawal, generous tracking */}
             <div className="text-center mt-0 mb-6">
-              <h2 style={{ color: '#071D49', fontSize: 28, fontWeight: 300, letterSpacing: '-0.02em', marginBottom: 6, fontFamily: 'Tajawal', lineHeight: 1.15 }}>
+              <h2 style={{ color: '#FFFFFF', fontSize: 28, fontWeight: 300, letterSpacing: '-0.02em', marginBottom: 6, fontFamily: 'Tajawal', lineHeight: 1.15, textShadow: '0 1px 12px rgba(0,0,0,0.35)' }}>
                 {mode === "login" ? t("common:auth.welcome") : mode === "signup" ? t("common:auth.createAccount") : t("common:auth.resetPassword")}
               </h2>
-              <p style={{ color: '#8896A4', fontSize: 14, fontWeight: 300, fontFamily: 'Tajawal' }}>
+              <p style={{ color: 'rgba(255,255,255,0.70)', fontSize: 14, fontWeight: 300, fontFamily: 'Tajawal' }}>
                 {mode === "login" ? t("common:auth.loginSubtitle") : mode === "signup" ? t("common:auth.signupSubtitle") : t("common:auth.forgotSubtitle")}
               </p>
             </div>
