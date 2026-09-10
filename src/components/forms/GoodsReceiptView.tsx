@@ -6,6 +6,7 @@ type Entry = {
   category: string;
   item: string;
   qty: string | number;
+  unit?: string;
   expiry?: string;
   conformity?: string;
   temperature?: string;
