@@ -96,7 +96,7 @@ const DEGREE_OPTIONS = [
 const emptyEdu = (): Row => ({ degree: "", major: "", place: "", from: "", to: "" });
 const emptyCourse = (): Row => ({ name: "", org: "", hours: "", year: "" });
 const emptyExp = (): Row => ({ workplace: "", position: "", from: "", to: "" });
-const emptyRef = (): Row => ({ name: "", phone: "", mobile: "", email: "" });
+const emptyRef = (): Row => ({ name: "", phone: "", mobile: "", email: "", relation: "" });
 const emptyLang = (): Row => ({ language: "", speaking: "", reading: "", writing: "" });
 
 /** منسدلة سنة مع خياري «لا يوجد» و«حتى الآن». */
@@ -692,12 +692,13 @@ export default function JobApplicationPage() {
             <RepeaterHeader title="المعرفون" onAdd={() => setReferees((r) => [...r, emptyRef()])} />
             <div className="space-y-3">
               {referees.map((row, i) => (
-                <div key={i} className="grid grid-cols-2 sm:grid-cols-4 gap-2 items-end">
+                <div key={i} className="grid grid-cols-2 sm:grid-cols-3 gap-2 items-end">
                   <Input placeholder="الاسم" value={row.name} onChange={(e) => setReferees((rows) => rows.map((r, x) => x === i ? { ...r, name: e.target.value } : r))} />
                   <Input placeholder="هاتف" value={row.phone} onChange={(e) => setReferees((rows) => rows.map((r, x) => x === i ? { ...r, phone: e.target.value } : r))} />
                   <Input placeholder="محمول" value={row.mobile} onChange={(e) => setReferees((rows) => rows.map((r, x) => x === i ? { ...r, mobile: e.target.value } : r))} />
-                  <div className="flex gap-1">
-                    <Input placeholder="بريد إلكتروني" value={row.email} onChange={(e) => setReferees((rows) => rows.map((r, x) => x === i ? { ...r, email: e.target.value } : r))} />
+                  <Input placeholder="بريد إلكتروني" value={row.email} onChange={(e) => setReferees((rows) => rows.map((r, x) => x === i ? { ...r, email: e.target.value } : r))} />
+                  <div className="flex gap-1 col-span-2 sm:col-span-1">
+                    <Input placeholder="الوظيفة أو العلاقة (لماذا معرّف؟)" value={row.relation} onChange={(e) => setReferees((rows) => rows.map((r, x) => x === i ? { ...r, relation: e.target.value } : r))} />
                     <Button type="button" variant="ghost" size="icon" className="min-h-11 min-w-11" aria-label="حذف السطر" onClick={() => setReferees((rows) => rows.filter((_, x) => x !== i))}>
                       <Trash2 className="h-4 w-4 text-destructive" />
                     </Button>
