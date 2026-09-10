@@ -184,6 +184,12 @@ const common = {
     haveAccount: "Already have an account?",
     backToLogin: "Back to sign in",
     forgotHint: "The second button is for employees linked to a company.",
+    rememberMe: "Remember me on this device",
+    signingIn: "Signing you in…",
+    needHelp: "Need help signing in?",
+    contactSupport: "Contact support",
+    footerTerms: "Terms of Use",
+    footerPrivacy: "Privacy Policy",
   },
 
 };

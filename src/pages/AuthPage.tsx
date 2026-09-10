@@ -11,7 +11,7 @@ import { Link } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { useTranslation } from "react-i18next";
 import LanguageSwitcher from "@/i18n/LanguageSwitcher";
-import { Loader2, ScanFace, Mail, Lock, Eye, EyeOff, Check } from "lucide-react";
+import { Loader2, ScanFace, Mail, Lock, Eye, EyeOff, Check, LifeBuoy } from "lucide-react";
 import { startAuthentication, browserSupportsWebAuthn } from "@simplewebauthn/browser";
 
 const FinancialCanvas = lazy(() => import("@/components/auth/FinancialCanvas"));
@@ -42,6 +42,7 @@ const AuthPage = () => {
   const [supportsPasskeys, setSupportsPasskeys] = useState(false);
   const [savedEmail, setSavedEmail] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [rememberMe, setRememberMe] = useState(false);
   const [unconfirmedEmail, setUnconfirmedEmail] = useState<string | null>(null);
   // Trial-signup lead fields (mandatory when creating a new account)
   const [fullName, setFullName] = useState("");
@@ -62,6 +63,10 @@ const AuthPage = () => {
   useEffect(() => {
     const prefill = (searchParams.get("email") || "").trim();
     if (prefill) setEmail(prefill);
+    else {
+      const remembered = (localStorage.getItem("remembered_email") || "").trim();
+      if (remembered) { setEmail(remembered); setRememberMe(true); }
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -294,6 +299,8 @@ const AuthPage = () => {
         normalizeAuthSessionExpiry(data.session);
         normalizeStoredAuthSession();
         localStorage.removeItem("trial_banner_dismissed");
+        if (rememberMe) localStorage.setItem("remembered_email", email.trim().toLowerCase());
+        else localStorage.removeItem("remembered_email");
         if (data.user) {
           // إجبار الموظف على تغيير كلمة المرور إذا كانت مؤقتة من الأدمن
           if ((data.user.user_metadata as any)?.must_change_password) {
@@ -443,7 +450,7 @@ const AuthPage = () => {
       >
         <img src={unifyMarkWhite.url} alt="Unify يونيفاي" className="h-9 w-auto object-contain" style={{ filter: 'drop-shadow(0 1px 6px rgba(0,0,0,0.45))' }} />
         <div className="flex items-center gap-3">
-          <LanguageSwitcher />
+          <LanguageSwitcher variant="labeled" />
           <button
             className="px-6 py-2 rounded-lg text-sm transition-all"
             style={{ background: 'rgba(255,255,255,0.10)', color: '#FFFFFF', fontWeight: 400, letterSpacing: '0.01em', border: '1.5px solid rgba(255,255,255,0.45)', backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)' }}
@@ -496,17 +503,17 @@ const AuthPage = () => {
             paddingBottom: 'env(safe-area-inset-bottom)',
           }}
         >
-          <div className="w-full max-w-[400px] my-auto py-2">
+          <div className="w-full max-w-[440px] my-auto py-2">
 
 
             {/* Logo — vertical stacked mark */}
             <div className="w-full flex items-center justify-center pt-1 pb-0 -mb-3 md:-mb-4">
-              <img src={unifyLogoVertical} alt="Unify يونيفاي — Connect Without Boundaries" className="h-36 md:h-44 w-auto mx-auto block object-contain select-none" draggable={false} style={{ filter: 'drop-shadow(0 2px 14px rgba(0,0,0,0.35))' }} />
+              <img src={unifyLogoVertical} alt="Unify يونيفاي — Connect Without Boundaries" className="h-40 md:h-48 w-auto mx-auto block object-contain select-none" draggable={false} style={{ filter: 'drop-shadow(0 2px 14px rgba(0,0,0,0.35))' }} />
             </div>
 
             {/* Header — thin Tajawal, generous tracking */}
             <div className="text-center mt-0 mb-6">
-              <h2 style={{ color: '#FFFFFF', fontSize: 28, fontWeight: 300, letterSpacing: '-0.02em', marginBottom: 6, fontFamily: 'Tajawal', lineHeight: 1.15, textShadow: '0 1px 12px rgba(0,0,0,0.35)' }}>
+              <h2 style={{ color: '#FFFFFF', fontSize: 31, fontWeight: 300, letterSpacing: '-0.02em', marginBottom: 6, fontFamily: 'Tajawal', lineHeight: 1.15, textShadow: '0 1px 12px rgba(0,0,0,0.35)' }}>
                 {mode === "login" ? t("common:auth.welcome") : mode === "signup" ? t("common:auth.createAccount") : t("common:auth.resetPassword")}
               </h2>
               <p style={{ color: 'rgba(255,255,255,0.70)', fontSize: 14, fontWeight: 300, fontFamily: 'Tajawal' }}>
@@ -784,13 +791,28 @@ const AuthPage = () => {
                     <button
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
-                      className="absolute left-3 top-1/2 -translate-y-1/2 transition-colors"
-                      style={{ color: 'rgba(255,255,255,0.50)' }}
+                      aria-label={showPassword ? "Hide password" : "Show password"}
+                      className="absolute left-2 top-1/2 -translate-y-1/2 h-7 w-7 flex items-center justify-center rounded-full transition-all hover:bg-white/[0.18] active:scale-90"
+                      style={{ color: 'rgba(255,255,255,0.65)' }}
                     >
                       {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                     </button>
                   </div>
                 </div>
+              )}
+
+              {/* Remember me */}
+              {mode === "login" && (
+                <label className="flex items-center gap-2 cursor-pointer select-none" style={{ color: 'rgba(255,255,255,0.70)', fontSize: 13, fontWeight: 300 }}>
+                  <input
+                    type="checkbox"
+                    checked={rememberMe}
+                    onChange={e => setRememberMe(e.target.checked)}
+                    className="h-4 w-4 rounded"
+                    style={{ accentColor: '#0D1B2E' }}
+                  />
+                  {t("common:auth.rememberMe")}
+                </label>
               )}
 
               {/* Confirm password */}
@@ -814,8 +836,9 @@ const AuthPage = () => {
                     <button
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
-                      className="absolute left-3 top-1/2 -translate-y-1/2 transition-colors"
-                      style={{ color: 'rgba(255,255,255,0.50)' }}
+                      aria-label={showPassword ? "Hide password" : "Show password"}
+                      className="absolute left-2 top-1/2 -translate-y-1/2 h-7 w-7 flex items-center justify-center rounded-full transition-all hover:bg-white/[0.18] active:scale-90"
+                      style={{ color: 'rgba(255,255,255,0.65)' }}
                     >
                       {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                     </button>
@@ -859,7 +882,9 @@ const AuthPage = () => {
                 onMouseLeave={e => { e.currentTarget.style.background = '#0D1B2E'; }}
               >
                 {loading && <Loader2 className="h-4 w-4 animate-spin" />}
-                {mode === "login" ? t("common:auth.submitLogin") : mode === "signup" ? t("common:auth.submitSignup") : t("common:auth.submitForgot")}
+                {loading && mode === "login"
+                  ? t("common:auth.signingIn")
+                  : mode === "login" ? t("common:auth.submitLogin") : mode === "signup" ? t("common:auth.submitSignup") : t("common:auth.submitForgot")}
               </button>
 
               {mode === "login" && unconfirmedEmail && (
@@ -933,6 +958,22 @@ const AuthPage = () => {
                   {t("common:auth.forgotHint")}
                 </p>
               )}
+            </div>
+
+            {/* Support + legal footer */}
+            <div className="text-center mt-6 space-y-3">
+              <p className="flex items-center justify-center gap-1.5" style={{ color: 'rgba(255,255,255,0.65)', fontSize: 12.5, fontWeight: 300 }}>
+                <LifeBuoy className="h-3.5 w-3.5" style={{ color: 'rgba(255,255,255,0.55)' }} />
+                {t("common:auth.needHelp")}{" "}
+                <a href="mailto:support@unifyerp.app" className="hover:underline" style={{ color: '#FFFFFF', fontWeight: 400 }}>
+                  {t("common:auth.contactSupport")}
+                </a>
+              </p>
+              <p style={{ color: 'rgba(255,255,255,0.40)', fontSize: 11.5, fontWeight: 300 }}>
+                <Link to="/privacy" className="hover:underline">{t("common:auth.footerPrivacy")}</Link>
+                <span className="mx-2">·</span>
+                <Link to="/terms" className="hover:underline">{t("common:auth.footerTerms")}</Link>
+              </p>
             </div>
           </div>
         </div>

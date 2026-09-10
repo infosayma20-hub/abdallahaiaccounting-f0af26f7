@@ -180,6 +180,12 @@ const common = {
     haveAccount: "יש לך חשבון?",
     backToLogin: "חזור להתחברות",
     forgotHint: "הכפתור השני מיועד לעובדים המשויכים לחברה.",
+    rememberMe: "זכור אותי במכשיר זה",
+    signingIn: "מתחבר…",
+    needHelp: "צריך עזרה בהתחברות?",
+    contactSupport: "צור קשר עם התמיכה",
+    footerTerms: "תנאי שימוש",
+    footerPrivacy: "מדיניות פרטיות",
   },
 
 };

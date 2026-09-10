@@ -187,6 +187,12 @@ const common = {
     haveAccount: "لديك حساب؟",
     backToLogin: "العودة لتسجيل الدخول",
     forgotHint: "الزر الثاني مخصص للموظفين المرتبطين بشركة.",
+    rememberMe: "تذكرني على هذا الجهاز",
+    signingIn: "جاري تسجيل الدخول…",
+    needHelp: "تحتاج مساعدة في تسجيل الدخول؟",
+    contactSupport: "تواصل مع الدعم",
+    footerTerms: "شروط الاستخدام",
+    footerPrivacy: "سياسة الخصوصية",
   },
 
 };
