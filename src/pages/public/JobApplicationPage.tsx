@@ -296,6 +296,14 @@ export default function JobApplicationPage() {
     // سنوات الخبرة: «إلى» لا تكون أقل من «من» (ما عدا «حتى الآن»)
     if (cfg.sections.experience) {
       const rows = clean(experience);
+      if (!noExperience && rows.length === 0)
+        return toast.error("مطلوب: تعبئة خبرات العمل السابقة أو اختيار «لا توجد خبرات عمل سابقة»");
+      if (!noExperience) {
+        for (const r of rows) {
+          if (!r.workplace?.trim() || !r.position?.trim() || !r.from || !r.to)
+            return toast.error("مطلوب: مكان العمل والوظيفة وسنوات الخبرة (من / إلى)");
+        }
+      }
       for (const r of rows) {
         if (r.from && r.to && r.to !== UNTIL_NOW) {
           const a = Number(r.from);
