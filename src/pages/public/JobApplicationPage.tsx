@@ -263,8 +263,7 @@ export default function JobApplicationPage() {
         [workLocation, "نوع الوظيفة (الوظيفة المطلوبة)"],
         [preferredCity, "المدينة المفضلة للعمل"],
         [smoker, "التدخين"],
-        [worksFriday, "العمل يوم الجمعة"],
-        [worksHolidays, "العمل في أيام الأعياد والمناسبات"],
+        [worksFriday === "yes" && worksHolidays === "yes" ? "yes" : "", "الموافقة على شرط دوام الجمعة والأعياد والمناسبات"],
         [license, "رخصة القيادة"],
       ];
       const missingPref = prefChecks.find(([v]) => !String(v || "").trim());
