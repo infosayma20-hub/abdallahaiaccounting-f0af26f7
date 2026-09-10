@@ -26,12 +26,15 @@ import { ThemeProvider } from "@/hooks/useTheme";
 import { CompanyProvider } from "@/hooks/useCompanyContext";
 import { CompanyThemeProvider } from "@/hooks/useCompanyTheme";
 import { ReadOnlyProvider } from "@/contexts/ReadOnlyContext";
-import WebLayout from "./components/layout/WebLayout";
+// Authenticated-app shells load on demand — keeping them out of the initial
+// bundle means the login screen no longer waits for the whole app UI
+// (top bar widgets, calculator, markdown support widget, HR bell …).
+const WebLayout = lazy(() => import("./components/layout/WebLayout"));
 import FeedbackShell from "./components/layout/FeedbackShell";
 import RoleGuard from "./components/RoleGuard";
 import { OnboardingGate } from "@/components/auth/OnboardingGate";
 import HRPermGuard from "./components/HRPermGuard";
-import HRShell from "./components/hr/HRShell";
+const HRShell = lazy(() => import("./components/hr/HRShell"));
 const InvoicesPage = lazy(() => import("./pages/InvoicesPage"));
 const BirthdayPreview = lazy(() => import("@/pages/__BirthdayPreview"));
 const ModuleGuard = lazy(() => import("./components/layout/ModuleGuard"));
@@ -422,7 +425,7 @@ const InvoiceCreatePageWrapper = () => {
 // After 10s of continuous spinning we assume an upstream loading flag is
 // stuck (network failure, RLS rejection, …) and show a recovery card with
 // a retry button + sign-out fallback — never leave the screen frozen.
-const AuthCheckSpinner = () => {
+const AuthCheckSpinner = ({ dark = false }: { dark?: boolean } = {}) => {
   const [stuck, setStuck] = useState(false);
   useEffect(() => {
     const t = setTimeout(() => setStuck(true), 10_000);
@@ -467,11 +470,18 @@ const AuthCheckSpinner = () => {
   }
 
   return (
-    <div className="flex h-full min-h-[200px] w-full items-center justify-center">
+    <div
+      className={
+        dark
+          ? "flex h-full min-h-[100dvh] w-full items-center justify-center"
+          : "flex h-full min-h-[200px] w-full items-center justify-center"
+      }
+      style={dark ? { background: "#0A1018" } : undefined}
+    >
       <div
         className="w-8 h-8 rounded-full border-2 border-transparent"
         style={{
-          borderTopColor: "hsl(var(--accent))",
+          borderTopColor: dark ? "rgba(255,255,255,0.75)" : "hsl(var(--accent))",
           animation: "navSpinRing 0.7s linear infinite",
         }}
       />
@@ -548,7 +558,9 @@ const ProtectedRoute = ({ children, blockCashier, blockSalesRep }: { children: R
 
 const AuthRoute = ({ children }: { children: React.ReactNode }) => {
   const { targetPath, checking, user, stalled, retry } = useRoleRedirect();
-  if (checking) return stalled ? <RoleResolveFallback onRetry={retry} /> : <AuthCheckSpinner />;
+  // Dark placeholder — matches the login background so there is no white flash
+  // before the login screen appears.
+  if (checking) return stalled ? <RoleResolveFallback onRetry={retry} /> : <AuthCheckSpinner dark />;
   if (user && targetPath) return <Navigate to={targetPath} replace />;
 
   const isSpartaDomain = typeof window !== "undefined" && (
