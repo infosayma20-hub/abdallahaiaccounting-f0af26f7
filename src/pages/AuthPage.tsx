@@ -554,11 +554,11 @@ const AuthPage = () => {
                 onClick={handleBiometricSignIn}
                 disabled={loading}
                 className="w-full flex items-center justify-center gap-3 h-11 rounded-xl text-sm transition-all mb-3"
-                style={{ border: '1px solid rgba(13,27,46,0.14)', background: 'rgba(255,255,255,0.22)', color: '#0D1B2E', fontWeight: 400, backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)' }}
-                onMouseEnter={e => { e.currentTarget.style.borderColor = '#0D1B2E'; }}
-                onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(13,27,46,0.14)'; }}
+                style={{ border: '1px solid rgba(255,255,255,0.22)', background: 'rgba(255,255,255,0.08)', color: '#FFFFFF', fontWeight: 400, backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)' }}
+                onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.65)'; }}
+                onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.22)'; }}
               >
-                <ScanFace className="h-5 w-5" style={{ color: '#0D1B2E' }} />
+                <ScanFace className="h-5 w-5" style={{ color: '#FFFFFF' }} />
                 {t("common:auth.faceId")}
               </button>
             )}
@@ -569,9 +569,9 @@ const AuthPage = () => {
                 onClick={handleGoogleSignIn}
                 disabled={loading}
                 className="w-full flex items-center justify-center gap-3 h-11 rounded-xl text-sm transition-all mb-5"
-                style={{ border: '1px solid rgba(13,27,46,0.14)', background: 'rgba(255,255,255,0.22)', color: '#0D1B2E', fontWeight: 400, fontFamily: 'Tajawal', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)' }}
-                onMouseEnter={e => { e.currentTarget.style.borderColor = '#0D1B2E'; }}
-                onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(13,27,46,0.14)'; }}
+                style={{ border: '1px solid rgba(255,255,255,0.22)', background: 'rgba(255,255,255,0.22)', color: '#FFFFFF', fontWeight: 400, fontFamily: 'Tajawal', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)' }}
+                onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.65)'; }}
+                onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.22)'; }}
               >
                 <svg className="h-4 w-4" viewBox="0 0 24 24">
                   <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4"/>
@@ -586,9 +586,9 @@ const AuthPage = () => {
             {/* Divider */}
             {mode !== "forgot" && (
               <div className="flex items-center gap-3 mb-5">
-                <div className="flex-1 h-px" style={{ background: '#E8EDF2' }} />
-                <span style={{ color: '#B0BAC4', fontSize: 12, fontWeight: 300 }}>{t("common:auth.or")}</span>
-                <div className="flex-1 h-px" style={{ background: '#E8EDF2' }} />
+                <div className="flex-1 h-px" style={{ background: 'rgba(255,255,255,0.25)' }} />
+                <span style={{ color: 'rgba(255,255,255,0.50)', fontSize: 12, fontWeight: 300 }}>{t("common:auth.or")}</span>
+                <div className="flex-1 h-px" style={{ background: 'rgba(255,255,255,0.25)' }} />
               </div>
             )}
 
@@ -606,7 +606,7 @@ const AuthPage = () => {
                 <>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div className="space-y-1.5">
-                      <label style={{ color: '#8896A4', fontSize: 12, fontWeight: 300 }}>{t("common:auth.fullName")}</label>
+                      <label style={{ color: 'rgba(255,255,255,0.65)', fontSize: 12, fontWeight: 300 }}>{t("common:auth.fullName")}</label>
                       <input
                         type="text"
                         placeholder={t("common:auth.fullNamePlaceholder")}
@@ -619,7 +619,7 @@ const AuthPage = () => {
                       />
                     </div>
                     <div className="space-y-1.5">
-                      <label style={{ color: '#8896A4', fontSize: 12, fontWeight: 300 }}>{t("common:auth.businessName")}</label>
+                      <label style={{ color: 'rgba(255,255,255,0.65)', fontSize: 12, fontWeight: 300 }}>{t("common:auth.businessName")}</label>
                       <input
                         type="text"
                         placeholder={t("common:auth.businessNamePlaceholder")}
@@ -634,7 +634,7 @@ const AuthPage = () => {
                   </div>
 
                   <div className="space-y-1.5">
-                    <label style={{ color: '#8896A4', fontSize: 12, fontWeight: 300 }}>{t("common:auth.phone")}</label>
+                    <label style={{ color: 'rgba(255,255,255,0.65)', fontSize: 12, fontWeight: 300 }}>{t("common:auth.phone")}</label>
                     <div className="flex gap-2" dir="ltr">
                       <select
                         value={countryCode}
@@ -677,7 +677,7 @@ const AuthPage = () => {
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div className="space-y-1.5">
-                      <label style={{ color: '#8896A4', fontSize: 12, fontWeight: 300 }}>{t("common:auth.businessType")}</label>
+                      <label style={{ color: 'rgba(255,255,255,0.65)', fontSize: 12, fontWeight: 300 }}>{t("common:auth.businessType")}</label>
                       <select
                         value={businessType}
                         onChange={e => setBusinessType(e.target.value)}
@@ -696,7 +696,7 @@ const AuthPage = () => {
                       </select>
                     </div>
                     <div className="space-y-1.5">
-                      <label style={{ color: '#8896A4', fontSize: 12, fontWeight: 300 }}>{t("common:auth.companySize")}</label>
+                      <label style={{ color: 'rgba(255,255,255,0.65)', fontSize: 12, fontWeight: 300 }}>{t("common:auth.companySize")}</label>
                       <select
                         value={employeesCount}
                         onChange={e => setEmployeesCount(e.target.value)}
@@ -714,7 +714,7 @@ const AuthPage = () => {
                     </div>
                   </div>
                   <div className="space-y-1.5">
-                    <label style={{ color: '#8896A4', fontSize: 12, fontWeight: 300 }}>{t("common:auth.address")}</label>
+                    <label style={{ color: 'rgba(255,255,255,0.65)', fontSize: 12, fontWeight: 300 }}>{t("common:auth.address")}</label>
                     <input
                       type="text"
                       placeholder={t("common:auth.addressPlaceholder")}
@@ -728,9 +728,9 @@ const AuthPage = () => {
               )}
               {/* Email */}
               <div className="space-y-1.5">
-                <label style={{ color: '#8896A4', fontSize: 12, fontWeight: 300 }}>{t("common:auth.email")}</label>
+                <label style={{ color: 'rgba(255,255,255,0.65)', fontSize: 12, fontWeight: 300 }}>{t("common:auth.email")}</label>
                 <div className="relative">
-                  <Mail className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 pointer-events-none" style={{ color: '#B0BAC4' }} />
+                  <Mail className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 pointer-events-none" style={{ color: 'rgba(255,255,255,0.50)' }} />
                   <input
                     type="email"
                     placeholder="example@email.com"
@@ -752,22 +752,22 @@ const AuthPage = () => {
               {mode !== "forgot" && (
                 <div className="space-y-1.5">
                   <div className="flex items-center justify-between">
-                    <label style={{ color: '#8896A4', fontSize: 12, fontWeight: 300 }}>{t("common:auth.password")}</label>
+                    <label style={{ color: 'rgba(255,255,255,0.65)', fontSize: 12, fontWeight: 300 }}>{t("common:auth.password")}</label>
                     {mode === "login" && (
                       <button
                         type="button"
                         onClick={() => setMode("forgot")}
                         className="transition-colors"
-                        style={{ color: '#8896A4', fontSize: 12, fontWeight: 300 }}
+                        style={{ color: 'rgba(255,255,255,0.65)', fontSize: 12, fontWeight: 300 }}
                         onMouseEnter={e => { e.currentTarget.style.color = '#0D1B2E'; }}
-                        onMouseLeave={e => { e.currentTarget.style.color = '#8896A4'; }}
+                        onMouseLeave={e => { e.currentTarget.style.color = 'rgba(255,255,255,0.65)'; }}
                       >
                         {t("common:auth.forgotPassword")}
                       </button>
                     )}
                   </div>
                   <div className="relative">
-                    <Lock className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 pointer-events-none" style={{ color: '#B0BAC4' }} />
+                    <Lock className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 pointer-events-none" style={{ color: 'rgba(255,255,255,0.50)' }} />
                     <input
                       type={showPassword ? "text" : "password"}
                       placeholder={mode === "signup" ? t("common:auth.passwordHint") : "••••••••"}
@@ -784,7 +784,7 @@ const AuthPage = () => {
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
                       className="absolute left-3 top-1/2 -translate-y-1/2 transition-colors"
-                      style={{ color: '#B0BAC4' }}
+                      style={{ color: 'rgba(255,255,255,0.50)' }}
                     >
                       {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                     </button>
@@ -795,9 +795,9 @@ const AuthPage = () => {
               {/* Confirm password */}
               {mode === "signup" && (
                 <div className="space-y-1.5">
-                  <label style={{ color: '#8896A4', fontSize: 12, fontWeight: 300 }}>{t("common:auth.confirmPassword")}</label>
+                  <label style={{ color: 'rgba(255,255,255,0.65)', fontSize: 12, fontWeight: 300 }}>{t("common:auth.confirmPassword")}</label>
                   <div className="relative">
-                    <Lock className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 pointer-events-none" style={{ color: '#B0BAC4' }} />
+                    <Lock className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 pointer-events-none" style={{ color: 'rgba(255,255,255,0.50)' }} />
                     <input
                       type={showPassword ? "text" : "password"}
                       placeholder={t("common:auth.confirmPassword")}
@@ -814,7 +814,7 @@ const AuthPage = () => {
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
                       className="absolute left-3 top-1/2 -translate-y-1/2 transition-colors"
-                      style={{ color: '#B0BAC4' }}
+                      style={{ color: 'rgba(255,255,255,0.50)' }}
                     >
                       {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                     </button>
@@ -824,7 +824,7 @@ const AuthPage = () => {
 
               {/* Terms */}
               {mode === "signup" && (
-                <label className="flex items-start gap-2 text-xs cursor-pointer" style={{ color: '#8896A4', fontWeight: 300 }}>
+                <label className="flex items-start gap-2 text-xs cursor-pointer" style={{ color: 'rgba(255,255,255,0.65)', fontWeight: 300 }}>
                   <input
                     type="checkbox"
                     checked={agreedToTerms}
@@ -834,9 +834,9 @@ const AuthPage = () => {
                   />
                   <span>
                     {t("common:auth.agreeTo")}{" "}
-                    <Link to="/terms" style={{ color: '#0D1B2E' }} className="hover:underline">{t("common:auth.terms")}</Link>
+                    <Link to="/terms" style={{ color: '#FFFFFF' }} className="hover:underline">{t("common:auth.terms")}</Link>
                     {" "}{t("common:auth.and")}{" "}
-                    <Link to="/privacy" style={{ color: '#0D1B2E' }} className="hover:underline">{t("common:auth.privacy")}</Link>
+                    <Link to="/privacy" style={{ color: '#FFFFFF' }} className="hover:underline">{t("common:auth.privacy")}</Link>
                   </span>
                 </label>
               )}
@@ -886,7 +886,7 @@ const AuthPage = () => {
                         }
                       }}
                       className="px-3 py-1.5 rounded-lg text-xs"
-                      style={{ background: '#FFFFFF', color: '#0D1B2E', border: '1px solid #0D1B2E', fontWeight: 400 }}
+                      style={{ background: '#FFFFFF', color: '#FFFFFF', border: '1px solid rgba(255,255,255,0.55)', fontWeight: 400 }}
                     >
                       {t("common:auth.resendCode")}
                     </button>
@@ -902,8 +902,8 @@ const AuthPage = () => {
                   className="w-full h-11 rounded-xl text-sm transition-all active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none flex items-center justify-center gap-2"
                   style={{
                     background: '#FFFFFF',
-                    color: '#0D1B2E',
-                    border: '1px solid #0D1B2E',
+                    color: '#FFFFFF',
+                    border: '1px solid rgba(255,255,255,0.55)',
                     fontWeight: 400,
                     letterSpacing: '0.02em',
                     fontFamily: 'Tajawal',
@@ -922,8 +922,8 @@ const AuthPage = () => {
                   style={{ background: 'rgba(255,255,255,0.14)', border: '1px solid rgba(255,255,255,0.35)' }}
                 >
                   <div className="text-start flex-1 min-w-0">
-                    <p style={{ color: '#0D1B2E', fontSize: 13, fontWeight: 400 }}>{t("common:auth.trialTitle")}</p>
-                    <p className="leading-snug" style={{ color: '#8896A4', fontSize: 11, fontWeight: 300 }}>{t("common:auth.trialSubtitle")}</p>
+                    <p style={{ color: '#FFFFFF', fontSize: 13, fontWeight: 400 }}>{t("common:auth.trialTitle")}</p>
+                    <p className="leading-snug" style={{ color: 'rgba(255,255,255,0.65)', fontSize: 11, fontWeight: 300 }}>{t("common:auth.trialSubtitle")}</p>
                   </div>
                   <button
                     onClick={() => setMode("signup")}
@@ -937,18 +937,18 @@ const AuthPage = () => {
                 </div>
               )}
               {mode === "signup" && (
-                <p style={{ color: '#8896A4', fontSize: 14, fontWeight: 300 }}>
+                <p style={{ color: 'rgba(255,255,255,0.65)', fontSize: 14, fontWeight: 300 }}>
                   {t("common:auth.haveAccount")}{" "}
-                  <button onClick={() => setMode("login")} className="hover:underline" style={{ color: '#0D1B2E', fontWeight: 400 }}>{t("common:auth.submitLogin")}</button>
+                  <button onClick={() => setMode("login")} className="hover:underline" style={{ color: '#FFFFFF', fontWeight: 400 }}>{t("common:auth.submitLogin")}</button>
                 </p>
               )}
               {mode === "forgot" && (
-                <p style={{ color: '#8896A4', fontSize: 14, fontWeight: 300 }}>
-                  <button onClick={() => setMode("login")} className="hover:underline" style={{ color: '#0D1B2E', fontWeight: 400 }}>{t("common:auth.backToLogin")}</button>
+                <p style={{ color: 'rgba(255,255,255,0.65)', fontSize: 14, fontWeight: 300 }}>
+                  <button onClick={() => setMode("login")} className="hover:underline" style={{ color: '#FFFFFF', fontWeight: 400 }}>{t("common:auth.backToLogin")}</button>
                 </p>
               )}
               {mode === "forgot" && (
-                <p className="mt-3 text-xs leading-relaxed" style={{ color: '#8896A4', fontWeight: 300 }}>
+                <p className="mt-3 text-xs leading-relaxed" style={{ color: 'rgba(255,255,255,0.65)', fontWeight: 300 }}>
                   {t("common:auth.forgotHint")}
                 </p>
               )}
