@@ -1,22 +1,9 @@
 import { useState, useEffect, useCallback } from "react";
-// Bundled (hashed) images — served from the same origin and pre-shrunk to the
-// exact size they render at, so the login screen paints in one go instead of
-// flashing while remote/oversized files download.
+// صورة الخلفية الرئيسية لشاشة تسجيل الدخول — ثابتة ولا تتبدّل.
 import unifyMarkWhiteImg from "@/assets/unify-mark-white.webp";
 import unifyLogoVertical from "@/assets/unify-logo-vertical.webp";
-import authHeroLuxury from "@/assets/auth-hero-luxury.webp";
-import authHero2 from "@/assets/auth-hero-2.webp";
-import authHero3 from "@/assets/auth-hero-3.webp";
-import authHero4 from "@/assets/auth-hero-4.webp";
-import authHero5 from "@/assets/auth-hero-5.webp";
-
-// خمس خلفيات بنفس الطابع الفخم — تتبدّل يومياً حسب تاريخ اليوم.
-// الاستيراد هنا مجرّد رابط نصّي؛ المتصفح يحمّل صورة اليوم فقط، فلا تأثير على السرعة.
-// ترتيب البداية مقصود: مؤشر اليوم الحالي يعرض الصورة المالية والإدارية الجديدة.
-// في الأيام التالية تستمر الدورة على الصور الخمس دون تحميلها مسبقاً.
-const AUTH_HERO_IMAGES = [authHero2, authHeroLuxury, authHero3, authHero4, authHero5];
-const dayIndex = Math.floor(Date.now() / 86400000) % AUTH_HERO_IMAGES.length;
-const authHeroBg = AUTH_HERO_IMAGES[dayIndex];
+import authHeroMainAsset from "@/assets/auth-hero-main.png.asset.json";
+const authHeroBg = authHeroMainAsset.url;
 
 const unifyMarkWhite = { url: unifyMarkWhiteImg };
 import { useNavigate, useSearchParams } from "react-router-dom";
