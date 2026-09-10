@@ -393,23 +393,23 @@ const AuthPage = () => {
   };
 
   const inputStyle = {
-    background: 'rgba(255,255,255,0.65)',
-    border: '1px solid rgba(13,27,46,0.10)',
+    background: 'rgba(255,255,255,0.22)',
+    border: '1px solid rgba(13,27,46,0.14)',
     color: '#0D1B2E',
     fontWeight: 300 as const,
-    backdropFilter: 'blur(6px)',
-    WebkitBackdropFilter: 'blur(6px)',
+    backdropFilter: 'blur(8px)',
+    WebkitBackdropFilter: 'blur(8px)',
   };
 
   const inputFocusHandlers = {
     onFocus: (e: React.FocusEvent<HTMLInputElement>) => {
       e.target.style.borderColor = '#0D1B2E';
-      e.target.style.background = 'rgba(255,255,255,0.85)';
+      e.target.style.background = 'rgba(255,255,255,0.40)';
       e.target.style.boxShadow = '0 0 0 3px rgba(13,27,46,0.08)';
     },
     onBlur: (e: React.FocusEvent<HTMLInputElement>) => {
-      e.target.style.borderColor = 'rgba(13,27,46,0.10)';
-      e.target.style.background = 'rgba(255,255,255,0.65)';
+      e.target.style.borderColor = 'rgba(13,27,46,0.14)';
+      e.target.style.background = 'rgba(255,255,255,0.22)';
       e.target.style.boxShadow = 'none';
     },
   };
@@ -483,11 +483,11 @@ const AuthPage = () => {
           <div
             className="w-full max-w-[400px] my-auto rounded-3xl px-6 sm:px-8 py-5 max-h-[calc(100vh-96px)] overflow-y-auto"
             style={{
-              background: 'rgba(255,255,255,0.38)',
-              backdropFilter: 'blur(30px) saturate(150%)',
-              WebkitBackdropFilter: 'blur(30px) saturate(150%)',
-              boxShadow: '0 30px 90px rgba(13,27,46,0.18), 0 8px 24px rgba(13,27,46,0.10), inset 0 1px 0 rgba(255,255,255,0.65)',
-              border: '1px solid rgba(255,255,255,0.55)',
+              background: 'rgba(255,255,255,0.10)',
+              backdropFilter: 'blur(28px) saturate(160%)',
+              WebkitBackdropFilter: 'blur(28px) saturate(160%)',
+              boxShadow: '0 30px 90px rgba(13,27,46,0.14), inset 0 1px 0 rgba(255,255,255,0.45)',
+              border: '1px solid rgba(255,255,255,0.40)',
             }}
           >
 
