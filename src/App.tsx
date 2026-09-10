@@ -26,7 +26,10 @@ import { ThemeProvider } from "@/hooks/useTheme";
 import { CompanyProvider } from "@/hooks/useCompanyContext";
 import { CompanyThemeProvider } from "@/hooks/useCompanyTheme";
 import { ReadOnlyProvider } from "@/contexts/ReadOnlyContext";
-import WebLayout from "./components/layout/WebLayout";
+// Authenticated-app shells load on demand — keeping them out of the initial
+// bundle means the login screen no longer waits for the whole app UI
+// (top bar widgets, calculator, markdown support widget, HR bell …).
+const WebLayout = lazy(() => import("./components/layout/WebLayout"));
 import FeedbackShell from "./components/layout/FeedbackShell";
 import RoleGuard from "./components/RoleGuard";
 import { OnboardingGate } from "@/components/auth/OnboardingGate";
