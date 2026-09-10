@@ -422,7 +422,7 @@ const InvoiceCreatePageWrapper = () => {
 // After 10s of continuous spinning we assume an upstream loading flag is
 // stuck (network failure, RLS rejection, …) and show a recovery card with
 // a retry button + sign-out fallback — never leave the screen frozen.
-const AuthCheckSpinner = () => {
+const AuthCheckSpinner = ({ dark = false }: { dark?: boolean } = {}) => {
   const [stuck, setStuck] = useState(false);
   useEffect(() => {
     const t = setTimeout(() => setStuck(true), 10_000);
@@ -467,11 +467,18 @@ const AuthCheckSpinner = () => {
   }
 
   return (
-    <div className="flex h-full min-h-[200px] w-full items-center justify-center">
+    <div
+      className={
+        dark
+          ? "flex h-full min-h-[100dvh] w-full items-center justify-center"
+          : "flex h-full min-h-[200px] w-full items-center justify-center"
+      }
+      style={dark ? { background: "#0A1018" } : undefined}
+    >
       <div
         className="w-8 h-8 rounded-full border-2 border-transparent"
         style={{
-          borderTopColor: "hsl(var(--accent))",
+          borderTopColor: dark ? "rgba(255,255,255,0.75)" : "hsl(var(--accent))",
           animation: "navSpinRing 0.7s linear infinite",
         }}
       />
