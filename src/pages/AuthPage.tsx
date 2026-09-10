@@ -393,21 +393,23 @@ const AuthPage = () => {
   };
 
   const inputStyle = {
-    background: '#FFFFFF',
-    border: '1px solid #E8EDF2',
+    background: 'rgba(255,255,255,0.65)',
+    border: '1px solid rgba(13,27,46,0.10)',
     color: '#0D1B2E',
     fontWeight: 300 as const,
+    backdropFilter: 'blur(6px)',
+    WebkitBackdropFilter: 'blur(6px)',
   };
 
   const inputFocusHandlers = {
     onFocus: (e: React.FocusEvent<HTMLInputElement>) => {
       e.target.style.borderColor = '#0D1B2E';
-      e.target.style.background = '#FFFFFF';
-      e.target.style.boxShadow = '0 0 0 3px rgba(13,27,46,0.06)';
+      e.target.style.background = 'rgba(255,255,255,0.85)';
+      e.target.style.boxShadow = '0 0 0 3px rgba(13,27,46,0.08)';
     },
     onBlur: (e: React.FocusEvent<HTMLInputElement>) => {
-      e.target.style.borderColor = '#E8EDF2';
-      e.target.style.background = '#FFFFFF';
+      e.target.style.borderColor = 'rgba(13,27,46,0.10)';
+      e.target.style.background = 'rgba(255,255,255,0.65)';
       e.target.style.boxShadow = 'none';
     },
   };
@@ -913,7 +915,7 @@ const AuthPage = () => {
               {mode === "login" && (
                 <div
                   className="flex items-center justify-between gap-3 rounded-xl px-4 py-3"
-                  style={{ background: '#F7F8FA', border: '1px solid #E8EDF2' }}
+                  style={{ background: 'rgba(255,255,255,0.45)', border: '1px solid rgba(255,255,255,0.6)' }}
                 >
                   <div className="text-start flex-1 min-w-0">
                     <p style={{ color: '#0D1B2E', fontSize: 13, fontWeight: 400 }}>{t("common:auth.trialTitle")}</p>
