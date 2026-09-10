@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, lazy, Suspense } from "react";
 const unifyMarkWhite = { url: "/branding/icon-white.png" };
 import unifyLogoVerticalAsset from "@/assets/unify-logo-vertical-v2-opt.png.asset.json";
 const unifyLogoVertical = unifyLogoVerticalAsset.url;
-import authHeroBg from "@/assets/auth-hero-dusk.jpg";
+import authHeroBg from "@/assets/auth-hero-luxury.jpg";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable/index";
