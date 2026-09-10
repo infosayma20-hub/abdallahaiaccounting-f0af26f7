@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, lazy, Suspense } from "react";
 import SamiChatbot from "@/components/SamiChatbot";
 const unifyMarkWhite = { url: "/branding/icon-white.png" };
 import unifyLogoVertical from "@/assets/unify-logo-vertical-v2-opt.webp";
-import authHeroBg from "@/assets/auth-hero-bg-opt.webp";
+import authHeroBg from "@/assets/auth-hero-sunrise.jpg";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable/index";
@@ -421,8 +421,8 @@ const AuthPage = () => {
       <img
         src={authHeroBg}
         alt=""
-        width={1600}
-        height={1067}
+        width={1920}
+        height={1280}
         fetchPriority="high"
         decoding="async"
         className="absolute inset-0 h-full w-full object-cover pointer-events-none select-none"
@@ -430,7 +430,7 @@ const AuthPage = () => {
       />
       <div
         className="absolute inset-0 pointer-events-none"
-        style={{ background: 'linear-gradient(180deg, rgba(5,14,28,0.62) 0%, rgba(5,14,28,0.35) 40%, rgba(5,14,28,0.78) 100%)' }}
+        style={{ background: 'linear-gradient(180deg, rgba(255,255,255,0.10) 0%, rgba(255,255,255,0.02) 40%, rgba(255,255,255,0.18) 100%)' }}
       />
 
       {/* Top Nav — transparent over the skyline; pushed below the iPhone notch/status bar */}
