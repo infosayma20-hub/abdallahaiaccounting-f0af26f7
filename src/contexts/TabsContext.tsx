@@ -2,6 +2,7 @@ import { createContext, useContext, useState, useCallback, useEffect, useRef, Re
 import { useAuth } from "@/hooks/useAuth";
 import { useLocation, useNavigate } from "react-router-dom";
 import { discardActiveDraft, hasActiveDraft } from "@/lib/draftRegistry";
+import { clearTabScroll } from "@/hooks/useTabScrollRestore";
 import {
   LayoutDashboard, FileText, Users, Wallet, CreditCard, Package,
   BarChart3, Settings, Receipt, BookOpen, Landmark, Banknote,
