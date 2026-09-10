@@ -53,7 +53,8 @@ export default function GoodsReceiptView({ data }: { data: any }) {
               <thead className="text-muted-foreground">
                 <tr className="border-b">
                   <th className="text-right p-2 font-medium">الصنف</th>
-                  <th className="text-right p-2 font-medium w-[90px]">الكمية</th>
+                  <th className="text-right p-2 font-medium w-[70px]">الكمية</th>
+                  <th className="text-right p-2 font-medium w-[70px]">الوحدة</th>
                   <th className="text-right p-2 font-medium w-[150px]">الصلاحية / رقم الوجبة</th>
                   <th className="text-right p-2 font-medium w-[90px]">الحرارة</th>
                   <th className="text-right p-2 font-medium w-[100px]">المطابقة</th>
