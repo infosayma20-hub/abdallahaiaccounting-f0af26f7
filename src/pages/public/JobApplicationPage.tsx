@@ -158,6 +158,8 @@ export default function JobApplicationPage() {
   const [courses, setCourses] = useState<Row[]>([emptyCourse()]);
   const [languages, setLanguages] = useState<Row[]>([emptyLang()]);
   const [experience, setExperience] = useState<Row[]>([emptyExp()]);
+  /** إقرار صريح بعدم وجود خبرات عمل سابقة — الإجابة على قسم الخبرات إلزامية. */
+  const [noExperience, setNoExperience] = useState(false);
   const [referees, setReferees] = useState<Row[]>([emptyRef()]);
 
   // Preferences
@@ -294,6 +296,14 @@ export default function JobApplicationPage() {
     // سنوات الخبرة: «إلى» لا تكون أقل من «من» (ما عدا «حتى الآن»)
     if (cfg.sections.experience) {
       const rows = clean(experience);
+      if (!noExperience && rows.length === 0)
+        return toast.error("مطلوب: تعبئة خبرات العمل السابقة أو اختيار «لا توجد خبرات عمل سابقة»");
+      if (!noExperience) {
+        for (const r of rows) {
+          if (!r.workplace?.trim() || !r.position?.trim() || !r.from || !r.to)
+            return toast.error("مطلوب: مكان العمل والوظيفة وسنوات الخبرة (من / إلى)");
+        }
+      }
       for (const r of rows) {
         if (r.from && r.to && r.to !== UNTIL_NOW) {
           const a = Number(r.from);
@@ -341,7 +351,7 @@ export default function JobApplicationPage() {
           education: cfg.sections.education ? clean(education) : [],
           courses: cfg.sections.courses ? clean(courses) : [],
           languages: cfg.sections.languages ? clean(languages) : [],
-          experience: cfg.sections.experience ? clean(experience) : [],
+          experience: cfg.sections.experience && !noExperience ? clean(experience) : [],
           referees: cfg.sections.referees ? clean(referees) : [],
           shift_preference: cfg.sections.preferences ? shift : "",
           job_type: cfg.sections.preferences ? jobType : "",
@@ -648,8 +658,17 @@ export default function JobApplicationPage() {
           {/* Experience */}
           {cfg.sections.experience && (
           <section className="bg-card rounded-2xl border border-border p-4">
-            <RepeaterHeader title="خبرات العمل (على/إلى حتى الآن إذا لا تزال تعمل)" onAdd={() => setExperience((r) => [...r, emptyExp()])} />
-            <div className="space-y-3">
+            <RepeaterHeader title="خبرات العمل السابقة (إلزامي) — «حتى الآن» إذا لا تزال تعمل" onAdd={() => setExperience((r) => [...r, emptyExp()])} />
+            <label className="flex items-center gap-2 cursor-pointer select-none mb-3">
+              <input
+                type="checkbox"
+                className="h-4 w-4 accent-primary"
+                checked={noExperience}
+                onChange={(e) => setNoExperience(e.target.checked)}
+              />
+              <span className="text-xs font-semibold">لا توجد خبرات عمل سابقة</span>
+            </label>
+            <div className={`space-y-3 ${noExperience ? "opacity-50 pointer-events-none" : ""}`}>
               {experience.map((row, i) => (
                 <div key={i} className="grid grid-cols-2 sm:grid-cols-4 gap-2 items-end">
                   <Input placeholder="مكان العمل" value={row.workplace} onChange={(e) => setExperience((rows) => rows.map((r, x) => x === i ? { ...r, workplace: e.target.value } : r))} />
