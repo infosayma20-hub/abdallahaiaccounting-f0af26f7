@@ -18,7 +18,6 @@ import LanguageSwitcher from "@/i18n/LanguageSwitcher";
 import { Loader2, ScanFace, Mail, Lock, Eye, EyeOff, Check, LifeBuoy } from "lucide-react";
 import { startAuthentication, browserSupportsWebAuthn } from "@simplewebauthn/browser";
 
-const FinancialCanvas = lazy(() => import("@/components/auth/FinancialCanvas"));
 
 type Mode = "login" | "signup" | "forgot";
 
