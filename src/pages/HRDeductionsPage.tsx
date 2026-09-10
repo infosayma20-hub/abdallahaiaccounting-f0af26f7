@@ -1286,26 +1286,57 @@ export default function HRDeductionsPage() {
     }
 
     // Advances
+    // منع الازدواج: سجل السلفة من شاشة الموارد البشرية يُخفى إذا وُجد قيد/سند محاسبي
+    // لنفس الموظف وبنفس المبلغ خلال نافذة ±7 أيام (التاريخان نادراً ما يتطابقان تماماً).
+    const ADVANCE_DUP_WINDOW_DAYS = 7;
+    const ledgerRowsForAdvanceDedup = rows
+      .filter((r) => r.source !== "سلفة" && r.amount > 0 && r.date)
+      .map((r) => ({
+        name: normalizeArabicName(r.employeeName || ""),
+        amount: Number(r.amount).toFixed(2),
+        time: new Date(`${r.date}T00:00:00`).getTime(),
+      }))
+      .filter((r) => Number.isFinite(r.time));
+
+    const hasLedgerTwin = (name: string, amount: number, date: string) => {
+      if (!date) return false;
+      const time = new Date(`${date}T00:00:00`).getTime();
+      if (!Number.isFinite(time)) return false;
+      const normalizedName = normalizeArabicName(name || "");
+      const amountKey = Number(amount).toFixed(2);
+      return ledgerRowsForAdvanceDedup.some(
+        (r) =>
+          r.name === normalizedName &&
+          r.amount === amountKey &&
+          Math.abs(r.time - time) <= ADVANCE_DUP_WINDOW_DAYS * 86400000
+      );
+    };
+
     advances.forEach((advance: any) => {
       const employee = employeeDirectory.byId[advance.employee_id] || resolveEmployeeByDescription(advance.notes || "");
       if (isSalaryPayout(advance.notes || "")) return;
       // القروض الحسنة تُحتسب عبر أقساطها المستحقة (loan_installments) وليس كأصل قرض
       if (advance.advance_type === "قرض_حسن") return;
+      const employeeName = advance.employees?.full_name || employee?.name || "—";
+      const amount = Number(advance.amount || 0);
+      const date = advance.payment_date || advance.approved_date || advance.created_at?.split("T")[0] || "";
+      if (hasLedgerTwin(employeeName, amount, date)) return; // مكرر مع القيد المحاسبي
       rows.push({
         id: `adv-${advance.id}`,
-        employeeName: advance.employees?.full_name || employee?.name || "—",
+        employeeName,
         employeeNumber: String(advance.employees?.employee_number ?? employee?.number ?? ""),
         employeeDept: advance.employees?.department || employee?.dept || "",
         employeeBranch: branchMap[advance.employees?.branch_id] || employee?.branch || "",
         type: "سلفة",
         description: advance.notes || "",
-        amount: Number(advance.amount || 0),
-        date: advance.payment_date || advance.approved_date || advance.created_at?.split("T")[0] || "",
+        amount,
+        date,
         source: "سلفة",
         sourceId: advance.id,
         status: advance.status === "approved" ? "نشط" : advance.status,
       });
     });
+
 
     // أقساط القرض الحسن المستحقة (تاريخ الاستحقاق 27→3 يُحتسب على الشهر السابق)
     // يُعرض قسط واحد فقط: قسط شهر الرواتب الحالي (المحدد بنهاية الفترة)
