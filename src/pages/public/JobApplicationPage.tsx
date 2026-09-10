@@ -279,15 +279,28 @@ export default function JobApplicationPage() {
 
     if (file && file.size > 10 * 1024 * 1024) return toast.error("حجم المرفق أكبر من 10 ميجا");
 
-    // سنوات المؤهلات: إلزامية لكل سطر مُعبّأ، و«إلى» لا تكون أقل من «من»
+    // سنوات المؤهلات: إلزامية لكل سطر مُعبّأ، و«إلى» لا تكون أقل من «من» (ما عدا «حتى الآن»)
     if (cfg.sections.education) {
       const rows = clean(education);
       for (const r of rows) {
         if (!r.from || !r.to) return toast.error("مطلوب: سنوات الدراسة (من / إلى)");
         const a = Number(r.from);
         const b = Number(r.to);
-        if (Number.isFinite(a) && Number.isFinite(b) && r.from !== NO_YEAR && r.to !== NO_YEAR && b < a)
+        if (Number.isFinite(a) && Number.isFinite(b) && r.from !== NO_YEAR && r.to !== NO_YEAR && r.to !== UNTIL_NOW && b < a)
           return toast.error("سنة «إلى» لا يمكن أن تكون أقل من سنة «من»");
+      }
+    }
+
+    // سنوات الخبرة: «إلى» لا تكون أقل من «من» (ما عدا «حتى الآن»)
+    if (cfg.sections.experience) {
+      const rows = clean(experience);
+      for (const r of rows) {
+        if (r.from && r.to && r.to !== UNTIL_NOW) {
+          const a = Number(r.from);
+          const b = Number(r.to);
+          if (Number.isFinite(a) && Number.isFinite(b) && r.from !== NO_YEAR && r.to !== NO_YEAR && b < a)
+            return toast.error("سنة «إلى» في خبرات العمل لا يمكن أن تكون أقل من سنة «من»");
+        }
       }
     }
 
