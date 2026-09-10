@@ -555,7 +555,9 @@ const ProtectedRoute = ({ children, blockCashier, blockSalesRep }: { children: R
 
 const AuthRoute = ({ children }: { children: React.ReactNode }) => {
   const { targetPath, checking, user, stalled, retry } = useRoleRedirect();
-  if (checking) return stalled ? <RoleResolveFallback onRetry={retry} /> : <AuthCheckSpinner />;
+  // Dark placeholder — matches the login background so there is no white flash
+  // before the login screen appears.
+  if (checking) return stalled ? <RoleResolveFallback onRetry={retry} /> : <AuthCheckSpinner dark />;
   if (user && targetPath) return <Navigate to={targetPath} replace />;
 
   const isSpartaDomain = typeof window !== "undefined" && (
