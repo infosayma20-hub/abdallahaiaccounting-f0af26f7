@@ -658,8 +658,17 @@ export default function JobApplicationPage() {
           {/* Experience */}
           {cfg.sections.experience && (
           <section className="bg-card rounded-2xl border border-border p-4">
-            <RepeaterHeader title="خبرات العمل (على/إلى حتى الآن إذا لا تزال تعمل)" onAdd={() => setExperience((r) => [...r, emptyExp()])} />
-            <div className="space-y-3">
+            <RepeaterHeader title="خبرات العمل السابقة (إلزامي) — «حتى الآن» إذا لا تزال تعمل" onAdd={() => setExperience((r) => [...r, emptyExp()])} />
+            <label className="flex items-center gap-2 cursor-pointer select-none mb-3">
+              <input
+                type="checkbox"
+                className="h-4 w-4 accent-primary"
+                checked={noExperience}
+                onChange={(e) => setNoExperience(e.target.checked)}
+              />
+              <span className="text-xs font-semibold">لا توجد خبرات عمل سابقة</span>
+            </label>
+            <div className={`space-y-3 ${noExperience ? "opacity-50 pointer-events-none" : ""}`}>
               {experience.map((row, i) => (
                 <div key={i} className="grid grid-cols-2 sm:grid-cols-4 gap-2 items-end">
                   <Input placeholder="مكان العمل" value={row.workplace} onChange={(e) => setExperience((rows) => rows.map((r, x) => x === i ? { ...r, workplace: e.target.value } : r))} />
