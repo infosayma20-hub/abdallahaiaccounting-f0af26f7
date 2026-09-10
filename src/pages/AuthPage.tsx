@@ -399,6 +399,7 @@ const AuthPage = () => {
     fontWeight: 300 as const,
     backdropFilter: 'blur(8px)',
     WebkitBackdropFilter: 'blur(8px)',
+    colorScheme: 'dark' as const,
   };
 
   const inputFocusHandlers = {
