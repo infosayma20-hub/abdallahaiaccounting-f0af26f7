@@ -37,6 +37,9 @@ const LANG_LEVELS = ["جيد", "متوسط", "ضعيف"];
 /** خيار «لا يوجد» لسنوات الدراسة. */
 const NO_YEAR = "لا يوجد";
 
+/** خيار «حتى الآن» للمؤهل أو الخبرة النشطة. */
+const UNTIL_NOW = "حتى الآن";
+
 /** قائمة السنوات المنطقية (من السنة الحالية رجوعاً 60 سنة). */
 const YEARS: string[] = (() => {
   const now = new Date().getFullYear();
@@ -96,10 +99,10 @@ const emptyExp = (): Row => ({ workplace: "", position: "", from: "", to: "" });
 const emptyRef = (): Row => ({ name: "", phone: "", mobile: "", email: "" });
 const emptyLang = (): Row => ({ language: "", speaking: "", reading: "", writing: "" });
 
-/** منسدلة سنة مع خيار «لا يوجد». */
+/** منسدلة سنة مع خياري «لا يوجد» و«حتى الآن». */
 function YearSelect({
-  value, onChange, placeholder, min,
-}: { value: string; onChange: (v: string) => void; placeholder: string; min?: string }) {
+  value, onChange, placeholder, min, showUntilNow,
+}: { value: string; onChange: (v: string) => void; placeholder: string; min?: string; showUntilNow?: boolean }) {
   const list = useMemo(() => {
     const n = Number(min);
     return Number.isFinite(n) && n > 0 ? YEARS.filter((y) => Number(y) >= n) : YEARS;
@@ -108,6 +111,7 @@ function YearSelect({
     <Select value={value} onValueChange={onChange}>
       <SelectTrigger><SelectValue placeholder={placeholder} /></SelectTrigger>
       <SelectContent className="max-h-64">
+        {showUntilNow && <SelectItem value={UNTIL_NOW}>{UNTIL_NOW}</SelectItem>}
         <SelectItem value={NO_YEAR}>{NO_YEAR}</SelectItem>
         {list.map((y) => <SelectItem key={y} value={y}>{y}</SelectItem>)}
       </SelectContent>
@@ -275,15 +279,28 @@ export default function JobApplicationPage() {
 
     if (file && file.size > 10 * 1024 * 1024) return toast.error("حجم المرفق أكبر من 10 ميجا");
 
-    // سنوات المؤهلات: إلزامية لكل سطر مُعبّأ، و«إلى» لا تكون أقل من «من»
+    // سنوات المؤهلات: إلزامية لكل سطر مُعبّأ، و«إلى» لا تكون أقل من «من» (ما عدا «حتى الآن»)
     if (cfg.sections.education) {
       const rows = clean(education);
       for (const r of rows) {
         if (!r.from || !r.to) return toast.error("مطلوب: سنوات الدراسة (من / إلى)");
         const a = Number(r.from);
         const b = Number(r.to);
-        if (Number.isFinite(a) && Number.isFinite(b) && r.from !== NO_YEAR && r.to !== NO_YEAR && b < a)
+        if (Number.isFinite(a) && Number.isFinite(b) && r.from !== NO_YEAR && r.to !== NO_YEAR && r.to !== UNTIL_NOW && b < a)
           return toast.error("سنة «إلى» لا يمكن أن تكون أقل من سنة «من»");
+      }
+    }
+
+    // سنوات الخبرة: «إلى» لا تكون أقل من «من» (ما عدا «حتى الآن»)
+    if (cfg.sections.experience) {
+      const rows = clean(experience);
+      for (const r of rows) {
+        if (r.from && r.to && r.to !== UNTIL_NOW) {
+          const a = Number(r.from);
+          const b = Number(r.to);
+          if (Number.isFinite(a) && Number.isFinite(b) && r.from !== NO_YEAR && r.to !== NO_YEAR && b < a)
+            return toast.error("سنة «إلى» في خبرات العمل لا يمكن أن تكون أقل من سنة «من»");
+        }
       }
     }
 
@@ -545,7 +562,7 @@ export default function JobApplicationPage() {
           {/* Education */}
           {cfg.sections.education && (
           <section className="bg-card rounded-2xl border border-border p-4">
-            <RepeaterHeader title="المؤهلات العلمية" onAdd={() => setEducation((r) => [...r, emptyEdu()])} />
+            <RepeaterHeader title="المؤهلات العلمية (اختر «حتى الآن» إذا لا تزال تدرس)" onAdd={() => setEducation((r) => [...r, emptyEdu()])} />
             <div className="space-y-3">
               {education.map((row, i) => (
                 <div key={i} className="grid grid-cols-2 sm:grid-cols-5 gap-2 items-end">
@@ -557,9 +574,9 @@ export default function JobApplicationPage() {
                   </Select>
                   <Input placeholder="التخصص" value={row.major} onChange={(e) => setEducation((rows) => rows.map((r, x) => x === i ? { ...r, major: e.target.value } : r))} />
                   <Input placeholder="مكان الدراسة" value={row.place} onChange={(e) => setEducation((rows) => rows.map((r, x) => x === i ? { ...r, place: e.target.value } : r))} />
-                  <YearSelect placeholder="من سنة *" value={row.from} onChange={(v) => setEducation((rows) => rows.map((r, x) => x === i ? { ...r, from: v, to: r.to && r.to !== NO_YEAR && v !== NO_YEAR && Number(r.to) < Number(v) ? "" : r.to } : r))} />
+                  <YearSelect placeholder="من سنة *" value={row.from} onChange={(v) => setEducation((rows) => rows.map((r, x) => x === i ? { ...r, from: v, to: r.to && r.to !== NO_YEAR && r.to !== UNTIL_NOW && v !== NO_YEAR && Number(r.to) < Number(v) ? "" : r.to } : r))} />
                   <div className="flex gap-1">
-                    <YearSelect placeholder="إلى سنة *" min={row.from !== NO_YEAR ? row.from : undefined} value={row.to} onChange={(v) => setEducation((rows) => rows.map((r, x) => x === i ? { ...r, to: v } : r))} />
+                    <YearSelect placeholder="إلى سنة *" min={row.from !== NO_YEAR ? row.from : undefined} showUntilNow value={row.to} onChange={(v) => setEducation((rows) => rows.map((r, x) => x === i ? { ...r, to: v } : r))} />
 
                     <Button type="button" variant="ghost" size="icon" className="min-h-11 min-w-11" aria-label="حذف السطر" onClick={() => setEducation((rows) => rows.filter((_, x) => x !== i))}>
                       <Trash2 className="h-4 w-4 text-destructive" />
@@ -631,15 +648,15 @@ export default function JobApplicationPage() {
           {/* Experience */}
           {cfg.sections.experience && (
           <section className="bg-card rounded-2xl border border-border p-4">
-            <RepeaterHeader title="خبرات العمل السابقة" onAdd={() => setExperience((r) => [...r, emptyExp()])} />
+            <RepeaterHeader title="خبرات العمل (على/إلى حتى الآن إذا لا تزال تعمل)" onAdd={() => setExperience((r) => [...r, emptyExp()])} />
             <div className="space-y-3">
               {experience.map((row, i) => (
                 <div key={i} className="grid grid-cols-2 sm:grid-cols-4 gap-2 items-end">
                   <Input placeholder="مكان العمل" value={row.workplace} onChange={(e) => setExperience((rows) => rows.map((r, x) => x === i ? { ...r, workplace: e.target.value } : r))} />
                   <Input placeholder="الوظيفة" value={row.position} onChange={(e) => setExperience((rows) => rows.map((r, x) => x === i ? { ...r, position: e.target.value } : r))} />
-                  <YearSelect placeholder="من سنة" value={row.from} onChange={(v) => setExperience((rows) => rows.map((r, x) => x === i ? { ...r, from: v, to: r.to && r.to !== NO_YEAR && v !== NO_YEAR && Number(r.to) < Number(v) ? "" : r.to } : r))} />
+                  <YearSelect placeholder="من سنة" value={row.from} onChange={(v) => setExperience((rows) => rows.map((r, x) => x === i ? { ...r, from: v, to: r.to && r.to !== NO_YEAR && r.to !== UNTIL_NOW && v !== NO_YEAR && Number(r.to) < Number(v) ? "" : r.to } : r))} />
                   <div className="flex gap-1">
-                    <YearSelect placeholder="إلى سنة" min={row.from !== NO_YEAR ? row.from : undefined} value={row.to} onChange={(v) => setExperience((rows) => rows.map((r, x) => x === i ? { ...r, to: v } : r))} />
+                    <YearSelect placeholder="إلى سنة" min={row.from !== NO_YEAR ? row.from : undefined} showUntilNow value={row.to} onChange={(v) => setExperience((rows) => rows.map((r, x) => x === i ? { ...r, to: v } : r))} />
                     <Button type="button" variant="ghost" size="icon" className="min-h-11 min-w-11" aria-label="حذف السطر" onClick={() => setExperience((rows) => rows.filter((_, x) => x !== i))}>
                       <Trash2 className="h-4 w-4 text-destructive" />
                     </Button>
