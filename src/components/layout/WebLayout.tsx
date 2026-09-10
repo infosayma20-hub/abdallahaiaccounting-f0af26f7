@@ -16,6 +16,7 @@ import { GlobalNavigationLoader } from "../ui/GlobalNavigationLoader";
 import { useSubscription } from "@/hooks/useSubscription";
 import { TabsProvider } from "@/contexts/TabsContext";
 import ReportScrollJump from "../reports/ReportScrollJump";
+import { useTabScrollRestore } from "@/hooks/useTabScrollRestore";
 
 interface WebLayoutProps {
   children: React.ReactNode;
@@ -30,6 +31,10 @@ const WebLayout = ({ children }: WebLayoutProps) => {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(true);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const autoCollapseTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const mainRef = useRef<HTMLElement>(null);
+
+  // Remember where each open tab was scrolled to
+  useTabScrollRestore(mainRef);
 
   const clearAutoCollapse = () => {
     if (autoCollapseTimer.current) {
@@ -115,6 +120,7 @@ const WebLayout = ({ children }: WebLayoutProps) => {
 
         {/* Content — no heavy page transitions */}
         <main
+          ref={mainRef}
           className={
             isHRRoute || isCompactRoute
               ? "flex-1 overflow-y-auto"
