@@ -455,7 +455,7 @@ const AuthPage = () => {
       />
       <div
         className="absolute inset-0 pointer-events-none"
-        style={{ background: 'linear-gradient(180deg, rgba(5,10,20,0.25) 0%, rgba(5,10,20,0.05) 40%, rgba(5,10,20,0.35) 100%)' }}
+        style={{ background: 'linear-gradient(180deg, rgba(5,10,20,0.15) 0%, rgba(5,10,20,0.02) 40%, rgba(5,10,20,0.22) 100%)' }}
       />
 
       {/* Top Nav — transparent over the photo; pushed below the iPhone notch/status bar */}
