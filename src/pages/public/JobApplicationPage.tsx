@@ -37,6 +37,9 @@ const LANG_LEVELS = ["جيد", "متوسط", "ضعيف"];
 /** خيار «لا يوجد» لسنوات الدراسة. */
 const NO_YEAR = "لا يوجد";
 
+/** خيار «حتى الآن» للمؤهل أو الخبرة النشطة. */
+const UNTIL_NOW = "حتى الآن";
+
 /** قائمة السنوات المنطقية (من السنة الحالية رجوعاً 60 سنة). */
 const YEARS: string[] = (() => {
   const now = new Date().getFullYear();
@@ -96,10 +99,10 @@ const emptyExp = (): Row => ({ workplace: "", position: "", from: "", to: "" });
 const emptyRef = (): Row => ({ name: "", phone: "", mobile: "", email: "" });
 const emptyLang = (): Row => ({ language: "", speaking: "", reading: "", writing: "" });
 
-/** منسدلة سنة مع خيار «لا يوجد». */
+/** منسدلة سنة مع خياري «لا يوجد» و«حتى الآن». */
 function YearSelect({
-  value, onChange, placeholder, min,
-}: { value: string; onChange: (v: string) => void; placeholder: string; min?: string }) {
+  value, onChange, placeholder, min, showUntilNow,
+}: { value: string; onChange: (v: string) => void; placeholder: string; min?: string; showUntilNow?: boolean }) {
   const list = useMemo(() => {
     const n = Number(min);
     return Number.isFinite(n) && n > 0 ? YEARS.filter((y) => Number(y) >= n) : YEARS;
@@ -108,6 +111,7 @@ function YearSelect({
     <Select value={value} onValueChange={onChange}>
       <SelectTrigger><SelectValue placeholder={placeholder} /></SelectTrigger>
       <SelectContent className="max-h-64">
+        {showUntilNow && <SelectItem value={UNTIL_NOW}>{UNTIL_NOW}</SelectItem>}
         <SelectItem value={NO_YEAR}>{NO_YEAR}</SelectItem>
         {list.map((y) => <SelectItem key={y} value={y}>{y}</SelectItem>)}
       </SelectContent>
