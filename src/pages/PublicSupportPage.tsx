@@ -23,7 +23,7 @@ export default function PublicSupportPage() {
           </div>
           <div className="rounded-xl border p-4">
             <div className="text-muted-foreground mb-1">الهاتف / واتساب</div>
-            <a className="font-semibold underline" href="tel:+970599000000">+970 59 900 0000</a>
+            <a className="font-semibold underline" href="https://wa.me/970599000000" target="_blank" rel="noopener noreferrer">+970 59 900 0000</a>
           </div>
           <div className="rounded-xl border p-4">
             <div className="text-muted-foreground mb-1">ساعات العمل</div>
