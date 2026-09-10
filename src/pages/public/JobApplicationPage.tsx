@@ -96,7 +96,7 @@ const DEGREE_OPTIONS = [
 const emptyEdu = (): Row => ({ degree: "", major: "", place: "", from: "", to: "" });
 const emptyCourse = (): Row => ({ name: "", org: "", hours: "", year: "" });
 const emptyExp = (): Row => ({ workplace: "", position: "", from: "", to: "" });
-const emptyRef = (): Row => ({ name: "", phone: "", mobile: "", email: "" });
+const emptyRef = (): Row => ({ name: "", phone: "", mobile: "", email: "", relation: "" });
 const emptyLang = (): Row => ({ language: "", speaking: "", reading: "", writing: "" });
 
 /** منسدلة سنة مع خياري «لا يوجد» و«حتى الآن». */
