@@ -456,6 +456,7 @@ export function TabsProvider({ children }: { children: ReactNode }) {
         discardActiveDraft(closingTab.path);
       }
       const next = prev.filter(t => t.id !== id);
+      clearTabScroll(closingTab.path);
       saveTabs(next, userId);
 
       // If closing the active tab, switch to an adjacent one
@@ -492,6 +493,7 @@ export function TabsProvider({ children }: { children: ReactNode }) {
         if (!ok) return prev;
         draftTabs.forEach(t => discardActiveDraft(t.path));
       }
+      toClose.forEach(t => clearTabScroll(t.path));
       const next = prev.filter(t => t.id === id);
       saveTabs(next, userId);
       return next;
@@ -508,6 +510,7 @@ export function TabsProvider({ children }: { children: ReactNode }) {
       if (!ok) return;
       draftTabs.forEach(t => discardActiveDraft(t.path));
     }
+    tabs.forEach(t => clearTabScroll(t.path));
     setTabs([]);
     saveTabs([], userId);
     setActiveTabId(null);
