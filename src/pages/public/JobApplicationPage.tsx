@@ -743,25 +743,23 @@ export default function JobApplicationPage() {
                   </SelectContent>
                 </Select>
               </div>
-              <div>
-                <Label className="text-xs">العمل يوم الجمعة *</Label>
-                <Select value={worksFriday} onValueChange={setWorksFriday}>
-                  <SelectTrigger><SelectValue placeholder="اختر" /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="yes">نعم</SelectItem>
-                    <SelectItem value="no">لا</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label className="text-xs">العمل في أيام الأعياد والمناسبات *</Label>
-                <Select value={worksHolidays} onValueChange={setWorksHolidays}>
-                  <SelectTrigger><SelectValue placeholder="اختر" /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="yes">نعم</SelectItem>
-                    <SelectItem value="no">لا</SelectItem>
-                  </SelectContent>
-                </Select>
+              <div className="sm:col-span-2 rounded-xl border border-amber-300 bg-amber-50 dark:bg-amber-950/30 dark:border-amber-800 p-3 space-y-2">
+                <p className="text-xs font-bold leading-relaxed">
+                  دوام يوم الجمعة والأعياد والمناسبات بكافة أيامها هو شرط أساسي لقبول طلب التوظيف. *
+                </p>
+                <label className="flex items-center gap-2 cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    className="h-4 w-4 accent-primary"
+                    checked={worksFriday === "yes" && worksHolidays === "yes"}
+                    onChange={(e) => {
+                      const v = e.target.checked ? "yes" : "";
+                      setWorksFriday(v);
+                      setWorksHolidays(v);
+                    }}
+                  />
+                  <span className="text-xs font-semibold">نعم، أوافق وألتزم بهذا الشرط</span>
+                </label>
               </div>
               <div>
                 <Label className="text-xs">رخصة القيادة *</Label>
