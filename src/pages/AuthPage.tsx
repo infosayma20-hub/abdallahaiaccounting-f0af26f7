@@ -450,7 +450,7 @@ const AuthPage = () => {
       >
         <img src={unifyMarkWhite.url} alt="Unify يونيفاي" className="h-9 w-auto object-contain" style={{ filter: 'drop-shadow(0 1px 6px rgba(0,0,0,0.45))' }} />
         <div className="flex items-center gap-3">
-          <LanguageSwitcher />
+          <LanguageSwitcher variant="labeled" />
           <button
             className="px-6 py-2 rounded-lg text-sm transition-all"
             style={{ background: 'rgba(255,255,255,0.10)', color: '#FFFFFF', fontWeight: 400, letterSpacing: '0.01em', border: '1.5px solid rgba(255,255,255,0.45)', backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)' }}
@@ -503,17 +503,17 @@ const AuthPage = () => {
             paddingBottom: 'env(safe-area-inset-bottom)',
           }}
         >
-          <div className="w-full max-w-[400px] my-auto py-2">
+          <div className="w-full max-w-[440px] my-auto py-2">
 
 
             {/* Logo — vertical stacked mark */}
             <div className="w-full flex items-center justify-center pt-1 pb-0 -mb-3 md:-mb-4">
-              <img src={unifyLogoVertical} alt="Unify يونيفاي — Connect Without Boundaries" className="h-36 md:h-44 w-auto mx-auto block object-contain select-none" draggable={false} style={{ filter: 'drop-shadow(0 2px 14px rgba(0,0,0,0.35))' }} />
+              <img src={unifyLogoVertical} alt="Unify يونيفاي — Connect Without Boundaries" className="h-40 md:h-48 w-auto mx-auto block object-contain select-none" draggable={false} style={{ filter: 'drop-shadow(0 2px 14px rgba(0,0,0,0.35))' }} />
             </div>
 
             {/* Header — thin Tajawal, generous tracking */}
             <div className="text-center mt-0 mb-6">
-              <h2 style={{ color: '#FFFFFF', fontSize: 28, fontWeight: 300, letterSpacing: '-0.02em', marginBottom: 6, fontFamily: 'Tajawal', lineHeight: 1.15, textShadow: '0 1px 12px rgba(0,0,0,0.35)' }}>
+              <h2 style={{ color: '#FFFFFF', fontSize: 31, fontWeight: 300, letterSpacing: '-0.02em', marginBottom: 6, fontFamily: 'Tajawal', lineHeight: 1.15, textShadow: '0 1px 12px rgba(0,0,0,0.35)' }}>
                 {mode === "login" ? t("common:auth.welcome") : mode === "signup" ? t("common:auth.createAccount") : t("common:auth.resetPassword")}
               </h2>
               <p style={{ color: 'rgba(255,255,255,0.70)', fontSize: 14, fontWeight: 300, fontFamily: 'Tajawal' }}>
