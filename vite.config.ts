@@ -30,6 +30,13 @@ export default defineConfig(({ mode }) => ({
     hmr: {
       overlay: false,
     },
+    proxy: {
+      "/__l5e/assets-v1": {
+        target: `https://${process.env.LOVABLE_PREVIEW_HOST || "id-preview--0b447ec3-49c6-4734-af4e-887be90789d1.lovable.app"}`,
+        changeOrigin: true,
+        secure: true,
+      },
+    },
   },
   plugins: [
     react(),
