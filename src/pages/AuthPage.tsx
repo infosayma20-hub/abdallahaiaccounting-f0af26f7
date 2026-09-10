@@ -981,7 +981,7 @@ const AuthPage = () => {
                 <LifeBuoy className="h-3.5 w-3.5" style={{ color: 'rgba(255,255,255,0.55)' }} />
                 {t("common:auth.needHelp")}{" "}
                 <a
-                  href="https://wa.me/970599000000"
+                  href="https://wa.me/970594336699"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="hover:underline"
