@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, lazy, Suspense } from "react";
 import SamiChatbot from "@/components/SamiChatbot";
 const unifyMarkWhite = { url: "/branding/icon-white.png" };
 import unifyLogoVertical from "@/assets/unify-logo-vertical-v2-opt.webp";
-import authHeroBg from "@/assets/auth-hero-sunrise.jpg";
+import authHeroBg from "@/assets/auth-hero-dusk.jpg";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable/index";
@@ -393,9 +393,9 @@ const AuthPage = () => {
   };
 
   const inputStyle = {
-    background: 'rgba(255,255,255,0.22)',
-    border: '1px solid rgba(13,27,46,0.14)',
-    color: '#0D1B2E',
+    background: 'rgba(255,255,255,0.08)',
+    border: '1px solid rgba(255,255,255,0.22)',
+    color: '#FFFFFF',
     fontWeight: 300 as const,
     backdropFilter: 'blur(8px)',
     WebkitBackdropFilter: 'blur(8px)',
@@ -403,13 +403,13 @@ const AuthPage = () => {
 
   const inputFocusHandlers = {
     onFocus: (e: React.FocusEvent<HTMLInputElement>) => {
-      e.target.style.borderColor = '#0D1B2E';
-      e.target.style.background = 'rgba(255,255,255,0.40)';
-      e.target.style.boxShadow = '0 0 0 3px rgba(13,27,46,0.08)';
+      e.target.style.borderColor = 'rgba(255,255,255,0.65)';
+      e.target.style.background = 'rgba(255,255,255,0.14)';
+      e.target.style.boxShadow = '0 0 0 3px rgba(255,255,255,0.10)';
     },
     onBlur: (e: React.FocusEvent<HTMLInputElement>) => {
-      e.target.style.borderColor = 'rgba(13,27,46,0.14)';
-      e.target.style.background = 'rgba(255,255,255,0.22)';
+      e.target.style.borderColor = 'rgba(255,255,255,0.22)';
+      e.target.style.background = 'rgba(255,255,255,0.08)';
       e.target.style.boxShadow = 'none';
     },
   };
