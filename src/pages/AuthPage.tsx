@@ -759,7 +759,7 @@ const AuthPage = () => {
                         onClick={() => setMode("forgot")}
                         className="transition-colors"
                         style={{ color: 'rgba(255,255,255,0.65)', fontSize: 12, fontWeight: 300 }}
-                        onMouseEnter={e => { e.currentTarget.style.color = '#0D1B2E'; }}
+                        onMouseEnter={e => { e.currentTarget.style.color = '#FFFFFF'; }}
                         onMouseLeave={e => { e.currentTarget.style.color = 'rgba(255,255,255,0.65)'; }}
                       >
                         {t("common:auth.forgotPassword")}
@@ -886,7 +886,7 @@ const AuthPage = () => {
                         }
                       }}
                       className="px-3 py-1.5 rounded-lg text-xs"
-                      style={{ background: '#FFFFFF', color: '#FFFFFF', border: '1px solid rgba(255,255,255,0.55)', fontWeight: 400 }}
+                      style={{ background: 'rgba(255,255,255,0.10)', color: '#FFFFFF', border: '1px solid rgba(255,255,255,0.55)', fontWeight: 400 }}
                     >
                       {t("common:auth.resendCode")}
                     </button>
@@ -901,7 +901,7 @@ const AuthPage = () => {
                   disabled={loading}
                   className="w-full h-11 rounded-xl text-sm transition-all active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none flex items-center justify-center gap-2"
                   style={{
-                    background: '#FFFFFF',
+                    background: 'rgba(255,255,255,0.10)',
                     color: '#FFFFFF',
                     border: '1px solid rgba(255,255,255,0.55)',
                     fontWeight: 400,
