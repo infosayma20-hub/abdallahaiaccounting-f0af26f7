@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Loader2, History } from "lucide-react";
+import { formatHRDateTime } from "@/lib/hrDate";
 
 type AuditRow = {
   id: string;

@@ -12,6 +12,7 @@ import {
   useDisciplinaryCases, caseTitle, caseStage, caseManagementDecision, STAGE_LABELS, STAGE_TONE,
   type DisciplinaryCase,
 } from "@/hooks/hr/useDisciplinaryCases";
+import { formatHRDateTime } from "@/lib/hrDate";
 
 interface Props {
   employeeId: string;

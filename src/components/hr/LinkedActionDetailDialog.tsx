@@ -1,6 +1,7 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { typeLabel, penaltyLabel, STATUS_LABELS } from "@/lib/hrMessages";
+import { formatHRDateTime } from "@/lib/hrDate";
 import type { LinkedActionRow } from "@/hooks/hr/useEmployeeLinkedActions";
 
 export function LinkedActionBody({ row }: { row: LinkedActionRow }) {

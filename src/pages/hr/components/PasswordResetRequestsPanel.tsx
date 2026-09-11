@@ -16,6 +16,7 @@ import { KeyRound, Check, X, Loader2, RefreshCw, ChevronDown } from "lucide-reac
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
+import { formatHRDateTime } from "@/lib/hrDate";
 
 interface ResetRequest {
   id: string;

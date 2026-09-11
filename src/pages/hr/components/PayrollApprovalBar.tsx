@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { Lock, Send, CheckCircle2, RotateCcw, Info, Banknote } from "lucide-react";
+import { formatHRDateTime } from "@/lib/hrDate";
 import {
   PAYROLL_STATUS_META,
   useEmployeePayrollRow,

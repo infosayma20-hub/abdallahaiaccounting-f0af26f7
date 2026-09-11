@@ -28,6 +28,7 @@ import {
 import HRReminderDialog from "@/components/hr/HRReminderDialog";
 import EmployeeFormPrintView from "@/components/employee/EmployeeFormPrintView";
 import DynamicTemplateView, { type TemplateSchema } from "@/components/employee/DynamicTemplateView";
+import { formatHRDateTime } from "@/lib/hrDate";
 import MonthlyInventoryView from "@/components/forms/MonthlyInventoryView";
 import GoodsReceiptView from "@/components/forms/GoodsReceiptView";
 import { useCompanySettings } from "@/hooks/useCompanySettings";
