@@ -18,6 +18,7 @@ import {
   openEmployeeDocument,
   uploadEmployeeDocument,
 } from "@/lib/hr/employeeDocuments";
+import { formatHRDate } from "@/lib/hrDate";
 
 interface Props {
   employeeId: string;

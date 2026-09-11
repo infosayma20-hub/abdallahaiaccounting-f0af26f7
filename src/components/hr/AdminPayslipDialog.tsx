@@ -5,6 +5,7 @@ import { Printer, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { formatCurrency, periodLabel, safeNum } from "@/lib/employeeFinancialDisplay";
 import { tPayrollStatus } from "@/lib/hrLabels";
+import { formatHRDate } from "@/lib/hrDate";
 
 interface Props {
   open: boolean;
