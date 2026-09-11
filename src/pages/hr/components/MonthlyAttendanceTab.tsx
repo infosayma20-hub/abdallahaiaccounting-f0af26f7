@@ -575,6 +575,10 @@ export default function MonthlyAttendanceTab({
       //    doesn't already have an attendance_days row.
       const leavesData = await leavesPromise;
       const existingKeys = new Set(days.map((d) => `${d.employee_id}|${d.attendance_date}`));
+      // فهرس صفوف الحضور الموجودة حتى نستطيع تعليم اليوم كإجازة معتمدة
+      // بدل تركه «عطلة / بدون دخول» عندما يوجد سجل حضور فارغ لنفس اليوم.
+      const dayByKey = new Map<string, any>();
+      days.forEach((d: any) => dayByKey.set(`${d.employee_id}|${d.attendance_date}`, d));
       const synthetic: MonthRow[] = [];
       const leaveTally: Record<string, LeaveBucket> = {};
       // 🧾 سجلات «الرصيد الافتتاحي المستورد» تمتد على فترة طويلة (مثلاً 1/1 → 30/6)
