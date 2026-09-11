@@ -34,7 +34,7 @@ service-role client (bypasses RLS; manual scope becomes critical)
 
 ### ST-01 — Ownership model is inconsistent across domains — **P1**
 
-- **Evidence:** 304 base tables have `user_id`, 88 have `company_id`, and 57 have `branch_id`; core invoices/transactions/stock movements use owner ID, while POS and payroll also expose company/branch.
+- **Evidence:** the latest live `information_schema` snapshot found 284 base tables with `user_id`, 84 with `company_id`, and 55 with `branch_id`; core invoices/transactions/stock movements use owner ID, while POS and payroll also expose company/branch. These counts can change as the live schema evolves.
 - **Impact:** cross-domain joins and reports can use the wrong key; future API clients may confuse actor with tenant.
 - **Target:** immutable tenant/company ID and explicit actor/branch context in new command/audit records, with legacy owner mapping.
 - **Safe migration:** additive context only; compare resolved context to current RLS result. No mass backfill or policy rewrite.

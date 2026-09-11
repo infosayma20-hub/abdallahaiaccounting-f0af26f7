@@ -62,6 +62,12 @@ Controls already present include fiscal-period guards, postable-account validati
 - **Impact:** generated clients and callers can bind the wrong generation or retain obsolete behavior.
 - **Future:** versioned command names/schemas; old signatures remain adapters until callers are migrated.
 
+### FI-07 — Fourteen invoices need source-link reconciliation — **P2 investigation signal**
+
+- **Evidence:** a live read-only heuristic found 14 non-void invoices whose active transaction could not be found through `linked_transaction_id`, invoice-number reference, or invoice-ID reference: 4 purchase invoices with status `sent`, 4 sale invoices with status `posted`, and 6 sale invoices with status `sent`.
+- **Limit:** status semantics and source linkage differ by invoice type, and a ledger effect may use another supported reference. This count is a review queue, not proof that 14 invoices are financially orphaned.
+- **Safe next step:** reconcile each candidate through invoice items, payment/voucher links, source transaction identifiers, account effects, and status rules; obtain accountant approval before any correction. Never generate missing entries automatically from this heuristic.
+
 ## 4. Accounting invariants
 
 Every future posting command must enforce and test:

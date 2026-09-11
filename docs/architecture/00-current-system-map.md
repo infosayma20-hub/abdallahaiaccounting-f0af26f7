@@ -99,7 +99,7 @@ External providers
 
 ### CS-02 — Tenant identity is transitional — **P1**
 
-- **Current implementation:** many core tables use `user_id` as effective owner; 88 tables expose `company_id`, 57 expose `branch_id`, while 304 of 417 base tables expose `user_id`. Core `invoices`, `transactions`, and `stock_movements` have `user_id` but no `company_id`/`branch_id` columns.
+- **Current implementation:** many core tables use `user_id` as effective owner; the latest live `information_schema` snapshot found 84 tables exposing `company_id`, 55 exposing `branch_id`, and 284 of 417 base tables exposing `user_id`. Core `invoices`, `transactions`, and `stock_movements` have `user_id` but no `company_id`/`branch_id` columns.
 - **Evidence:** live `information_schema`; `src/hooks/useDataOwnerId.ts:7-20,57-118`.
 - **Risk / business impact:** every caller must understand owner vs actor vs company vs branch; analytics and future APIs can scope incorrectly.
 - **Future architecture:** explicit actor, tenant/company, and branch context in command envelopes while retaining `user_id` compatibility.
