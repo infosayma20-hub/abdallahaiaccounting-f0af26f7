@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { Lock, Send, CheckCircle2, RotateCcw, Info, Banknote } from "lucide-react";
+import { formatHRDateTime } from "@/lib/hrDate";
 import {
   PAYROLL_STATUS_META,
   useEmployeePayrollRow,
@@ -103,13 +104,13 @@ export function PayrollApprovalBar({
           {row?.approved_at && (
             <span className="text-[11px] text-muted-foreground flex items-center gap-1">
               <Lock className="h-3 w-3" />
-              اعتُمد في {new Date(row.approved_at).toLocaleString("ar")}
+              اعتُمد في {formatHRDateTime(row.approved_at)}
             </span>
           )}
           {row?.submitted_at && !row?.approved_at && (
             <span className="text-[11px] text-muted-foreground flex items-center gap-1">
               <Info className="h-3 w-3" />
-              قُدِّم في {new Date(row.submitted_at).toLocaleString("ar")}
+              قُدِّم في {formatHRDateTime(row.submitted_at)}
             </span>
           )}
           {row?.rejection_reason && (

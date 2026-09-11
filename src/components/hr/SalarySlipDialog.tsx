@@ -6,6 +6,7 @@ import { Separator } from "@/components/ui/separator";
 import { Printer, FileText } from "lucide-react";
 import { formatCurrency, type SalarySlip, calculateLeaveBalance } from "@/lib/hr-utils";
 import { supabase } from "@/integrations/supabase/client";
+import { formatHRDate } from "@/lib/hrDate";
 
 interface Movement {
   id: string;
@@ -302,7 +303,7 @@ export default function SalarySlipDialog({ open, onClose, slip, employeeName, de
                 <p>توقيع المدير: _______________</p>
               </div>
             </div>
-            <p className="text-xs text-muted-foreground mt-2">التاريخ: {new Date().toLocaleDateString("ar-PS")}</p>
+            <p className="text-xs text-muted-foreground mt-2">التاريخ: {formatHRDate(new Date())}</p>
           </div>
         </div>
 

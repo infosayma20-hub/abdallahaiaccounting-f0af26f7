@@ -18,6 +18,7 @@ import {
   Paperclip, CheckCircle2, XCircle, Clock3, Printer, SlidersHorizontal,
   MoreHorizontal, Archive, ArchiveRestore, Trash2, ArrowUpDown, ArrowUp, ArrowDown,
 } from "lucide-react";
+import { formatHRDateTime } from "@/lib/hrDate";
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
@@ -127,14 +128,7 @@ function exportApplicationsToExcel(apps: AppRow[]) {
   toast.success(`تم تصدير ${apps.length} طلب بنجاح`);
 }
 
-const AR_DT = (iso: string) => {
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return "—";
-  return d.toLocaleString("ar", {
-    timeZone: "Asia/Hebron", weekday: "short", year: "numeric",
-    month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit",
-  });
-};
+const AR_DT = (iso: string) => formatHRDateTime(iso);
 
 function Rows({ title, rows, cols }: { title: string; rows: any; cols: [string, string][] }) {
   const list: any[] = Array.isArray(rows) ? rows : [];

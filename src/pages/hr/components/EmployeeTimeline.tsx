@@ -14,6 +14,7 @@ import {
 import { cn } from "@/lib/utils";
 import type { TimelineEvent } from "@/hooks/hr/useEmployee360";
 import { tTimelineTitle, tFormStatus, tAttendanceStatus } from "@/lib/hrLabels";
+import { formatHRDate } from "@/lib/hrDate";
 
 const TYPE_META: Record<TimelineEvent["type"], { Icon: LucideIcon; cls: string; label: string }> = {
   payroll: { Icon: Wallet, cls: "bg-primary/10 text-primary", label: "راتب" },
@@ -54,14 +55,7 @@ export function EmployeeTimeline({ events, limit = 50 }: Props) {
           {list.map((ev) => {
             const meta = TYPE_META[ev.type] || TYPE_META.activity;
             const { Icon } = meta;
-            const date = new Date(ev.date);
-            const dateStr = isNaN(date.getTime())
-              ? "—"
-              : date.toLocaleDateString("ar", {
-                  year: "numeric",
-                  month: "short",
-                  day: "numeric",
-                });
+            const dateStr = formatHRDate(ev.date);
             const amountColor =
               typeof ev.amount === "number"
                 ? ev.amount < 0

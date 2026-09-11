@@ -24,6 +24,28 @@ export function formatHRDate(input: string | Date | null | undefined): string {
   return `${dd}/${mm}/${yyyy}`;
 }
 
+/** Format date+time as dd/mm/yyyy HH:mm. Returns "—" for empty/invalid date. */
+export function formatHRDateTime(input: string | Date | null | undefined): string {
+  if (!input) return "—";
+  const datePart = formatHRDate(input);
+  if (datePart === "—") return "—";
+  const d = input instanceof Date ? input : new Date(String(input).trim());
+  if (Number.isNaN(d.getTime())) return datePart;
+  const hh = String(d.getHours()).padStart(2, "0");
+  const min = String(d.getMinutes()).padStart(2, "0");
+  return `${datePart} ${hh}:${min}`;
+}
+
+/** Format time only as HH:mm. Returns "—" for empty/invalid. */
+export function formatHRTime(input: string | Date | null | undefined): string {
+  if (!input) return "—";
+  const d = input instanceof Date ? input : new Date(String(input).trim());
+  if (Number.isNaN(d.getTime())) return "—";
+  const hh = String(d.getHours()).padStart(2, "0");
+  const min = String(d.getMinutes()).padStart(2, "0");
+  return `${hh}:${min}`;
+}
+
 /** Parse user-typed dd/mm/yyyy (or dd-mm-yyyy) → ISO yyyy-mm-dd. Empty if invalid. */
 export function parseHRDate(input: string): string {
   const s = (input || "").trim();
@@ -36,6 +58,13 @@ export function parseHRDate(input: string): string {
   const d = new Date(`${yyyy}-${mm}-${dd}`);
   if (Number.isNaN(d.getTime())) return "";
   return `${yyyy}-${mm}-${dd}`;
+}
+
+/** Format day/month only as dd/mm (useful for birthdays and short labels). */
+export function formatHRDayMonth(input: string | Date | null | undefined): string {
+  const s = formatHRDate(input);
+  if (s === "—") return "—";
+  return s.slice(0, 5); // dd/mm
 }
 
 /** True if `from` and `to` are both valid ISO and from > to. */

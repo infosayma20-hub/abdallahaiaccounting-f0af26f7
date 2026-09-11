@@ -12,6 +12,7 @@ import {
 import type { RiskScoreResult } from "@/hooks/hr/useEmployeeRiskScore";
 import type { CostEngineResult } from "@/hooks/hr/useEmployeeCostEngine";
 import { EmployeeRiskBadge } from "./EmployeeRiskBadge";
+import { formatHRDate } from "@/lib/hrDate";
 
 interface Props {
   employee: any;
@@ -87,7 +88,7 @@ export function EmployeeHeader({ employee, cost, risk }: Props) {
         {hireDate && (
           <span className="flex items-center gap-1.5">
             <Calendar className="h-3.5 w-3.5" />
-            التعيين: {new Date(hireDate).toLocaleDateString("ar")}
+            التعيين: {formatHRDate(hireDate)}
           </span>
         )}
       </div>

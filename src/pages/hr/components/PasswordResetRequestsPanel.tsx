@@ -16,6 +16,7 @@ import { KeyRound, Check, X, Loader2, RefreshCw, ChevronDown } from "lucide-reac
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
+import { formatHRDateTime } from "@/lib/hrDate";
 
 interface ResetRequest {
   id: string;
@@ -185,7 +186,7 @@ export function PasswordResetRequestsPanel() {
                       {r.email}
                     </div>
                     <div className="text-[10px] text-muted-foreground">
-                      {new Date(r.created_at).toLocaleString("ar-EG")}
+                      {formatHRDateTime(r.created_at)}
                     </div>
                   </div>
                 </li>

@@ -2,6 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import type { Employee360Data } from "@/hooks/hr/useEmployee360";
 import { tFormType, tFormStatus, formStatusTone } from "@/lib/hrLabels";
+import { formatHRDate } from "@/lib/hrDate";
 import { HRTable, HRTHead, HRTH, HRTR, HRTD } from "../HRTable";
 
 interface Props {
@@ -31,7 +32,7 @@ export function FormsTab({ data }: Props) {
               {forms.map((f: any) => (
                 <HRTR key={f.id}>
                   <HRTD numeric>
-                    {f.created_at ? new Date(f.created_at).toLocaleDateString("ar") : "—"}
+                    {f.created_at ? formatHRDate(f.created_at) : "—"}
                   </HRTD>
                   <HRTD>{tFormType(f.form_type)}</HRTD>
                   <HRTD className="text-muted-foreground truncate max-w-xs">

@@ -18,6 +18,7 @@ import {
   openEmployeeDocument,
   uploadEmployeeDocument,
 } from "@/lib/hr/employeeDocuments";
+import { formatHRDate } from "@/lib/hrDate";
 
 interface Props {
   employeeId: string;
@@ -108,7 +109,7 @@ function DocSlot({
       {doc && (
         <p className="text-[10px] text-muted-foreground">
           رفعها: {doc.uploaded_by_role === "employee" ? "الموظف" : "الموارد البشرية"} ·{" "}
-          {new Date(doc.created_at).toLocaleDateString("ar-EG-u-ca-gregory")}
+          {formatHRDate(doc.created_at)}
         </p>
       )}
 

@@ -3,6 +3,7 @@ import { FastTabs } from "@/components/finance/shell";
 import type { Employee360Data } from "@/hooks/hr/useEmployee360";
 import type { CostEngineResult } from "@/hooks/hr/useEmployeeCostEngine";
 import { tContractType, tMaritalStatus } from "@/lib/hrLabels";
+import { formatHRDate } from "@/lib/hrDate";
 
 interface Props {
   data: Employee360Data;
@@ -19,7 +20,7 @@ const Field = ({ label, value }: { label: string; value: any }) => (
   </div>
 );
 
-const arDate = (v: any) => (v ? new Date(v).toLocaleDateString("ar") : null);
+const arDate = (v: any) => (v ? formatHRDate(v) : null);
 
 export function OverviewTab({ data, cost }: Props) {
   const e: any = data.employee || {};

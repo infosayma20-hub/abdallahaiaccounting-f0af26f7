@@ -1,6 +1,7 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { typeLabel, penaltyLabel, STATUS_LABELS } from "@/lib/hrMessages";
+import { formatHRDateTime } from "@/lib/hrDate";
 import type { LinkedActionRow } from "@/hooks/hr/useEmployeeLinkedActions";
 
 export function LinkedActionBody({ row }: { row: LinkedActionRow }) {
@@ -10,7 +11,7 @@ export function LinkedActionBody({ row }: { row: LinkedActionRow }) {
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1">
         {[
           ["التاريخ", row.attendance_date],
-          ["أُرسلت في", new Date(row.created_at).toLocaleString("ar")],
+          ["أُرسلت في", formatHRDateTime(row.created_at)],
           ["المُصدِر", [meta?.issued_by_name, meta?.issued_by_role].filter(Boolean).join(" — ") || "غير مسجَّل"],
           ["نوع الإجراء", meta?.penalty_kind ? penaltyLabel(meta.penalty_kind) : "—"],
           ["تاريخ المخالفة", meta?.violation_date || "—"],
@@ -45,7 +46,7 @@ export function LinkedActionBody({ row }: { row: LinkedActionRow }) {
           {meta?.employee_response || "لا يوجد رد"}
           {meta?.employee_response_at && (
             <span className="block text-xs text-muted-foreground mt-1">
-              بتاريخ {new Date(meta.employee_response_at).toLocaleString("ar")}
+              بتاريخ {formatHRDateTime(meta.employee_response_at)}
             </span>
           )}
         </div>
@@ -53,7 +54,7 @@ export function LinkedActionBody({ row }: { row: LinkedActionRow }) {
 
       {(row.employee_acknowledged_at || meta?.employee_acknowledged_at) && (
         <p className="text-xs text-emerald-700">
-          اطّلع الموظف بتاريخ {new Date((row.employee_acknowledged_at || meta?.employee_acknowledged_at)!).toLocaleString("ar")}
+          اطّلع الموظف بتاريخ {formatHRDateTime(row.employee_acknowledged_at || meta?.employee_acknowledged_at)}
         </p>
       )}
     </div>

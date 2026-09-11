@@ -14,8 +14,7 @@
  */
 
 import { useQuery } from "@tanstack/react-query";
-import { format } from "date-fns";
-import { ar } from "date-fns/locale";
+import { formatHRDate, formatHRTime } from "@/lib/hrDate";
 import {
   Dialog,
   DialogContent,
@@ -108,8 +107,8 @@ export function PunchesModal({
                 events.map((e: any) => {
                   const dt = new Date(e.event_time);
                   return {
-                    "التاريخ": format(dt, "yyyy/MM/dd"),
-                    "الوقت": format(dt, "HH:mm"),
+                    "التاريخ": formatHRDate(dt),
+                    "الوقت": formatHRTime(dt),
                     "النوع": e.event_type === "check_in" ? "دخول" : e.event_type === "check_out" ? "خروج" : e.event_type,
                     "الحالة": e.status || "—",
                     "ملاحظات": e.notes || "",
@@ -141,8 +140,8 @@ export function PunchesModal({
                 const dt = new Date(e.event_time);
                 return (
                   <HRTR key={e.id}>
-                    <HRTD numeric>{format(dt, "yyyy/MM/dd", { locale: ar })}</HRTD>
-                    <HRTD numeric>{format(dt, "HH:mm")}</HRTD>
+                    <HRTD numeric>{formatHRDate(dt)}</HRTD>
+                    <HRTD numeric>{formatHRTime(dt)}</HRTD>
                     <HRTD>
                       <Badge variant={e.event_type === "check_in" ? "default" : "secondary"}>
                         {e.event_type === "check_in" ? "دخول" : e.event_type === "check_out" ? "خروج" : e.event_type}
@@ -243,9 +242,9 @@ export function WorkdaysModal({
             onClick={() =>
               exportRows(
                 days.map((d: any) => ({
-                  "التاريخ": format(new Date(d.attendance_date), "yyyy/MM/dd"),
-                  "دخول": d.first_check_in ? format(new Date(d.first_check_in), "HH:mm") : "—",
-                  "خروج": d.last_check_out ? format(new Date(d.last_check_out), "HH:mm") : "—",
+                  "التاريخ": formatHRDate(d.attendance_date),
+                  "دخول": d.first_check_in ? formatHRTime(d.first_check_in) : "—",
+                  "خروج": d.last_check_out ? formatHRTime(d.last_check_out) : "—",
                   "ساعات العمل": Number(d.total_hours || 0),
                   "إضافي": Number(d.overtime_hours || 0),
                   "الحالة": labelFor(d.status),
@@ -276,9 +275,9 @@ export function WorkdaysModal({
             <tbody>
               {days.map((d: any) => (
                 <HRTR key={d.attendance_date}>
-                  <HRTD numeric>{format(new Date(d.attendance_date), "yyyy/MM/dd", { locale: ar })}</HRTD>
-                  <HRTD numeric>{d.first_check_in ? format(new Date(d.first_check_in), "HH:mm") : "—"}</HRTD>
-                  <HRTD numeric>{d.last_check_out ? format(new Date(d.last_check_out), "HH:mm") : "—"}</HRTD>
+                  <HRTD numeric>{formatHRDate(d.attendance_date)}</HRTD>
+                  <HRTD numeric>{d.first_check_in ? formatHRTime(d.first_check_in) : "—"}</HRTD>
+                  <HRTD numeric>{d.last_check_out ? formatHRTime(d.last_check_out) : "—"}</HRTD>
                   <HRTD numeric>{fmtNum(d.total_hours)}</HRTD>
                   <HRTD numeric>{fmtNum(d.overtime_hours)}</HRTD>
                   <HRTD>

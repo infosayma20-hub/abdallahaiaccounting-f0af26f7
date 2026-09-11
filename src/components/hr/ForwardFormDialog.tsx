@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Loader2, Search, Send, Trash2, UserCheck } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
-import { format } from "date-fns";
+import { formatHRDateTime } from "@/lib/hrDate";
 
 interface Emp { id: string; full_name: string; job_title?: string | null }
 
@@ -171,7 +171,7 @@ export default function ForwardFormDialog({
                           <Badge variant="outline" className={`text-[10px] ${st.cls}`}>{st.text}</Badge>
                         </div>
                         <div className="text-[10px] text-muted-foreground truncate">
-                          {format(new Date(r.created_at), "dd/MM/yyyy HH:mm")}
+                          {formatHRDateTime(r.created_at)}
                           {r.note ? ` • ${r.note}` : ""}
                           {r.response_notes ? ` • ردّ: ${r.response_notes}` : ""}
                         </div>

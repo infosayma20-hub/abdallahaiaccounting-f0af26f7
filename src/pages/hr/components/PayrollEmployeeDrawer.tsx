@@ -22,6 +22,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { formatHRDate, formatHRDateTime } from "@/lib/hrDate";
 import {
   CheckCircle2,
   Clock,
@@ -102,15 +103,7 @@ const formatTime = (iso?: string | null) => {
   }
 };
 
-const formatDate = (iso?: string | null) => {
-  if (!iso) return "—";
-  try {
-    const d = new Date(iso);
-    return d.toLocaleDateString("ar", { day: "2-digit", month: "2-digit", weekday: "short" });
-  } catch {
-    return iso;
-  }
-};
+const formatDate = (iso?: string | null) => formatHRDate(iso);
 
 function KpiTile({
   label,
@@ -669,13 +662,7 @@ export default function PayrollEmployeeDrawer({
                                 <p>
                                   تاريخ الاعتماد:{" "}
                                   <span className="font-medium tabular-nums">
-                                    {new Date(approvedAt).toLocaleString("ar", {
-                                      day: "2-digit",
-                                      month: "2-digit",
-                                      year: "numeric",
-                                      hour: "2-digit",
-                                      minute: "2-digit",
-                                    })}
+                                    {formatHRDateTime(approvedAt)}
                                   </span>
                                 </p>
                               )}
@@ -845,7 +832,7 @@ export default function PayrollEmployeeDrawer({
                         <div className="flex-1">
                           <p className="text-sm font-medium">{f.form_type || "طلب"}</p>
                           <p className="text-[10px] text-muted-foreground mt-0.5">
-                            {new Date(f.created_at).toLocaleDateString("ar")}
+                            {formatHRDate(f.created_at)}
                           </p>
                         </div>
                         <Badge variant="outline" className="text-[10px] bg-amber-50 text-amber-700 border-amber-200">

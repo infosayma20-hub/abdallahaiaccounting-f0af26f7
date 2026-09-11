@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useDataOwnerId } from "@/hooks/useDataOwnerId";
 import { toast } from "sonner";
 import { differenceInCalendarDays, format, parseISO, startOfMonth } from "date-fns";
+import { formatHRDate } from "@/lib/hrDate";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -320,7 +321,7 @@ export default function SettlementsPage() {
                 return (
                   <tr key={r.id} className="border-t hover:bg-muted/30">
                     <td className="px-3 py-2 font-medium">{emp?.full_name || "—"}</td>
-                    <td className="px-3 py-2">{format(parseISO(r.termination_date), "yyyy-MM-dd")}</td>
+                    <td className="px-3 py-2">{formatHRDate(r.termination_date)}</td>
                     <td className="px-3 py-2">{reasonLabel}</td>
                     <td className="px-3 py-2">{Number(r.years_worked).toFixed(2)} سنة</td>
                     <td className="px-3 py-2">{fmtILS(Number(r.severance_pay))}</td>

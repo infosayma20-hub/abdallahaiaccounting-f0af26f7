@@ -8,6 +8,7 @@ import ChatThreadView from "@/components/chat/ChatThreadView";
 import StartHRChatDialog from "@/components/hr/StartHRChatDialog";
 import { useHRChatInbox } from "@/hooks/useHRChat";
 import { toast } from "sonner";
+import { formatHRDayMonth } from "@/lib/hrDate";
 
 export default function HRChatPage() {
   const { threads, loading, setPinned, markUnread, reload } = useHRChatInbox();
@@ -135,9 +136,7 @@ export default function HRChatPage() {
                       {t.last_message_preview || "—"}
                     </span>
                     <span className="text-[10px] text-muted-foreground shrink-0">
-                      {t.last_message_at
-                        ? new Date(t.last_message_at).toLocaleDateString("ar-EG", { day: "2-digit", month: "2-digit" })
-                        : ""}
+                      {t.last_message_at ? formatHRDayMonth(t.last_message_at) : ""}
                     </span>
                   </div>
                 </button>

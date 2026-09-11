@@ -31,6 +31,7 @@ import {
   Lock,
   Banknote,
 } from "lucide-react";
+import { formatHRDateTime } from "@/lib/hrDate";
 import {
   usePayrollMonth,
   useApprovePayrollBatch,
@@ -159,7 +160,7 @@ export default function PayrollApprovalCenter() {
           <AlertDescription className="text-xs text-emerald-700 dark:text-emerald-400">
             اعتُمد {batch.total_employees} موظف بإجمالي صافي ₪{fmt(Number(batch.total_net_salary))}
             {batch.approved_at && (
-              <> — في {new Date(batch.approved_at).toLocaleString("ar")}</>
+              <> — في {formatHRDateTime(batch.approved_at)}</>
             )}
           </AlertDescription>
         </Alert>

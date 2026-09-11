@@ -19,6 +19,7 @@ import {
 import { Search, Filter, MoreHorizontal, Eye, Pencil, MessageSquare, FileText, Send } from "lucide-react";
 import type { Employee360Data } from "@/hooks/hr/useEmployee360";
 import { tAttendanceStatus, tEventType, attendanceStatusTone } from "@/lib/hrLabels";
+import { formatHRDateTime } from "@/lib/hrDate";
 import { HRTable, HRTHead, HRTH, HRTR, HRTD } from "../HRTable";
 
 interface Props {
@@ -108,7 +109,7 @@ export function AttendanceTab({ data }: Props) {
             <div className="flex items-center justify-between text-sm">
               <Badge variant="outline">{tEventType(lastEvent.event_type)}</Badge>
               <span className="text-muted-foreground">
-                {new Date(lastEvent.event_time).toLocaleString("ar")}
+                {formatHRDateTime(lastEvent.event_time)}
               </span>
             </div>
           ) : (
