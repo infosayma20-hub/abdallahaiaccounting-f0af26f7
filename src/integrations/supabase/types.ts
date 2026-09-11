@@ -6971,6 +6971,93 @@ export type Database = {
         }
         Relationships: []
       }
+      domain_events_outbox: {
+        Row: {
+          actor_id: string | null
+          aggregate_id: string | null
+          aggregate_sequence: number | null
+          aggregate_type: string
+          attempt_count: number
+          branch_id: string | null
+          causation_id: string | null
+          command_id: string | null
+          company_id: string | null
+          correlation_id: string | null
+          created_at: string
+          dead_lettered_at: string | null
+          dedupe_key: string
+          effective_at: string | null
+          event_id: string
+          event_type: string
+          event_version: number
+          id: string
+          last_error: string | null
+          next_attempt_at: string | null
+          occurred_at: string
+          owner_id: string
+          payload: Json
+          processed_at: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          actor_id?: string | null
+          aggregate_id?: string | null
+          aggregate_sequence?: number | null
+          aggregate_type: string
+          attempt_count?: number
+          branch_id?: string | null
+          causation_id?: string | null
+          command_id?: string | null
+          company_id?: string | null
+          correlation_id?: string | null
+          created_at?: string
+          dead_lettered_at?: string | null
+          dedupe_key: string
+          effective_at?: string | null
+          event_id: string
+          event_type: string
+          event_version?: number
+          id?: string
+          last_error?: string | null
+          next_attempt_at?: string | null
+          occurred_at?: string
+          owner_id: string
+          payload?: Json
+          processed_at?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          actor_id?: string | null
+          aggregate_id?: string | null
+          aggregate_sequence?: number | null
+          aggregate_type?: string
+          attempt_count?: number
+          branch_id?: string | null
+          causation_id?: string | null
+          command_id?: string | null
+          company_id?: string | null
+          correlation_id?: string | null
+          created_at?: string
+          dead_lettered_at?: string | null
+          dedupe_key?: string
+          effective_at?: string | null
+          event_id?: string
+          event_type?: string
+          event_version?: number
+          id?: string
+          last_error?: string | null
+          next_attempt_at?: string | null
+          occurred_at?: string
+          owner_id?: string
+          payload?: Json
+          processed_at?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       email_send_log: {
         Row: {
           created_at: string
@@ -28483,6 +28570,21 @@ export type Database = {
         }
         Relationships: []
       }
+      domain_events_outbox_health_v1: {
+        Row: {
+          dead_letter_count: number | null
+          event_count: number | null
+          event_type: string | null
+          max_attempts: number | null
+          oldest_pending_age_seconds: number | null
+          oldest_pending_at: string | null
+          owner_id: string | null
+          pending_count: number | null
+          processed_count: number | null
+          retry_count: number | null
+        }
+        Relationships: []
+      }
       employees_safe: {
         Row: {
           address: string | null
@@ -30598,8 +30700,31 @@ export type Database = {
           session_id: string
         }[]
       }
+      dispatch_domain_events_v1: {
+        Args: { p_dry_run?: boolean; p_limit?: number }
+        Returns: Json
+      }
       dispatch_internal_message_reminders: { Args: never; Returns: number }
       email_queue_dispatch: { Args: never; Returns: undefined }
+      emit_domain_event_v1: {
+        Args: {
+          p_actor_id: string
+          p_aggregate_id: string
+          p_aggregate_type: string
+          p_branch_id: string
+          p_causation_id: string
+          p_command_id: string
+          p_company_id: string
+          p_correlation_id: string
+          p_dedupe_key: string
+          p_effective_at: string
+          p_event_type: string
+          p_event_version: number
+          p_owner_id: string
+          p_payload: Json
+        }
+        Returns: string
+      }
       enqueue_email: {
         Args: { payload: Json; queue_name: string }
         Returns: number
@@ -31521,6 +31646,10 @@ export type Database = {
       }
       is_branch_manager_of: {
         Args: { _branch: string; _user: string }
+        Returns: boolean
+      }
+      is_command_flag_enabled_v1: {
+        Args: { p_flag: string; p_owner: string }
         Returns: boolean
       }
       is_company_hr_admin: {
