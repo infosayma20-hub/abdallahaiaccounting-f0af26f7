@@ -758,9 +758,39 @@ const EmployeesPage = () => {
     feedback: { label: "متابعة الزبائن", cls: "bg-teal-100 text-teal-700 border-teal-200 dark:bg-teal-900/30 dark:text-teal-300" },
   };
 
+  // تطبيع عربي: توحيد الألف/الياء/التاء المربوطة وإزالة التشكيل
+  const normalizeAr = (s: any) =>
+    String(s ?? "")
+      .replace(/[\u064B-\u0652\u0640]/g, "")
+      .replace(/[أإآٱ]/g, "ا")
+      .replace(/ى/g, "ي")
+      .replace(/ة/g, "ه")
+      .trim()
+      .toLowerCase();
+
+  // ترتيب النتائج حسب موقع التطابق في الاسم الرباعي: الاسم الأول ثم الأب ثم الجد ثم العائلة
+  const searchRank = (e: any, q: string) => {
+    if (!q) return 0;
+    const parts = normalizeAr(e.full_name).split(/\s+/).filter(Boolean);
+    for (let i = 0; i < parts.length; i++) {
+      if (parts[i] === q) return i * 2;            // تطابق كامل للجزء
+      if (parts[i].startsWith(q)) return i * 2 + 1; // يبدأ بالكلمة
+    }
+    if (normalizeAr(e.full_name).includes(q)) return 50;
+    if (normalizeAr(e.employee_number).includes(q) || normalizeAr(e.id_number).includes(q)) return 60;
+    return 70; // تطابق على الوظيفة أو غيرها
+  };
+
   const filtered = useMemo(() => {
+    const q = normalizeAr(search);
     let list = employees.filter(e =>
-      (e.full_name?.includes(search) || e.id_number?.includes(search) || (e as any).employee_number?.includes(search) || e.job_title?.includes(search) || e.position?.includes(search))
+      !q || (
+        normalizeAr(e.full_name).includes(q) ||
+        normalizeAr(e.id_number).includes(q) ||
+        normalizeAr((e as any).employee_number).includes(q) ||
+        normalizeAr(e.job_title).includes(q) ||
+        normalizeAr(e.position).includes(q)
+      )
     );
     if (filterBranch !== "all") list = list.filter(e => (e.branch_id || "") === filterBranch);
     if (filterStatus === "active") list = list.filter(e => e.is_active);
@@ -772,6 +802,11 @@ const EmployeesPage = () => {
     if (dateTo) list = list.filter(e => (e.start_date || "") <= dateTo);
 
     list.sort((a, b) => {
+      if (q) {
+        const ra = searchRank(a, q);
+        const rb = searchRank(b, q);
+        if (ra !== rb) return ra - rb;
+      }
       let va: any = (a as any)[sortField];
       let vb: any = (b as any)[sortField];
       if (sortField === "employee_number") {
@@ -789,6 +824,7 @@ const EmployeesPage = () => {
     });
     return list;
   }, [employees, search, filterBranch, filterStatus, filterJob, filterCap, capsMap, dateFrom, dateTo, sortField, sortDir]);
+
 
   // Pagination
   const totalPages = Math.ceil(filtered.length / perPage);
