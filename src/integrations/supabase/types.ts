@@ -2750,6 +2750,78 @@ export type Database = {
         }
         Relationships: []
       }
+      business_commands: {
+        Row: {
+          causation_id: string | null
+          command_id: string
+          command_type: string
+          completed_at: string | null
+          correlation_id: string | null
+          created_at: string
+          device_id: string | null
+          duration_ms: number | null
+          error_code: string | null
+          id: string
+          idempotency_key: string
+          payload_digest: string | null
+          resolved_actor_id: string
+          resolved_branch_id: string | null
+          resolved_company_id: string | null
+          resolved_owner_id: string
+          result_reference: Json | null
+          schema_version: number
+          source: string
+          started_at: string
+          status: string
+        }
+        Insert: {
+          causation_id?: string | null
+          command_id: string
+          command_type: string
+          completed_at?: string | null
+          correlation_id?: string | null
+          created_at?: string
+          device_id?: string | null
+          duration_ms?: number | null
+          error_code?: string | null
+          id?: string
+          idempotency_key: string
+          payload_digest?: string | null
+          resolved_actor_id: string
+          resolved_branch_id?: string | null
+          resolved_company_id?: string | null
+          resolved_owner_id: string
+          result_reference?: Json | null
+          schema_version?: number
+          source: string
+          started_at?: string
+          status?: string
+        }
+        Update: {
+          causation_id?: string | null
+          command_id?: string
+          command_type?: string
+          completed_at?: string | null
+          correlation_id?: string | null
+          created_at?: string
+          device_id?: string | null
+          duration_ms?: number | null
+          error_code?: string | null
+          id?: string
+          idempotency_key?: string
+          payload_digest?: string | null
+          resolved_actor_id?: string
+          resolved_branch_id?: string | null
+          resolved_company_id?: string | null
+          resolved_owner_id?: string
+          result_reference?: Json | null
+          schema_version?: number
+          source?: string
+          started_at?: string
+          status?: string
+        }
+        Relationships: []
+      }
       call_center_order_edits: {
         Row: {
           call_center_order_id: string
@@ -30375,6 +30447,7 @@ export type Database = {
         }
         Returns: Json
       }
+      create_receipt_command_v1: { Args: { p_envelope: Json }; Returns: Json }
       create_receipt_voucher_offline: {
         Args: { p_idempotency_key: string; p_payload: Json; p_user_id: string }
         Returns: Json
@@ -32190,6 +32263,15 @@ export type Database = {
         Args: { p_branch_id: string; p_user_id: string }
         Returns: string
       }
+      resolve_command_context_v1: {
+        Args: {
+          p_branch_id?: string
+          p_company_id?: string
+          p_device_id?: string
+          p_source?: string
+        }
+        Returns: Json
+      }
       resolve_effective_owner_id: {
         Args: { _auth_uid?: string }
         Returns: string
@@ -32591,6 +32673,7 @@ export type Database = {
         Returns: boolean
       }
       user_manages_form_branch: { Args: { _form_id: string }; Returns: boolean }
+      validate_receipt_command_v1: { Args: { p_envelope: Json }; Returns: Json }
       verify_kiosk_exit_pin: {
         Args: { p_branch_id: string; p_pin: string }
         Returns: boolean
