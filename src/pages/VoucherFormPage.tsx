@@ -58,6 +58,11 @@ import {
   callAllocateVoucherRpc,
   callCreateMixedVoucherRpc,
 } from "@/lib/voucher-rpc";
+import {
+  isReceiptCommandV1Enabled,
+  submitReceiptCommandV1,
+  toLegacyVoucherResult,
+} from "@/lib/commands/receipt-command-v1";
 import { openOfficialVoucherWindow } from "@/lib/print/buildOfficialVoucher";
 import {
   AllocationMode,
