@@ -78,6 +78,7 @@
     "next-themes": "^0.3.0",
     "qrcode.react": "^4.2.0",
     "react": "^18.3.1",
+    "react-activation": "^0.13.4",
     "react-day-picker": "^8.10.1",
     "react-dom": "^18.3.1",
     "react-grid-layout": "1.5.2",
