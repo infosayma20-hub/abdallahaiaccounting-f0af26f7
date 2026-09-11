@@ -92,9 +92,6 @@ function hebronDateFromIso(iso: string): string {
 // events up to (date + 1) 06:00 Asia/Hebron.
 // ───────────────────────────────────────────────────────────────────────────
 const ATTENDANCE_DAY_CUTOFF_HOUR = 6;
-// Continuation only applies to a real gap, never to an unrelated night shift.
-const CONTINUATION_MAX_GAP_MIN = 300;     // مغادرة مؤقتة / بصمات قديمة بدون نية
-const END_OF_DAY_RETURN_GRACE_MIN = 60;   // بعد "إنهاء الدوام" لا نُكمل إلا بعودة سريعة
 
 /**
  * Resolves which attendance day a punch belongs to. Punches at/after the
@@ -102,40 +99,22 @@ const END_OF_DAY_RETURN_GRACE_MIN = 60;   // بعد "إنهاء الدوام" ل
  * only after-midnight punches that CONTINUE an ongoing day are re-anchored.
  */
 async function resolveAttendanceBusinessDate(
-  supabase: any,
-  employeeId: string,
+  _supabase: any,
+  _employeeId: string,
   iso: string,
 ): Promise<string> {
-  let anchor = new Date(iso);
-  for (let hop = 0; hop < 5; hop++) {
-    if (hebronHour(anchor.toISOString()) >= ATTENDANCE_DAY_CUTOFF_HOUR) break;
-    const windowStart = new Date(anchor.getTime() - CONTINUATION_MAX_GAP_MIN * 60_000).toISOString();
-    const { data } = await supabase
-      .from("attendance_events")
-      .select("event_type, event_time, checkout_kind")
-      .eq("employee_id", employeeId)
-      .in("status", ["valid", "manual"])
-      .lt("event_time", anchor.toISOString())
-      .gte("event_time", windowStart)
-      .order("event_time", { ascending: false })
-      .limit(1);
-    const prev = data?.[0];
-    // Only a preceding check_OUT can mean "this punch resumes that day".
-    if (!prev || prev.event_type !== "check_out") break;
-    const gapMin = (anchor.getTime() - new Date(prev.event_time).getTime()) / 60_000;
-    const limit = prev.checkout_kind === "end_of_day"
-      ? END_OF_DAY_RETURN_GRACE_MIN
-      : CONTINUATION_MAX_GAP_MIN;
-    if (gapMin > limit) break;
-    anchor = new Date(prev.event_time);
-  }
-  return hebronDateFromIso(anchor.toISOString());
+  // One authoritative boundary for restaurants/night shifts: 06:00 Hebron.
+  // Shifting the instant six hours before deriving the local date guarantees
+  // that 00:00–05:59 belongs to the preceding attendance day without relying
+  // on the shape of prior punches.
+  const shifted = new Date(new Date(iso).getTime() - ATTENDANCE_DAY_CUTOFF_HOUR * 60 * 60_000);
+  return hebronDateFromIso(shifted.toISOString());
 }
 
-/** Calculation window of an attendance day: [date 00:00, date+1 06:00) local. */
+/** Calculation window of an attendance day: [date 06:00, date+1 06:00) local. */
 function attendanceWindowUtc(datePart: string): { start: string; end: string } {
   return {
-    start: localDateTimeToUtcIso(datePart, 0, 0, 0),
+    start: localDateTimeToUtcIso(datePart, ATTENDANCE_DAY_CUTOFF_HOUR, 0, 0),
     end: localDateTimeToUtcIso(addDays(datePart, 1), ATTENDANCE_DAY_CUTOFF_HOUR, 0, 0),
   };
 }

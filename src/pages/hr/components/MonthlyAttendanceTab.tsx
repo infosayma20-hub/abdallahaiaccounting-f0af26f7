@@ -232,18 +232,18 @@ const EMP_STORE_KEY = "hr:attendance:employee";
 /** مفتاح حفظ السنة/الشهر المعروضين لنفس السبب. */
 const YM_STORE_KEY = "hr:attendance:ym";
 
-function readStoredEmployee(): { id: string; name: string } | null {
+function readStoredEmployee(storageSuffix = ""): { id: string; name: string } | null {
   try {
-    const raw = sessionStorage.getItem(EMP_STORE_KEY);
+    const raw = sessionStorage.getItem(`${EMP_STORE_KEY}${storageSuffix}`);
     if (!raw) return null;
     const parsed = JSON.parse(raw) as { id?: string; name?: string };
     return parsed?.id ? { id: parsed.id, name: parsed.name || "" } : null;
   } catch { return null; }
 }
 
-function readStoredYm(): { year: number; month: number } | null {
+function readStoredYm(storageSuffix = ""): { year: number; month: number } | null {
   try {
-    const raw = sessionStorage.getItem(YM_STORE_KEY);
+    const raw = sessionStorage.getItem(`${YM_STORE_KEY}${storageSuffix}`);
     if (!raw) return null;
     const parsed = JSON.parse(raw) as { year?: number; month?: number };
     return parsed?.year && parsed?.month ? { year: parsed.year, month: parsed.month } : null;
@@ -273,10 +273,12 @@ export default function MonthlyAttendanceTab({
   const { user } = useAuth();
   const { enabled: depEnabled, cap: depCap, maxGap: depMaxGap } = useDepartureCap();
   const [searchParams] = useSearchParams();
+  const tabInstance = searchParams.get("__tab");
+  const storageSuffix = tabInstance ? `:${tabInstance}` : "";
   const now = new Date();
   /** الأولوية: رابط مباشر (URL) ← آخر اختيار محفوظ ← الشهر الحالي. */
-  const savedYm = readStoredYm();
-  const savedEmp = readStoredEmployee();
+  const savedYm = readStoredYm(storageSuffix);
+  const savedEmp = readStoredEmployee(storageSuffix);
   const initialYear = Number(searchParams.get("year")) || savedYm?.year || now.getFullYear();
   const initialMonth = Number(searchParams.get("month")) || savedYm?.month || (now.getMonth() + 1);
   const initialEmployee = searchParams.get("employee") || savedEmp?.id || "all";
@@ -288,7 +290,7 @@ export default function MonthlyAttendanceTab({
    *  حتى يبقى فلتر «من – إلى» فعّالاً كما اختاره مدير الموارد البشرية. */
   const savedPeriod = (() => {
     try {
-      const raw = sessionStorage.getItem(PERIOD_STORE_KEY);
+      const raw = sessionStorage.getItem(`${PERIOD_STORE_KEY}${storageSuffix}`);
       return raw ? (JSON.parse(raw) as { mode?: string; from?: string; to?: string }) : null;
     } catch { return null; }
   })();
@@ -313,11 +315,11 @@ export default function MonthlyAttendanceTab({
   useEffect(() => {
     try {
       sessionStorage.setItem(
-        PERIOD_STORE_KEY,
+        `${PERIOD_STORE_KEY}${storageSuffix}`,
         JSON.stringify({ mode: periodMode, from: dateFrom, to: dateTo }),
       );
     } catch { /* ignore quota / private mode */ }
-  }, [periodMode, dateFrom, dateTo]);
+  }, [periodMode, dateFrom, dateTo, storageSuffix]);
   const [employeeId, setEmployeeId] = useState<string>(initialEmployee);
   /** 💾 مزامنة اختيار الموظف والشهر مع sessionStorage حتى يلتقطه أي تبويب
    *  آخر (شهري/يومي/مغادرات) عند إعادة تركيبه — بدون إعادة اختيار الموظف. */
@@ -326,16 +328,16 @@ export default function MonthlyAttendanceTab({
       const name =
         employeeId === "all"
           ? ""
-          : employees.find((e) => e.id === employeeId)?.full_name || readStoredEmployee()?.name || "";
-      sessionStorage.setItem(EMP_STORE_KEY, JSON.stringify({ id: employeeId, name }));
+          : employees.find((e) => e.id === employeeId)?.full_name || readStoredEmployee(storageSuffix)?.name || "";
+      sessionStorage.setItem(`${EMP_STORE_KEY}${storageSuffix}`, JSON.stringify({ id: employeeId, name }));
     } catch { /* ignore */ }
-  }, [employeeId, employees]);
+  }, [employeeId, employees, storageSuffix]);
   useEffect(() => {
     try {
-      sessionStorage.setItem(YM_STORE_KEY, JSON.stringify({ year, month }));
+      sessionStorage.setItem(`${YM_STORE_KEY}${storageSuffix}`, JSON.stringify({ year, month }));
     } catch { /* ignore */ }
-  }, [year, month]);
-  const [empQuery, setEmpQuery] = useState<string>(() => readStoredEmployee()?.name || "");
+  }, [year, month, storageSuffix]);
+  const [empQuery, setEmpQuery] = useState<string>(() => readStoredEmployee(storageSuffix)?.name || "");
   const [filter, setFilter] = useState<QuickFilter>("all");
   const [breaksFilter, setBreaksFilter] = useState<BreaksFilter>("any");
   const [rows, setRows] = useState<MonthRow[]>([]);

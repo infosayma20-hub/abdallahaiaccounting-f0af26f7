@@ -1,10 +1,10 @@
 import { useEffect, useRef } from "react";
-import { useLocation, useNavigationType } from "react-router-dom";
+import { useNavigationType } from "react-router-dom";
+import { useAppTabs } from "@/contexts/TabsContext";
 
 const STORAGE_PREFIX = "tabscroll:";
 
-const keyFor = (pathname: string, search: string) =>
-  `${STORAGE_PREFIX}${pathname}${search || ""}`;
+const keyFor = (tabId: string) => `${STORAGE_PREFIX}${tabId}`;
 
 /**
  * Keeps the scroll position of every open tab (route) so switching between
@@ -16,9 +16,9 @@ const keyFor = (pathname: string, search: string) =>
 export function useTabScrollRestore(
   containerRef: React.RefObject<HTMLElement>,
 ) {
-  const { pathname, search } = useLocation();
+  const { activeTabId } = useAppTabs();
   const navigationType = useNavigationType();
-  const currentKey = keyFor(pathname, search);
+  const currentKey = keyFor(activeTabId || "untabbed");
   const keyRef = useRef(currentKey);
 
   // Persist scroll position of the tab we are leaving, then restore the new one.
@@ -92,10 +92,9 @@ export function useTabScrollRestore(
 }
 
 /** Clears the stored position for a tab that was closed. */
-export function clearTabScroll(path: string) {
+export function clearTabScroll(tabId: string) {
   try {
-    const [pathname, search] = path.split("?");
-    sessionStorage.removeItem(keyFor(pathname, search ? `?${search}` : ""));
+    sessionStorage.removeItem(keyFor(tabId));
   } catch {
     /* ignore */
   }

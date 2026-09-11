@@ -42,8 +42,8 @@ function addDays(datePart: string, days: number): string {
 
 function hebronDayRangeUtc(datePart: string): { start: string; end: string } {
   return {
-    start: localDateTimeToUtcIso(datePart, 0, 0, 0),
-    end: localDateTimeToUtcIso(addDays(datePart, 1), 0, 0, 0),
+    start: localDateTimeToUtcIso(datePart, ATTENDANCE_DAY_CUTOFF_HOUR, 0, 0),
+    end: localDateTimeToUtcIso(addDays(datePart, 1), ATTENDANCE_DAY_CUTOFF_HOUR, 0, 0),
   };
 }
 
@@ -54,6 +54,17 @@ function hebronHour(iso: string): number {
     hour12: false,
   }).formatToParts(new Date(iso)).find((p) => p.type === "hour")?.value;
   return Number(hour || 0);
+}
+
+const ATTENDANCE_DAY_CUTOFF_HOUR = 6;
+
+async function resolveAttendanceBusinessDate(
+  _supabase: any,
+  _employeeId: string,
+  iso: string,
+): Promise<string> {
+  const shifted = new Date(new Date(iso).getTime() - ATTENDANCE_DAY_CUTOFF_HOUR * 60 * 60_000);
+  return hebronDateFromIso(shifted.toISOString());
 }
 
 Deno.serve(async (req) => {
@@ -168,9 +179,11 @@ Deno.serve(async (req) => {
             eventType = "check_out";
           }
 
-          const attendanceDate = eventType === "check_out" && openSessionStart
-            ? hebronDateFromIso(openSessionStart.event_time)
-            : today;
+          const attendanceDate = await resolveAttendanceBusinessDate(
+            supabase,
+            employee.id,
+            eventType === "check_out" && openSessionStart ? openSessionStart.event_time : punchIso,
+          );
 
           // Insert attendance event
           const { error: eventErr } = await supabase.from("attendance_events").insert({

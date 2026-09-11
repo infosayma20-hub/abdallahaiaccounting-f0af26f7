@@ -24,7 +24,7 @@ interface WebLayoutProps {
 
 const AUTO_COLLAPSE_MS = 5000;
 
-const WebLayout = ({ children }: WebLayoutProps) => {
+const WebLayoutContent = ({ children }: WebLayoutProps) => {
   const { pathname } = useLocation();
   // Sidebar starts collapsed and auto-collapses 5s after being expanded
   // (desktop only). Hovering the sidebar keeps it open.
@@ -83,7 +83,6 @@ const WebLayout = ({ children }: WebLayoutProps) => {
     pathname === "/smart-report";
 
   return (
-    <TabsProvider>
     <div className="flex h-screen w-full overflow-hidden bg-background" dir="rtl" style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}>
       {/* Sidebar — always visible. Auto-collapses 5s after expand */}
       <div
@@ -143,8 +142,13 @@ const WebLayout = ({ children }: WebLayoutProps) => {
       {/* Noor Support Widget */}
       <NoorSupportWidget />
     </div>
-    </TabsProvider>
   );
 };
+
+const WebLayout = ({ children }: WebLayoutProps) => (
+  <TabsProvider>
+    <WebLayoutContent>{children}</WebLayoutContent>
+  </TabsProvider>
+);
 
 export default WebLayout;
