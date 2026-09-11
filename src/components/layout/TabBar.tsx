@@ -78,6 +78,8 @@ const TabBar = () => {
         {tabs.map((tab) => {
           const isActive = tab.id === activeTabId;
           const IconComp = ICON_MAP[tab.icon] || ICON_MAP.file;
+          const duplicatable = canDuplicateTab(tab.path);
+
           return (
             <button
               key={tab.id}
