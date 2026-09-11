@@ -518,6 +518,9 @@ export function TabsProvider({ children }: { children: ReactNode }) {
   const duplicateTab = useCallback((id: string) => {
     const source = tabs.find(t => t.id === id);
     if (!source) return;
+    // تكرار التبويبات مسموح للموارد البشرية فقط
+    if (!canDuplicatePath(source.path)) return;
+
     const [pathname, rawSearch = ""] = source.path.split("?");
     const params = new URLSearchParams(rawSearch);
     params.set("__tab", crypto.randomUUID());
