@@ -314,11 +314,53 @@ function getRouteMeta(path: string): { title: string; icon: string } {
   return { title: clean.replace(/\//g, " ").trim() || "صفحة", icon: "file" };
 }
 
+/**
+ * تكرار التبويبات مسموح فقط لشاشات الموارد البشرية.
+ * الفواتير والسندات والتعريفات وكشوف الحساب مستثناة لأن نسختين
+ * من نفس المستند قد تُنتجا حفظاً مزدوجاً أو تعارضاً في التعديل.
+ */
+const DUPLICATABLE_PREFIXES = [
+  "/hr",
+  "/hr-attendance",
+  "/hr-deductions",
+  "/employees",
+  "/employee-forms-management",
+  "/attendance",
+  "/manager/roster",
+  "/manager/forms-inbox",
+  "/leaves",
+  "/payroll",
+];
+
+export function canDuplicatePath(path: string): boolean {
+  const clean = path.split("?")[0].split("#")[0];
+  return DUPLICATABLE_PREFIXES.some(p => clean === p || clean.startsWith(p + "/"));
+}
+
+/** لواحق العرض الفرعي داخل نفس الشاشة — حتى لا يتشابه تبويبان */
+const SUBTAB_LABELS: Record<string, Record<string, string>> = {
+  "/hr-attendance": {
+    live: "العرض المباشر",
+    daily: "الحضور اليومي",
+    monthly: "العرض الشهري",
+    departures: "مخالفات المغادرة",
+  },
+};
+
+function getTitleWithSubtab(pathname: string, search: string, baseTitle: string): string {
+  const map = SUBTAB_LABELS[pathname];
+  if (!map) return baseTitle;
+  const sub = new URLSearchParams(search).get("tab") || "live";
+  const label = map[sub];
+  return label ? `${baseTitle} — ${label}` : baseTitle;
+}
+
 const STORAGE_KEY_PREFIX = "amwali-open-tabs";
 
 function getStorageKey(userId?: string) {
   return userId ? `${STORAGE_KEY_PREFIX}_${userId}` : STORAGE_KEY_PREFIX;
 }
+
 
 function loadTabs(userId?: string): AppTab[] {
   try {
