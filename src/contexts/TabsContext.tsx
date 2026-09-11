@@ -427,23 +427,30 @@ export function TabsProvider({ children }: { children: ReactNode }) {
 
   // Sync active tab with current route. Normal navigation remains one tab per
   // pathname; explicit duplicate tabs carry a private __tab identity in URL.
+  // ملاحظة مهمة: نحتفظ ببارامترات الرابط داخل مسار التبويب (مثل ?tab=daily)
+  // حتى يستعيد كل تبويب عرضه الفرعي بدقة، مع إبقاء المطابقة على أساس pathname
+  // فقط حتى لا يتولد تبويب جديد عند تغيير الفلاتر.
   useEffect(() => {
     const currentPath = location.pathname;
     if (isExcludedPath(currentPath)) return;
     const instanceId = new URLSearchParams(location.search).get("__tab");
-    const tabPath = instanceId ? `${currentPath}${location.search}` : currentPath;
+    const tabPath = location.search ? `${currentPath}${location.search}` : currentPath;
 
     const meta = getRouteMeta(currentPath);
+    const title = getTitleWithSubtab(currentPath, location.search, meta.title);
 
     setTabs(prev => {
       const existing = instanceId
         ? prev.find(t => new URLSearchParams(t.path.split("?")[1] || "").get("__tab") === instanceId)
-        : prev.find(t => t.path === tabPath);
+        : prev.find(t =>
+            t.path.split("?")[0] === currentPath &&
+            !new URLSearchParams(t.path.split("?")[1] || "").get("__tab")
+          );
       if (existing) {
         // Always sync activeTabId to match current route (fixes stale active state)
         setActiveTabId(existing.id);
-        if (existing.path !== tabPath || existing.title !== meta.title || existing.icon !== meta.icon) {
-          const next = prev.map(t => t.id === existing.id ? { ...t, path: tabPath, title: meta.title, icon: meta.icon } : t);
+        if (existing.path !== tabPath || existing.title !== title || existing.icon !== meta.icon) {
+          const next = prev.map(t => t.id === existing.id ? { ...t, path: tabPath, title, icon: meta.icon } : t);
           saveTabs(next, userId);
           return next;
         }
@@ -452,7 +459,7 @@ export function TabsProvider({ children }: { children: ReactNode }) {
       const newTab: AppTab = {
         id: crypto.randomUUID(),
         path: tabPath,
-        title: meta.title,
+        title,
         icon: meta.icon,
       };
       setActiveTabId(newTab.id);
@@ -461,6 +468,7 @@ export function TabsProvider({ children }: { children: ReactNode }) {
       return next;
     });
   }, [location.pathname, location.search, userId]);
+
 
   const openTab = useCallback((path: string, title?: string, options?: { newInstance?: boolean }) => {
     if (isExcludedPath(path)) {
