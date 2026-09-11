@@ -151,6 +151,7 @@ export default function HRAlertsBell() {
   const [birthdays, setBirthdays] = useState<BirthdayAlert[]>([]);
   const [milestones, setMilestones] = useState<MilestoneAlert[]>([]);
   const [reminderOpen, setReminderOpen] = useState(false);
+  const [activeReminder, setActiveReminder] = useState<HRReminder | null>(null);
   const prevTotal = useRef<number | null>(null);
   const { reminders, refresh: refreshReminders, markDone } = useHRReminders();
 
