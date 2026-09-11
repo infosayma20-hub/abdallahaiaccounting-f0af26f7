@@ -296,10 +296,10 @@ export default function HRAlertsBell() {
                 >
                   <button
                     className="flex-1 text-right min-w-0"
+                    title="اضغط لعرض التذكير كاملاً"
                     onClick={() => {
                       setOpen(false);
-                      if (r.related_form_id) navigate(`/employee-forms-management?formId=${r.related_form_id}`);
-                      else if (r.employee_id) navigate(`/hr/employee/${r.employee_id}`);
+                      setActiveReminder(r);
                     }}
                   >
                     <div className="flex items-center gap-2">
