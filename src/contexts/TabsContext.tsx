@@ -618,7 +618,7 @@ export function TabsProvider({ children }: { children: ReactNode }) {
   }, [navigate, userId, tabs]);
 
   return (
-    <TabsContext.Provider value={{ tabs, activeTabId, openTab, duplicateTab, closeTab, switchTab, closeOtherTabs, closeAllTabs }}>
+    <TabsContext.Provider value={{ tabs, activeTabId, openTab, duplicateTab, canDuplicateTab: canDuplicatePath, closeTab, switchTab, closeOtherTabs, closeAllTabs }}>
       {children}
     </TabsContext.Provider>
   );

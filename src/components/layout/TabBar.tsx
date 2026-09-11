@@ -15,7 +15,7 @@ const HIDDEN_TABBAR_PREFIXES: string[] = [];
 const TabBar = () => {
   const { pathname } = useLocation();
   const isHRRoute = HIDDEN_TABBAR_PREFIXES.some((p) => pathname === p || pathname.startsWith(p + "/"));
-  const { tabs, activeTabId, switchTab, duplicateTab, closeTab, closeAllTabs } = useAppTabs();
+  const { tabs, activeTabId, switchTab, duplicateTab, canDuplicateTab, closeTab, closeAllTabs } = useAppTabs();
   const tt = useTT();
   const scrollRef = useRef<HTMLDivElement>(null);
   const activeRef = useRef<HTMLButtonElement>(null);
