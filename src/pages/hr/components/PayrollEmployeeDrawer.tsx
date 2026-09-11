@@ -22,7 +22,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { formatHRDate } from "@/lib/hrDate";
+import { formatHRDate, formatHRDateTime } from "@/lib/hrDate";
 import {
   CheckCircle2,
   Clock,
