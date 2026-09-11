@@ -18172,6 +18172,102 @@ export type Database = {
           },
         ]
       }
+      posting_intents_v1: {
+        Row: {
+          actor_id: string | null
+          amount: number
+          base_amount: number | null
+          branch_id: string | null
+          command_id: string | null
+          company_id: string | null
+          contact_id: string | null
+          correlation_id: string | null
+          created_at: string
+          credit_account_code: string | null
+          credit_role: string | null
+          currency: string
+          debit_account_code: string | null
+          debit_role: string | null
+          duration_ms: number | null
+          effect_count: number
+          effect_type: string
+          effective_date: string
+          error_code: string | null
+          exchange_rate: number | null
+          id: string
+          owner_id: string
+          posting_version: number
+          result_code: string | null
+          reversal_transaction_id: string | null
+          source_id: string
+          source_type: string
+          status: string
+          transaction_id: string | null
+        }
+        Insert: {
+          actor_id?: string | null
+          amount: number
+          base_amount?: number | null
+          branch_id?: string | null
+          command_id?: string | null
+          company_id?: string | null
+          contact_id?: string | null
+          correlation_id?: string | null
+          created_at?: string
+          credit_account_code?: string | null
+          credit_role?: string | null
+          currency: string
+          debit_account_code?: string | null
+          debit_role?: string | null
+          duration_ms?: number | null
+          effect_count?: number
+          effect_type: string
+          effective_date: string
+          error_code?: string | null
+          exchange_rate?: number | null
+          id?: string
+          owner_id: string
+          posting_version?: number
+          result_code?: string | null
+          reversal_transaction_id?: string | null
+          source_id: string
+          source_type: string
+          status?: string
+          transaction_id?: string | null
+        }
+        Update: {
+          actor_id?: string | null
+          amount?: number
+          base_amount?: number | null
+          branch_id?: string | null
+          command_id?: string | null
+          company_id?: string | null
+          contact_id?: string | null
+          correlation_id?: string | null
+          created_at?: string
+          credit_account_code?: string | null
+          credit_role?: string | null
+          currency?: string
+          debit_account_code?: string | null
+          debit_role?: string | null
+          duration_ms?: number | null
+          effect_count?: number
+          effect_type?: string
+          effective_date?: string
+          error_code?: string | null
+          exchange_rate?: number | null
+          id?: string
+          owner_id?: string
+          posting_version?: number
+          result_code?: string | null
+          reversal_transaction_id?: string | null
+          source_id?: string
+          source_type?: string
+          status?: string
+          transaction_id?: string | null
+        }
+        Relationships: []
+      }
       print_documents: {
         Row: {
           contact_id: string | null
@@ -29930,6 +30026,16 @@ export type Database = {
         Returns: string
       }
       build_invoice_snapshot: { Args: { p_invoice_id: string }; Returns: Json }
+      build_receipt_posting_intent_v1: {
+        Args: {
+          p_command_id?: string
+          p_context: Json
+          p_correlation_id?: string
+          p_owner_id: string
+          p_payload: Json
+        }
+        Returns: Json
+      }
       calculate_formula_standard_cost: {
         Args: { _formula_id: string }
         Returns: number
@@ -32188,6 +32294,10 @@ export type Database = {
         Args: { _order_id: string; _phase: string }
         Returns: Json
       }
+      post_receipt_v1: {
+        Args: { p_intent: Json; p_payload: Json }
+        Returns: Json
+      }
       post_settlement_journal: {
         Args: {
           _bank_account_id?: string
@@ -32415,6 +32525,18 @@ export type Database = {
         }
         Returns: string
       }
+      resolve_receipt_account_roles_v1: {
+        Args: {
+          p_cash_account_code: string
+          p_contact_account_code: string
+          p_contact_id: string
+          p_contact_name: string
+          p_employee_id: string
+          p_owner_id: string
+          p_payment_method: string
+        }
+        Returns: Json
+      }
       resync_pos_order_gl_backfill: {
         Args: { p_dry_run?: boolean; p_order_id: string }
         Returns: Json
@@ -32550,6 +32672,10 @@ export type Database = {
       set_task_user_password: {
         Args: { p_new_password: string; p_task_user_id: string }
         Returns: boolean
+      }
+      shadow_compare_receipt_posting_v1: {
+        Args: { p_intent: Json; p_owner_id: string; p_transaction_id: string }
+        Returns: Json
       }
       sparta_account_id_by_code: {
         Args: { _code: string; _holding: string }
