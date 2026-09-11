@@ -78,7 +78,7 @@ export default function FormAuditTrail({ formId }: { formId: string }) {
                 {r.actor_role ? ` — ${ROLE_LABELS[r.actor_role] || r.actor_role}` : ""}
               </div>
               <div className="text-muted-foreground" dir="ltr">
-                {r.created_at ? new Date(r.created_at).toLocaleString("ar-EG") : "—"}
+                {r.created_at ? formatHRDateTime(r.created_at) : "—"}
               </div>
               {r.notes ? <div className="mt-0.5">ملاحظة: {r.notes}</div> : null}
               {(r.metadata as { backfilled?: boolean } | null)?.backfilled ? (

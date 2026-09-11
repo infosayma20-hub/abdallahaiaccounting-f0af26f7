@@ -23,7 +23,7 @@ interface Props {
   onAddRecord?: () => void;
 }
 
-const fmt = (v?: string | null) => (v ? new Date(v).toLocaleString("ar") : "—");
+const fmt = (v?: string | null) => formatHRDateTime(v);
 
 /**
  * سجل موحّد للمخالفة: كتاب المدير ← إجراء الموارد للموظف ← اطّلاع/ردّ الموظف

@@ -662,13 +662,7 @@ export default function PayrollEmployeeDrawer({
                                 <p>
                                   تاريخ الاعتماد:{" "}
                                   <span className="font-medium tabular-nums">
-                                    {new Date(approvedAt).toLocaleString("ar", {
-                                      day: "2-digit",
-                                      month: "2-digit",
-                                      year: "numeric",
-                                      hour: "2-digit",
-                                      minute: "2-digit",
-                                    })}
+                                    {formatHRDateTime(approvedAt)}
                                   </span>
                                 </p>
                               )}

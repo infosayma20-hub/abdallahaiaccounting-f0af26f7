@@ -109,7 +109,7 @@ export function AttendanceTab({ data }: Props) {
             <div className="flex items-center justify-between text-sm">
               <Badge variant="outline">{tEventType(lastEvent.event_type)}</Badge>
               <span className="text-muted-foreground">
-                {new Date(lastEvent.event_time).toLocaleString("ar")}
+                {formatHRDateTime(lastEvent.event_time)}
               </span>
             </div>
           ) : (
