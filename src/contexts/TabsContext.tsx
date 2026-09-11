@@ -24,11 +24,14 @@ interface TabsContextType {
   activeTabId: string | null;
   openTab: (path: string, title?: string, options?: { newInstance?: boolean }) => void;
   duplicateTab: (id: string) => void;
+  /** التكرار مسموح فقط لشاشات الموارد البشرية (الفواتير/السندات/التعريفات ممنوعة) */
+  canDuplicateTab: (path: string) => boolean;
   closeTab: (id: string) => void;
   switchTab: (id: string) => void;
   closeOtherTabs: (id: string) => void;
   closeAllTabs: () => void;
 }
+
 
 const TabsContext = createContext<TabsContextType | null>(null);
 
@@ -311,11 +314,53 @@ function getRouteMeta(path: string): { title: string; icon: string } {
   return { title: clean.replace(/\//g, " ").trim() || "صفحة", icon: "file" };
 }
 
+/**
+ * تكرار التبويبات مسموح فقط لشاشات الموارد البشرية.
+ * الفواتير والسندات والتعريفات وكشوف الحساب مستثناة لأن نسختين
+ * من نفس المستند قد تُنتجا حفظاً مزدوجاً أو تعارضاً في التعديل.
+ */
+const DUPLICATABLE_PREFIXES = [
+  "/hr",
+  "/hr-attendance",
+  "/hr-deductions",
+  "/employees",
+  "/employee-forms-management",
+  "/attendance",
+  "/manager/roster",
+  "/manager/forms-inbox",
+  "/leaves",
+  "/payroll",
+];
+
+export function canDuplicatePath(path: string): boolean {
+  const clean = path.split("?")[0].split("#")[0];
+  return DUPLICATABLE_PREFIXES.some(p => clean === p || clean.startsWith(p + "/"));
+}
+
+/** لواحق العرض الفرعي داخل نفس الشاشة — حتى لا يتشابه تبويبان */
+const SUBTAB_LABELS: Record<string, Record<string, string>> = {
+  "/hr-attendance": {
+    live: "العرض المباشر",
+    daily: "الحضور اليومي",
+    monthly: "العرض الشهري",
+    departures: "مخالفات المغادرة",
+  },
+};
+
+function getTitleWithSubtab(pathname: string, search: string, baseTitle: string): string {
+  const map = SUBTAB_LABELS[pathname];
+  if (!map) return baseTitle;
+  const sub = new URLSearchParams(search).get("tab") || "live";
+  const label = map[sub];
+  return label ? `${baseTitle} — ${label}` : baseTitle;
+}
+
 const STORAGE_KEY_PREFIX = "amwali-open-tabs";
 
 function getStorageKey(userId?: string) {
   return userId ? `${STORAGE_KEY_PREFIX}_${userId}` : STORAGE_KEY_PREFIX;
 }
+
 
 function loadTabs(userId?: string): AppTab[] {
   try {
@@ -382,23 +427,30 @@ export function TabsProvider({ children }: { children: ReactNode }) {
 
   // Sync active tab with current route. Normal navigation remains one tab per
   // pathname; explicit duplicate tabs carry a private __tab identity in URL.
+  // ملاحظة مهمة: نحتفظ ببارامترات الرابط داخل مسار التبويب (مثل ?tab=daily)
+  // حتى يستعيد كل تبويب عرضه الفرعي بدقة، مع إبقاء المطابقة على أساس pathname
+  // فقط حتى لا يتولد تبويب جديد عند تغيير الفلاتر.
   useEffect(() => {
     const currentPath = location.pathname;
     if (isExcludedPath(currentPath)) return;
     const instanceId = new URLSearchParams(location.search).get("__tab");
-    const tabPath = instanceId ? `${currentPath}${location.search}` : currentPath;
+    const tabPath = location.search ? `${currentPath}${location.search}` : currentPath;
 
     const meta = getRouteMeta(currentPath);
+    const title = getTitleWithSubtab(currentPath, location.search, meta.title);
 
     setTabs(prev => {
       const existing = instanceId
         ? prev.find(t => new URLSearchParams(t.path.split("?")[1] || "").get("__tab") === instanceId)
-        : prev.find(t => t.path === tabPath);
+        : prev.find(t =>
+            t.path.split("?")[0] === currentPath &&
+            !new URLSearchParams(t.path.split("?")[1] || "").get("__tab")
+          );
       if (existing) {
         // Always sync activeTabId to match current route (fixes stale active state)
         setActiveTabId(existing.id);
-        if (existing.path !== tabPath || existing.title !== meta.title || existing.icon !== meta.icon) {
-          const next = prev.map(t => t.id === existing.id ? { ...t, path: tabPath, title: meta.title, icon: meta.icon } : t);
+        if (existing.path !== tabPath || existing.title !== title || existing.icon !== meta.icon) {
+          const next = prev.map(t => t.id === existing.id ? { ...t, path: tabPath, title, icon: meta.icon } : t);
           saveTabs(next, userId);
           return next;
         }
@@ -407,7 +459,7 @@ export function TabsProvider({ children }: { children: ReactNode }) {
       const newTab: AppTab = {
         id: crypto.randomUUID(),
         path: tabPath,
-        title: meta.title,
+        title,
         icon: meta.icon,
       };
       setActiveTabId(newTab.id);
@@ -417,6 +469,7 @@ export function TabsProvider({ children }: { children: ReactNode }) {
     });
   }, [location.pathname, location.search, userId]);
 
+
   const openTab = useCallback((path: string, title?: string, options?: { newInstance?: boolean }) => {
     if (isExcludedPath(path)) {
       navigate(path);
@@ -424,7 +477,8 @@ export function TabsProvider({ children }: { children: ReactNode }) {
     }
 
     let targetPath = path;
-    if (options?.newInstance) {
+    const wantsInstance = !!options?.newInstance && canDuplicatePath(path);
+    if (wantsInstance) {
       const [pathname, rawSearch = ""] = path.split("?");
       const params = new URLSearchParams(rawSearch);
       params.set("__tab", crypto.randomUUID());
@@ -434,11 +488,17 @@ export function TabsProvider({ children }: { children: ReactNode }) {
     let resolvedId: string | null = null;
 
     setTabs(prev => {
-      const existing = options?.newInstance ? undefined : prev.find(t => t.path === targetPath);
+      const existing = wantsInstance
+        ? undefined
+        : prev.find(t =>
+            t.path.split("?")[0] === targetPath.split("?")[0] &&
+            !new URLSearchParams(t.path.split("?")[1] || "").get("__tab")
+          );
       if (existing) {
         resolvedId = existing.id;
         return prev;
       }
+
       const newTab: AppTab = {
         id: crypto.randomUUID(),
         path: targetPath,
@@ -458,6 +518,9 @@ export function TabsProvider({ children }: { children: ReactNode }) {
   const duplicateTab = useCallback((id: string) => {
     const source = tabs.find(t => t.id === id);
     if (!source) return;
+    // تكرار التبويبات مسموح للموارد البشرية فقط
+    if (!canDuplicatePath(source.path)) return;
+
     const [pathname, rawSearch = ""] = source.path.split("?");
     const params = new URLSearchParams(rawSearch);
     params.set("__tab", crypto.randomUUID());
@@ -555,7 +618,7 @@ export function TabsProvider({ children }: { children: ReactNode }) {
   }, [navigate, userId, tabs]);
 
   return (
-    <TabsContext.Provider value={{ tabs, activeTabId, openTab, duplicateTab, closeTab, switchTab, closeOtherTabs, closeAllTabs }}>
+    <TabsContext.Provider value={{ tabs, activeTabId, openTab, duplicateTab, canDuplicateTab: canDuplicatePath, closeTab, switchTab, closeOtherTabs, closeAllTabs }}>
       {children}
     </TabsContext.Provider>
   );
