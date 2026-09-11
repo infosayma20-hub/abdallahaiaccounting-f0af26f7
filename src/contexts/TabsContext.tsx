@@ -22,7 +22,8 @@ export interface AppTab {
 interface TabsContextType {
   tabs: AppTab[];
   activeTabId: string | null;
-  openTab: (path: string, title?: string) => void;
+  openTab: (path: string, title?: string, options?: { newInstance?: boolean }) => void;
+  duplicateTab: (id: string) => void;
   closeTab: (id: string) => void;
   switchTab: (id: string) => void;
   closeOtherTabs: (id: string) => void;
@@ -379,20 +380,25 @@ export function TabsProvider({ children }: { children: ReactNode }) {
     }
   }, [userId]);
 
-  // Sync active tab with current route — atomic to prevent duplicates
+  // Sync active tab with current route. Normal navigation remains one tab per
+  // pathname; explicit duplicate tabs carry a private __tab identity in URL.
   useEffect(() => {
     const currentPath = location.pathname;
     if (isExcludedPath(currentPath)) return;
+    const instanceId = new URLSearchParams(location.search).get("__tab");
+    const tabPath = instanceId ? `${currentPath}${location.search}` : currentPath;
 
     const meta = getRouteMeta(currentPath);
 
     setTabs(prev => {
-      const existing = prev.find(t => t.path === currentPath);
+      const existing = instanceId
+        ? prev.find(t => new URLSearchParams(t.path.split("?")[1] || "").get("__tab") === instanceId)
+        : prev.find(t => t.path === tabPath);
       if (existing) {
         // Always sync activeTabId to match current route (fixes stale active state)
         setActiveTabId(existing.id);
-        if (existing.title !== meta.title || existing.icon !== meta.icon) {
-          const next = prev.map(t => t.id === existing.id ? { ...t, title: meta.title, icon: meta.icon } : t);
+        if (existing.path !== tabPath || existing.title !== meta.title || existing.icon !== meta.icon) {
+          const next = prev.map(t => t.id === existing.id ? { ...t, path: tabPath, title: meta.title, icon: meta.icon } : t);
           saveTabs(next, userId);
           return next;
         }
@@ -400,7 +406,7 @@ export function TabsProvider({ children }: { children: ReactNode }) {
       }
       const newTab: AppTab = {
         id: crypto.randomUUID(),
-        path: currentPath,
+        path: tabPath,
         title: meta.title,
         icon: meta.icon,
       };
@@ -409,26 +415,33 @@ export function TabsProvider({ children }: { children: ReactNode }) {
       saveTabs(next, userId);
       return next;
     });
-  }, [location.pathname, userId]);
+  }, [location.pathname, location.search, userId]);
 
-  const openTab = useCallback((path: string, title?: string) => {
+  const openTab = useCallback((path: string, title?: string, options?: { newInstance?: boolean }) => {
     if (isExcludedPath(path)) {
       navigate(path);
       return;
     }
 
-    const meta = getRouteMeta(path);
+    let targetPath = path;
+    if (options?.newInstance) {
+      const [pathname, rawSearch = ""] = path.split("?");
+      const params = new URLSearchParams(rawSearch);
+      params.set("__tab", crypto.randomUUID());
+      targetPath = `${pathname}?${params.toString()}`;
+    }
+    const meta = getRouteMeta(targetPath);
     let resolvedId: string | null = null;
 
     setTabs(prev => {
-      const existing = prev.find(t => t.path === path);
+      const existing = options?.newInstance ? undefined : prev.find(t => t.path === targetPath);
       if (existing) {
         resolvedId = existing.id;
         return prev;
       }
       const newTab: AppTab = {
         id: crypto.randomUUID(),
-        path,
+        path: targetPath,
         title: title || meta.title,
         icon: meta.icon,
       };
@@ -439,8 +452,32 @@ export function TabsProvider({ children }: { children: ReactNode }) {
     });
 
     if (resolvedId) setActiveTabId(resolvedId);
-    navigate(path);
+    navigate(targetPath);
   }, [navigate, userId]);
+
+  const duplicateTab = useCallback((id: string) => {
+    const source = tabs.find(t => t.id === id);
+    if (!source) return;
+    const [pathname, rawSearch = ""] = source.path.split("?");
+    const params = new URLSearchParams(rawSearch);
+    params.set("__tab", crypto.randomUUID());
+    const targetPath = `${pathname}?${params.toString()}`;
+    const duplicate: AppTab = {
+      ...source,
+      id: crypto.randomUUID(),
+      path: targetPath,
+      title: source.title,
+    };
+    setTabs(prev => {
+      const sourceIndex = prev.findIndex(t => t.id === id);
+      const next = [...prev];
+      next.splice(sourceIndex + 1, 0, duplicate);
+      saveTabs(next, userId);
+      return next;
+    });
+    setActiveTabId(duplicate.id);
+    navigate(targetPath);
+  }, [navigate, tabs, userId]);
 
   const closeTab = useCallback((id: string) => {
     setTabs(prev => {
@@ -456,7 +493,7 @@ export function TabsProvider({ children }: { children: ReactNode }) {
         discardActiveDraft(closingTab.path);
       }
       const next = prev.filter(t => t.id !== id);
-      clearTabScroll(closingTab.path);
+      clearTabScroll(closingTab.id);
       saveTabs(next, userId);
 
       // If closing the active tab, switch to an adjacent one
@@ -493,7 +530,7 @@ export function TabsProvider({ children }: { children: ReactNode }) {
         if (!ok) return prev;
         draftTabs.forEach(t => discardActiveDraft(t.path));
       }
-      toClose.forEach(t => clearTabScroll(t.path));
+      toClose.forEach(t => clearTabScroll(t.id));
       const next = prev.filter(t => t.id === id);
       saveTabs(next, userId);
       return next;
@@ -510,7 +547,7 @@ export function TabsProvider({ children }: { children: ReactNode }) {
       if (!ok) return;
       draftTabs.forEach(t => discardActiveDraft(t.path));
     }
-    tabs.forEach(t => clearTabScroll(t.path));
+    tabs.forEach(t => clearTabScroll(t.id));
     setTabs([]);
     saveTabs([], userId);
     setActiveTabId(null);
@@ -518,7 +555,7 @@ export function TabsProvider({ children }: { children: ReactNode }) {
   }, [navigate, userId, tabs]);
 
   return (
-    <TabsContext.Provider value={{ tabs, activeTabId, openTab, closeTab, switchTab, closeOtherTabs, closeAllTabs }}>
+    <TabsContext.Provider value={{ tabs, activeTabId, openTab, duplicateTab, closeTab, switchTab, closeOtherTabs, closeAllTabs }}>
       {children}
     </TabsContext.Provider>
   );

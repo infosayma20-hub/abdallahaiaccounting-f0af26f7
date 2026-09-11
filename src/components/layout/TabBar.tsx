@@ -1,5 +1,5 @@
 import { useRef, useEffect, useState, useCallback } from "react";
-import { X, ChevronLeft, ChevronRight } from "lucide-react";
+import { X, ChevronLeft, ChevronRight, CopyPlus } from "lucide-react";
 import { useLocation } from "react-router-dom";
 import { useAppTabs, ICON_MAP } from "@/contexts/TabsContext";
 import { cn } from "@/lib/utils";
@@ -15,7 +15,7 @@ const HIDDEN_TABBAR_PREFIXES: string[] = [];
 const TabBar = () => {
   const { pathname } = useLocation();
   const isHRRoute = HIDDEN_TABBAR_PREFIXES.some((p) => pathname === p || pathname.startsWith(p + "/"));
-  const { tabs, activeTabId, switchTab, closeTab, closeAllTabs } = useAppTabs();
+  const { tabs, activeTabId, switchTab, duplicateTab, closeTab, closeAllTabs } = useAppTabs();
   const tt = useTT();
   const scrollRef = useRef<HTMLDivElement>(null);
   const activeRef = useRef<HTMLButtonElement>(null);
@@ -98,6 +98,16 @@ const TabBar = () => {
                 strokeWidth={isActive ? 2.2 : 1.8}
               />
               <span className={cn("truncate flex-1 text-right", isActive && "font-semibold text-foreground")}>{tt(tab.title)}</span>
+              <span
+                onClick={(e) => { e.stopPropagation(); duplicateTab(tab.id); }}
+                className={cn(
+                  "flex items-center justify-center rounded-sm w-4 h-4 flex-shrink-0 transition-all",
+                  isActive ? "opacity-60 hover:opacity-100 hover:bg-primary/10 hover:text-primary" : "opacity-0 group-hover:opacity-60 hover:!opacity-100 hover:bg-primary/10 hover:text-primary",
+                )}
+                title={tt("فتح نسخة جديدة")}
+              >
+                <CopyPlus className="h-3 w-3" />
+              </span>
               <span
                 onClick={(e) => { e.stopPropagation(); closeTab(tab.id); }}
                 className={cn(
