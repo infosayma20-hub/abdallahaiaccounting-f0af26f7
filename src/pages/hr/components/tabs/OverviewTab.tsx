@@ -20,7 +20,7 @@ const Field = ({ label, value }: { label: string; value: any }) => (
   </div>
 );
 
-const arDate = (v: any) => (v ? new Date(v).toLocaleDateString("ar") : null);
+const arDate = (v: any) => (v ? formatHRDate(v) : null);
 
 export function OverviewTab({ data, cost }: Props) {
   const e: any = data.employee || {};

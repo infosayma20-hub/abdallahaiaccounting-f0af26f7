@@ -32,7 +32,7 @@ export function FormsTab({ data }: Props) {
               {forms.map((f: any) => (
                 <HRTR key={f.id}>
                   <HRTD numeric>
-                    {f.created_at ? new Date(f.created_at).toLocaleDateString("ar") : "—"}
+                    {f.created_at ? formatHRDate(f.created_at) : "—"}
                   </HRTD>
                   <HRTD>{tFormType(f.form_type)}</HRTD>
                   <HRTD className="text-muted-foreground truncate max-w-xs">

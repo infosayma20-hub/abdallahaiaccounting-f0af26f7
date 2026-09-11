@@ -55,14 +55,7 @@ export function EmployeeTimeline({ events, limit = 50 }: Props) {
           {list.map((ev) => {
             const meta = TYPE_META[ev.type] || TYPE_META.activity;
             const { Icon } = meta;
-            const date = new Date(ev.date);
-            const dateStr = isNaN(date.getTime())
-              ? "—"
-              : date.toLocaleDateString("ar", {
-                  year: "numeric",
-                  month: "short",
-                  day: "numeric",
-                });
+            const dateStr = formatHRDate(ev.date);
             const amountColor =
               typeof ev.amount === "number"
                 ? ev.amount < 0

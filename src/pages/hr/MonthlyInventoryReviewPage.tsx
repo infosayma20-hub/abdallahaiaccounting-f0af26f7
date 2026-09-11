@@ -176,7 +176,7 @@ export default function MonthlyInventoryReviewPage() {
         Number(r.form_data?.summary?.qty ?? 0),
         Number(valueOf(r).toFixed(2)),
         statusLabel(r.status, r.form_data),
-        new Date(r.created_at).toLocaleDateString("ar-EG"),
+        formatHRDate(r.created_at),
       ]),
     ];
     const ws = XLSX.utils.aoa_to_sheet(aoa);
@@ -227,7 +227,7 @@ export default function MonthlyInventoryReviewPage() {
       </div>
       <div className="text-sm text-muted-foreground">
         مقدم النموذج: <b className="text-foreground">{selected.employee_name}</b> —{" "}
-        {new Date(selected.created_at).toLocaleDateString("ar-EG")}
+        {formatHRDate(selected.created_at)}
       </div>
       <MonthlyInventoryView
         data={selected.form_data}
@@ -300,7 +300,7 @@ export default function MonthlyInventoryReviewPage() {
                       <Badge variant="outline">{statusLabel(r.status, r.form_data)}</Badge>
                       {r.archived_at && <span className="text-[10px] text-muted-foreground mr-1">مؤرشف</span>}
                     </td>
-                    <td className="p-2">{new Date(r.created_at).toLocaleDateString("ar-EG")}</td>
+                    <td className="p-2">{formatHRDate(r.created_at)}</td>
                     <td className="p-2">
                       <div className="flex items-center gap-0.5 print:hidden">
                         <Button size="icon" variant="ghost" className="h-7 w-7" title="عرض" onClick={() => setSelected(r)}>

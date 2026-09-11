@@ -88,7 +88,7 @@ export function EmployeeHeader({ employee, cost, risk }: Props) {
         {hireDate && (
           <span className="flex items-center gap-1.5">
             <Calendar className="h-3.5 w-3.5" />
-            التعيين: {new Date(hireDate).toLocaleDateString("ar")}
+            التعيين: {formatHRDate(hireDate)}
           </span>
         )}
       </div>

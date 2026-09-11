@@ -299,7 +299,7 @@ export default function HRMessagesInboxPage() {
                   return (
                     <TableRow key={r.id} className={isCancelled ? "bg-muted/30 text-muted-foreground [&_td]:line-through" : ""}>
                       <TableCell className="text-xs text-muted-foreground whitespace-nowrap">
-                        {format(new Date(r.created_at), "yyyy-MM-dd HH:mm")}
+                        {formatHRDateTime(r.created_at)}
                       </TableCell>
                       <TableCell className="font-medium">{r.employees?.full_name || "—"}</TableCell>
                       <TableCell>
@@ -438,7 +438,7 @@ export default function HRMessagesInboxPage() {
               <div className="space-y-3 text-sm">
                 <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
                   <span>الموظف: {viewTarget.employees?.full_name || "—"}</span>
-                  <span>التاريخ: {format(new Date(viewTarget.created_at), "yyyy-MM-dd HH:mm")}</span>
+                  <span>التاريخ: {formatHRDateTime(viewTarget.created_at)}</span>
                   <span>الحالة: {STATUS_LABELS[viewTarget.status] || viewTarget.status}</span>
                 </div>
                 <div className="whitespace-pre-wrap leading-7 rounded-md border p-3 bg-muted/20">

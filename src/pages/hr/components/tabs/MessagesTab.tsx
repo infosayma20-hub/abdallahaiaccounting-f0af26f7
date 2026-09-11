@@ -200,7 +200,7 @@ export function MessagesTab({ data }: Props) {
                     </div>
                   )}
                   {meta?.employee_acknowledged_at && !meta.employee_response && (
-                    <div className="text-xs text-emerald-700">✓ تم اطلاع الموظف في {format(new Date(meta.employee_acknowledged_at), "yyyy-MM-dd HH:mm")}</div>
+                    <div className="text-xs text-emerald-700">✓ تم اطلاع الموظف في {formatHRDateTime(meta.employee_acknowledged_at)}</div>
                   )}
                   {row.review_notes && (
                     <div className="rounded-md bg-muted/40 p-2 text-xs whitespace-pre-wrap flex items-start gap-1">
@@ -208,7 +208,7 @@ export function MessagesTab({ data }: Props) {
                     </div>
                   )}
                   <div className="text-xs text-muted-foreground border-t pt-1">
-                    أُنشئت: {format(new Date(row.created_at), "yyyy-MM-dd HH:mm")}
+                    أُنشئت: {formatHRDateTime(row.created_at)}
                   </div>
                 </CardContent>
               </Card>
