@@ -575,6 +575,10 @@ export default function MonthlyAttendanceTab({
       //    doesn't already have an attendance_days row.
       const leavesData = await leavesPromise;
       const existingKeys = new Set(days.map((d) => `${d.employee_id}|${d.attendance_date}`));
+      // فهرس صفوف الحضور الموجودة حتى نستطيع تعليم اليوم كإجازة معتمدة
+      // بدل تركه «عطلة / بدون دخول» عندما يوجد سجل حضور فارغ لنفس اليوم.
+      const dayByKey = new Map<string, any>();
+      days.forEach((d: any) => dayByKey.set(`${d.employee_id}|${d.attendance_date}`, d));
       const synthetic: MonthRow[] = [];
       const leaveTally: Record<string, LeaveBucket> = {};
       // 🧾 سجلات «الرصيد الافتتاحي المستورد» تمتد على فترة طويلة (مثلاً 1/1 → 30/6)
@@ -614,7 +618,17 @@ export default function MonthlyAttendanceTab({
           if (lv.leave_type === "سنوية") bucket.annual += 1;
           else if (lv.leave_type === "مرضية") bucket.sick += 1;
           else bucket.other += 1;
-          if (existingKeys.has(key)) continue;
+          if (existingKeys.has(key)) {
+            // يوجد سجل حضور لنفس التاريخ: إذا لا توجد بصمات فعلية فاليوم إجازة
+            // معتمدة وليس «عطلة/بدون دخول».
+            const d = dayByKey.get(key);
+            if (d && !d.first_check_in && !d.last_check_out) {
+              d.leaveInfo = { leave_id: lv.id, leave_type: lv.leave_type };
+              d.status = "leave";
+              if (!d.notes) d.notes = lv.leave_type ? `إجازة (${lv.leave_type})` : "إجازة";
+            }
+            continue;
+          }
           existingKeys.add(key);
           synthetic.push({
             id: `leave-${lv.id}-${iso}`,
