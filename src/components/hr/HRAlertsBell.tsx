@@ -8,7 +8,7 @@ import { cn } from "@/lib/utils";
 import { ensureNotificationPermission, notifyChat } from "@/lib/chat-notify";
 import { useHRReminders, localDateStr, type HRReminder } from "@/hooks/hr/useHRReminders";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { formatHRDayMonth, formatHRDateTime } from "@/lib/hrDate";
+import { formatHRDayMonth, formatHRDateTime, formatHRDate } from "@/lib/hrDate";
 import HRReminderDialog from "@/components/hr/HRReminderDialog";
 
 type FormAlert = {
