@@ -61,6 +61,10 @@ export interface ReceiptCommandResultV1 extends CommandResultV1 {
   transaction_id?: string | null;
   transaction_ids?: string[];
   allocations?: any;
+  /** Stage 3A additive traceability. 0 / absent = legacy writer. */
+  posting_version?: number;
+  posting_intent_id?: string | null;
+  shadow?: { match?: boolean; differences?: string[]; reason?: string } | null;
 }
 
 export interface SubmitReceiptCommandInput {
