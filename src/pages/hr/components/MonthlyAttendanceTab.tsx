@@ -618,7 +618,17 @@ export default function MonthlyAttendanceTab({
           if (lv.leave_type === "سنوية") bucket.annual += 1;
           else if (lv.leave_type === "مرضية") bucket.sick += 1;
           else bucket.other += 1;
-          if (existingKeys.has(key)) continue;
+          if (existingKeys.has(key)) {
+            // يوجد سجل حضور لنفس التاريخ: إذا لا توجد بصمات فعلية فاليوم إجازة
+            // معتمدة وليس «عطلة/بدون دخول».
+            const d = dayByKey.get(key);
+            if (d && !d.first_check_in && !d.last_check_out) {
+              d.leaveInfo = { leave_id: lv.id, leave_type: lv.leave_type };
+              d.status = "leave";
+              if (!d.notes) d.notes = lv.leave_type ? `إجازة (${lv.leave_type})` : "إجازة";
+            }
+            continue;
+          }
           existingKeys.add(key);
           synthetic.push({
             id: `leave-${lv.id}-${iso}`,
