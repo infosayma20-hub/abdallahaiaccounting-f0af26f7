@@ -58,6 +58,11 @@ import {
   callAllocateVoucherRpc,
   callCreateMixedVoucherRpc,
 } from "@/lib/voucher-rpc";
+import {
+  isReceiptCommandV1Enabled,
+  submitReceiptCommandV1,
+  toLegacyVoucherResult,
+} from "@/lib/commands/receipt-command-v1";
 import { openOfficialVoucherWindow } from "@/lib/print/buildOfficialVoucher";
 import {
   AllocationMode,
@@ -2486,7 +2491,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
           // NEW canonical path — passes deposit account, voucher_date and
           // notes directly to the RPC so we no longer have to mutate
           // transactions after the fact.
-          const result = await callCreateReceiptRpc({
+          const receiptRpcArgs = {
             userId: ownerId,
             contactId: selectedContact!.id,
             contactName: selectedContact!.contact_name,
@@ -2501,7 +2506,32 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
             notes: notes || null,
             workshopId: selectedWorkshop?.id || null,
             costCenterId: costCenterId,
-          });
+          };
+          // Receipt Command Envelope V1 pilot — same parameters, same server
+          // logic, wrapped in a versioned + audited command boundary.
+          // Flag `commands.receipt_v1` is OFF for every tenant by default.
+          const result = isReceiptCommandV1Enabled(settings)
+            ? toLegacyVoucherResult(
+                await submitReceiptCommandV1({
+                  idempotencyKey: receiptRpcArgs.idempotencyKey,
+                  source: "web",
+                  payload: {
+                    contact_id: receiptRpcArgs.contactId,
+                    contact_name: receiptRpcArgs.contactName,
+                    amount: receiptRpcArgs.amount,
+                    payment_method: receiptRpcArgs.paymentMethod,
+                    description: receiptRpcArgs.description,
+                    currency: receiptRpcArgs.currency,
+                    reference: receiptRpcArgs.reference,
+                    voucher_date: receiptRpcArgs.voucherDate,
+                    cash_account_code: receiptRpcArgs.cashAccountCode,
+                    notes: receiptRpcArgs.notes,
+                    workshop_id: receiptRpcArgs.workshopId,
+                    cost_center_id: receiptRpcArgs.costCenterId,
+                  },
+                }),
+              )
+            : await callCreateReceiptRpc(receiptRpcArgs);
           if (result?.success === false) {
             throw new Error(result.error || "فشل إنشاء القيد المحاسبي لسند القبض");
           }

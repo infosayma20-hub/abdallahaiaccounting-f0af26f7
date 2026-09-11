@@ -1,0 +1,87 @@
+{
+  "registry": "unify-erp.writer-registry.receipts",
+  "version": 1,
+  "scope": "receipts only — payments, journals, cheques, invoices, inventory, payroll and POS are intentionally excluded",
+  "generated_for": "Receipt Command Envelope V1 pilot",
+  "flag": {
+    "key": "company_settings.feature_flags.commands.receipt_v1",
+    "default": false,
+    "tenants_enabled": 0,
+    "independent_of": "vouchers_use_rpc"
+  },
+  "authoritative_writer": {
+    "database_function": "public.create_receipt_with_entry",
+    "note": "unchanged; remains the single writer of the receipt transaction under both paths"
+  },
+  "command_v1": {
+    "database_function": "public.create_receipt_command_v1(jsonb)",
+    "command_type": "finance.create_receipt.v1",
+    "schema_version": 1,
+    "shadow_validation": "public.validate_receipt_command_v1(jsonb)",
+    "context_resolver": "public.resolve_command_context_v1(text,uuid,uuid,text)",
+    "audit_table": "public.business_commands",
+    "execute_granted_to": ["authenticated"],
+    "ai_exposed": false
+  },
+  "entries": [
+    {
+      "entity": "receipt",
+      "action": "create",
+      "caller": "src/pages/VoucherFormPage.tsx (simple contact, ILS, non-cheque, no allocations/attachments)",
+      "current_writer": "callCreateReceiptRpc -> create_receipt_with_entry",
+      "v1_writer": "submitReceiptCommandV1 -> create_receipt_command_v1 -> create_receipt_with_entry",
+      "routing_condition": "vouchers_use_rpc = true AND commands.receipt_v1 = true",
+      "actor_resolution": "server: auth.uid()",
+      "tenant_resolution": "server: get_team_owner_id(auth.uid()) + assert_owner_scope",
+      "company_branch_resolution": "server-validated hints (companies.owner_id / branches.user_id)",
+      "source": "web",
+      "transaction_boundary": "single PostgreSQL transaction",
+      "idempotency": "business_commands(resolved_owner_id, command_type, idempotency_key) composed with transactions(user_id, idempotency_key)",
+      "side_effects": [
+        "insert 1 row in public.transactions",
+        "optional allocate_voucher_to_invoices_atomic when allocations are supplied",
+        "insert/update 1 row in public.business_commands (audit only)"
+      ],
+      "reversal": "existing void/reverse voucher paths, unchanged",
+      "tests": "src/lib/commands/__tests__/receipt-command-v1.test.ts"
+    },
+    {
+      "entity": "receipt",
+      "action": "create",
+      "caller": "src/pages/VoucherFormPage.tsx (all other receipt shapes: account party, employee, foreign currency, cheque, refund, reverse settlement, allocations, attachments, drafts)",
+      "current_writer": "legacy direct paths / create_receipt_with_entry / create_basic_voucher_atomic",
+      "v1_writer": null,
+      "routing_condition": "out of pilot scope — unchanged",
+      "tests": "existing e2e suites"
+    },
+    {
+      "entity": "receipt",
+      "action": "create",
+      "caller": "src/pages/rep/RepCollectPage.tsx",
+      "current_writer": "create_receipt_with_entry",
+      "v1_writer": null,
+      "routing_condition": "out of pilot scope — unchanged"
+    },
+    {
+      "entity": "receipt",
+      "action": "create",
+      "caller": "src/pages/InvoiceCreatePage.tsx (settlement on invoice save)",
+      "current_writer": "create_receipt_with_entry",
+      "v1_writer": null,
+      "routing_condition": "out of pilot scope — unchanged"
+    },
+    {
+      "entity": "receipt",
+      "action": "create",
+      "caller": "src/hooks/useAtomicOperations.ts",
+      "current_writer": "create_receipt_with_entry",
+      "v1_writer": null,
+      "routing_condition": "out of pilot scope — unchanged"
+    }
+  ],
+  "rollback": [
+    "set commands.receipt_v1 = false (instant, no deploy)",
+    "revert the VoucherFormPage branch",
+    "drop create_receipt_command_v1 / validate_receipt_command_v1 / resolve_command_context_v1 and business_commands"
+  ]
+}
