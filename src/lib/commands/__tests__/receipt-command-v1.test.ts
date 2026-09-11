@@ -48,7 +48,7 @@ describe("Receipt Command V1 — envelope contract", () => {
   });
 
   it("never carries a client-supplied actor/owner/tenant identity", () => {
-    const env = buildReceiptCommandEnvelopeV1(base) as Record<string, unknown>;
+    const env = buildReceiptCommandEnvelopeV1(base) as unknown as Record<string, unknown>;
     expect(env.actor_id).toBeUndefined();
     expect(env.owner_id).toBeUndefined();
     expect(env.user_id).toBeUndefined();
