@@ -104,7 +104,7 @@ function computeMilestones(rows: { id: string; full_name: string; start_date: st
         employee_name: r.full_name,
         label: `${ms.label} — ${ms.action}`,
         daysLeft,
-        dateLabel: due.toLocaleDateString("ar-EG", { day: "2-digit", month: "2-digit" }),
+        dateLabel: formatHRDayMonth(due),
       });
     });
   });
@@ -130,7 +130,7 @@ function computeBirthdays(rows: { id: string; full_name: string; phone: string |
       employee_name: r.full_name,
       phone: r.phone,
       daysLeft,
-      dateLabel: next.toLocaleDateString("ar-EG", { day: "2-digit", month: "2-digit" }),
+      dateLabel: formatHRDayMonth(next),
     });
   });
   return out.sort((a, b) => a.daysLeft - b.daysLeft);
@@ -138,12 +138,7 @@ function computeBirthdays(rows: { id: string; full_name: string; phone: string |
 
 function ago(iso?: string | null) {
   if (!iso) return "";
-  return new Date(iso).toLocaleString("ar-EG", {
-    day: "2-digit",
-    month: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
+  return formatHRDateTime(iso);
 }
 
 /** Live alerts for HR/admin: new employee form submissions + unread employee chat messages. */
@@ -314,7 +309,7 @@ export default function HRAlertsBell() {
                         <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-700 shrink-0">حان الآن</span>
                       ) : (
                         <span className="text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground shrink-0">
-                          {new Date(r.remind_at + "T00:00:00").toLocaleDateString("ar-EG", { day: "2-digit", month: "2-digit" })}
+                          {formatHRDayMonth(r.remind_at + "T00:00:00")}
                         </span>
                       )}
                     </div>

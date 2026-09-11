@@ -377,7 +377,7 @@ function buildPrintHtml(a: {
 }) {
   const { company, view } = a;
   const money = (n: number) => new Intl.NumberFormat("en-US", { style: "currency", currency: "ILS", maximumFractionDigits: 2 }).format(Number(n) || 0);
-  const today = new Date().toLocaleDateString("ar-EG-u-nu-latn", { year: "numeric", month: "2-digit", day: "2-digit" });
+  const today = formatHRDate(new Date());
 
   const rowsAdd = view.additions.length
     ? view.additions.map((r: Row) => `<tr><td>${r.label}</td><td class="amt">${money(r.amount)}</td></tr>`).join("")

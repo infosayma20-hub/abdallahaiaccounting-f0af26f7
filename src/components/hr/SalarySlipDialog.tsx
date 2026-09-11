@@ -303,7 +303,7 @@ export default function SalarySlipDialog({ open, onClose, slip, employeeName, de
                 <p>توقيع المدير: _______________</p>
               </div>
             </div>
-            <p className="text-xs text-muted-foreground mt-2">التاريخ: {new Date().toLocaleDateString("ar-PS")}</p>
+            <p className="text-xs text-muted-foreground mt-2">التاريخ: {formatHRDate(new Date())}</p>
           </div>
         </div>
 
