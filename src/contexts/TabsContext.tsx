@@ -477,7 +477,8 @@ export function TabsProvider({ children }: { children: ReactNode }) {
     }
 
     let targetPath = path;
-    if (options?.newInstance) {
+    const wantsInstance = !!options?.newInstance && canDuplicatePath(path);
+    if (wantsInstance) {
       const [pathname, rawSearch = ""] = path.split("?");
       const params = new URLSearchParams(rawSearch);
       params.set("__tab", crypto.randomUUID());
@@ -487,11 +488,17 @@ export function TabsProvider({ children }: { children: ReactNode }) {
     let resolvedId: string | null = null;
 
     setTabs(prev => {
-      const existing = options?.newInstance ? undefined : prev.find(t => t.path === targetPath);
+      const existing = wantsInstance
+        ? undefined
+        : prev.find(t =>
+            t.path.split("?")[0] === targetPath.split("?")[0] &&
+            !new URLSearchParams(t.path.split("?")[1] || "").get("__tab")
+          );
       if (existing) {
         resolvedId = existing.id;
         return prev;
       }
+
       const newTab: AppTab = {
         id: crypto.randomUUID(),
         path: targetPath,
