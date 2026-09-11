@@ -36,6 +36,16 @@ export function formatHRDateTime(input: string | Date | null | undefined): strin
   return `${datePart} ${hh}:${min}`;
 }
 
+/** Format time only as HH:mm. Returns "—" for empty/invalid. */
+export function formatHRTime(input: string | Date | null | undefined): string {
+  if (!input) return "—";
+  const d = input instanceof Date ? input : new Date(String(input).trim());
+  if (Number.isNaN(d.getTime())) return "—";
+  const hh = String(d.getHours()).padStart(2, "0");
+  const min = String(d.getMinutes()).padStart(2, "0");
+  return `${hh}:${min}`;
+}
+
 /** Parse user-typed dd/mm/yyyy (or dd-mm-yyyy) → ISO yyyy-mm-dd. Empty if invalid. */
 export function parseHRDate(input: string): string {
   const s = (input || "").trim();
