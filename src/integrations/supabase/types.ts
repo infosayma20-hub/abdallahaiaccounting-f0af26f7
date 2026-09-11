@@ -18172,6 +18172,59 @@ export type Database = {
           },
         ]
       }
+      posting_intent_lines_v1: {
+        Row: {
+          amount: number
+          contact_id: string | null
+          cost_center_id: string | null
+          created_at: string
+          credit_account_code: string
+          debit_account_code: string
+          description: string | null
+          id: string
+          intent_id: string
+          line_no: number
+          owner_id: string
+          transaction_id: string | null
+        }
+        Insert: {
+          amount: number
+          contact_id?: string | null
+          cost_center_id?: string | null
+          created_at?: string
+          credit_account_code: string
+          debit_account_code: string
+          description?: string | null
+          id?: string
+          intent_id: string
+          line_no: number
+          owner_id: string
+          transaction_id?: string | null
+        }
+        Update: {
+          amount?: number
+          contact_id?: string | null
+          cost_center_id?: string | null
+          created_at?: string
+          credit_account_code?: string
+          debit_account_code?: string
+          description?: string | null
+          id?: string
+          intent_id?: string
+          line_no?: number
+          owner_id?: string
+          transaction_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "posting_intent_lines_v1_intent_id_fkey"
+            columns: ["intent_id"]
+            isOneToOne: false
+            referencedRelation: "posting_intents_v1"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       posting_intents_v1: {
         Row: {
           actor_id: string | null
@@ -30026,6 +30079,16 @@ export type Database = {
         Returns: string
       }
       build_invoice_snapshot: { Args: { p_invoice_id: string }; Returns: Json }
+      build_manual_journal_posting_intent_v1: {
+        Args: {
+          p_command_id?: string
+          p_context: Json
+          p_correlation_id?: string
+          p_owner_id: string
+          p_payload: Json
+        }
+        Returns: Json
+      }
       build_payment_posting_intent_v1: {
         Args: {
           p_command_id?: string
@@ -30556,6 +30619,10 @@ export type Database = {
           p_payment_ref?: Json
           p_total?: number
         }
+        Returns: Json
+      }
+      create_manual_journal_command_v1: {
+        Args: { p_envelope: Json }
         Returns: Json
       }
       create_mixed_voucher_atomic:
@@ -32156,6 +32223,7 @@ export type Database = {
         }
         Returns: string
       }
+      pair_journal_lines_v1: { Args: { p_entries: Json }; Returns: Json }
       payroll_approve_batch: {
         Args: {
           _approver: string
@@ -32296,6 +32364,10 @@ export type Database = {
       }
       post_import_shipment_atomic: {
         Args: { p_shipment_id: string; p_user_id: string }
+        Returns: Json
+      }
+      post_manual_journal_v1: {
+        Args: { p_intent: Json; p_payload: Json }
         Returns: Json
       }
       post_payment_v1: {
@@ -32700,6 +32772,10 @@ export type Database = {
       set_task_user_password: {
         Args: { p_new_password: string; p_task_user_id: string }
         Returns: boolean
+      }
+      shadow_compare_manual_journal_v1: {
+        Args: { p_idempotency_key: string; p_intent: Json; p_owner_id: string }
+        Returns: Json
       }
       shadow_compare_posting_v1: {
         Args: { p_intent: Json; p_owner_id: string; p_transaction_id: string }
