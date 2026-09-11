@@ -31,6 +31,7 @@ import {
   Lock,
   Banknote,
 } from "lucide-react";
+import { formatHRDateTime } from "@/lib/hrDate";
 import {
   usePayrollMonth,
   useApprovePayrollBatch,
