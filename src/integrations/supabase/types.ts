@@ -30026,6 +30026,16 @@ export type Database = {
         Returns: string
       }
       build_invoice_snapshot: { Args: { p_invoice_id: string }; Returns: Json }
+      build_payment_posting_intent_v1: {
+        Args: {
+          p_command_id?: string
+          p_context: Json
+          p_correlation_id?: string
+          p_owner_id: string
+          p_payload: Json
+        }
+        Returns: Json
+      }
       build_receipt_posting_intent_v1: {
         Args: {
           p_command_id?: string
@@ -30615,6 +30625,7 @@ export type Database = {
         }
         Returns: Json
       }
+      create_payment_command_v1: { Args: { p_envelope: Json }; Returns: Json }
       create_payment_voucher_offline: {
         Args: { p_idempotency_key: string; p_payload: Json; p_user_id: string }
         Returns: Json
@@ -31754,6 +31765,7 @@ export type Database = {
         Args: { _branch: string; _user: string }
         Returns: boolean
       }
+      is_cheque_payment_v1: { Args: { p_payload: Json }; Returns: boolean }
       is_command_flag_enabled_v1: {
         Args: { p_flag: string; p_owner: string }
         Returns: boolean
@@ -32286,6 +32298,10 @@ export type Database = {
         Args: { p_shipment_id: string; p_user_id: string }
         Returns: Json
       }
+      post_payment_v1: {
+        Args: { p_intent: Json; p_payload: Json }
+        Returns: Json
+      }
       post_periodic_inventory_adjustment: {
         Args: { _count_id: string }
         Returns: Json
@@ -32515,6 +32531,18 @@ export type Database = {
         Args: { _auth_uid?: string }
         Returns: string
       }
+      resolve_payment_account_roles_v1: {
+        Args: {
+          p_cash_account_code: string
+          p_contact_account_code: string
+          p_contact_id: string
+          p_contact_name: string
+          p_employee_id: string
+          p_owner_id: string
+          p_payment_method: string
+        }
+        Returns: Json
+      }
       resolve_postable_account: {
         Args: {
           p_contact_id?: string
@@ -32672,6 +32700,10 @@ export type Database = {
       set_task_user_password: {
         Args: { p_new_password: string; p_task_user_id: string }
         Returns: boolean
+      }
+      shadow_compare_posting_v1: {
+        Args: { p_intent: Json; p_owner_id: string; p_transaction_id: string }
+        Returns: Json
       }
       shadow_compare_receipt_posting_v1: {
         Args: { p_intent: Json; p_owner_id: string; p_transaction_id: string }
