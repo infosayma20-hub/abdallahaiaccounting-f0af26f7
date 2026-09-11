@@ -24,6 +24,18 @@ export function formatHRDate(input: string | Date | null | undefined): string {
   return `${dd}/${mm}/${yyyy}`;
 }
 
+/** Format date+time as dd/mm/yyyy HH:mm. Returns "—" for empty/invalid date. */
+export function formatHRDateTime(input: string | Date | null | undefined): string {
+  if (!input) return "—";
+  const datePart = formatHRDate(input);
+  if (datePart === "—") return "—";
+  const d = input instanceof Date ? input : new Date(String(input).trim());
+  if (Number.isNaN(d.getTime())) return datePart;
+  const hh = String(d.getHours()).padStart(2, "0");
+  const min = String(d.getMinutes()).padStart(2, "0");
+  return `${datePart} ${hh}:${min}`;
+}
+
 /** Parse user-typed dd/mm/yyyy (or dd-mm-yyyy) → ISO yyyy-mm-dd. Empty if invalid. */
 export function parseHRDate(input: string): string {
   const s = (input || "").trim();
