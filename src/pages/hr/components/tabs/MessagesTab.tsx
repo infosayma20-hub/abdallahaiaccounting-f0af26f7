@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Send, Shield, MessageSquare, Lock, Edit3, History } from "lucide-react";
 import SendHRMessageDialog, { SendTarget } from "@/components/hr/SendHRMessageDialog";
 import { decodeHRMessage, typeLabel, typeColor, penaltyLabel, STATUS_LABELS, updateHRMessage } from "@/lib/hrMessages";
-import { format } from "date-fns";
+import { formatHRDateTime } from "@/lib/hrDate";
 import { toast } from "@/hooks/use-toast";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";

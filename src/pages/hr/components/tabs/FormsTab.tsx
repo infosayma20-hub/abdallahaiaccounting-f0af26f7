@@ -2,6 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import type { Employee360Data } from "@/hooks/hr/useEmployee360";
 import { tFormType, tFormStatus, formStatusTone } from "@/lib/hrLabels";
+import { formatHRDate } from "@/lib/hrDate";
 import { HRTable, HRTHead, HRTH, HRTR, HRTD } from "../HRTable";
 
 interface Props {

@@ -12,6 +12,7 @@ import MonthlyInventoryView from "@/components/forms/MonthlyInventoryView";
 import { exportMonthlyInventoryToExcel } from "@/components/forms/monthlyInventoryExcel";
 import { FinanceShell, type ActionTab } from "@/components/finance/shell";
 import * as XLSX from "xlsx";
+import { formatHRDate } from "@/lib/hrDate";
 
 type Row = {
   id: string;

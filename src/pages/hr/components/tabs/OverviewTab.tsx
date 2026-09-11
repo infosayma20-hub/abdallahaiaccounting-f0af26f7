@@ -3,6 +3,7 @@ import { FastTabs } from "@/components/finance/shell";
 import type { Employee360Data } from "@/hooks/hr/useEmployee360";
 import type { CostEngineResult } from "@/hooks/hr/useEmployeeCostEngine";
 import { tContractType, tMaritalStatus } from "@/lib/hrLabels";
+import { formatHRDate } from "@/lib/hrDate";
 
 interface Props {
   data: Employee360Data;

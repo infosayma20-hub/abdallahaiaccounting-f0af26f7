@@ -14,6 +14,7 @@ import {
 import { cn } from "@/lib/utils";
 import type { TimelineEvent } from "@/hooks/hr/useEmployee360";
 import { tTimelineTitle, tFormStatus, tAttendanceStatus } from "@/lib/hrLabels";
+import { formatHRDate } from "@/lib/hrDate";
 
 const TYPE_META: Record<TimelineEvent["type"], { Icon: LucideIcon; cls: string; label: string }> = {
   payroll: { Icon: Wallet, cls: "bg-primary/10 text-primary", label: "راتب" },

@@ -8,6 +8,7 @@ import ChatThreadView from "@/components/chat/ChatThreadView";
 import StartHRChatDialog from "@/components/hr/StartHRChatDialog";
 import { useHRChatInbox } from "@/hooks/useHRChat";
 import { toast } from "sonner";
+import { formatHRDayMonth } from "@/lib/hrDate";
 
 export default function HRChatPage() {
   const { threads, loading, setPinned, markUnread, reload } = useHRChatInbox();

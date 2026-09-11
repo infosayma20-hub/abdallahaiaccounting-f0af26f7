@@ -12,6 +12,7 @@ import {
 import type { RiskScoreResult } from "@/hooks/hr/useEmployeeRiskScore";
 import type { CostEngineResult } from "@/hooks/hr/useEmployeeCostEngine";
 import { EmployeeRiskBadge } from "./EmployeeRiskBadge";
+import { formatHRDate } from "@/lib/hrDate";
 
 interface Props {
   employee: any;

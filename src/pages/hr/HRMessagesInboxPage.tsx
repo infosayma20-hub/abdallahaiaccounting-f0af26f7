@@ -9,7 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Inbox, Search, RefreshCw, Shield, MessageSquare, ExternalLink, Send, Plus, Ban, RotateCcw, Eye, ThumbsUp, ThumbsDown, Archive, ArchiveRestore } from "lucide-react";
 import { Link } from "react-router-dom";
 import { decodeHRMessage, typeLabel, typeColor, STATUS_LABELS, penaltyLabel } from "@/lib/hrMessages";
-import { format } from "date-fns";
+import { formatHRDateTime } from "@/lib/hrDate";
 import SendHRMessageDialog, { SendTarget } from "@/components/hr/SendHRMessageDialog";
 import { useAuth } from "@/hooks/useAuth";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
