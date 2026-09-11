@@ -6,7 +6,8 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import { ensureNotificationPermission, notifyChat } from "@/lib/chat-notify";
-import { useHRReminders, localDateStr } from "@/hooks/hr/useHRReminders";
+import { useHRReminders, localDateStr, type HRReminder } from "@/hooks/hr/useHRReminders";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { formatHRDayMonth, formatHRDateTime } from "@/lib/hrDate";
 import HRReminderDialog from "@/components/hr/HRReminderDialog";
 
