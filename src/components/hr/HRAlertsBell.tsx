@@ -443,6 +443,67 @@ export default function HRAlertsBell() {
         )}
       </PopoverContent>
       <HRReminderDialog open={reminderOpen} onOpenChange={setReminderOpen} />
+
+      <Dialog open={!!activeReminder} onOpenChange={(v) => !v && setActiveReminder(null)}>
+        <DialogContent dir="rtl" className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-base text-right">{activeReminder?.title}</DialogTitle>
+          </DialogHeader>
+          {activeReminder && (
+            <div className="space-y-3 text-right">
+              <div className="flex flex-wrap items-center gap-2 text-[11px] text-muted-foreground">
+                <span className="px-1.5 py-0.5 rounded bg-muted">
+                  التاريخ: {formatHRDate(activeReminder.remind_at + "T00:00:00")}
+                </span>
+                {activeReminder.employee_name && (
+                  <span className="px-1.5 py-0.5 rounded bg-muted">الموظف: {activeReminder.employee_name}</span>
+                )}
+              </div>
+              <div className="text-sm whitespace-pre-wrap break-words leading-6 rounded-md border border-border/60 bg-muted/30 p-3">
+                {activeReminder.note?.trim() || "لا توجد ملاحظة إضافية."}
+              </div>
+              <div className="flex flex-wrap gap-2 justify-end">
+                {activeReminder.related_form_id && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => {
+                      const id = activeReminder.related_form_id;
+                      setActiveReminder(null);
+                      navigate(`/employee-forms-management?formId=${id}`);
+                    }}
+                  >
+                    فتح الطلب
+                  </Button>
+                )}
+                {activeReminder.employee_id && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => {
+                      const id = activeReminder.employee_id;
+                      setActiveReminder(null);
+                      navigate(`/hr/employee/${id}`);
+                    }}
+                  >
+                    ملف الموظف
+                  </Button>
+                )}
+                <Button
+                  size="sm"
+                  onClick={async () => {
+                    const id = activeReminder.id;
+                    setActiveReminder(null);
+                    await markDone(id);
+                  }}
+                >
+                  <CheckCircle2 className="h-4 w-4 ms-1" /> تم
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </Popover>
   );
 }
