@@ -106,3 +106,26 @@ Never delete committed receipt data and never delete outbox rows as part of roll
 - `aggregate_sequence` is reserved and currently unused.
 - No backfill of historical receipts, by design.
 - Same-transaction atomicity relies on all callers avoiding autonomous transactions; any future emitter must follow the same rule.
+
+## Applied status — 2026-09-11
+
+Stage 2 migration APPLIED to the live database (additive only).
+
+Deviation from the prepared file: the RLS read policy originally referenced
+`employees.created_by`, which does not exist. It was replaced with the same
+tenant scoping already proven on `business_commands`:
+`owner_id = public.get_team_owner_id(auth.uid())`.
+
+Additional hardening migration applied: the project's default privileges had
+granted `anon`/`authenticated` full DML on any new public table. INSERT/UPDATE/
+DELETE/TRUNCATE were revoked from both roles, SELECT revoked from `anon`, and
+`is_command_flag_enabled_v1` EXECUTE revoked from PUBLIC/anon/authenticated.
+
+Test results: 14 isolated functional tests + 6 impersonated-user security tests
+all passed. Outbox left empty (0 rows). No tenant enabled for
+`events.receipt_v1` or `commands.receipt_v1`. No receipt or financial
+transaction was created.
+
+Not yet executed (requires approval): enabling `events.receipt_v1` on an
+internal test company and running the end-to-end receipt+event atomicity tests
+(T1/T2/T3/T6 of the prepared script), which require creating real receipts.
