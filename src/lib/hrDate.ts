@@ -50,6 +50,13 @@ export function parseHRDate(input: string): string {
   return `${yyyy}-${mm}-${dd}`;
 }
 
+/** Format day/month only as dd/mm (useful for birthdays and short labels). */
+export function formatHRDayMonth(input: string | Date | null | undefined): string {
+  const s = formatHRDate(input);
+  if (s === "—") return "—";
+  return s.slice(0, 5); // dd/mm
+}
+
 /** True if `from` and `to` are both valid ISO and from > to. */
 export function isInvalidRange(fromIso: string, toIso: string): boolean {
   if (!fromIso || !toIso) return false;
