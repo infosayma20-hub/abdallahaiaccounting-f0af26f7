@@ -24,11 +24,14 @@ interface TabsContextType {
   activeTabId: string | null;
   openTab: (path: string, title?: string, options?: { newInstance?: boolean }) => void;
   duplicateTab: (id: string) => void;
+  /** التكرار مسموح فقط لشاشات الموارد البشرية (الفواتير/السندات/التعريفات ممنوعة) */
+  canDuplicateTab: (path: string) => boolean;
   closeTab: (id: string) => void;
   switchTab: (id: string) => void;
   closeOtherTabs: (id: string) => void;
   closeAllTabs: () => void;
 }
+
 
 const TabsContext = createContext<TabsContextType | null>(null);
 
