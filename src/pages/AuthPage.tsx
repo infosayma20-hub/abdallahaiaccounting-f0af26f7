@@ -14,7 +14,7 @@ import { Link } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { useTranslation } from "react-i18next";
 import LanguageSwitcher from "@/i18n/LanguageSwitcher";
-import { Loader2, ScanFace, Mail, Lock, Eye, EyeOff, Check, LifeBuoy } from "lucide-react";
+import { Loader2, ScanFace, Mail, Lock, Eye, EyeOff, Check, LifeBuoy, Info } from "lucide-react";
 import { startAuthentication, browserSupportsWebAuthn } from "@simplewebauthn/browser";
 
 
@@ -548,17 +548,22 @@ const AuthPage = () => {
             {mode === "login" && searchParams.get("reason") === "session_timeout" && (
               <div
                 role="alert"
-                className="mb-5 rounded-xl p-3 text-xs text-right"
+                className="mb-4 rounded-lg p-2.5 text-[11px] text-right flex items-start gap-2"
                 style={{
-                  background: '#EAF2FB',
-                  border: '1px solid #B7D2EE',
+                  background: 'rgba(234, 242, 251, 0.85)',
+                  border: '1px solid rgba(183, 210, 238, 0.65)',
                   color: '#1B3E6F',
                   fontFamily: 'Tajawal',
-                  lineHeight: 1.6,
+                  lineHeight: 1.5,
+                  backdropFilter: 'blur(4px)',
+                  WebkitBackdropFilter: 'blur(4px)',
                 }}
               >
-                <div style={{ fontWeight: 600, marginBottom: 2 }}>{t("common:auth.sessionTimeoutTitle")}</div>
-                <div>{t("common:auth.sessionTimeoutBody")}</div>
+                <Info className="h-3.5 w-3.5 flex-shrink-0 mt-0.5" style={{ color: '#3B6FA0' }} />
+                <div className="flex-1 min-w-0">
+                  <div style={{ fontWeight: 600, marginBottom: 1 }}>{t("common:auth.sessionTimeoutTitle")}</div>
+                  <div style={{ opacity: 0.92 }}>{t("common:auth.sessionTimeoutBody")}</div>
+                </div>
               </div>
             )}
 
