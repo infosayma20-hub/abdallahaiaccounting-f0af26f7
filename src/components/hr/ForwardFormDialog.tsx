@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Loader2, Search, Send, Trash2, UserCheck } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
-import { format } from "date-fns";
+import { formatHRDateTime } from "@/lib/hrDate";
 
 interface Emp { id: string; full_name: string; job_title?: string | null }
 

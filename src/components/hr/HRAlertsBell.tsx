@@ -7,6 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import { ensureNotificationPermission, notifyChat } from "@/lib/chat-notify";
 import { useHRReminders, localDateStr } from "@/hooks/hr/useHRReminders";
+import { formatHRDayMonth, formatHRDateTime } from "@/lib/hrDate";
 import HRReminderDialog from "@/components/hr/HRReminderDialog";
 
 type FormAlert = {
