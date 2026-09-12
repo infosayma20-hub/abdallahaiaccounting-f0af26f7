@@ -341,8 +341,26 @@ export function FiltersPanel({
           )}
         </div>
       </div>
-    </aside>
+    </div>
   );
+
+  // On phones the same panel is presented as a bottom sheet so the list
+  // keeps the full screen width. Logic, state and saved views are identical.
+  if (isMobile) {
+    return (
+      <Sheet open={open} onOpenChange={onOpenChange}>
+        <SheetContent
+          side="bottom"
+          dir="rtl"
+          className="h-[85dvh] p-0 flex flex-col [&>button]:hidden"
+        >
+          {panel}
+        </SheetContent>
+      </Sheet>
+    );
+  }
+
+  return panel;
 }
 
 /** Applies in-memory filter conditions to a row array. Best-effort generic. */
