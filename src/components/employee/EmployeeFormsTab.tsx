@@ -52,17 +52,32 @@ type FormCard = {
 };
 
 // === Forms available to ALL employees ===
+const HR_CONTACT_HUB = "hr_contact_hub";
+
+// أنواع الرسائل الموحّدة داخل بند «التواصل مع الموارد البشرية»
+const hubOptions: { id: string; label: string; hint: string; icon: React.ElementType; color: string }[] = [
+  { id: "complaints", label: "شكوى", hint: "شكوى رسمية توجَّه للإدارة العليا أو الموارد البشرية", icon: MessageSquare, color: "text-orange-500" },
+  { id: "employee_voice", label: "صوت الموظف", hint: "اقتراح / فكرة / رأي / ملاحظة تحسين", icon: MessageSquare, color: "text-teal-500" },
+  { id: "correction_request", label: "تصحيح بصمة", hint: "تعديل بصمة يوم معيّن مع السبب", icon: PenLine, color: "text-orange-500" },
+];
+
 const employeeForms: FormCard[] = [
   { id: "leave_request", label: "طلب إجازة", icon: Palmtree, color: "text-emerald-500", type: "form" },
   { id: "advance_request", label: "طلب سلفة", icon: Banknote, color: "text-warning", type: "form" },
   { id: "loan_request", label: "التقدم بطلب قرض حسن", icon: HandCoins, color: "text-blue-500", type: "form" },
-  { id: "correction_request", label: "تصحيح بصمة", icon: PenLine, color: "text-orange-500", type: "form" },
-  { id: "hr_message", label: "رسالة لـ HR", icon: MessageSquare, color: "text-purple-400", type: "form" },
+  { id: HR_CONTACT_HUB, label: "التواصل مع الموارد البشرية", icon: MessageSquare, color: "text-purple-500", type: "form" },
   { id: "employee_info", label: "تعبئة معلومات الموظف", icon: UserCog, color: "text-purple-500", type: "form" },
-  { id: "complaints", label: "تقديم شكاوى وملاحظات واقتراحات", icon: MessageSquare, color: "text-orange-500", type: "form" },
-  { id: "employee_voice", label: "صوت الموظف", icon: MessageSquare, color: "text-teal-500", type: "form" },
   { id: "facility_quality", label: "جودة المرافق والمعدات", icon: Wrench, color: "text-cyan-500", type: "form" },
 ];
+
+// نماذج ما زالت مدعومة (تُفتح من داخل البند الموحّد أو من روابط قديمة) لكنها لم تعد بطاقات مستقلة.
+const hiddenLegacyForms: FormCard[] = [
+  { id: "correction_request", label: "تصحيح بصمة", icon: PenLine, color: "text-orange-500", type: "form" },
+  { id: "hr_message", label: "رسالة لـ HR", icon: MessageSquare, color: "text-purple-400", type: "form" },
+  { id: "complaints", label: "تقديم شكاوى وملاحظات واقتراحات", icon: MessageSquare, color: "text-orange-500", type: "form" },
+  { id: "employee_voice", label: "صوت الموظف", icon: MessageSquare, color: "text-teal-500", type: "form" },
+];
+
 
 // === Policy documents for ALL employees ===
 const policyCards: FormCard[] = [
@@ -96,6 +111,8 @@ export default function EmployeeFormsTab({
 }: Props) {
   const isMobile = useIsMobile();
   const [activeForm, setActiveForm] = useState<string | null>(null);
+  /** هل فُتح النموذج الحالي من داخل البند الموحّد؟ (للرجوع لاختيار النوع بدل الإغلاق) */
+  const [openedFromHub, setOpenedFromHub] = useState(false);
   const [activePolicy, setActivePolicy] = useState<string | null>(null);
   const [showHistory, setShowHistory] = useState(false);
   const [submissions, setSubmissions] = useState<any[]>([]);
@@ -506,6 +523,7 @@ export default function EmployeeFormsTab({
       toast({ title: "تم الإرسال بنجاح ✅", description: "سيتم مراجعة طلبك قريباً" });
       setActiveForm(null);
       setFormData({});
+      setOpenedFromHub(false);
       fetchSubmissions();
       onRefresh();
     }
@@ -529,12 +547,36 @@ export default function EmployeeFormsTab({
   const allCards = [...allForms, ...policyCards];
 
   const formLabel = (type: string) => {
-    const card = [...employeeForms, ...managerForms].find(f => f.id === type);
+    const card = [...employeeForms, ...hiddenLegacyForms, ...managerForms].find(f => f.id === type);
     return card?.label || type;
   };
 
   const renderFormFields = () => {
     switch (activeForm) {
+      case HR_CONTACT_HUB:
+        return (
+          <div className="space-y-2">
+            <p className="text-xs text-muted-foreground">اختر نوع الرسالة يلي بدك تبعتها للموارد البشرية:</p>
+            {hubOptions.map(opt => (
+              <button
+                key={opt.id}
+                type="button"
+                onClick={() => { setActiveForm(opt.id); setFormData({}); setOpenedFromHub(true); }}
+                className="w-full flex items-center gap-3 p-4 rounded-2xl bg-card border border-border hover:bg-muted/50 active:scale-[0.99] transition-all text-right"
+              >
+                <div className="h-10 w-10 rounded-xl bg-muted/50 flex items-center justify-center shrink-0">
+                  <opt.icon className={`h-5 w-5 ${opt.color}`} />
+                </div>
+                <span className="flex-1 min-w-0">
+                  <span className="block text-sm font-medium">{opt.label}</span>
+                  <span className="block text-[11px] text-muted-foreground truncate">{opt.hint}</span>
+                </span>
+                <ChevronLeft className="h-4 w-4 text-muted-foreground" />
+              </button>
+            ))}
+          </div>
+        );
+
       case "leave_request": {
         const leaveOptions = [
           { value: "annual", label: "سنوية" },
@@ -1428,9 +1470,13 @@ export default function EmployeeFormsTab({
   };
 
   const getFormTitle = () => {
-    const card = [...employeeForms, ...managerForms].find(f => f.id === activeForm);
+    const card = [...employeeForms, ...hiddenLegacyForms, ...managerForms].find(f => f.id === activeForm);
     return card?.label || "";
   };
+
+  /** خطوة اختيار نوع الرسالة داخل البند الموحّد: لا يوجد إرسال بعد. */
+  const isHubStep = activeForm === HR_CONTACT_HUB;
+
 
   const bottomPad = "calc(72px + env(safe-area-inset-bottom, 0px))";
 
@@ -1479,6 +1525,7 @@ export default function EmployeeFormsTab({
                 }
                 setActiveForm(card.id);
                 setFormData({});
+                setOpenedFromHub(false);
               }}
               className={`w-full flex items-center gap-3 p-4 rounded-2xl bg-card border border-border transition-all text-right ${isClosed ? "opacity-60 cursor-not-allowed" : "hover:bg-muted/50 active:scale-[0.99]"}`}
             >
@@ -1549,7 +1596,11 @@ export default function EmployeeFormsTab({
           <header className="relative z-[130] flex items-center justify-between px-3 h-14 border-b bg-card shrink-0 sticky top-0 pointer-events-auto">
             <button
               type="button"
-              onClick={() => { setActiveForm(null); setFormData({}); }}
+              onClick={() => {
+                setFormData({});
+                if (openedFromHub) { setOpenedFromHub(false); setActiveForm(HR_CONTACT_HUB); }
+                else { setActiveForm(null); }
+              }}
               className="h-11 w-11 -m-1 rounded-full flex items-center justify-center hover:bg-muted/60 active:scale-95 transition touch-manipulation"
               aria-label="إغلاق"
             >
@@ -1569,6 +1620,7 @@ export default function EmployeeFormsTab({
               {renderFormFields()}
             </div>
           </div>
+          {!isHubStep && (
           <div
             className="fixed bottom-0 left-0 right-0 z-[110] px-4 py-3 border-t bg-card shrink-0"
             style={{ paddingBottom: "calc(12px + env(safe-area-inset-bottom, 0px))" }}
@@ -1581,10 +1633,12 @@ export default function EmployeeFormsTab({
               {submitting ? "جاري الإرسال..." : "إرسال الطلب"}
             </Button>
           </div>
+          )}
+
         </div>
       )}
 
-      <Dialog open={!isMobile && !!activeForm} onOpenChange={o => { if (!o) { setActiveForm(null); setFormData({}); } }}>
+      <Dialog open={!isMobile && !!activeForm} onOpenChange={o => { if (!o) { setActiveForm(null); setFormData({}); setOpenedFromHub(false); } }}>
         <DialogContent
           className="max-w-sm bg-card border-border max-h-[90vh] flex flex-col p-0 gap-0"
           dir="rtl"
@@ -1603,6 +1657,7 @@ export default function EmployeeFormsTab({
               {renderFormFields()}
             </div>
           </div>
+          {!isHubStep && (
           <DialogFooter className="px-6 py-4 border-t bg-card shrink-0">
             <div className="w-full">
               {advanceBranchMissing && (
@@ -1614,6 +1669,8 @@ export default function EmployeeFormsTab({
             </Button>
             </div>
           </DialogFooter>
+          )}
+
         </DialogContent>
       </Dialog>
     </div>

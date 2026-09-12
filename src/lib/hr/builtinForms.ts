@@ -17,7 +17,9 @@ export const BUILTIN_FORMS: BuiltinFormDef[] = [
   { key: "leave_request", name: "طلب إجازة", fields: "نوع الإجازة، من/إلى، السبب، مرفق" },
   { key: "loan_request", name: "طلب قرض حسن", fields: "المبلغ وعدد الأقساط" },
   { key: "correction_request", name: "طلب تصحيح بصمة", fields: "اليوم والوقت الصحيح والسبب" },
+  { key: "hr_contact_hub", name: "التواصل مع الموارد البشرية", fields: "بند موحّد: شكوى / صوت الموظف / تصحيح بصمة" },
   { key: "hr_message", name: "رسالة لـ HR", fields: "نص حر" },
+
   { key: "employee_info", name: "تعبئة معلومات الموظف", fields: "بيانات الموظف الشخصية والوظيفية" },
   { key: "complaints", name: "شكاوى وملاحظات واقتراحات", fields: "نص حر مع إمكانية الإرفاق" },
   { key: "employee_voice", name: "صوت الموظف", fields: "اقتراح / فكرة / رأي / ملاحظة تحسين" },
