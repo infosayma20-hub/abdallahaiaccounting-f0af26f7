@@ -107,8 +107,8 @@ const typeLabel = (t: string) => {
 
 export function buildAccountStatementPrintHTML(opts: BuildPrintOpts): string {
   const {
-    company, contact, rows,
-    openingBalance, totalDebit, totalCredit, closingBalance,
+    company, contact, rows: rawRows,
+    openingBalance, totalDebit, totalCredit, closingBalance: rawClosingBalance,
     dateFrom, dateTo, statementNumber,
     currencyLabel, currencySymbol,
     includeInvoiceDetails = false,
@@ -118,6 +118,17 @@ export function buildAccountStatementPrintHTML(opts: BuildPrintOpts): string {
     taxEnabled = true,
     hideOpeningBalance = false,
   } = opts;
+
+  // When the opening balance is hidden, remove its financial effect too:
+  // running balances and the closing balance are computed from the period's
+  // movements only (they no longer start from the opening balance).
+  const rows: PrintRow[] = hideOpeningBalance && openingBalance !== 0
+    ? rawRows.map(r => ({ ...r, balance: Number(r.balance || 0) - openingBalance }))
+    : rawRows;
+  const closingBalance = hideOpeningBalance
+    ? Number(rawClosingBalance || 0) - openingBalance
+    : rawClosingBalance;
+
 
   const fmt = (n: number) => {
     const v = Math.abs(n).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
