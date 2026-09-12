@@ -180,7 +180,10 @@ const InvoicesPage = () => {
   const [showContactDropdown, setShowContactDropdown] = useState(false);
   const [contactDebtWarning, setContactDebtWarning] = useState<string | null>(null);
   const [showPDFPreview, setShowPDFPreview] = useState(false);
-  const [viewMode, setViewMode] = useState<"cards" | "table">("table");
+  // على الجوال تكون البطاقات هي العرض الافتراضي (الجدول يبقى الافتراضي على الشاشات الكبيرة)
+  const [viewMode, setViewMode] = useState<"cards" | "table">(
+    () => (typeof window !== "undefined" && window.innerWidth < 768 ? "cards" : "table"),
+  );
   const [page, setPage] = useState(1);
   const [sortKey, setSortKey] = useState<"date" | "contact" | "type" | "total" | "status">("date");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
@@ -1628,7 +1631,7 @@ const InvoicesPage = () => {
       {/* TABLE VIEW */}
       {!loading && viewMode === "table" && paginated.length > 0 && (
         <Card className="border-0 shadow-sm rounded-2xl overflow-hidden">
-          <CardContent className="p-0">
+          <CardContent className="p-0 fin-table-wrap">
             <Table>
               <TableHeader>
                 <TableRow className="bg-muted/30">
@@ -1815,14 +1818,20 @@ const InvoicesPage = () => {
                       {inv.remainingAmount > 0 && (
                         <p className="text-[10px] text-destructive font-medium mt-0.5">متبقي: ₪{inv.remainingAmount.toLocaleString()}</p>
                       )}
-                      <div className="flex gap-1 mt-1.5">
+                      <div className="flex flex-wrap gap-1 mt-1.5">
                         {inv.status === 'sent' && inv.paymentStatus !== 'paid' && (
-                          <Button size="sm" variant="ghost" className="h-6 px-2 text-[10px] gap-1 text-success" onClick={e => { e.stopPropagation(); recordPayment(inv); }}>
+                          <Button size="sm" variant="ghost" className="h-7 px-2 text-[10px] gap-1 text-success" onClick={e => { e.stopPropagation(); recordPayment(inv); }}>
                             <Receipt className="h-3 w-3" /> {inv.type === 'sales' ? 'تسجيل قبض' : 'تسجيل صرف'}
                           </Button>
                         )}
+                        <Button size="sm" variant="ghost" className="h-7 px-2 text-[10px] gap-1" onClick={e => { e.stopPropagation(); void handleDirectPrint(inv); }}>
+                          <Printer className="h-3 w-3" /> طباعة
+                        </Button>
+                        <Button size="sm" variant="ghost" className="h-7 px-2 text-[10px] gap-1" onClick={e => { e.stopPropagation(); void openPreview(inv); }}>
+                          <Download className="h-3 w-3" /> PDF
+                        </Button>
                         {canEdit({ status: inv.status }) && (
-                          <Button size="sm" variant="ghost" className="h-6 px-2 text-[10px] gap-1" onClick={e => { e.stopPropagation(); navigate(`/invoices/new?edit=${inv.id}`); }}>
+                          <Button size="sm" variant="ghost" className="h-7 px-2 text-[10px] gap-1" onClick={e => { e.stopPropagation(); navigate(`/invoices/new?edit=${inv.id}`); }}>
                             <Pencil className="h-3 w-3" /> تعديل
                           </Button>
                         )}
