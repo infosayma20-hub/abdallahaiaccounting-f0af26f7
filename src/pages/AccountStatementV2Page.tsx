@@ -1986,6 +1986,7 @@ const AccountStatementV2Page = () => {
                 ];
                 const colSpan = screenCols.length;
                 return (
+              <div className="fin-table-wrap">
               <table className="w-full" style={{ tableLayout: "fixed" }}>
                 <colgroup>
                   {screenCols.map(c => <col key={c.key} style={{ width: c.width }} />)}
@@ -2397,6 +2398,7 @@ const AccountStatementV2Page = () => {
                   )}
                 </tbody>
               </table>
+              </div>
                 );
               })()}
             </div>

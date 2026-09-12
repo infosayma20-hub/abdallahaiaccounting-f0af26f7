@@ -16,6 +16,8 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Sheet, SheetContent } from "@/components/ui/sheet";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
 import type {
   FilterCondition,
@@ -91,6 +93,7 @@ export function FiltersPanel({
   onDeleteView,
 }: FiltersPanelProps) {
   const tt = useTT();
+  const isMobile = useIsMobile();
   const [fieldSearch, setFieldSearch] = useState("");
   const [viewName, setViewName] = useState("");
   const [addOpen, setAddOpen] = useState(false);
@@ -119,10 +122,15 @@ export function FiltersPanel({
 
   if (!open) return null;
 
-  return (
-    <aside
+  const panel = (
+    <div
       dir="rtl"
-      className="w-[340px] shrink-0 border-l border-border bg-card flex flex-col h-full"
+      className={cn(
+        "bg-card flex flex-col",
+        isMobile
+          ? "h-full w-full"
+          : "w-[340px] shrink-0 border-l border-border h-full",
+      )}
     >
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-border">
@@ -336,8 +344,26 @@ export function FiltersPanel({
           )}
         </div>
       </div>
-    </aside>
+    </div>
   );
+
+  // On phones the same panel is presented as a bottom sheet so the list
+  // keeps the full screen width. Logic, state and saved views are identical.
+  if (isMobile) {
+    return (
+      <Sheet open={open} onOpenChange={onOpenChange}>
+        <SheetContent
+          side="bottom"
+          dir="rtl"
+          className="h-[85dvh] p-0 flex flex-col [&>button]:hidden"
+        >
+          {panel}
+        </SheetContent>
+      </Sheet>
+    );
+  }
+
+  return panel;
 }
 
 /** Applies in-memory filter conditions to a row array. Best-effort generic. */

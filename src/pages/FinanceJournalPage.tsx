@@ -651,7 +651,7 @@ const FinanceJournalPage = () => {
       {/* TABLE */}
       {!loading && paged.length > 0 && (
         <div className="rounded-xl border border-border overflow-hidden shadow-sm">
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto fin-table-wrap">
             <table className="w-full text-sm border-collapse">
               <thead>
                 <tr className="bg-primary text-primary-foreground">

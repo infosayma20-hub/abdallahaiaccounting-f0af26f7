@@ -352,6 +352,35 @@
   }
 
   /* ─────────────────────────────────────────────
+   * Finance tables on phones
+   * ─────────────────────────────────────────────
+   * Finance list tables use `table-fixed` + percentage colgroups, which on a
+   * phone squeezes 10 columns into ~390px and makes them unreadable.
+   * Adding `fin-table-wrap` on the scroll container keeps DESKTOP identical
+   * and, below 768px only, switches the table to natural column widths with
+   * a comfortable minimum width so it scrolls horizontally instead.
+   */
+  @media (max-width: 767px) {
+    .fin-table-wrap {
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+    .fin-table-wrap > table {
+      min-width: 760px;
+      table-layout: auto !important;
+    }
+    .fin-table-wrap > table > colgroup > col {
+      width: auto !important;
+    }
+    /* Comfortable touch targets for inline row actions */
+    .fin-table-wrap td button {
+      min-height: 34px;
+      min-width: 34px;
+    }
+  }
+
+
+  /* ─────────────────────────────────────────────
    * HR Themed Tables (matches PayrollPreviewAll standard)
    * ─────────────────────────────────────────────
    * Add `hr-themed` class on any wrapper around HR pages

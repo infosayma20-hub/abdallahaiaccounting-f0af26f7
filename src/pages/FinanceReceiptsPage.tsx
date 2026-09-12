@@ -20,7 +20,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { SmartTextCell } from "@/components/ui/smart-text-cell";
 import {
-  FinanceShell, applyFilters,
+  FinanceShell, applyFilters, MobileRecordCards,
   type ActionTab, type FilterCondition, type FilterField,
 } from "@/components/finance/shell";
 import { ColumnVisibilityMenu } from "@/components/finance/shell/ColumnVisibilityMenu";
@@ -630,7 +630,71 @@ export default function FinanceReceiptsPage() {
               </div>
             </div>
 
-            <div className="overflow-x-auto">
+            {/* Phone view — same data, same actions, card layout */}
+            <MobileRecordCards
+              className="md:hidden print:hidden"
+              items={filtered.map((r) => ({
+                key: r.id,
+                title: r.ref_number || "—",
+                subtitle: r.contact_name,
+                amount: `${r.amount.toLocaleString()} ${curSym(r.currency)}`,
+                cancelled: r.status === "cancelled",
+                onClick: () => handleEdit(r),
+                badge: (
+                  <span
+                    className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold ${
+                      r.status === "cancelled"
+                        ? "bg-red-100 text-red-700"
+                        : r.status === "draft"
+                          ? "bg-muted text-muted-foreground"
+                          : "bg-emerald-100 text-emerald-700"
+                    }`}
+                  >
+                    {r.status_label}
+                  </span>
+                ),
+                fields: [
+                  { label: tt("التاريخ"), value: fmtDateDisplay(r.date) || "—" },
+                  { label: tt("طريقة الدفع"), value: r.payment_label },
+                  { label: tt("الصندوق/البنك"), value: r.account_label },
+                  { label: tt("مركز التكلفة"), value: r.cost_center_name || "—" },
+                  ...(r.notes ? [{ label: tt("الملاحظات"), value: r.notes }] : []),
+                ],
+                actions: (
+                  <>
+                    {canEdit(r.raw) && (
+                      <Can app="finance" feature="receipts" perm="update">
+                        <button onClick={() => handleEdit(r)} className="p-2 rounded-lg hover:bg-primary/10 text-muted-foreground hover:text-primary" title={tt("تعديل")}>
+                          <Pencil className="h-4 w-4" />
+                        </button>
+                      </Can>
+                    )}
+                    {canDelete(r.raw) && r.status !== "cancelled" && (
+                      <Can app="finance" feature="receipts" perm="delete">
+                        <button onClick={() => handleDelete(r)} className="p-2 rounded-lg hover:bg-destructive/10 text-muted-foreground hover:text-destructive" title={tt("حذف")}>
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </Can>
+                    )}
+                    <button onClick={() => handleDuplicate(r)} className="p-2 rounded-lg hover:bg-muted text-muted-foreground hover:text-primary" title={tt("جديد مشابه")}>
+                      <Copy className="h-4 w-4" />
+                    </button>
+                  </>
+                ),
+              }))}
+            />
+            <div className="md:hidden print:hidden px-3 py-2 border-t border-border/40 flex items-center justify-between text-[12px] font-bold">
+              <span>{tt("المجموع")} ({filtered.length})</span>
+              <span className="tabular-nums flex flex-col items-end">
+                {Array.from(totalsByCurrency.entries()).map(([cur, v]) => (
+                  <span key={cur} className="whitespace-nowrap">{curSym(cur)}{v.toLocaleString()}</span>
+                ))}
+              </span>
+            </div>
+
+
+
+            <div className="overflow-x-auto fin-table-wrap hidden md:block print:block">
               <table className="w-full text-sm table-fixed" dir="rtl">
                 <colgroup>
                   <col style={{ width: "10%" }} />

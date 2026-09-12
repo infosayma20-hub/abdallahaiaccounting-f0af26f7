@@ -6,6 +6,8 @@ import { cn } from "@/lib/utils";
 import { ActionPane } from "./ActionPane";
 import { FiltersPanel } from "./FiltersPanel";
 import { CompactActionRibbon } from "./CompactActionRibbon";
+import { MobileActionSheet } from "./MobileActionSheet";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { useMyViews } from "./useMyViews";
 import BackButton from "@/components/BackButton";
 import type { FinanceShellProps } from "./types";
@@ -40,6 +42,7 @@ rightSlot,
   showBack = true,
 }: FinanceShellProps) {
   const tt = useTT();
+  const isMobile = useIsMobile();
   const [filtersOpen, setFiltersOpen] = useState(false);
   const myViews = useMyViews(storageKey);
 
@@ -107,8 +110,9 @@ rightSlot,
             {headerSlot && (
               <div className="shrink-0 min-w-0">{headerSlot}</div>
             )}
-            {/* In compact mode, the action ribbon lives inline with the title */}
-            {compact && actionTabs.length > 0 && (
+            {/* In compact mode, the action ribbon lives inline with the title.
+                On phones the very same actions move into a bottom sheet. */}
+            {compact && actionTabs.length > 0 && !isMobile && (
               <>
                 <div className="hidden md:block h-6 w-px bg-border shrink-0 mx-1" />
                 <div className="w-full order-last md:order-none md:w-auto md:flex-1 min-w-0 flex justify-start">
@@ -121,11 +125,12 @@ rightSlot,
             )}
             <div className="flex items-center gap-1.5 shrink-0 pr-1">
               {rightSlot}
+              {isMobile && actionTabs.length > 0 && <MobileActionSheet tabs={actionTabs} />}
               {filterFields.length > 0 && (
                 <Button
                   size="sm"
                   variant={filtersOpen ? "default" : "outline"}
-                  className="h-8 gap-1.5 text-[12.5px]"
+                  className="h-9 md:h-8 gap-1.5 text-[12.5px]"
                   onClick={() => setFiltersOpen((v) => !v)}
                 >
                   <FilterIcon className="h-3.5 w-3.5" />

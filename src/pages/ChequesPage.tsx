@@ -1313,7 +1313,7 @@ const ChequesPage = () => {
       {/* ============ TABLE ============ */}
       {!loading && tabPaged.length > 0 && (
         <div className="rounded-lg border border-border bg-card overflow-hidden">
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto fin-table-wrap">
             <table className="w-full text-sm" style={{ tableLayout: 'fixed' }}>
               <colgroup>
                 <col style={{ width: 40 }} />

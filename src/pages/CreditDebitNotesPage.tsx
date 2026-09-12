@@ -242,7 +242,7 @@ const CreditDebitNotesPage = ({ noteType }: Props) => {
           </div>
         ) : (
           <div className="bg-card rounded-xl shadow-card border border-border/40 overflow-hidden">
-            <div className="overflow-x-auto">
+            <div className="overflow-x-auto fin-table-wrap">
               <table className="w-full text-sm" dir="rtl">
                 <thead>
                   <tr className="border-b border-border/60 bg-primary text-primary-foreground">
