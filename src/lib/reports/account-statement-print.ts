@@ -70,6 +70,8 @@ export interface BuildPrintOpts {
   showDueOrType?: boolean;
   /** Hide tax column / chip when VAT is disabled at company level. */
   taxEnabled?: boolean;
+  /** Hide the opening-balance row and summary cell in the printed statement. */
+  hideOpeningBalance?: boolean;
 }
 
 const esc = (s: any) =>
@@ -114,6 +116,7 @@ export function buildAccountStatementPrintHTML(opts: BuildPrintOpts): string {
     showReference = true,
     showDueOrType = true,
     taxEnabled = true,
+    hideOpeningBalance = false,
   } = opts;
 
   const fmt = (n: number) => {
@@ -201,7 +204,7 @@ export function buildAccountStatementPrintHTML(opts: BuildPrintOpts): string {
     <table class="doc-summary">
       <thead>
         <tr>
-          <th>الرصيد الافتتاحي</th>
+          ${hideOpeningBalance ? "" : `<th>الرصيد الافتتاحي</th>`}
           <th>إجمالي المدين</th>
           <th>إجمالي الدائن</th>
           <th>الرصيد المستحق</th>
@@ -209,7 +212,7 @@ export function buildAccountStatementPrintHTML(opts: BuildPrintOpts): string {
       </thead>
       <tbody>
         <tr>
-          <td>${esc(fmtSigned(openingBalance))}</td>
+          ${hideOpeningBalance ? "" : `<td>${esc(fmtSigned(openingBalance))}</td>`}
           <td>${esc(fmt(totalDebit))}</td>
           <td>${esc(fmt(totalCredit))}</td>
           <td><strong>${esc(fmtSigned(closingBalance))}</strong>${
@@ -304,7 +307,7 @@ export function buildAccountStatementPrintHTML(opts: BuildPrintOpts): string {
     <table class="doc-tbl">
       ${theadHTML}
       <tbody>
-        ${openingRow}
+        ${hideOpeningBalance ? "" : openingRow}
         ${bodyRows}
         ${totalsRow}
       </tbody>

@@ -18,6 +18,7 @@ export interface StatementViewOptions {
   showContactInfo: boolean;
   showSignature: boolean;
   showAging: boolean;
+  hideOpeningBalance: boolean;   // hide opening-balance row/cell in print & PDF
   // Noise filters
   hideReversalEntries: boolean;   // hide "قيد عكسي" rows
   hideCancelledEntries: boolean;  // hide soft-deleted / ملغى rows
@@ -33,6 +34,7 @@ export const DEFAULT_VIEW_OPTIONS: StatementViewOptions = {
   showContactInfo: true,
   showSignature: true,
   showAging: true,
+  hideOpeningBalance: false,
   hideReversalEntries: false,
   hideCancelledEntries: false,
 };
@@ -91,6 +93,7 @@ const FIELDS: Record<Tab, Array<{ key: keyof StatementViewOptions; label: string
     { key: "showCompanyLogo", label: "إظهار شعار الشركة" },
     { key: "showContactInfo", label: "إظهار بيانات التواصل" },
     { key: "showSignature", label: "إظهار خانات التوقيع والاعتماد" },
+    { key: "hideOpeningBalance", label: "إخفاء الرصيد الافتتاحي عند الطباعة", hint: "لا يظهر صف «رصيد أول المدة» ولا خانة الرصيد الافتتاحي في الطباعة و PDF" },
   ],
   noise: [
     { key: "hideCancelledEntries", label: "إخفاء السندات الملغاة", hint: "لا تُظهر القيود التي تم إلغاؤها (المشطوبة)" },

@@ -1605,6 +1605,7 @@ const AccountStatementV2Page = () => {
     showReference: !!statementOptions.showReference,
     showDueOrType: !!(statementOptions.showDueDate || statementOptions.showType),
     taxEnabled,
+    hideOpeningBalance: !!statementOptions.hideOpeningBalance,
   }), [
     companyInfo, selectedEntityName, selectedContact, isEmployeesTab, isAccountsTab,
     selectedEntityCode, filteredRows, openingBalance, displayTotalDebit, displayTotalCredit,
