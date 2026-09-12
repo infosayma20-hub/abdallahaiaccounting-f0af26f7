@@ -16,6 +16,8 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Sheet, SheetContent } from "@/components/ui/sheet";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
 import type {
   FilterCondition,
@@ -91,6 +93,7 @@ export function FiltersPanel({
   onDeleteView,
 }: FiltersPanelProps) {
   const tt = useTT();
+  const isMobile = useIsMobile();
   const [fieldSearch, setFieldSearch] = useState("");
   const [viewName, setViewName] = useState("");
   const [addOpen, setAddOpen] = useState(false);
