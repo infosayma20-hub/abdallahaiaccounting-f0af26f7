@@ -20,7 +20,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { SmartTextCell } from "@/components/ui/smart-text-cell";
 import {
-  FinanceShell, applyFilters,
+  FinanceShell, applyFilters, MobileRecordCards,
   type ActionTab, type FilterCondition, type FilterField,
 } from "@/components/finance/shell";
 import { ColumnVisibilityMenu } from "@/components/finance/shell/ColumnVisibilityMenu";
