@@ -1903,7 +1903,11 @@ const AccountStatementV2Page = () => {
                     <button onClick={() => setSelectedEntityId("")} className="text-xs underline mr-1 text-primary">تغيير</button>
                   </div>
                 )}
-                <div><span style={{ color: "#6B7280" }}>رصيد افتتاحي: </span><span style={{ color: "#111827", fontWeight: 600 }}>{fmtAmount(openingBalance, statementCurrency)}</span></div>
+                 {!statementOptions.hideOpeningBalance ? (
+                   <div><span style={{ color: "#6B7280" }}>رصيد افتتاحي: </span><span style={{ color: "#111827", fontWeight: 600 }}>{fmtAmount(openingBalance, statementCurrency)}</span></div>
+                 ) : (
+                   <div><span style={{ color: "#92400E", fontWeight: 600, fontSize: 12 }}>بدون الرصيد الافتتاحي — الأرصدة من حركات الفترة فقط</span></div>
+                 )}
                 <div><span style={{ color: "#6B7280" }}>مدين: </span><span style={{ color: "#1E40AF", fontWeight: 600 }}>{hasMixedCurrencies ? "—" : fmtAmount(displayTotalDebit, statementCurrency)}</span></div>
                 <div><span style={{ color: "#6B7280" }}>دائن: </span><span style={{ color: "#065F46", fontWeight: 600 }}>{hasMixedCurrencies ? "—" : fmtAmount(displayTotalCredit, statementCurrency)}</span></div>
                 <div className="mr-auto">
