@@ -43,7 +43,7 @@ import { assertPermission } from "@/lib/permissions/assertPermission";
 import { assertAccountantPermission } from "@/lib/permissions/assertAccountantPermission";
 import { useCompanySettings } from "@/hooks/useCompanySettings";
 import InvoicePrintView from "@/components/InvoicePrintView";
-import { createRoot } from "react-dom/client";
+import { printReactDocument } from "@/lib/print/printReactDocument";
 import * as XLSX from "xlsx";
 import useFocusHighlight from "@/hooks/useFocusHighlight";
 
@@ -180,7 +180,10 @@ const InvoicesPage = () => {
   const [showContactDropdown, setShowContactDropdown] = useState(false);
   const [contactDebtWarning, setContactDebtWarning] = useState<string | null>(null);
   const [showPDFPreview, setShowPDFPreview] = useState(false);
-  const [viewMode, setViewMode] = useState<"cards" | "table">("table");
+  // على الجوال تكون البطاقات هي العرض الافتراضي (الجدول يبقى الافتراضي على الشاشات الكبيرة)
+  const [viewMode, setViewMode] = useState<"cards" | "table">(
+    () => (typeof window !== "undefined" && window.innerWidth < 768 ? "cards" : "table"),
+  );
   const [page, setPage] = useState(1);
   const [sortKey, setSortKey] = useState<"date" | "contact" | "type" | "total" | "status">("date");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
@@ -935,8 +938,6 @@ const InvoicesPage = () => {
     const feature = selectedInvoice.type === "purchase" ? "purchase_invoices" : "invoices";
     try { await assertPermission(app, feature, "print"); } catch { return; }
     const hydrated = await hydrateInvoiceItems(selectedInvoice);
-    const win = window.open("", "_blank");
-    if (!win) return;
     // اجلب الرصيد الختامي للجهة من الحالة المحملة (contacts withBalances)
     const contactRow = (contacts as any[]).find(c => c.id === (hydrated as any).contactId);
     const closingBalance = contactRow && typeof contactRow.balance === "number" ? contactRow.balance : undefined;
@@ -947,29 +948,13 @@ const InvoicesPage = () => {
       ? { ...hydrated, contactClosingBalance: closingBalance, contactOpeningBalance: openingBalance }
       : hydrated;
 
-    
-    win.document.write(`<html dir="rtl"><head>
-      <title>فاتورة ${selectedInvoice.invoiceNumber}</title>
-      <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-      <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { background: white; }
-        @media print { body { padding: 0; } @page { margin: 8mm; size: A4; } }
-      </style>
-    </head><body><div id="print-root"></div></body></html>`);
-    win.document.close();
-
-    // Render React component into the new window
-    setTimeout(() => {
-      const container = win.document.getElementById("print-root");
-      if (container) {
-        const root = createRoot(container);
-        root.render(
-          <InvoicePrintView invoice={invoiceForPrint} settings={companySettings} copyLabel={tt("أصلية")} />
-        );
-        setTimeout(() => win.print(), 500);
-      }
-    }, 200);
+    printReactDocument(
+      <InvoicePrintView invoice={invoiceForPrint} settings={companySettings} copyLabel={tt("أصلية")} />,
+      {
+        title: `فاتورة ${selectedInvoice.invoiceNumber}`,
+        onError: () => toast({ title: tt("تعذر فتح الطباعة"), variant: "destructive" }),
+      },
+    );
   };
 
   // Direct print for a specific invoice
@@ -978,23 +963,13 @@ const InvoicesPage = () => {
     const feature = inv.type === "purchase" ? "purchase_invoices" : "invoices";
     try { await assertPermission(app, feature, "print"); } catch { return; }
     const hydrated = await hydrateInvoiceItems(inv);
-    const win = window.open("", "_blank");
-    if (!win) return;
-    win.document.write(`<html dir="rtl"><head>
-      <title>فاتورة ${hydrated.invoiceNumber}</title>
-      <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-      <style>* { margin: 0; padding: 0; box-sizing: border-box; } body { background: white; } @media print { body { padding: 0; } @page { margin: 8mm; size: A4; } }</style>
-    </head><body><div id="print-root"></div></body></html>`);
-    win.document.close();
-    setTimeout(() => {
-      const container = win.document.getElementById("print-root");
-      if (container) {
-        const root = createRoot(container);
-        root.render(<InvoicePrintView invoice={hydrated} settings={companySettings} copyLabel={tt("أصلية")} />);
-
-        setTimeout(() => win.print(), 500);
-      }
-    }, 200);
+    printReactDocument(
+      <InvoicePrintView invoice={hydrated} settings={companySettings} copyLabel={tt("أصلية")} />,
+      {
+        title: `فاتورة ${hydrated.invoiceNumber}`,
+        onError: () => toast({ title: tt("تعذر فتح الطباعة"), variant: "destructive" }),
+      },
+    );
   };
 
   // Open email modal
@@ -1471,9 +1446,9 @@ const InvoicesPage = () => {
     >
     <div className="space-y-5" dir="rtl">
       {/* Actions */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-2">
         <p className="text-xs text-muted-foreground">{sorted.length} فاتورة</p>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <div className="flex items-center bg-muted/50 rounded-xl p-0.5">
             <button onClick={() => setViewMode("cards")} className={`p-1.5 rounded-lg transition-all ${viewMode === "cards" ? "bg-background shadow-sm text-foreground" : "text-muted-foreground"}`}>
               <LayoutGrid className="h-4 w-4" />
@@ -1503,7 +1478,7 @@ const InvoicesPage = () => {
 
       {/* Summary KPIs */}
       {invoices.length > 0 && (
-        <div className="grid grid-cols-3 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <div style={{ background: "#FFFFFF", border: "1px solid #E5E7EB", borderRadius: 12, padding: "16px 20px", textAlign: "center" }}>
             <div className="mx-auto mb-2 flex items-center justify-center" style={{ width: 36, height: 36, borderRadius: 8, background: "#F0F4F8" }}>
               <Receipt className="h-[18px] w-[18px]" style={{ color: "#1B3A5C" }} />
@@ -1656,7 +1631,7 @@ const InvoicesPage = () => {
       {/* TABLE VIEW */}
       {!loading && viewMode === "table" && paginated.length > 0 && (
         <Card className="border-0 shadow-sm rounded-2xl overflow-hidden">
-          <CardContent className="p-0">
+          <CardContent className="p-0 fin-table-wrap">
             <Table>
               <TableHeader>
                 <TableRow className="bg-muted/30">
@@ -1843,14 +1818,20 @@ const InvoicesPage = () => {
                       {inv.remainingAmount > 0 && (
                         <p className="text-[10px] text-destructive font-medium mt-0.5">متبقي: ₪{inv.remainingAmount.toLocaleString()}</p>
                       )}
-                      <div className="flex gap-1 mt-1.5">
+                      <div className="flex flex-wrap gap-1 mt-1.5">
                         {inv.status === 'sent' && inv.paymentStatus !== 'paid' && (
-                          <Button size="sm" variant="ghost" className="h-6 px-2 text-[10px] gap-1 text-success" onClick={e => { e.stopPropagation(); recordPayment(inv); }}>
+                          <Button size="sm" variant="ghost" className="h-7 px-2 text-[10px] gap-1 text-success" onClick={e => { e.stopPropagation(); recordPayment(inv); }}>
                             <Receipt className="h-3 w-3" /> {inv.type === 'sales' ? 'تسجيل قبض' : 'تسجيل صرف'}
                           </Button>
                         )}
+                        <Button size="sm" variant="ghost" className="h-7 px-2 text-[10px] gap-1" onClick={e => { e.stopPropagation(); void handleDirectPrint(inv); }}>
+                          <Printer className="h-3 w-3" /> طباعة
+                        </Button>
+                        <Button size="sm" variant="ghost" className="h-7 px-2 text-[10px] gap-1" onClick={e => { e.stopPropagation(); void openPreview(inv); }}>
+                          <Download className="h-3 w-3" /> PDF
+                        </Button>
                         {canEdit({ status: inv.status }) && (
-                          <Button size="sm" variant="ghost" className="h-6 px-2 text-[10px] gap-1" onClick={e => { e.stopPropagation(); navigate(`/invoices/new?edit=${inv.id}`); }}>
+                          <Button size="sm" variant="ghost" className="h-7 px-2 text-[10px] gap-1" onClick={e => { e.stopPropagation(); navigate(`/invoices/new?edit=${inv.id}`); }}>
                             <Pencil className="h-3 w-3" /> تعديل
                           </Button>
                         )}
