@@ -125,11 +125,12 @@ rightSlot,
             )}
             <div className="flex items-center gap-1.5 shrink-0 pr-1">
               {rightSlot}
+              {isMobile && actionTabs.length > 0 && <MobileActionSheet tabs={actionTabs} />}
               {filterFields.length > 0 && (
                 <Button
                   size="sm"
                   variant={filtersOpen ? "default" : "outline"}
-                  className="h-8 gap-1.5 text-[12.5px]"
+                  className="h-9 md:h-8 gap-1.5 text-[12.5px]"
                   onClick={() => setFiltersOpen((v) => !v)}
                 >
                   <FilterIcon className="h-3.5 w-3.5" />
