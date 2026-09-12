@@ -431,6 +431,47 @@ export type Database = {
         }
         Relationships: []
       }
+      account_system_roles_v1: {
+        Row: {
+          account_id: string
+          assigned_by: string | null
+          created_at: string
+          id: string
+          notes: string | null
+          owner_id: string
+          role: string
+          updated_at: string
+        }
+        Insert: {
+          account_id: string
+          assigned_by?: string | null
+          created_at?: string
+          id?: string
+          notes?: string | null
+          owner_id: string
+          role: string
+          updated_at?: string
+        }
+        Update: {
+          account_id?: string
+          assigned_by?: string | null
+          created_at?: string
+          id?: string
+          notes?: string | null
+          owner_id?: string
+          role?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "account_system_roles_v1_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "accounts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       account_watchlist: {
         Row: {
           created_at: string
@@ -30046,6 +30087,10 @@ export type Database = {
         Returns: Json
       }
       assert_owner_scope: { Args: { p_owner: string }; Returns: undefined }
+      assign_system_account_role_v1: {
+        Args: { p_account_id: string; p_notes?: string; p_role: string }
+        Returns: string
+      }
       audit_contact_account_integrity: {
         Args: { p_user_id?: string }
         Returns: {
@@ -32626,6 +32671,10 @@ export type Database = {
         }
         Returns: Json
       }
+      resolve_customer_ar_account_v1: {
+        Args: { p_contact_id: string }
+        Returns: string
+      }
       resolve_effective_owner_id: {
         Args: { _auth_uid?: string }
         Returns: string
@@ -32663,6 +32712,10 @@ export type Database = {
           p_payment_method: string
         }
         Returns: Json
+      }
+      resolve_system_account_role_v1: {
+        Args: { p_owner_id?: string; p_role: string }
+        Returns: string
       }
       resync_pos_order_gl_backfill: {
         Args: { p_dry_run?: boolean; p_order_id: string }
