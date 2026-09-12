@@ -658,7 +658,7 @@ export default function JobApplicationPage() {
           {/* Experience */}
           {cfg.sections.experience && (
           <section className="bg-card rounded-2xl border border-border p-4">
-            <RepeaterHeader title="خبرات العمل السابقة (إلزامي) — «حتى الآن» إذا لا تزال تعمل" onAdd={() => setExperience((r) => [...r, emptyExp()])} />
+            <RepeaterHeader title="خبرات العمل السابقة *" onAdd={() => setExperience((r) => [...r, emptyExp()])} />
             <label className="flex items-center gap-2 cursor-pointer select-none mb-3">
               <input
                 type="checkbox"
@@ -698,7 +698,7 @@ export default function JobApplicationPage() {
                   <Input placeholder="محمول" value={row.mobile} onChange={(e) => setReferees((rows) => rows.map((r, x) => x === i ? { ...r, mobile: e.target.value } : r))} />
                   <Input placeholder="بريد إلكتروني" value={row.email} onChange={(e) => setReferees((rows) => rows.map((r, x) => x === i ? { ...r, email: e.target.value } : r))} />
                   <div className="flex gap-1 col-span-2 sm:col-span-1">
-                    <Input placeholder="الوظيفة أو العلاقة (لماذا معرّف؟)" value={row.relation} onChange={(e) => setReferees((rows) => rows.map((r, x) => x === i ? { ...r, relation: e.target.value } : r))} />
+                    <Input placeholder="الوظيفة أو العلاقة" value={row.relation} onChange={(e) => setReferees((rows) => rows.map((r, x) => x === i ? { ...r, relation: e.target.value } : r))} />
                     <Button type="button" variant="ghost" size="icon" className="min-h-11 min-w-11" aria-label="حذف السطر" onClick={() => setReferees((rows) => rows.filter((_, x) => x !== i))}>
                       <Trash2 className="h-4 w-4 text-destructive" />
                     </Button>
