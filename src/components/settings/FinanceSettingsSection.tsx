@@ -12,6 +12,7 @@ import { useAuth } from "@/hooks/useAuth";
 import type { CompanySettings } from "@/hooks/useCompanySettings";
 import TeamAccountManager from "./TeamAccountManager";
 import FiscalPeriodsManager from "./FiscalPeriodsManager";
+import DocumentSequenceStartManager from "./DocumentSequenceStartManager";
 
 interface Props {
   settings: CompanySettings;
