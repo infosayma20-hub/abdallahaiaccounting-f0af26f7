@@ -1173,7 +1173,10 @@ const AccountStatementV2Page = () => {
     if (debouncedTxSearch.trim()) r = r.filter(x => multiWordMatchAny(debouncedTxSearch, x.description, x.reference, lineCommentFor(x)));
     // Recompute running balance and totals so they reflect only the visible
     // rows (hidden reversals / cancelled entries must not leak into totals).
-    let running = openingBalance;
+    // When the user hides the opening balance, the on-screen running balance
+    // starts from zero (period movements only) — same rule as the printout.
+    const effectiveOpening = statementOptions.hideOpeningBalance ? 0 : openingBalance;
+    let running = effectiveOpening;
     let sD = 0, sC = 0;
     const withBalances = r.map(x => {
       const d = Number(x.debit) || 0;
