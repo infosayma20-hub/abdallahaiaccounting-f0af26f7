@@ -365,17 +365,33 @@
       overflow-x: auto;
       -webkit-overflow-scrolling: touch;
     }
-    .fin-table-wrap > table {
+    /* Some finance tables are rendered by the shared <Table> primitive, which
+       wraps the <table> in a div with inline `overflow: clip` — on a phone that
+       silently cuts off columns. Re-enable scrolling for that wrapper only. */
+    .fin-table-wrap > div {
+      overflow-x: auto !important;
+      -webkit-overflow-scrolling: touch;
+    }
+    .fin-table-wrap table {
       min-width: 760px;
       table-layout: auto !important;
     }
-    .fin-table-wrap > table > colgroup > col {
+    .fin-table-wrap table > colgroup > col {
       width: auto !important;
     }
     /* Comfortable touch targets for inline row actions */
     .fin-table-wrap td button {
       min-height: 34px;
       min-width: 34px;
+    }
+
+    /* Accounting entry screens (invoice create/edit, journals, vouchers) are
+       locked to a 1280px canvas for desktop readability. On phones that means
+       the whole form is only reachable by horizontal scrolling. Release the
+       lock so the responsive grids inside can stack; wide item tables keep
+       their own horizontal scroll via `fin-table-wrap`. */
+    .accounting-fixed-scroll > .accounting-fixed-inner {
+      min-width: 0;
     }
   }
 
