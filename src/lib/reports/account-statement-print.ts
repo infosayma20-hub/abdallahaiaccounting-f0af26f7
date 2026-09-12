@@ -307,7 +307,7 @@ export function buildAccountStatementPrintHTML(opts: BuildPrintOpts): string {
     <table class="doc-tbl">
       ${theadHTML}
       <tbody>
-        ${openingRow}
+        ${hideOpeningBalance ? "" : openingRow}
         ${bodyRows}
         ${totalsRow}
       </tbody>
