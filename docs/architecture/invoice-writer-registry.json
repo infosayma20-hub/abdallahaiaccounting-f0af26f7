@@ -1,0 +1,332 @@
+{
+  "version": 1,
+  "generated": "2026-09-12",
+  "mode": "read-only-discovery",
+  "scope": "public.invoices and every side effect of an invoice write",
+  "classes": ["AUTHORITATIVE", "LEGACY", "DERIVED", "UNKNOWN"],
+  "writers": [
+    {
+      "id": "trg_40_invoice_number",
+      "kind": "trigger",
+      "fn": "generate_invoice_number",
+      "secdef": true,
+      "class": "AUTHORITATIVE",
+      "targets": ["invoices.invoice_number", "invoice_sequences"],
+      "atomic": true,
+      "notes": "prefix from company_settings, offset from companies.invoice_number_offset, MAX-scan + sequence upsert + collision loop; scope owner+type+year"
+    },
+    {
+      "id": "trg_10_invoice_van_warehouse",
+      "kind": "trigger",
+      "fn": "auto_tag_invoice_van_warehouse",
+      "secdef": true,
+      "class": "AUTHORITATIVE",
+      "targets": ["invoices.warehouse_id"]
+    },
+    {
+      "id": "trg_20_invoice_warehouse_scope",
+      "kind": "trigger",
+      "fn": "enforce_user_warehouse_scope",
+      "class": "AUTHORITATIVE",
+      "targets": ["invoices.warehouse_id"],
+      "notes": "guard"
+    },
+    {
+      "id": "trg_30_invoice_guard_rep",
+      "kind": "trigger",
+      "fn": "guard_rep_invoice_must_be_posted",
+      "secdef": false,
+      "class": "AUTHORITATIVE",
+      "targets": ["invoices.source", "invoices.linked_transaction_id"]
+    },
+    {
+      "id": "trg_50_invoice_feature_perm",
+      "kind": "trigger",
+      "fn": "enforce_feature_perm_invoices",
+      "secdef": true,
+      "class": "AUTHORITATIVE",
+      "targets": ["invoices (delete/status)"]
+    },
+    {
+      "id": "trg_60_invoice_tax_ledger",
+      "kind": "trigger",
+      "fn": "fn_invoice_tax_ledger",
+      "secdef": true,
+      "class": "AUTHORITATIVE",
+      "targets": ["tax_ledger"],
+      "notes": "delete+insert per invoice; removes rows on draft/cancelled; credit_note/debit_note fall to input VAT"
+    },
+    {
+      "id": "trg_70_invoice_warranty_cards",
+      "kind": "trigger",
+      "fn": "auto_create_warranty_cards_on_invoice",
+      "secdef": true,
+      "class": "DERIVED",
+      "targets": ["warranty_cards"]
+    },
+    {
+      "id": "trg_80_invoice_warehouse_relocate",
+      "kind": "trigger",
+      "fn": "tg_invoice_warehouse_relocate_movements",
+      "secdef": true,
+      "class": "AUTHORITATIVE",
+      "targets": ["stock_movements.warehouse_id"]
+    },
+    {
+      "id": "trg_90_invoice_cancel_cascade",
+      "kind": "trigger",
+      "fn": "cascade_invoice_cancel_to_transactions",
+      "secdef": true,
+      "class": "AUTHORITATIVE",
+      "targets": ["transactions", "stock_movements", "receipt_vouchers", "vouchers", "payment_invoice_links", "invoices.paid_amount"],
+      "notes": "reverse entry + reverse_invoice_stock + auto voucher cancellation"
+    },
+    {
+      "id": "trg_invoice_item_stock_sync",
+      "kind": "trigger",
+      "fn": "sync_invoice_item_stock",
+      "secdef": true,
+      "class": "AUTHORITATIVE",
+      "targets": ["stock_movements"],
+      "notes": "skips service products, delivery-note sourced invoices, draft/cancelled; DELETE branch removes movements"
+    },
+    {
+      "id": "trg_fill_invoice_item_supplier",
+      "kind": "trigger",
+      "fn": "fill_invoice_item_supplier",
+      "secdef": true,
+      "class": "DERIVED",
+      "targets": ["invoice_items.supplier_id"]
+    },
+    {
+      "id": "trg_sync_product_qty",
+      "kind": "trigger",
+      "fn": "tg_sync_product_qty_from_stock_movement",
+      "class": "AUTHORITATIVE",
+      "targets": ["products.quantity"],
+      "conflict": "InvoiceCreatePage also writes products.quantity"
+    },
+    {
+      "id": "trg_z_maintain_pw_balance",
+      "kind": "trigger",
+      "fn": "tg_maintain_product_warehouse_balance",
+      "class": "AUTHORITATIVE",
+      "targets": ["product_warehouse_balances"]
+    },
+    {
+      "id": "create_sale_invoice_atomic",
+      "kind": "rpc",
+      "secdef": true,
+      "class": "AUTHORITATIVE",
+      "targets": ["invoices", "invoice_items", "transactions"],
+      "callers": ["offline queue via queueOfflineDocument"],
+      "atomic": true
+    },
+    {
+      "id": "create_invoice_with_entry",
+      "kind": "rpc",
+      "secdef": true,
+      "class": "AUTHORITATIVE",
+      "flag": "invoices_use_rpc (default OFF)",
+      "targets": ["transactions"],
+      "callers": ["src/lib/invoice-rpc.ts", "InvoiceCreatePage"]
+    },
+    {
+      "id": "sync_cash_invoice_voucher",
+      "kind": "rpc",
+      "secdef": true,
+      "class": "AUTHORITATIVE",
+      "targets": ["receipt_vouchers", "vouchers", "transactions", "payment_invoice_links"],
+      "callers": ["InvoiceCreatePage edit path"]
+    },
+    {
+      "id": "allocate_voucher_to_invoices_atomic",
+      "kind": "rpc",
+      "secdef": true,
+      "class": "AUTHORITATIVE",
+      "targets": ["payment_invoice_links", "invoices.paid_amount/remaining_amount/payment_status"],
+      "certified_in_v1": false
+    },
+    {
+      "id": "recalc_invoice_payment_status",
+      "kind": "rpc",
+      "secdef": true,
+      "class": "DERIVED",
+      "targets": ["invoices.payment_status"]
+    },
+    {
+      "id": "recreate_invoice_transaction",
+      "kind": "rpc",
+      "secdef": true,
+      "class": "AUTHORITATIVE",
+      "targets": ["transactions"]
+    },
+    {
+      "id": "reverse_invoice_stock",
+      "kind": "rpc",
+      "secdef": true,
+      "class": "AUTHORITATIVE",
+      "targets": ["stock_movements"]
+    },
+    {
+      "id": "convert_delivery_note_to_invoice",
+      "kind": "rpc",
+      "secdef": true,
+      "class": "AUTHORITATIVE",
+      "targets": ["invoices", "invoice_items"]
+    },
+    {
+      "id": "rep_invoice_post_now",
+      "kind": "rpc",
+      "secdef": true,
+      "class": "AUTHORITATIVE",
+      "targets": ["invoices", "transactions"]
+    },
+    {
+      "id": "apply_rep_invoice_edit",
+      "kind": "rpc",
+      "secdef": true,
+      "class": "AUTHORITATIVE",
+      "targets": ["invoices", "invoice_items", "transactions"]
+    },
+    {
+      "id": "rep_cancel_owned_invoice",
+      "kind": "rpc",
+      "secdef": true,
+      "class": "AUTHORITATIVE",
+      "targets": ["invoices.status"]
+    },
+    {
+      "id": "rep_invoice_void_legacy",
+      "kind": "rpc",
+      "secdef": true,
+      "class": "LEGACY",
+      "targets": ["invoices"]
+    },
+    {
+      "id": "void_rep_sale_atomic",
+      "kind": "rpc",
+      "secdef": true,
+      "class": "AUTHORITATIVE",
+      "targets": ["invoices", "transactions", "stock_movements"]
+    },
+    {
+      "id": "InvoiceCreatePage.handleCreate (create)",
+      "kind": "frontend",
+      "file": "src/pages/InvoiceCreatePage.tsx",
+      "class": "LEGACY",
+      "targets": ["contacts", "invoices", "invoice_items", "products.quantity", "products.buy_price", "transactions", "contacts.current_balance", "receipt_vouchers", "vouchers", "tax_ledger", "invoice_activity_log", "orders", "workshops"],
+      "atomic": false,
+      "requests": 12,
+      "retry_safe": false
+    },
+    {
+      "id": "InvoiceCreatePage.handleCreate (edit)",
+      "kind": "frontend",
+      "file": "src/pages/InvoiceCreatePage.tsx",
+      "class": "LEGACY",
+      "targets": ["invoices", "invoice_items (delete+insert)", "transactions (in-place UPDATE)", "products.quantity", "contacts.current_balance", "sync_cash_invoice_voucher", "invoice_activity_log"],
+      "atomic": false,
+      "rollback": "none",
+      "risk": "P0"
+    },
+    {
+      "id": "InvoicesPage quick actions",
+      "kind": "frontend",
+      "file": "src/pages/InvoicesPage.tsx",
+      "class": "LEGACY",
+      "targets": ["invoices (insert/status/cancel)", "invoice_items"]
+    },
+    {
+      "id": "CreditDebitNoteCreatePage",
+      "kind": "frontend",
+      "file": "src/pages/CreditDebitNoteCreatePage.tsx",
+      "class": "LEGACY",
+      "targets": ["invoices", "invoice_items", "transactions"]
+    },
+    {
+      "id": "CreditDebitNotesPage delete",
+      "kind": "frontend",
+      "file": "src/pages/CreditDebitNotesPage.tsx",
+      "class": "LEGACY",
+      "targets": ["invoices (hard delete)", "invoice_items"],
+      "risk": "P1"
+    },
+    {
+      "id": "ConvertToInvoiceModal",
+      "kind": "frontend",
+      "file": "src/components/orders/ConvertToInvoiceModal.tsx",
+      "class": "LEGACY",
+      "targets": ["invoices", "invoice_items", "transactions"]
+    },
+    {
+      "id": "RecordReceiptModal",
+      "kind": "frontend",
+      "file": "src/components/orders/RecordReceiptModal.tsx",
+      "class": "LEGACY",
+      "targets": ["invoices.paid_amount"]
+    },
+    {
+      "id": "WorkshopCostModal",
+      "kind": "frontend",
+      "file": "src/components/workshops/WorkshopCostModal.tsx",
+      "class": "LEGACY",
+      "targets": ["invoices"]
+    },
+    {
+      "id": "Voucher screens settlement writes",
+      "kind": "frontend",
+      "files": ["src/pages/VoucherFormPage.tsx", "src/pages/FinanceReceiptsPage.tsx", "src/pages/FinancePaymentsPage.tsx", "src/pages/BulkVoucherPage.tsx", "src/pages/FinanceVoucherPage.tsx"],
+      "class": "DERIVED",
+      "targets": ["invoices.paid_amount", "invoices.remaining_amount", "invoices.payment_status"]
+    },
+    {
+      "id": "Rep hard deletes",
+      "kind": "frontend",
+      "files": ["src/pages/rep/RepOrdersPage.tsx", "src/pages/admin/SalesRepOrdersPage.tsx"],
+      "class": "LEGACY",
+      "targets": ["invoices (delete)", "invoice_items (delete)"],
+      "risk": "P1"
+    },
+    {
+      "id": "process-transaction (AI accountant)",
+      "kind": "edge-function",
+      "file": "supabase/functions/process-transaction/index.ts",
+      "class": "UNKNOWN",
+      "auth": "service_role",
+      "targets": ["invoices", "invoice_items", "purchase_invoices", "transactions", "vouchers"],
+      "risk": "P2"
+    },
+    {
+      "id": "process-recurring-invoices",
+      "kind": "edge-function",
+      "file": "supabase/functions/process-recurring-invoices/index.ts",
+      "class": "UNKNOWN",
+      "auth": "service_role",
+      "targets": ["invoices"]
+    },
+    {
+      "id": "InvoiceCreatePage tax_ledger insert",
+      "kind": "frontend",
+      "file": "src/pages/InvoiceCreatePage.tsx",
+      "class": "UNKNOWN",
+      "targets": ["tax_ledger"],
+      "evidence": "live data shows 0 invoices with >1 tax_ledger row; insert has no error check and appears ineffective",
+      "risk": "P1"
+    },
+    {
+      "id": "sparta invoice family",
+      "kind": "rpc+trigger",
+      "class": "LEGACY",
+      "fns": ["sparta_post_invoice", "sparta_post_invoice_journal", "sparta_cancel_invoice", "sparta_next_invoice_number", "sparta_invoice_autopost_trg", "sparta_invoice_balance_trigger", "sparta_recalc_invoice"],
+      "scope": "separate vertical, out of scope"
+    },
+    {
+      "id": "purchase_invoices legacy module",
+      "kind": "table+rpc",
+      "class": "LEGACY",
+      "rows": 3,
+      "notes": "abandoned since 2026-03; COUNT(*)+1 numbering, no unique index, no tax ledger trigger"
+    }
+  ]
+}
