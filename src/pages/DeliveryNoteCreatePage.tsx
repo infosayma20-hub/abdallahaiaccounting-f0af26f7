@@ -183,25 +183,30 @@ const DeliveryNoteCreatePage = () => {
 
   // Generate preview number
   useEffect(() => {
-    if (isEdit || noteNumber || !user) return;
+    if (isEdit || noteNumber || !user || !ownerId) return;
+    let cancelled = false;
     (async () => {
-      const currentYear = new Date().getFullYear().toString();
-      const { data } = await supabase
-        .from("delivery_notes")
-        .select("delivery_number")
-        .eq("user_id", ownerId)
-        .like("delivery_number", `DN-${currentYear}-%`)
-        .order("delivery_number", { ascending: false })
-        .limit(1);
-      let nextSeq = 1;
-      if (data && data.length > 0) {
-        const parts = (data[0] as any).delivery_number.split("-");
-        const last = parseInt(parts[2] || "0", 10);
-        if (!isNaN(last)) nextSeq = last + 1;
+      const currentYear = new Date().getFullYear();
+      const { data, error } = await (supabase as any).rpc("get_document_sequence_next", {
+        p_user_id: ownerId,
+        p_doc_type: "delivery_note",
+        p_year: currentYear,
+      });
+      if (cancelled) return;
+      if (error) {
+        setPreviewNumber("");
+        toast.error("تعذّر قراءة رقم الإرسالية القادم");
+        return;
+      }
+      const nextSeq = Number(data);
+      if (!Number.isInteger(nextSeq) || nextSeq < 1) {
+        setPreviewNumber("");
+        return;
       }
       setPreviewNumber(`DN-${currentYear}-${String(nextSeq).padStart(4, "0")}`);
     })();
-  }, [user, isEdit, noteNumber]);
+    return () => { cancelled = true; };
+  }, [user, ownerId, isEdit, noteNumber]);
 
   const updateItem = (index: number, field: keyof DeliveryItem, value: any) => {
     setItems(prev => {
