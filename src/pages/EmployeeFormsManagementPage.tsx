@@ -304,6 +304,7 @@ export default function EmployeeFormsManagementPage() {
     const { data } = await supabase
       .from("employee_forms")
       .select("*")
+      .is("hr_hidden_at", null)
       .order("created_at", { ascending: false });
     setForms(data || []);
     setLoading(false);
@@ -314,6 +315,7 @@ export default function EmployeeFormsManagementPage() {
     const { data } = await supabase
       .from("correction_requests")
       .select("*")
+      .is("hr_hidden_at", null)
       .order("created_at", { ascending: false });
     setCorrections(data || []);
   };
@@ -644,14 +646,21 @@ export default function EmployeeFormsManagementPage() {
     }
   };
 
+  /**
+   * الحذف من طرف الموارد البشرية = إخفاء من شاشة HR فقط.
+   * الطلب يبقى محفوظاً وظاهراً للموظف كدليل على تقديمه (لا حذف فعلي من قاعدة البيانات).
+   */
   const handleDelete = async (form: any) => {
-    if (!confirm("هل أنت متأكد من حذف هذا الطلب؟")) return;
+    if (!confirm("سيتم إخفاء الطلب من شاشة الموارد البشرية فقط، ويبقى ظاهراً عند الموظف. متابعة؟")) return;
     setProcessing(form.id + "delete");
     const table = form._source === "correction_requests" ? "correction_requests" : "employee_forms";
-    const { error } = await supabase.from(table as any).delete().eq("id", form.id);
+    const { error } = await supabase
+      .from(table as any)
+      .update({ hr_hidden_at: new Date().toISOString(), hr_hidden_by: user?.id ?? null } as any)
+      .eq("id", form.id);
     setProcessing(null);
     if (error) { toast.error("خطأ: " + error.message); }
-    else { toast.success("تم حذف الطلب 🗑️"); if (table === "correction_requests") fetchCorrections(); else fetchForms(); }
+    else { toast.success("تم إخفاء الطلب من شاشتك (ما زال ظاهراً عند الموظف)"); if (table === "correction_requests") fetchCorrections(); else fetchForms(); }
   };
 
   /**
@@ -801,14 +810,17 @@ export default function EmployeeFormsManagementPage() {
     if (op === "unarchive") targets = targets.filter((f: any) => !!f.archived_at);
     if (op === "seen") targets = targets.filter((f: any) => !f.management_seen_at);
     if (targets.length === 0) { toast.error("لا يوجد طلبات مناسبة ضمن المحدد"); return; }
-    const labels: Record<string, string> = { archive: "أرشفة", unarchive: "إلغاء أرشفة", seen: "وضع كـ (تمت الرؤية) لـ", delete: "حذف" };
+    const labels: Record<string, string> = { archive: "أرشفة", unarchive: "إلغاء أرشفة", seen: "وضع كـ (تمت الرؤية) لـ", delete: "إخفاء (من شاشة HR فقط)" };
     if (!confirm(`تأكيد ${labels[op]} ${targets.length} طلب؟`)) return;
     setBulkProcessing(true);
     const ids = targets.map((f: any) => f.id);
     let error: any = null;
     let affected = ids.length;
     if (op === "delete") {
-      ({ error } = await supabase.from("employee_forms").delete().in("id", ids));
+      ({ error } = await supabase
+        .from("employee_forms")
+        .update({ hr_hidden_at: new Date().toISOString(), hr_hidden_by: user?.id ?? null } as any)
+        .in("id", ids));
     } else {
       const patch: any =
         op === "archive" ? { archived_at: new Date().toISOString() }
