@@ -105,15 +105,8 @@ export default function TypedDateInput({
     }
   };
 
-  const openPicker = () => {
-    const el = pickerRef.current;
-    if (!el) return;
-    if (typeof (el as any).showPicker === "function") {
-      try { (el as any).showPicker(); return; } catch { /* fall-through */ }
-    }
-    el.focus();
-    el.click();
-  };
+
+
 
   const isValid = text.length === 0 || ddmmyyyyToIso(text) !== null;
   const isComplete = text.length === 10 && isValid;
