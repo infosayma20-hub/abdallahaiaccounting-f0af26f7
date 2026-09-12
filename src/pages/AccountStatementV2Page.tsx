@@ -2022,7 +2022,8 @@ const AccountStatementV2Page = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {/* Opening balance row */}
+                  {/* Opening balance row (hidden when the user opts out) */}
+                  {!statementOptions.hideOpeningBalance && (
                   <tr style={{ borderBottom: "1px solid #F3F4F6" }}>
                     {screenCols.map(c => {
                       if (c.key === "date") return <td key={c.key} style={{ padding: "3px 8px", fontSize: 11, color: "#6B7280", fontStyle: "italic" }}>{fmtDate(dateFrom)}</td>;
