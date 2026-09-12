@@ -2035,6 +2035,7 @@ const AccountStatementV2Page = () => {
                       return <td key={c.key} style={{ padding: "3px 8px" }} />;
                     })}
                   </tr>
+                  )}
 
                   {loading && statementRowsWithDetails.length === 0 ? (
                     <tr><td colSpan={colSpan} style={{ textAlign: "center", padding: 40, color: "#9CA3AF", fontSize: 13 }}><Loader2 className="w-5 h-5 animate-spin mx-auto mb-2" />جاري التحميل...</td></tr>
