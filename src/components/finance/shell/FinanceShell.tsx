@@ -6,6 +6,8 @@ import { cn } from "@/lib/utils";
 import { ActionPane } from "./ActionPane";
 import { FiltersPanel } from "./FiltersPanel";
 import { CompactActionRibbon } from "./CompactActionRibbon";
+import { MobileActionSheet } from "./MobileActionSheet";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { useMyViews } from "./useMyViews";
 import BackButton from "@/components/BackButton";
 import type { FinanceShellProps } from "./types";
@@ -40,6 +42,7 @@ rightSlot,
   showBack = true,
 }: FinanceShellProps) {
   const tt = useTT();
+  const isMobile = useIsMobile();
   const [filtersOpen, setFiltersOpen] = useState(false);
   const myViews = useMyViews(storageKey);
 
