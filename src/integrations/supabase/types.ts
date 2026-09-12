@@ -30078,6 +30078,17 @@ export type Database = {
         Args: { p_movement_id: string }
         Returns: string
       }
+      build_invoice_posting_intent_v1: {
+        Args: {
+          p_command_id: string
+          p_context: Json
+          p_correlation_id: string
+          p_owner_id: string
+          p_payload: Json
+          p_totals: Json
+        }
+        Returns: Json
+      }
       build_invoice_snapshot: { Args: { p_invoice_id: string }; Returns: Json }
       build_manual_journal_posting_intent_v1: {
         Args: {
@@ -30209,6 +30220,10 @@ export type Database = {
         Args: { p_data_owner_id?: string }
         Returns: Json
       }
+      check_service_credit_sales_invoice_eligibility_v1: {
+        Args: { p_owner_id: string; p_payload: Json }
+        Returns: Json
+      }
       claim_notification_batch: {
         Args: { _limit?: number }
         Returns: {
@@ -30303,6 +30318,10 @@ export type Database = {
           _requested: string
         }
         Returns: string
+      }
+      compute_service_invoice_totals_v1: {
+        Args: { p_owner_id: string; p_payload: Json }
+        Returns: Json
       }
       confirm_stock_document: { Args: { p_doc_id: string }; Returns: Json }
       confirm_stock_transfer: { Args: { p_transfer_id: string }; Returns: Json }
@@ -30825,6 +30844,10 @@ export type Database = {
           p_total_amount: number
           p_user_id: string
         }
+        Returns: Json
+      }
+      create_service_credit_sales_invoice_command_v1: {
+        Args: { p_envelope: Json }
         Returns: Json
       }
       create_task_user: {
@@ -32386,6 +32409,10 @@ export type Database = {
         Args: { p_intent: Json; p_payload: Json }
         Returns: Json
       }
+      post_service_credit_sales_invoice_v1: {
+        Args: { p_intent: Json; p_payload: Json; p_totals: Json }
+        Returns: Json
+      }
       post_settlement_journal: {
         Args: {
           _bank_account_id?: string
@@ -32783,6 +32810,10 @@ export type Database = {
       }
       shadow_compare_receipt_posting_v1: {
         Args: { p_intent: Json; p_owner_id: string; p_transaction_id: string }
+        Returns: Json
+      }
+      shadow_compare_service_invoice_v1: {
+        Args: { p_intent: Json; p_payload: Json; p_totals: Json }
         Returns: Json
       }
       sparta_account_id_by_code: {
