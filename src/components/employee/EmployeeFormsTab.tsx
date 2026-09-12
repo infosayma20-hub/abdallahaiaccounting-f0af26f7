@@ -1612,6 +1612,7 @@ export default function EmployeeFormsTab({
               {renderFormFields()}
             </div>
           </div>
+          {!isHubStep && (
           <div
             className="fixed bottom-0 left-0 right-0 z-[110] px-4 py-3 border-t bg-card shrink-0"
             style={{ paddingBottom: "calc(12px + env(safe-area-inset-bottom, 0px))" }}
@@ -1624,6 +1625,8 @@ export default function EmployeeFormsTab({
               {submitting ? "جاري الإرسال..." : "إرسال الطلب"}
             </Button>
           </div>
+          )}
+
         </div>
       )}
 
