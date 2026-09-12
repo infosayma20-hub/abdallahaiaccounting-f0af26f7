@@ -43,7 +43,6 @@ import { assertPermission } from "@/lib/permissions/assertPermission";
 import { assertAccountantPermission } from "@/lib/permissions/assertAccountantPermission";
 import { useCompanySettings } from "@/hooks/useCompanySettings";
 import InvoicePrintView from "@/components/InvoicePrintView";
-import { createRoot } from "react-dom/client";
 import { printReactDocument } from "@/lib/print/printReactDocument";
 import * as XLSX from "xlsx";
 import useFocusHighlight from "@/hooks/useFocusHighlight";

@@ -37,6 +37,7 @@ import InvoicePrintView from "@/components/InvoicePrintView";
 import CreateWarrantyCardsDialog from "@/components/warranty/CreateWarrantyCardsDialog";
 import { Shield } from "lucide-react";
 import { createRoot } from "react-dom/client";
+import { printReactDocument } from "@/lib/print/printReactDocument";
 import SmartFormScope from "@/components/forms/SmartFormScope";
 import useFormDraft from "@/hooks/useFormDraft";
 import DraftRestoreBanner from "@/components/forms/DraftRestoreBanner";
@@ -2447,6 +2448,20 @@ const InvoiceCreatePage = () => {
         }
       : baseInvoice;
 
+    const printNode = (
+      <InvoicePrintView
+        invoice={previewInvoice}
+        settings={companySettings}
+        copyLabel={isEditMode && !previewOnly && !hasUnsavedEdits ? tt("أصلية") : tt("معاينة")}
+      />
+    );
+
+    if (!previewOnly) {
+      // الطباعة عبر إطار مخفي: تعمل على الجوال حيث تمنع المتصفحات النوافذ المنبثقة
+      printReactDocument(printNode, { title: `فاتورة ${previewInvoice.invoiceNumber}` });
+      return;
+    }
+
     const win = window.open("", "_blank");
     if (!win) return;
     win.document.write(`<html dir="rtl"><head><title>فاتورة ${previewInvoice.invoiceNumber}</title>
@@ -2458,8 +2473,7 @@ const InvoiceCreatePage = () => {
       const container = win.document.getElementById("print-root");
       if (container) {
         const root = createRoot(container);
-        root.render(<InvoicePrintView invoice={previewInvoice} settings={companySettings} copyLabel={isEditMode && !previewOnly && !hasUnsavedEdits ? tt("أصلية") : tt("معاينة")} />);
-        if (!previewOnly) setTimeout(() => win.print(), 500);
+        root.render(printNode);
       }
     }, 200);
   };
