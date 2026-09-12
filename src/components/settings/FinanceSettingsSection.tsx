@@ -12,6 +12,7 @@ import { useAuth } from "@/hooks/useAuth";
 import type { CompanySettings } from "@/hooks/useCompanySettings";
 import TeamAccountManager from "./TeamAccountManager";
 import FiscalPeriodsManager from "./FiscalPeriodsManager";
+import DocumentSequenceStartManager from "./DocumentSequenceStartManager";
 
 interface Props {
   settings: CompanySettings;
@@ -155,6 +156,10 @@ const FinanceSettingsSection = ({ settings, onChange }: Props) => {
           <span className="text-sm">إعادة الترقيم من 0001 كل سنة جديدة</span>
         </div>
       </div>
+
+      <Separator />
+
+      <DocumentSequenceStartManager />
 
       <Separator />
 

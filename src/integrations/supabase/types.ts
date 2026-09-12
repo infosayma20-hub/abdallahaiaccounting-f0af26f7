@@ -31396,6 +31396,10 @@ export type Database = {
         }
         Returns: Json
       }
+      get_document_sequence_next: {
+        Args: { p_doc_type: string; p_user_id: string; p_year: number }
+        Returns: number
+      }
       get_effective_notification_pref: {
         Args: { _event_type: string; _recipient: string }
         Returns: {
@@ -32845,6 +32849,15 @@ export type Database = {
           _subject: string
         }
         Returns: string
+      }
+      set_document_sequence_start: {
+        Args: {
+          p_doc_type: string
+          p_next_number: number
+          p_user_id: string
+          p_year: number
+        }
+        Returns: number
       }
       set_form_access: {
         Args: {
