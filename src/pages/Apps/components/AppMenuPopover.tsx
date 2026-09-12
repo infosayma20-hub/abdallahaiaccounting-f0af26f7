@@ -25,17 +25,30 @@ export default function AppMenuPopover({
   const tt = useTT();
   const popRef = useRef<HTMLDivElement>(null);
   const [pos, setPos] = useState<{ top: number; left: number; width: number; maxHeight: number } | null>(null);
+  const [isMobile, setIsMobile] = useState<boolean>(
+    () => typeof window !== "undefined" && window.matchMedia("(max-width: 767px)").matches
+  );
+
+  useEffect(() => {
+    const mq = window.matchMedia("(max-width: 767px)");
+    const onChange = () => setIsMobile(mq.matches);
+    onChange();
+    mq.addEventListener("change", onChange);
+    return () => mq.removeEventListener("change", onChange);
+  }, []);
 
   // Position popover under anchor (uses viewport coords + position:fixed)
   useEffect(() => {
-    if (!open || !anchorEl) return;
+    if (!open || !anchorEl || isMobile) return;
 
     const update = () => {
       const rect = anchorEl.getBoundingClientRect();
       const vh = window.innerHeight;
-      const width = Math.max(280, rect.width);
-      const left = rect.left + rect.width / 2 - width / 2;
+      const vw = window.innerWidth;
       const margin = 12;
+      const width = Math.min(Math.max(280, rect.width), vw - margin * 2);
+      const rawLeft = rect.left + rect.width / 2 - width / 2;
+      const left = Math.min(Math.max(margin, rawLeft), vw - width - margin);
       const spaceBelow = vh - rect.bottom - margin;
       const spaceAbove = rect.top - margin;
       let top: number;
@@ -48,7 +61,7 @@ export default function AppMenuPopover({
         maxHeight = Math.max(200, spaceAbove);
         top = Math.max(margin, rect.top - 8 - maxHeight);
       }
-      setPos({ top, left: Math.max(8, left), width, maxHeight });
+      setPos({ top, left, width, maxHeight });
     };
 
     update();
@@ -58,7 +71,7 @@ export default function AppMenuPopover({
       window.removeEventListener("scroll", update, true);
       window.removeEventListener("resize", update);
     };
-  }, [open, anchorEl]);
+  }, [open, anchorEl, isMobile]);
 
   // Close on outside click / Esc
   useEffect(() => {
