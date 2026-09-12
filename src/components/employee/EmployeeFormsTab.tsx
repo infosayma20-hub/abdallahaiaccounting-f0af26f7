@@ -52,17 +52,32 @@ type FormCard = {
 };
 
 // === Forms available to ALL employees ===
+const HR_CONTACT_HUB = "hr_contact_hub";
+
+// أنواع الرسائل الموحّدة داخل بند «التواصل مع الموارد البشرية»
+const hubOptions: { id: string; label: string; hint: string; icon: React.ElementType; color: string }[] = [
+  { id: "complaints", label: "شكوى", hint: "شكوى رسمية توجَّه للإدارة العليا أو الموارد البشرية", icon: MessageSquare, color: "text-orange-500" },
+  { id: "employee_voice", label: "صوت الموظف", hint: "اقتراح / فكرة / رأي / ملاحظة تحسين", icon: MessageSquare, color: "text-teal-500" },
+  { id: "correction_request", label: "تصحيح بصمة", hint: "تعديل بصمة يوم معيّن مع السبب", icon: PenLine, color: "text-orange-500" },
+];
+
 const employeeForms: FormCard[] = [
   { id: "leave_request", label: "طلب إجازة", icon: Palmtree, color: "text-emerald-500", type: "form" },
   { id: "advance_request", label: "طلب سلفة", icon: Banknote, color: "text-warning", type: "form" },
   { id: "loan_request", label: "التقدم بطلب قرض حسن", icon: HandCoins, color: "text-blue-500", type: "form" },
-  { id: "correction_request", label: "تصحيح بصمة", icon: PenLine, color: "text-orange-500", type: "form" },
-  { id: "hr_message", label: "رسالة لـ HR", icon: MessageSquare, color: "text-purple-400", type: "form" },
+  { id: HR_CONTACT_HUB, label: "التواصل مع الموارد البشرية", icon: MessageSquare, color: "text-purple-500", type: "form" },
   { id: "employee_info", label: "تعبئة معلومات الموظف", icon: UserCog, color: "text-purple-500", type: "form" },
-  { id: "complaints", label: "تقديم شكاوى وملاحظات واقتراحات", icon: MessageSquare, color: "text-orange-500", type: "form" },
-  { id: "employee_voice", label: "صوت الموظف", icon: MessageSquare, color: "text-teal-500", type: "form" },
   { id: "facility_quality", label: "جودة المرافق والمعدات", icon: Wrench, color: "text-cyan-500", type: "form" },
 ];
+
+// نماذج ما زالت مدعومة (تُفتح من داخل البند الموحّد أو من روابط قديمة) لكنها لم تعد بطاقات مستقلة.
+const hiddenLegacyForms: FormCard[] = [
+  { id: "correction_request", label: "تصحيح بصمة", icon: PenLine, color: "text-orange-500", type: "form" },
+  { id: "hr_message", label: "رسالة لـ HR", icon: MessageSquare, color: "text-purple-400", type: "form" },
+  { id: "complaints", label: "تقديم شكاوى وملاحظات واقتراحات", icon: MessageSquare, color: "text-orange-500", type: "form" },
+  { id: "employee_voice", label: "صوت الموظف", icon: MessageSquare, color: "text-teal-500", type: "form" },
+];
+
 
 // === Policy documents for ALL employees ===
 const policyCards: FormCard[] = [
