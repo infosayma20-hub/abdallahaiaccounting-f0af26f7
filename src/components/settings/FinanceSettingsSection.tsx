@@ -158,6 +158,10 @@ const FinanceSettingsSection = ({ settings, onChange }: Props) => {
 
       <Separator />
 
+      <DocumentSequenceStartManager />
+
+      <Separator />
+
       <FiscalPeriodsManager />
       <TeamAccountManager type="accountant" />
     </div>
