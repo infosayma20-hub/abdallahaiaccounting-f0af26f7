@@ -44,6 +44,7 @@ import { assertAccountantPermission } from "@/lib/permissions/assertAccountantPe
 import { useCompanySettings } from "@/hooks/useCompanySettings";
 import InvoicePrintView from "@/components/InvoicePrintView";
 import { createRoot } from "react-dom/client";
+import { printReactDocument } from "@/lib/print/printReactDocument";
 import * as XLSX from "xlsx";
 import useFocusHighlight from "@/hooks/useFocusHighlight";
 
@@ -949,7 +950,7 @@ const InvoicesPage = () => {
       <InvoicePrintView invoice={invoiceForPrint} settings={companySettings} copyLabel={tt("أصلية")} />,
       {
         title: `فاتورة ${selectedInvoice.invoiceNumber}`,
-        onError: () => toast.error("تعذر فتح الطباعة"),
+        onError: () => toast({ title: tt("تعذر فتح الطباعة"), variant: "destructive" }),
       },
     );
   };
@@ -964,7 +965,7 @@ const InvoicesPage = () => {
       <InvoicePrintView invoice={hydrated} settings={companySettings} copyLabel={tt("أصلية")} />,
       {
         title: `فاتورة ${hydrated.invoiceNumber}`,
-        onError: () => toast.error("تعذر فتح الطباعة"),
+        onError: () => toast({ title: tt("تعذر فتح الطباعة"), variant: "destructive" }),
       },
     );
   };
