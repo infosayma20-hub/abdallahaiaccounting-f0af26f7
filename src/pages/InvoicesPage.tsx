@@ -935,8 +935,6 @@ const InvoicesPage = () => {
     const feature = selectedInvoice.type === "purchase" ? "purchase_invoices" : "invoices";
     try { await assertPermission(app, feature, "print"); } catch { return; }
     const hydrated = await hydrateInvoiceItems(selectedInvoice);
-    const win = window.open("", "_blank");
-    if (!win) return;
     // اجلب الرصيد الختامي للجهة من الحالة المحملة (contacts withBalances)
     const contactRow = (contacts as any[]).find(c => c.id === (hydrated as any).contactId);
     const closingBalance = contactRow && typeof contactRow.balance === "number" ? contactRow.balance : undefined;
