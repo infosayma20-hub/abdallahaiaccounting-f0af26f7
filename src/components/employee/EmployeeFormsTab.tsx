@@ -111,6 +111,8 @@ export default function EmployeeFormsTab({
 }: Props) {
   const isMobile = useIsMobile();
   const [activeForm, setActiveForm] = useState<string | null>(null);
+  /** هل فُتح النموذج الحالي من داخل البند الموحّد؟ (للرجوع لاختيار النوع بدل الإغلاق) */
+  const [openedFromHub, setOpenedFromHub] = useState(false);
   const [activePolicy, setActivePolicy] = useState<string | null>(null);
   const [showHistory, setShowHistory] = useState(false);
   const [submissions, setSubmissions] = useState<any[]>([]);
