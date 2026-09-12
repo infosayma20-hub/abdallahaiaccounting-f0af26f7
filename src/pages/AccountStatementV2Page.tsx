@@ -1173,7 +1173,10 @@ const AccountStatementV2Page = () => {
     if (debouncedTxSearch.trim()) r = r.filter(x => multiWordMatchAny(debouncedTxSearch, x.description, x.reference, lineCommentFor(x)));
     // Recompute running balance and totals so they reflect only the visible
     // rows (hidden reversals / cancelled entries must not leak into totals).
-    let running = openingBalance;
+    // When the user hides the opening balance, the on-screen running balance
+    // starts from zero (period movements only) — same rule as the printout.
+    const effectiveOpening = statementOptions.hideOpeningBalance ? 0 : openingBalance;
+    let running = effectiveOpening;
     let sD = 0, sC = 0;
     const withBalances = r.map(x => {
       const d = Number(x.debit) || 0;
@@ -1188,7 +1191,7 @@ const AccountStatementV2Page = () => {
     (withBalances as any).__totalCredit = sC;
     (withBalances as any).__closingBalance = running;
     return withBalances;
-  }, [groupedRows, debouncedTxSearch, txTypeFilter, txCostCenter, statementOptions.hideCancelledEntries, statementOptions.hideReversalEntries, openingBalance, lineCommentFor]);
+  }, [groupedRows, debouncedTxSearch, txTypeFilter, txCostCenter, statementOptions.hideCancelledEntries, statementOptions.hideReversalEntries, statementOptions.hideOpeningBalance, openingBalance, lineCommentFor]);
 
   // Totals that follow the currently visible rows (respect hide filters).
   const displayTotalDebit = (filteredRows as any).__totalDebit ?? totalDebit;
@@ -1900,7 +1903,11 @@ const AccountStatementV2Page = () => {
                     <button onClick={() => setSelectedEntityId("")} className="text-xs underline mr-1 text-primary">تغيير</button>
                   </div>
                 )}
-                <div><span style={{ color: "#6B7280" }}>رصيد افتتاحي: </span><span style={{ color: "#111827", fontWeight: 600 }}>{fmtAmount(openingBalance, statementCurrency)}</span></div>
+                 {!statementOptions.hideOpeningBalance ? (
+                   <div><span style={{ color: "#6B7280" }}>رصيد افتتاحي: </span><span style={{ color: "#111827", fontWeight: 600 }}>{fmtAmount(openingBalance, statementCurrency)}</span></div>
+                 ) : (
+                   <div><span style={{ color: "#92400E", fontWeight: 600, fontSize: 12 }}>بدون الرصيد الافتتاحي — الأرصدة من حركات الفترة فقط</span></div>
+                 )}
                 <div><span style={{ color: "#6B7280" }}>مدين: </span><span style={{ color: "#1E40AF", fontWeight: 600 }}>{hasMixedCurrencies ? "—" : fmtAmount(displayTotalDebit, statementCurrency)}</span></div>
                 <div><span style={{ color: "#6B7280" }}>دائن: </span><span style={{ color: "#065F46", fontWeight: 600 }}>{hasMixedCurrencies ? "—" : fmtAmount(displayTotalCredit, statementCurrency)}</span></div>
                 <div className="mr-auto">
@@ -2019,7 +2026,8 @@ const AccountStatementV2Page = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {/* Opening balance row */}
+                  {/* Opening balance row (hidden when the user opts out) */}
+                  {!statementOptions.hideOpeningBalance && (
                   <tr style={{ borderBottom: "1px solid #F3F4F6" }}>
                     {screenCols.map(c => {
                       if (c.key === "date") return <td key={c.key} style={{ padding: "3px 8px", fontSize: 11, color: "#6B7280", fontStyle: "italic" }}>{fmtDate(dateFrom)}</td>;
@@ -2031,6 +2039,7 @@ const AccountStatementV2Page = () => {
                       return <td key={c.key} style={{ padding: "3px 8px" }} />;
                     })}
                   </tr>
+                  )}
 
                   {loading && statementRowsWithDetails.length === 0 ? (
                     <tr><td colSpan={colSpan} style={{ textAlign: "center", padding: 40, color: "#9CA3AF", fontSize: 13 }}><Loader2 className="w-5 h-5 animate-spin mx-auto mb-2" />جاري التحميل...</td></tr>
