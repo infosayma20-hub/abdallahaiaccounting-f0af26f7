@@ -119,10 +119,15 @@ export function FiltersPanel({
 
   if (!open) return null;
 
-  return (
-    <aside
+  const panel = (
+    <div
       dir="rtl"
-      className="w-[340px] shrink-0 border-l border-border bg-card flex flex-col h-full"
+      className={cn(
+        "bg-card flex flex-col",
+        isMobile
+          ? "h-full w-full"
+          : "w-[340px] shrink-0 border-l border-border h-full",
+      )}
     >
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-border">
