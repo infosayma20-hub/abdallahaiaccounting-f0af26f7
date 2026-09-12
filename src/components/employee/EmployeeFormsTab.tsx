@@ -1649,6 +1649,7 @@ export default function EmployeeFormsTab({
               {renderFormFields()}
             </div>
           </div>
+          {!isHubStep && (
           <DialogFooter className="px-6 py-4 border-t bg-card shrink-0">
             <div className="w-full">
               {advanceBranchMissing && (
@@ -1660,6 +1661,8 @@ export default function EmployeeFormsTab({
             </Button>
             </div>
           </DialogFooter>
+          )}
+
         </DialogContent>
       </Dialog>
     </div>
