@@ -225,10 +225,10 @@ export default function AppMenuPopover({
       className="animate-in fade-in zoom-in-95 duration-150"
       style={{
         position: "fixed",
-        top: pos.top,
-        left: pos.left,
-        width: pos.width,
-        maxHeight: pos.maxHeight,
+        top: pos!.top,
+        left: pos!.left,
+        width: pos!.width,
+        maxHeight: pos!.maxHeight,
         overflowY: "auto",
         zIndex: 60,
         background: "#ffffff",
@@ -239,6 +239,14 @@ export default function AppMenuPopover({
         fontFamily: "Cairo, Tajawal, sans-serif",
       }}
     >
+      {body}
+    </div>,
+    document.body
+  );
+}
+/* legacy markup removed — shared `body` is used for both layouts */
+const _unused = (
+  <div>
       {/* Header strip */}
       <div
         style={{
