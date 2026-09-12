@@ -46,6 +46,7 @@ export default function AdminFormsInboxPage() {
         .from("employee_forms")
         .select("id,title,form_type,form_data,workflow_status,current_approver_role,pdf_url,pdf_storage_path,submitted_at,reviewed_at,review_notes,created_at,employee_id,template_id,user_id,employees:employee_id(full_name,branch_id),form_templates:template_id(name,category,schema)")
         .neq("workflow_status", "draft")
+        .is("hr_hidden_at", null)
         .order("created_at", { ascending: false })
         .limit(200);
       if (filter !== "all") q = q.eq("workflow_status", filter);

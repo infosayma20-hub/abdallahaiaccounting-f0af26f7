@@ -193,12 +193,14 @@ export function useHrCommandCenter(filters?: {
         supabase
           .from("employee_forms")
           .select("id, employee_id, form_type, status, created_at, review_notes, form_data, attachment_url")
+          .is("hr_hidden_at", null)
           .order("created_at", { ascending: false })
           .limit(100),
         supabase
           .from("correction_requests")
           .select("id, employee_id, attendance_date, request_type, requested_time, reason, status, created_at, review_notes, employees!inner(full_name, branch_id, department)")
           .eq("status", "pending")
+          .is("hr_hidden_at", null)
           .order("created_at", { ascending: false })
           .limit(100),
       ]);
