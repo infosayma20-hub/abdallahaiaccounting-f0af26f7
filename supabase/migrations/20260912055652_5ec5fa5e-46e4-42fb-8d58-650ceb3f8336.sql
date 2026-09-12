@@ -1,0 +1,1 @@
+ALTER FUNCTION public.shadow_compare_service_invoice_v1(jsonb, jsonb, jsonb) SET search_path = public;
