@@ -243,3 +243,4 @@ export default function AppMenuPopover({
     </div>,
     document.body
   );
+}
