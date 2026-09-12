@@ -683,6 +683,16 @@ export default function FinanceReceiptsPage() {
                 ),
               }))}
             />
+            <div className="md:hidden print:hidden px-3 py-2 border-t border-border/40 flex items-center justify-between text-[12px] font-bold">
+              <span>{tt("المجموع")} ({filtered.length})</span>
+              <span className="tabular-nums flex flex-col items-end">
+                {Array.from(totalsByCurrency.entries()).map(([cur, v]) => (
+                  <span key={cur} className="whitespace-nowrap">{curSym(cur)}{v.toLocaleString()}</span>
+                ))}
+              </span>
+            </div>
+
+
 
             <div className="overflow-x-auto fin-table-wrap hidden md:block print:block">
               <table className="w-full text-sm table-fixed" dir="rtl">
