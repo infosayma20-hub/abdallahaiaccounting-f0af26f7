@@ -105,15 +105,8 @@ export default function TypedDateInput({
     }
   };
 
-  const openPicker = () => {
-    const el = pickerRef.current;
-    if (!el) return;
-    if (typeof (el as any).showPicker === "function") {
-      try { (el as any).showPicker(); return; } catch { /* fall-through */ }
-    }
-    el.focus();
-    el.click();
-  };
+
+
 
   const isValid = text.length === 0 || ddmmyyyyToIso(text) !== null;
   const isComplete = text.length === 10 && isValid;
@@ -143,41 +136,45 @@ export default function TypedDateInput({
           inputProps?.className,
         )}
       />
-      <button
-        type="button"
-        tabIndex={-1}
-        onClick={openPicker}
-        disabled={disabled}
-        title="فتح التقويم"
+      {/* Calendar affordance: the native date input itself is the overlay so a
+          plain click always opens the picker, even when showPicker() is
+          unavailable or blocked (Safari / older mobile browsers). */}
+      <span
+        aria-hidden="true"
         className={cn(
-          "absolute right-2 top-1/2 -translate-y-1/2 inline-flex items-center justify-center z-10",
-          "h-7 w-7 rounded-md text-muted-foreground hover:text-primary hover:bg-muted/60 transition-colors",
+          "pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 inline-flex items-center justify-center",
+          "h-7 w-7 rounded-md text-muted-foreground transition-colors",
+          disabled && "opacity-50",
         )}
       >
         <Calendar className="w-3.5 h-3.5" />
-      </button>
+      </span>
       <input
         ref={pickerRef}
         type="date"
         value={value || ""}
+        disabled={disabled}
+        title="فتح التقويم"
+        aria-label={ariaLabel ? `${ariaLabel} - التقويم` : "التقويم"}
+        tabIndex={-1}
+        onClick={(e) => {
+          const el = e.currentTarget as any;
+          if (typeof el.showPicker === "function") {
+            try { el.showPicker(); } catch { /* native click fallback */ }
+          }
+        }}
         onChange={(e) => {
           const iso = e.target.value;
           onChange(iso);
           setText(isoToDDMMYYYY(iso));
         }}
-        aria-hidden="true"
-        tabIndex={-1}
-        style={{
-          position: "absolute",
-          width: 28,
-          height: 28,
-          opacity: 0,
-          right: 8,
-          top: "50%",
-          transform: "translateY(-50%)",
-          direction: "ltr",
-        }}
+        className={cn(
+          "absolute right-2 top-1/2 -translate-y-1/2 z-20 h-7 w-7 opacity-0",
+          disabled ? "cursor-not-allowed" : "cursor-pointer",
+        )}
+        style={{ direction: "ltr", padding: 0, border: 0, background: "transparent" }}
       />
+
     </div>
   );
 }
