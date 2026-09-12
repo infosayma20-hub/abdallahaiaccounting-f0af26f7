@@ -2397,6 +2397,7 @@ const AccountStatementV2Page = () => {
                   )}
                 </tbody>
               </table>
+              </div>
                 );
               })()}
             </div>
