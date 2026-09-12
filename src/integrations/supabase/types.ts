@@ -31529,6 +31529,10 @@ export type Database = {
           slug: string
         }[]
       }
+      get_invoice_sequence_next: {
+        Args: { p_invoice_type: string; p_user_id: string; p_year: number }
+        Returns: number
+      }
       get_kiosk_bootstrap: { Args: { p_code: string }; Returns: Json }
       get_latest_exchange_rate: {
         Args: { p_currency_name: string; p_user_id: string }
@@ -32867,6 +32871,15 @@ export type Database = {
           p_kind: string
           p_level: string
           p_template_id?: string
+        }
+        Returns: number
+      }
+      set_invoice_sequence_start: {
+        Args: {
+          p_invoice_type: string
+          p_next_number: number
+          p_user_id: string
+          p_year: number
         }
         Returns: number
       }

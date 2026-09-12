@@ -224,15 +224,6 @@ const focusInvoiceElement = (selectors: string[]): boolean => {
   return false;
 };
 
-const getNextInvoiceSequence = (rows: { invoice_number: string | null }[] | null | undefined, offset = 0) => {
-  const maxUsed = (rows || []).reduce((max, row) => {
-    const match = String(row.invoice_number || "").match(/-(\d+)$/);
-    const value = match ? Number(match[1]) : 0;
-    return Number.isFinite(value) ? Math.max(max, value) : max;
-  }, offset);
-  return Math.max(maxUsed + 1, offset + 1);
-};
-
 const isDuplicateInvoiceNumberError = (error: any) => {
   const message = String(error?.message || error?.details || "").toLowerCase();
   return message.includes("duplicate key") && message.includes("idx_invoices_unique_number_per_user_type");
@@ -604,7 +595,8 @@ const InvoiceCreatePage = () => {
   useEffect(() => {
     if (!user) return;
     const fetchAll = async () => {
-      const [cRes, pRes, sRes, bRes, cbRes, salesNumbersRes, purchaseNumbersRes, taxSettingsRes, companyRes, settingsRes] = await Promise.all([
+      const currentYear = new Date().getFullYear();
+      const [cRes, pRes, sRes, bRes, cbRes, salesSequenceRes, purchaseSequenceRes, taxSettingsRes, settingsRes] = await Promise.all([
         supabase.from("contacts").select("id, contact_name, contact_type, phone, email, address, payment_terms_days, current_balance, credit_limit, tax_number, sales_rep_id").eq("user_id", ownerId).neq("is_archived", true).order("contact_name"),
         fetchAllRows<any>((from, to) =>
           supabase.from("products").select("*").eq("user_id", ownerId).order("name").range(from, to)
@@ -614,16 +606,10 @@ const InvoiceCreatePage = () => {
         // Cash boxes — combined with bank accounts in the cash-invoice picker so
         // users can choose either to receive (sales) / pay (purchases) cash.
         supabase.from("cash_boxes").select("id, name, gl_account_code").eq("user_id", ownerId).eq("is_active", true),
-        // Include cancelled/voided invoices — the DB unique index covers them too,
-        // so the next sequence must skip past any existing number regardless of status.
-        // Numbers are zero-padded (INV-YYYY-0001), so a descending sort puts the
-        // highest number first; the top slice is enough to derive the next one and
-        // avoids downloading every invoice number in the tenant on page open.
-        supabase.from("invoices").select("invoice_number").eq("user_id", ownerId).eq("invoice_type", "sale").order("invoice_number", { ascending: false }).limit(50),
-        supabase.from("invoices").select("invoice_number").eq("user_id", ownerId).eq("invoice_type", "purchase").order("invoice_number", { ascending: false }).limit(50),
+        (supabase as any).rpc("get_invoice_sequence_next", { p_user_id: ownerId, p_invoice_type: "sale", p_year: currentYear }),
+        (supabase as any).rpc("get_invoice_sequence_next", { p_user_id: ownerId, p_invoice_type: "purchase", p_year: currentYear }),
 
         supabase.from("tax_settings").select("registration_type").eq("user_id", ownerId).maybeSingle(),
-        supabase.from("companies").select("invoice_number_offset").eq("owner_id", user.id).maybeSingle(),
         (supabase.from("company_settings" as any).select("invoice_prefix, purchase_order_prefix").eq("user_id", ownerId).maybeSingle() as any),
       ]);
       const contactsList = (cRes.data || []) as Contact[];
@@ -730,15 +716,12 @@ const InvoiceCreatePage = () => {
       const settingsRow = (settingsRes as any)?.data || {};
       const salesPrefix = (settingsRow.invoice_prefix || "INV").trim() || "INV";
       const purchasePrefix = (settingsRow.purchase_order_prefix || "PO").trim() || "PO";
-      // Offset applies only to sales (legacy invoice_number_offset on companies)
-      const invoiceOffset = (companyRes.data as any)?.invoice_number_offset || 0;
-      const salesNext = getNextInvoiceSequence((salesNumbersRes.data as any[]) || [], invoiceOffset);
-      const purchaseNext = getNextInvoiceSequence((purchaseNumbersRes.data as any[]) || [], 0);
+      const salesNext = Number(salesSequenceRes.data) || 1;
+      const purchaseNext = Number(purchaseSequenceRes.data) || 1;
       const prefix = form.type === "sales" ? salesPrefix : purchasePrefix;
       const nextSequence = form.type === "sales" ? salesNext : purchaseNext;
-      const year = new Date().getFullYear();
       const nextNum = String(nextSequence).padStart(4, "0");
-      setNextInvoiceNumber(`${prefix}-${year}-${nextNum}`);
+      setNextInvoiceNumber(`${prefix}-${currentYear}-${nextNum}`);
       // Cache next sequences so the type-toggle effect can recompute without re-fetching
       typeCountsRef.current = {
         salesNext,
