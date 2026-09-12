@@ -369,8 +369,8 @@
       min-width: 760px;
       table-layout: auto !important;
     }
-    .fin-table-wrap > table > colgroup {
-      display: none;
+    .fin-table-wrap > table > colgroup > col {
+      width: auto !important;
     }
     /* Comfortable touch targets for inline row actions */
     .fin-table-wrap td button {

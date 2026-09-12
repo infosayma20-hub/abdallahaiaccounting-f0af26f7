@@ -7,6 +7,7 @@ export type { SegmentedTypeOption } from "./SegmentedTypeSelect";
 export { FastTabs } from "./FastTabs";
 export type { FastTabItem } from "./FastTabs";
 export { FiltersPanel, applyFilters } from "./FiltersPanel";
+export { MobileActionSheet } from "./MobileActionSheet";
 export { ColumnHeaderMenu } from "./ColumnHeaderMenu";
 export { ColumnVisibilityMenu } from "./ColumnVisibilityMenu";
 export { useColumnVisibility } from "./useColumnVisibility";
