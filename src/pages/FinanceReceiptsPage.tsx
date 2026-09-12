@@ -630,7 +630,7 @@ export default function FinanceReceiptsPage() {
               </div>
             </div>
 
-            <div className="overflow-x-auto">
+            <div className="overflow-x-auto fin-table-wrap">
               <table className="w-full text-sm table-fixed" dir="rtl">
                 <colgroup>
                   <col style={{ width: "10%" }} />
