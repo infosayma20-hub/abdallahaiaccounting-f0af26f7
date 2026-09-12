@@ -204,7 +204,7 @@ export function buildAccountStatementPrintHTML(opts: BuildPrintOpts): string {
     <table class="doc-summary">
       <thead>
         <tr>
-          <th>الرصيد الافتتاحي</th>
+          ${hideOpeningBalance ? "" : `<th>الرصيد الافتتاحي</th>`}
           <th>إجمالي المدين</th>
           <th>إجمالي الدائن</th>
           <th>الرصيد المستحق</th>
@@ -212,7 +212,7 @@ export function buildAccountStatementPrintHTML(opts: BuildPrintOpts): string {
       </thead>
       <tbody>
         <tr>
-          <td>${esc(fmtSigned(openingBalance))}</td>
+          ${hideOpeningBalance ? "" : `<td>${esc(fmtSigned(openingBalance))}</td>`}
           <td>${esc(fmt(totalDebit))}</td>
           <td>${esc(fmt(totalCredit))}</td>
           <td><strong>${esc(fmtSigned(closingBalance))}</strong>${
