@@ -4827,6 +4827,8 @@ export type Database = {
           final_decided_by: string | null
           final_decision: string | null
           final_decision_notes: string | null
+          hr_hidden_at: string | null
+          hr_hidden_by: string | null
           hr_recommendation: string | null
           hr_recommendation_notes: string | null
           hr_reviewed_at: string | null
@@ -4855,6 +4857,8 @@ export type Database = {
           final_decided_by?: string | null
           final_decision?: string | null
           final_decision_notes?: string | null
+          hr_hidden_at?: string | null
+          hr_hidden_by?: string | null
           hr_recommendation?: string | null
           hr_recommendation_notes?: string | null
           hr_reviewed_at?: string | null
@@ -4883,6 +4887,8 @@ export type Database = {
           final_decided_by?: string | null
           final_decision?: string | null
           final_decision_notes?: string | null
+          hr_hidden_at?: string | null
+          hr_hidden_by?: string | null
           hr_recommendation?: string | null
           hr_recommendation_notes?: string | null
           hr_reviewed_at?: string | null
@@ -8118,6 +8124,8 @@ export type Database = {
           final_decision_notes: string | null
           form_data: Json
           form_type: string
+          hr_hidden_at: string | null
+          hr_hidden_by: string | null
           hr_recommendation: string | null
           hr_recommendation_notes: string | null
           hr_reviewed_at: string | null
@@ -8154,6 +8162,8 @@ export type Database = {
           final_decision_notes?: string | null
           form_data?: Json
           form_type: string
+          hr_hidden_at?: string | null
+          hr_hidden_by?: string | null
           hr_recommendation?: string | null
           hr_recommendation_notes?: string | null
           hr_reviewed_at?: string | null
@@ -8190,6 +8200,8 @@ export type Database = {
           final_decision_notes?: string | null
           form_data?: Json
           form_type?: string
+          hr_hidden_at?: string | null
+          hr_hidden_by?: string | null
           hr_recommendation?: string | null
           hr_recommendation_notes?: string | null
           hr_reviewed_at?: string | null
