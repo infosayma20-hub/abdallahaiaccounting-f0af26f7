@@ -544,12 +544,36 @@ export default function EmployeeFormsTab({
   const allCards = [...allForms, ...policyCards];
 
   const formLabel = (type: string) => {
-    const card = [...employeeForms, ...managerForms].find(f => f.id === type);
+    const card = [...employeeForms, ...hiddenLegacyForms, ...managerForms].find(f => f.id === type);
     return card?.label || type;
   };
 
   const renderFormFields = () => {
     switch (activeForm) {
+      case HR_CONTACT_HUB:
+        return (
+          <div className="space-y-2">
+            <p className="text-xs text-muted-foreground">اختر نوع الرسالة يلي بدك تبعتها للموارد البشرية:</p>
+            {hubOptions.map(opt => (
+              <button
+                key={opt.id}
+                type="button"
+                onClick={() => { setActiveForm(opt.id); setFormData({}); }}
+                className="w-full flex items-center gap-3 p-4 rounded-2xl bg-card border border-border hover:bg-muted/50 active:scale-[0.99] transition-all text-right"
+              >
+                <div className="h-10 w-10 rounded-xl bg-muted/50 flex items-center justify-center shrink-0">
+                  <opt.icon className={`h-5 w-5 ${opt.color}`} />
+                </div>
+                <span className="flex-1 min-w-0">
+                  <span className="block text-sm font-medium">{opt.label}</span>
+                  <span className="block text-[11px] text-muted-foreground truncate">{opt.hint}</span>
+                </span>
+                <ChevronLeft className="h-4 w-4 text-muted-foreground" />
+              </button>
+            ))}
+          </div>
+        );
+
       case "leave_request": {
         const leaveOptions = [
           { value: "annual", label: "سنوية" },
