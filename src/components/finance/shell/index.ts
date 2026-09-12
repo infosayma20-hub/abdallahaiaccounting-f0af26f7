@@ -8,6 +8,8 @@ export { FastTabs } from "./FastTabs";
 export type { FastTabItem } from "./FastTabs";
 export { FiltersPanel, applyFilters } from "./FiltersPanel";
 export { MobileActionSheet } from "./MobileActionSheet";
+export { MobileRecordCards } from "./MobileRecordCards";
+export type { MobileCardData, MobileCardField } from "./MobileRecordCards";
 export { ColumnHeaderMenu } from "./ColumnHeaderMenu";
 export { ColumnVisibilityMenu } from "./ColumnVisibilityMenu";
 export { useColumnVisibility } from "./useColumnVisibility";
