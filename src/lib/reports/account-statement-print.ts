@@ -70,6 +70,8 @@ export interface BuildPrintOpts {
   showDueOrType?: boolean;
   /** Hide tax column / chip when VAT is disabled at company level. */
   taxEnabled?: boolean;
+  /** Hide the opening-balance row and summary cell in the printed statement. */
+  hideOpeningBalance?: boolean;
 }
 
 const esc = (s: any) =>
@@ -114,6 +116,7 @@ export function buildAccountStatementPrintHTML(opts: BuildPrintOpts): string {
     showReference = true,
     showDueOrType = true,
     taxEnabled = true,
+    hideOpeningBalance = false,
   } = opts;
 
   const fmt = (n: number) => {
