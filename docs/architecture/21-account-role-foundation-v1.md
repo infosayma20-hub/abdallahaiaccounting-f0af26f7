@@ -133,3 +133,34 @@ child (`4110` or `4200`):
 `DELETE FROM account_system_roles_v1` (config only), then drop the two resolvers, the
 assignment RPC, the trigger and the table. Nothing else references them; no chart of
 accounts, transaction or report depends on this layer today.
+
+## 12. Reporting impact check (read-only) — PASS
+
+| Report | Revenue selection logic | 4200 included |
+|---|---|---|
+| Trial Balance / Balance Sheet | per-account, `account_type` driven | yes |
+| Profit & Loss (`ProfitLoss.tsx`) | `classifyAccount()` on `account_type` (`إيرادات`), contra codes excluded | yes (own line `إيرادات خدمات`) |
+| Dashboard KPIs (`useDashboardData.ts`) | `credit_account_code.startsWith("4")` − debits | yes |
+| Executive KPIs (`lib/reports/executive-kpis.ts`) | prefix `"4"` credit − debit | yes |
+| Periodic reports (`reports/PeriodicReportsPage.tsx`) | `1x → 4x` pairs | yes |
+| VAT / tax reports | invoice-based (`invoices`, tax fields), not revenue-code based | unaffected |
+
+No authoritative report is hard-coded to `4100` or to descendants of `4100` only.
+The `4100` literals found in code are **writers** (legacy invoice create/edit RPCs,
+POS, credit notes, product default `sales_account_code`), not reports.
+
+**Residual risk (documented, out of scope):** the legacy invoice *edit* RPCs hard-code
+`v_new_rev_acc := '4100'`. If a V1-created invoice is later edited through the legacy
+screen, its revenue line moves from `4200` back to `4100`. Edit remains legacy by design;
+this must be addressed before Update Invoice V1.
+
+## 13. Internal test company certification (executed, rolled back)
+
+- Role assigned: `SERVICE_SALES_REVENUE → 4200 إيرادات خدمات` (internal company only, committed).
+- Resolver returns exactly `4200`; owner spoofing rejected; 4200 verified active, leaf,
+  same tenant.
+- Service credit sales invoice V1, shadow mode: `Dr 11300020 (ذمة نهاد غزال) / Cr 4200` — no writes.
+- Service credit sales invoice V1, posting mode: succeeded, GL `Dr 11300020 / Cr 4200 = 100.00`,
+  invoice `INV-2026-0024`, replay returned `replayed=true` with no duplicate.
+- The entire certification transaction was rolled back: no test invoice, no command row,
+  no event, and all feature flags returned to `false` for every company.
