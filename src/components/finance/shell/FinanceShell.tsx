@@ -110,8 +110,9 @@ rightSlot,
             {headerSlot && (
               <div className="shrink-0 min-w-0">{headerSlot}</div>
             )}
-            {/* In compact mode, the action ribbon lives inline with the title */}
-            {compact && actionTabs.length > 0 && (
+            {/* In compact mode, the action ribbon lives inline with the title.
+                On phones the very same actions move into a bottom sheet. */}
+            {compact && actionTabs.length > 0 && !isMobile && (
               <>
                 <div className="hidden md:block h-6 w-px bg-border shrink-0 mx-1" />
                 <div className="w-full order-last md:order-none md:w-auto md:flex-1 min-w-0 flex justify-start">
