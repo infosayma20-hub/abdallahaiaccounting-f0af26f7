@@ -166,6 +166,7 @@ export default function HRAlertsBell() {
         .from("employee_forms")
         .select("id, title, form_type, status, submitted_at, created_at, workflow_status, employees!inner(full_name)")
         .is("archived_at", null)
+        .is("hr_hidden_at", null)
         .or("status.eq.pending,workflow_status.in.(submitted,under_review)")
         .order("created_at", { ascending: false })
         .limit(50),
