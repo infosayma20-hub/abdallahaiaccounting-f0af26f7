@@ -945,29 +945,13 @@ const InvoicesPage = () => {
       ? { ...hydrated, contactClosingBalance: closingBalance, contactOpeningBalance: openingBalance }
       : hydrated;
 
-    
-    win.document.write(`<html dir="rtl"><head>
-      <title>فاتورة ${selectedInvoice.invoiceNumber}</title>
-      <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-      <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { background: white; }
-        @media print { body { padding: 0; } @page { margin: 8mm; size: A4; } }
-      </style>
-    </head><body><div id="print-root"></div></body></html>`);
-    win.document.close();
-
-    // Render React component into the new window
-    setTimeout(() => {
-      const container = win.document.getElementById("print-root");
-      if (container) {
-        const root = createRoot(container);
-        root.render(
-          <InvoicePrintView invoice={invoiceForPrint} settings={companySettings} copyLabel={tt("أصلية")} />
-        );
-        setTimeout(() => win.print(), 500);
-      }
-    }, 200);
+    printReactDocument(
+      <InvoicePrintView invoice={invoiceForPrint} settings={companySettings} copyLabel={tt("أصلية")} />,
+      {
+        title: `فاتورة ${selectedInvoice.invoiceNumber}`,
+        onError: () => toast.error("تعذر فتح الطباعة"),
+      },
+    );
   };
 
   // Direct print for a specific invoice
@@ -976,23 +960,13 @@ const InvoicesPage = () => {
     const feature = inv.type === "purchase" ? "purchase_invoices" : "invoices";
     try { await assertPermission(app, feature, "print"); } catch { return; }
     const hydrated = await hydrateInvoiceItems(inv);
-    const win = window.open("", "_blank");
-    if (!win) return;
-    win.document.write(`<html dir="rtl"><head>
-      <title>فاتورة ${hydrated.invoiceNumber}</title>
-      <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-      <style>* { margin: 0; padding: 0; box-sizing: border-box; } body { background: white; } @media print { body { padding: 0; } @page { margin: 8mm; size: A4; } }</style>
-    </head><body><div id="print-root"></div></body></html>`);
-    win.document.close();
-    setTimeout(() => {
-      const container = win.document.getElementById("print-root");
-      if (container) {
-        const root = createRoot(container);
-        root.render(<InvoicePrintView invoice={hydrated} settings={companySettings} copyLabel={tt("أصلية")} />);
-
-        setTimeout(() => win.print(), 500);
-      }
-    }, 200);
+    printReactDocument(
+      <InvoicePrintView invoice={hydrated} settings={companySettings} copyLabel={tt("أصلية")} />,
+      {
+        title: `فاتورة ${hydrated.invoiceNumber}`,
+        onError: () => toast.error("تعذر فتح الطباعة"),
+      },
+    );
   };
 
   // Open email modal
