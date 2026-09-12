@@ -1467,9 +1467,13 @@ export default function EmployeeFormsTab({
   };
 
   const getFormTitle = () => {
-    const card = [...employeeForms, ...managerForms].find(f => f.id === activeForm);
+    const card = [...employeeForms, ...hiddenLegacyForms, ...managerForms].find(f => f.id === activeForm);
     return card?.label || "";
   };
+
+  /** خطوة اختيار نوع الرسالة داخل البند الموحّد: لا يوجد إرسال بعد. */
+  const isHubStep = activeForm === HR_CONTACT_HUB;
+
 
   const bottomPad = "calc(72px + env(safe-area-inset-bottom, 0px))";
 
