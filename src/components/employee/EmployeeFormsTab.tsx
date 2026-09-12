@@ -523,6 +523,7 @@ export default function EmployeeFormsTab({
       toast({ title: "تم الإرسال بنجاح ✅", description: "سيتم مراجعة طلبك قريباً" });
       setActiveForm(null);
       setFormData({});
+      setOpenedFromHub(false);
       fetchSubmissions();
       onRefresh();
     }
@@ -560,7 +561,7 @@ export default function EmployeeFormsTab({
               <button
                 key={opt.id}
                 type="button"
-                onClick={() => { setActiveForm(opt.id); setFormData({}); }}
+                onClick={() => { setActiveForm(opt.id); setFormData({}); setOpenedFromHub(true); }}
                 className="w-full flex items-center gap-3 p-4 rounded-2xl bg-card border border-border hover:bg-muted/50 active:scale-[0.99] transition-all text-right"
               >
                 <div className="h-10 w-10 rounded-xl bg-muted/50 flex items-center justify-center shrink-0">
@@ -1524,6 +1525,7 @@ export default function EmployeeFormsTab({
                 }
                 setActiveForm(card.id);
                 setFormData({});
+                setOpenedFromHub(false);
               }}
               className={`w-full flex items-center gap-3 p-4 rounded-2xl bg-card border border-border transition-all text-right ${isClosed ? "opacity-60 cursor-not-allowed" : "hover:bg-muted/50 active:scale-[0.99]"}`}
             >
@@ -1594,7 +1596,11 @@ export default function EmployeeFormsTab({
           <header className="relative z-[130] flex items-center justify-between px-3 h-14 border-b bg-card shrink-0 sticky top-0 pointer-events-auto">
             <button
               type="button"
-              onClick={() => { setActiveForm(null); setFormData({}); }}
+              onClick={() => {
+                setFormData({});
+                if (openedFromHub) { setOpenedFromHub(false); setActiveForm(HR_CONTACT_HUB); }
+                else { setActiveForm(null); }
+              }}
               className="h-11 w-11 -m-1 rounded-full flex items-center justify-center hover:bg-muted/60 active:scale-95 transition touch-manipulation"
               aria-label="إغلاق"
             >
@@ -1632,7 +1638,7 @@ export default function EmployeeFormsTab({
         </div>
       )}
 
-      <Dialog open={!isMobile && !!activeForm} onOpenChange={o => { if (!o) { setActiveForm(null); setFormData({}); } }}>
+      <Dialog open={!isMobile && !!activeForm} onOpenChange={o => { if (!o) { setActiveForm(null); setFormData({}); setOpenedFromHub(false); } }}>
         <DialogContent
           className="max-w-sm bg-card border-border max-h-[90vh] flex flex-col p-0 gap-0"
           dir="rtl"
