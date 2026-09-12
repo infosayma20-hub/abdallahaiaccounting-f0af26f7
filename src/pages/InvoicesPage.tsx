@@ -1446,9 +1446,9 @@ const InvoicesPage = () => {
     >
     <div className="space-y-5" dir="rtl">
       {/* Actions */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-2">
         <p className="text-xs text-muted-foreground">{sorted.length} فاتورة</p>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <div className="flex items-center bg-muted/50 rounded-xl p-0.5">
             <button onClick={() => setViewMode("cards")} className={`p-1.5 rounded-lg transition-all ${viewMode === "cards" ? "bg-background shadow-sm text-foreground" : "text-muted-foreground"}`}>
               <LayoutGrid className="h-4 w-4" />
@@ -1478,7 +1478,7 @@ const InvoicesPage = () => {
 
       {/* Summary KPIs */}
       {invoices.length > 0 && (
-        <div className="grid grid-cols-3 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <div style={{ background: "#FFFFFF", border: "1px solid #E5E7EB", borderRadius: 12, padding: "16px 20px", textAlign: "center" }}>
             <div className="mx-auto mb-2 flex items-center justify-center" style={{ width: 36, height: 36, borderRadius: 8, background: "#F0F4F8" }}>
               <Receipt className="h-[18px] w-[18px]" style={{ color: "#1B3A5C" }} />
