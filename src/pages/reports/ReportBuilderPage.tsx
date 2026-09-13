@@ -55,12 +55,17 @@ import { exportReportToPdf, PdfTemplate } from "@/lib/report-builder/pdf-export"
 import { ChevronDown, Briefcase, Coins, Minimize2, FileStack } from "lucide-react";
 import VersionHistoryDialog from "@/components/report-builder/VersionHistoryDialog";
 import { useReportFolders } from "@/hooks/useReportFolders";
+import { useDataOwnerId } from "@/hooks/useDataOwnerId";
 
 const DRAFT_KEY = "report-builder-draft";
 const VIEW_KEY_PREFIX = "report-builder-view-"; // per-source last view
 type ViewMode = "table" | "chart" | "both";
 
-const DEFAULT_FILTERS = (): ReportFilters => {
+const DEFAULT_FILTERS = (sourceKey?: string): ReportFilters => {
+  // Inventory rows are products, whose only date column is the creation date.
+  // Defaulting to "last 30 days" there silently hides every product added
+  // earlier, so the inventory source starts with NO date restriction.
+  if (sourceKey === "inventory") return {};
   const today = new Date().toISOString().slice(0, 10);
   const monthAgo = new Date(Date.now() - 30 * 86400000).toISOString().slice(0, 10);
   return { dateFrom: monthAgo, dateTo: today };
@@ -69,6 +74,10 @@ const DEFAULT_FILTERS = (): ReportFilters => {
 export default function ReportBuilderPage() {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { dataOwnerId } = useDataOwnerId();
+  // Tenant-scoped reads must use the data owner id: team members (accountants)
+  // read the owner's dataset, otherwise every report comes back empty.
+  const ownerId = dataOwnerId || user?.id || null;
   const { toast } = useToast();
   const [searchParams] = useSearchParams();
   const loadId = searchParams.get("load");
@@ -76,7 +85,7 @@ export default function ReportBuilderPage() {
 
   const [sourceKey, setSourceKey] = useState<string>("sales");
   const [selectedColumns, setSelectedColumns] = useState<string[]>([]);
-  const [filters, setFilters] = useState<ReportFilters>(DEFAULT_FILTERS);
+  const [filters, setFilters] = useState<ReportFilters>(() => DEFAULT_FILTERS("sales"));
   const [groupBy, setGroupBy] = useState("none");
 
   const [data, setData] = useState<any[]>([]);
@@ -193,12 +202,12 @@ export default function ReportBuilderPage() {
 
   const handleRun = useCallback(
     async (opts?: { page?: number }) => {
-      if (!user) return;
+      if (!ownerId) return;
       setLoading(true);
       try {
         const result = await runReport({
           source,
-          userId: user.id,
+          userId: ownerId,
           filters: debouncedFilters,
           groupBy,
           page: opts?.page ?? page,
@@ -215,15 +224,15 @@ export default function ReportBuilderPage() {
         setLoading(false);
       }
     },
-    [user, source, debouncedFilters, groupBy, page, pageSize, selectedColumns, toast]
+    [ownerId, source, debouncedFilters, groupBy, page, pageSize, selectedColumns, toast]
   );
 
   // Auto-run on first load
   useEffect(() => {
-    if (user && !hasRun && selectedColumns.length > 0) {
+    if (ownerId && !hasRun && selectedColumns.length > 0) {
       handleRun({ page: 1 });
     }
-  }, [user, sourceKey]);
+  }, [ownerId, sourceKey]);
 
   // Re-run when debounced filters / groupBy / page / pageSize change (after first run)
   useEffect(() => {
@@ -247,10 +256,11 @@ export default function ReportBuilderPage() {
     const newSrc = getDataSource(newKey)!;
     if (restored) {
       setSelectedColumns(restored.selectedColumns || newSrc.fields.filter((f) => f.defaultVisible).map((f) => f.key));
-      setFilters(restored.filters || DEFAULT_FILTERS());
+      setFilters(restored.filters || DEFAULT_FILTERS(newKey));
       setGroupBy(restored.groupBy || "none");
     } else {
       setSelectedColumns(newSrc.fields.filter((f) => f.defaultVisible).map((f) => f.key));
+      setFilters(DEFAULT_FILTERS(newKey));
       setGroupBy("none");
     }
     setData([]);
@@ -260,13 +270,13 @@ export default function ReportBuilderPage() {
   };
 
   const handleResetFilters = () => {
-    setFilters(DEFAULT_FILTERS());
+    setFilters(DEFAULT_FILTERS(sourceKey));
     setGroupBy("none");
     setPage(1);
   };
 
   const hasActiveFilters = useMemo(() => {
-    const def = DEFAULT_FILTERS();
+    const def = DEFAULT_FILTERS(sourceKey);
     return (
       filters.contactId ||
       filters.status ||
