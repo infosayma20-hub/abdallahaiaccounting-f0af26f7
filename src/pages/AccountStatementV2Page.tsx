@@ -1624,9 +1624,11 @@ const AccountStatementV2Page = () => {
   ]);
 
   const handlePreviewPDF = useCallback(() => {
-    if (!selectedEntityId || rows.length === 0) return;
+    // Guard on the VISIBLE rows — printing an empty (fully filtered) statement
+    // would otherwise produce a document with a totals row only.
+    if (!selectedEntityId || filteredRows.length === 0) return;
     setShowPdfModal(true);
-  }, [selectedEntityId, rows]);
+  }, [selectedEntityId, filteredRows.length]);
 
   const handleDownloadPDF = useCallback(async () => {
     if (!selectedEntityId || filteredRows.length === 0) return;
@@ -1778,8 +1780,8 @@ const AccountStatementV2Page = () => {
         { key: "center", label: "فتح مركز المالية", icon: Calculator, onClick: () => navigate("/accounting-center") },
       ]},
       { key: "print", label: "طباعة", items: [
-        { key: "preview", label: "معاينة PDF", icon: Eye, onClick: handlePreviewPDF, disabled: !selectedEntityId || rows.length === 0 || pdfGenerating },
-        { key: "print", label: "طباعة", icon: Printer, onClick: handlePrintStatement, disabled: !selectedEntityId || rows.length === 0 },
+        { key: "preview", label: "معاينة PDF", icon: Eye, onClick: handlePreviewPDF, disabled: !selectedEntityId || filteredRows.length === 0 || pdfGenerating },
+        { key: "print", label: "طباعة", icon: Printer, onClick: handlePrintStatement, disabled: !selectedEntityId || filteredRows.length === 0 },
       ]},
       { key: "export", label: "تصدير", items: [
         { key: "excel", label: "Excel", icon: FileSpreadsheet, onClick: handleExport, disabled: !selectedEntityId || filteredRows.length === 0 },
