@@ -214,6 +214,15 @@ export function buildAccountStatementPrintHTML(opts: BuildPrintOpts): string {
   `;
 
   // ─── SUMMARY ROW (plain 4-column table) ───
+  // Mixed currencies: the screen refuses to show a single balance, and so does
+  // the printout — never print a total that mixes currencies.
+  const closingCell = mixedCurrencies
+    ? `<td><span class="muted">عملات مختلطة — لا يمكن احتساب رصيد إجمالي</span></td>`
+    : `<td><strong>${esc(fmtSigned(closingBalance))}</strong>${
+        closingBalance > 0 ? " <span class=\"muted\">(مدين)</span>"
+        : closingBalance < 0 ? " <span class=\"muted\">(دائن)</span>"
+        : ""}</td>`;
+
   const summaryHTML = `
     <table class="doc-summary">
       <thead>
@@ -229,14 +238,13 @@ export function buildAccountStatementPrintHTML(opts: BuildPrintOpts): string {
           ${hideOpeningBalance ? "" : `<td>${esc(fmtSigned(openingBalance))}</td>`}
           <td>${esc(fmt(totalDebit))}</td>
           <td>${esc(fmt(totalCredit))}</td>
-          <td><strong>${esc(fmtSigned(closingBalance))}</strong>${
-            closingBalance > 0 ? " <span class=\"muted\">(مدين)</span>"
-            : closingBalance < 0 ? " <span class=\"muted\">(دائن)</span>"
-            : ""}</td>
+          ${closingCell}
         </tr>
       </tbody>
     </table>
+    ${hideOpeningBalance ? `<div class="doc-note">هذا الكشف يعرض حركات الفترة فقط — بدون الرصيد الافتتاحي.</div>` : ""}
   `;
+
 
   // ─── MAIN TABLE ───
   const theadHTML = `
