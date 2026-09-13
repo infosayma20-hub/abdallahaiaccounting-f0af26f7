@@ -1065,19 +1065,28 @@ export default function MonthlyAttendanceTab({
     setBreaksLoading(true);
     setRawEvents([]);
     setRawLoading(true);
-    // Load raw punches for the day ONLY (same calendar day — لا نظهر بصمات
-    // اليوم التالي حتى لا يظهر مثلاً دخول الأحد ضمن يوم السبت).
+    // 🛡️ نافذة يوم الدوام = نفس تعريف الخادم (06:00 → 06:00 اليوم التالي)،
+    // حتى تُعرض بصمات الوردية الليلية ضمن يومها الصحيح ولا تظهر بصمات
+    // وردية الأمس داخل اليوم التالي. تُوسَّع النافذة عند الحاجة لتغطية
+    // دخول/خروج اليوم المحفوظ (تعديلات الموارد البشرية) فلا يختفي أي وقت معتمد.
     (async () => {
       try {
-        const dayStart = `${r.attendance_date}T00:00:00`;
-        const next = new Date(r.attendance_date + "T00:00:00");
-        next.setDate(next.getDate() + 1);
+        const winStart = new Date(`${r.attendance_date}T00:00:00`);
+        winStart.setHours(6, 0, 0, 0);
+        const winEnd = new Date(winStart);
+        winEnd.setDate(winEnd.getDate() + 1);
+        const ciAt = r.first_check_in ? new Date(r.first_check_in) : null;
+        const coAt = r.last_check_out ? new Date(r.last_check_out) : null;
+        const from = ciAt && ciAt.getTime() < winStart.getTime() ? ciAt : winStart;
+        const to = coAt && coAt.getTime() > winEnd.getTime()
+          ? new Date(coAt.getTime() + 1000)
+          : winEnd;
         const { data } = await supabase
           .from("attendance_events")
           .select("id, event_type, event_time, branch_id, status, notes, checkout_kind")
           .eq("employee_id", r.employee_id)
-          .gte("event_time", dayStart)
-          .lt("event_time", next.toISOString())
+          .gte("event_time", from.toISOString())
+          .lt("event_time", to.toISOString())
           .order("event_time", { ascending: true });
         const evs = (data as any[]) || [];
         setRawEvents(evs);
@@ -1089,9 +1098,17 @@ export default function MonthlyAttendanceTab({
         const dismissed = ((dis as any[]) || []) as GapDismissal[];
         // Suggest sessions derived from the punches for any gap that has no
         // stored attendance_breaks row yet (unsaved drafts — HR just saves).
-        const gaps = deriveGapsFromPunches(evs as RawPunch[], { maxGap: depMaxGap }).filter(
-          (g) => !gapIsDismissed(g, r.id, dismissed),
-        );
+        // 🛡️ تُقصر الاقتراحات على نطاق اليوم المعتمد (بين الدخول والخروج) —
+        // بصمة يتيمة سابقة للدخول (مثل خروج منسي من وردية أمس) كانت تُقترح
+        // كجلسة يرفض النظام حفظها، فتتعطل الموارد البشرية بلا مخرج.
+        const gaps = deriveGapsFromPunches(evs as RawPunch[], { maxGap: depMaxGap })
+          .filter((g) => !gapIsDismissed(g, r.id, dismissed))
+          .filter((g) => {
+            if (ciAt && new Date(g.out).getTime() < ciAt.getTime()) return false;
+            if (coAt && new Date(g.in).getTime() > coAt.getTime()) return false;
+            return true;
+          });
+
         if (gaps.length) {
           setBreaks((prev) => {
             const stored = prev.map((b) => ({
