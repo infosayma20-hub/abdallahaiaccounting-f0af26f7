@@ -13,7 +13,10 @@ export interface PrintRow {
   date: string;
   description: string;
   transaction_type: string;
+  /** RAW reference — used as the join key for invoice details. */
   reference: string;
+  /** Optional display label for the "المرجع" column (falls back to `reference`). */
+  referenceLabel?: string;
   debit: number;
   credit: number;
   balance: number;
@@ -70,8 +73,15 @@ export interface BuildPrintOpts {
   showDueOrType?: boolean;
   /** Hide tax column / chip when VAT is disabled at company level. */
   taxEnabled?: boolean;
-  /** Hide the opening-balance row and summary cell in the printed statement. */
+  /**
+   * Hide the opening-balance row and its summary cell.
+   * PRESENTATION ONLY — this builder never recalculates figures. The caller is
+   * the single source of truth: it must pass rows / closingBalance already
+   * computed the same way they are shown on screen.
+   */
   hideOpeningBalance?: boolean;
+  /** Mixed currencies detected → balances are not comparable; print a warning instead of a total. */
+  mixedCurrencies?: boolean;
 }
 
 const esc = (s: any) =>
@@ -107,8 +117,8 @@ const typeLabel = (t: string) => {
 
 export function buildAccountStatementPrintHTML(opts: BuildPrintOpts): string {
   const {
-    company, contact, rows: rawRows,
-    openingBalance, totalDebit, totalCredit, closingBalance: rawClosingBalance,
+    company, contact, rows,
+    openingBalance, totalDebit, totalCredit, closingBalance,
     dateFrom, dateTo, statementNumber,
     currencyLabel, currencySymbol,
     includeInvoiceDetails = false,
@@ -117,17 +127,13 @@ export function buildAccountStatementPrintHTML(opts: BuildPrintOpts): string {
     showDueOrType = true,
     taxEnabled = true,
     hideOpeningBalance = false,
+    mixedCurrencies = false,
   } = opts;
 
-  // When the opening balance is hidden, remove its financial effect too:
-  // running balances and the closing balance are computed from the period's
-  // movements only (they no longer start from the opening balance).
-  const rows: PrintRow[] = hideOpeningBalance && openingBalance !== 0
-    ? rawRows.map(r => ({ ...r, balance: Number(r.balance || 0) - openingBalance }))
-    : rawRows;
-  const closingBalance = hideOpeningBalance
-    ? Number(rawClosingBalance || 0) - openingBalance
-    : rawClosingBalance;
+  // NOTE: no figure is recalculated here. Rows, totals and the closing balance
+  // are printed exactly as the caller computed them for the screen, so the
+  // printout can never drift from what the user reviewed.
+
 
 
   const fmt = (n: number) => {
@@ -155,7 +161,7 @@ export function buildAccountStatementPrintHTML(opts: BuildPrintOpts): string {
   const renderCell = (col: typeof cols[number], r: PrintRow) => {
     switch (col.key) {
       case "date": return esc(fmtDate(r.date));
-      case "reference": return esc(r.reference || "—");
+      case "reference": return esc(r.referenceLabel || r.reference || "—");
       case "description": return esc(r.description || "");
       case "due_type": {
         const due = r.dueDate ? fmtDate(r.dueDate) : "";
@@ -211,6 +217,15 @@ export function buildAccountStatementPrintHTML(opts: BuildPrintOpts): string {
   `;
 
   // ─── SUMMARY ROW (plain 4-column table) ───
+  // Mixed currencies: the screen refuses to show a single balance, and so does
+  // the printout — never print a total that mixes currencies.
+  const closingCell = mixedCurrencies
+    ? `<td><span class="muted">عملات مختلطة — لا يمكن احتساب رصيد إجمالي</span></td>`
+    : `<td><strong>${esc(fmtSigned(closingBalance))}</strong>${
+        closingBalance > 0 ? " <span class=\"muted\">(مدين)</span>"
+        : closingBalance < 0 ? " <span class=\"muted\">(دائن)</span>"
+        : ""}</td>`;
+
   const summaryHTML = `
     <table class="doc-summary">
       <thead>
@@ -226,14 +241,13 @@ export function buildAccountStatementPrintHTML(opts: BuildPrintOpts): string {
           ${hideOpeningBalance ? "" : `<td>${esc(fmtSigned(openingBalance))}</td>`}
           <td>${esc(fmt(totalDebit))}</td>
           <td>${esc(fmt(totalCredit))}</td>
-          <td><strong>${esc(fmtSigned(closingBalance))}</strong>${
-            closingBalance > 0 ? " <span class=\"muted\">(مدين)</span>"
-            : closingBalance < 0 ? " <span class=\"muted\">(دائن)</span>"
-            : ""}</td>
+          ${closingCell}
         </tr>
       </tbody>
     </table>
+    ${hideOpeningBalance ? `<div class="doc-note">هذا الكشف يعرض حركات الفترة فقط — بدون الرصيد الافتتاحي.</div>` : ""}
   `;
+
 
   // ─── MAIN TABLE ───
   const theadHTML = `
@@ -271,7 +285,7 @@ export function buildAccountStatementPrintHTML(opts: BuildPrintOpts): string {
     const itemsTbl = `
       <tr class="items-row">
         <td colspan="${colCount}" class="items-cell">
-          <div class="items-label">أصناف الفاتورة ${esc(r.reference)} · ${items.length} صنف</div>
+          <div class="items-label">أصناف الفاتورة ${esc(r.referenceLabel || r.reference)} · ${items.length} صنف</div>
           <table class="items-tbl">
             <thead>
               <tr>
@@ -308,7 +322,7 @@ export function buildAccountStatementPrintHTML(opts: BuildPrintOpts): string {
         if (c.key === "description") return `<td><strong>الإجمالي</strong></td>`;
         if (c.key === "debit") return `<td class="al-left"><strong>${esc(fmt(totalDebit))}</strong></td>`;
         if (c.key === "credit") return `<td class="al-left"><strong>${esc(fmt(totalCredit))}</strong></td>`;
-        if (c.key === "balance") return `<td class="al-left"><strong>${esc(fmtSigned(closingBalance))}</strong></td>`;
+        if (c.key === "balance") return `<td class="al-left"><strong>${mixedCurrencies ? "—" : esc(fmtSigned(closingBalance))}</strong></td>`;
         return `<td></td>`;
       }).join("")}
     </tr>
@@ -452,6 +466,11 @@ export function buildAccountStatementPrintHTML(opts: BuildPrintOpts): string {
     .items-tbl th { font-weight: 600; background: #fafafa; color: #222; }
 
     /* Footer */
+    .doc-note {
+      font-size: 10px; color: #555;
+      margin: -8px 0 12px;
+    }
+
     .doc-foot {
       margin-top: 16px;
       padding-top: 6px;

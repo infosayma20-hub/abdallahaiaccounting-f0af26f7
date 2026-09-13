@@ -1265,7 +1265,10 @@ const AccountStatementV2Page = () => {
     const today = new Date();
     // FIFO net aging: credits (including reverse entries) consume the oldest debit lots first.
     // Anything netted to zero — including a reversed transaction — drops out of the buckets.
-    const sorted = [...rows].sort((a, b) => a.date.localeCompare(b.date));
+    // Built from the VISIBLE rows so the aging card and its Excel block obey the
+    // same filters (cancelled / reversals / type / cost center / search) as every
+    // other figure on the statement.
+    const sorted = [...filteredRows].sort((a, b) => a.date.localeCompare(b.date));
     const lots: { date: string; remaining: number }[] = [];
     let creditPool = 0;
     for (const row of sorted) {
@@ -1296,7 +1299,7 @@ const AccountStatementV2Page = () => {
     }
     const total = current + d1_30 + d31_60 + d60plus;
     return total === 0 ? null : { current, d1_30, d31_60, d60plus, total };
-  }, [rows, selectedEntityId, isAccountsTab]);
+  }, [filteredRows, selectedEntityId, isAccountsTab]);
 
   useEffect(() => { setDetailsMap(prev => ({ ...prev, agingSummary: agingData, companySettings: companyInfo })); }, [agingData, companyInfo]);
 
@@ -1535,6 +1538,15 @@ const AccountStatementV2Page = () => {
     ];
 
     const header = [cols.map(c => c.label)];
+    // Opening-balance row — mirrors the on-screen table (omitted when hidden).
+    const openingRow = statementOptions.hideOpeningBalance ? null : cols.map(c => {
+      if (c.key === "date") return dateFrom ? fmtDate(dateFrom) : "";
+      if (c.key === "description") return "رصيد أول المدة";
+      if (c.key === "debit") return openingBalance > 0 ? openingBalance : "";
+      if (c.key === "credit") return openingBalance < 0 ? Math.abs(openingBalance) : "";
+      if (c.key === "balance") return openingBalance;
+      return "";
+    });
     const data = statementRowsWithDetails.map(r => cols.map(c => c.value(r)));
     const totalsRow = cols.map(c => {
       if (c.key === "description") return "الإجمالي";
@@ -1544,7 +1556,13 @@ const AccountStatementV2Page = () => {
       return "";
     });
 
-    const sheet: (string | number)[][] = [...header, ...data, [], totalsRow];
+    const sheet: (string | number)[][] = [
+      ...header,
+      ...(openingRow ? [openingRow] : []),
+      ...data,
+      [],
+      totalsRow,
+    ];
 
     // Append aging analysis if enabled
     if (statementOptions.showAging && agingData) {
@@ -1583,20 +1601,24 @@ const AccountStatementV2Page = () => {
       code: selectedEntityCode,
       phone: selectedContact?.phone || "",
     },
-    rows: filteredRows.map((r) => ({
+    // Print the rows exactly as they appear on screen: same filters, same
+    // sort order, same running balances. `sortedRows` === `filteredRows`
+    // whenever no column sort is active.
+    rows: sortedRows.map((r) => ({
       date: r.date,
       description: lineCommentFor(r) ? `${r.description} — ${lineCommentFor(r)}` : r.description,
       transaction_type: r.transaction_type,
-      reference: formatReferenceLabel(r.reference),
+      reference: r.reference,
+      referenceLabel: formatReferenceLabel(r.reference),
       debit: r.debit,
       credit: r.credit,
       balance: r.balance,
       transaction_id: r.transaction_id,
       dueDate: r.dueDate,
     })),
-    // Screen rows/closing are already recomputed from zero when the opening
-    // balance is hidden, so pass 0 to avoid subtracting it a second time.
-    openingBalance: statementOptions.hideOpeningBalance ? 0 : openingBalance,
+    // Single source of truth = the screen. The builder renders these as-is and
+    // never re-applies the hide-opening-balance adjustment.
+    openingBalance,
     totalDebit: displayTotalDebit,
     totalCredit: displayTotalCredit,
     closingBalance: displayClosingBalance,
@@ -1611,17 +1633,21 @@ const AccountStatementV2Page = () => {
     showDueOrType: !!(statementOptions.showDueDate || statementOptions.showType),
     taxEnabled,
     hideOpeningBalance: !!statementOptions.hideOpeningBalance,
+    mixedCurrencies: hasMixedCurrencies,
   }), [
     companyInfo, selectedEntityName, selectedContact, isEmployeesTab, isAccountsTab,
-    selectedEntityCode, filteredRows, openingBalance, displayTotalDebit, displayTotalCredit,
+    selectedEntityCode, sortedRows, openingBalance, displayTotalDebit, displayTotalCredit,
     displayClosingBalance, dateFrom, dateTo, stableSOANumber, statementCurrency,
     statementOptions, detailsMap.invoiceDetailsById, taxEnabled, lineCommentFor,
+    hasMixedCurrencies,
   ]);
 
   const handlePreviewPDF = useCallback(() => {
-    if (!selectedEntityId || rows.length === 0) return;
+    // Guard on the VISIBLE rows — printing an empty (fully filtered) statement
+    // would otherwise produce a document with a totals row only.
+    if (!selectedEntityId || filteredRows.length === 0) return;
     setShowPdfModal(true);
-  }, [selectedEntityId, rows]);
+  }, [selectedEntityId, filteredRows.length]);
 
   const handleDownloadPDF = useCallback(async () => {
     if (!selectedEntityId || filteredRows.length === 0) return;
@@ -1773,8 +1799,8 @@ const AccountStatementV2Page = () => {
         { key: "center", label: "فتح مركز المالية", icon: Calculator, onClick: () => navigate("/accounting-center") },
       ]},
       { key: "print", label: "طباعة", items: [
-        { key: "preview", label: "معاينة PDF", icon: Eye, onClick: handlePreviewPDF, disabled: !selectedEntityId || rows.length === 0 || pdfGenerating },
-        { key: "print", label: "طباعة", icon: Printer, onClick: handlePrintStatement, disabled: !selectedEntityId || rows.length === 0 },
+        { key: "preview", label: "معاينة PDF", icon: Eye, onClick: handlePreviewPDF, disabled: !selectedEntityId || filteredRows.length === 0 || pdfGenerating },
+        { key: "print", label: "طباعة", icon: Printer, onClick: handlePrintStatement, disabled: !selectedEntityId || filteredRows.length === 0 },
       ]},
       { key: "export", label: "تصدير", items: [
         { key: "excel", label: "Excel", icon: FileSpreadsheet, onClick: handleExport, disabled: !selectedEntityId || filteredRows.length === 0 },
