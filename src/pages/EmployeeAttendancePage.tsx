@@ -123,9 +123,10 @@ export default function EmployeeAttendancePage() {
       const { data: br } = await supabase.from("branches_safe").select("id, name").eq("is_active", true);
       setBranches(br || []);
 
-      const today = new Intl.DateTimeFormat("en-CA", {
-        timeZone: "Asia/Hebron", year: "numeric", month: "2-digit", day: "2-digit",
-      }).format(new Date());
+      // Work day (Asia/Hebron, 06:00 → 06:00) — same definition as the server.
+      const today = workDayKey();
+      const todayRange = workDayRange(today);
+
       const since = new Date(Date.now() - 60 * 86400_000).toISOString();
 
       // Today's record
