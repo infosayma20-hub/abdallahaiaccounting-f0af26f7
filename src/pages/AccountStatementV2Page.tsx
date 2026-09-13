@@ -1583,7 +1583,10 @@ const AccountStatementV2Page = () => {
       code: selectedEntityCode,
       phone: selectedContact?.phone || "",
     },
-    rows: filteredRows.map((r) => ({
+    // Print the rows exactly as they appear on screen: same filters, same
+    // sort order, same running balances. `sortedRows` === `filteredRows`
+    // whenever no column sort is active.
+    rows: sortedRows.map((r) => ({
       date: r.date,
       description: lineCommentFor(r) ? `${r.description} — ${lineCommentFor(r)}` : r.description,
       transaction_type: r.transaction_type,
@@ -1594,9 +1597,9 @@ const AccountStatementV2Page = () => {
       transaction_id: r.transaction_id,
       dueDate: r.dueDate,
     })),
-    // Screen rows/closing are already recomputed from zero when the opening
-    // balance is hidden, so pass 0 to avoid subtracting it a second time.
-    openingBalance: statementOptions.hideOpeningBalance ? 0 : openingBalance,
+    // Single source of truth = the screen. The builder renders these as-is and
+    // never re-applies the hide-opening-balance adjustment.
+    openingBalance,
     totalDebit: displayTotalDebit,
     totalCredit: displayTotalCredit,
     closingBalance: displayClosingBalance,
@@ -1611,11 +1614,13 @@ const AccountStatementV2Page = () => {
     showDueOrType: !!(statementOptions.showDueDate || statementOptions.showType),
     taxEnabled,
     hideOpeningBalance: !!statementOptions.hideOpeningBalance,
+    mixedCurrencies: hasMixedCurrencies,
   }), [
     companyInfo, selectedEntityName, selectedContact, isEmployeesTab, isAccountsTab,
-    selectedEntityCode, filteredRows, openingBalance, displayTotalDebit, displayTotalCredit,
+    selectedEntityCode, sortedRows, openingBalance, displayTotalDebit, displayTotalCredit,
     displayClosingBalance, dateFrom, dateTo, stableSOANumber, statementCurrency,
     statementOptions, detailsMap.invoiceDetailsById, taxEnabled, lineCommentFor,
+    hasMixedCurrencies,
   ]);
 
   const handlePreviewPDF = useCallback(() => {
