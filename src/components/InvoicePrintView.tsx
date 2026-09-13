@@ -196,6 +196,15 @@ const InvoicePrintView = ({
 
   const subtotalBeforeTax = invoice.items.reduce((s, item) => s + itemNetAmount(item), 0);
   const totalTax = taxEnabled ? invoice.items.reduce((s, item) => s + calcItemTotal(item).tax, 0) : 0;
+  // Label the VAT line with the rate(s) actually used on the invoice.
+  const taxRateLabel = (() => {
+    const rates = Array.from(new Set(
+      invoice.items
+        .filter(it => calcItemTotal(it).category === "taxable")
+        .map(it => (Number(it.taxRate) > 0 ? Number(it.taxRate) : 16)),
+    ));
+    return rates.length === 1 ? `${rates[0]}%` : "";
+  })();
   // Split discount into item-level (already applied inside afterDiscount) and
   // invoice-level (global). Item discounts must be summed as real amounts —
   // summing raw percent values here used to understate the invoice-level part.
