@@ -161,7 +161,7 @@ export function buildAccountStatementPrintHTML(opts: BuildPrintOpts): string {
   const renderCell = (col: typeof cols[number], r: PrintRow) => {
     switch (col.key) {
       case "date": return esc(fmtDate(r.date));
-      case "reference": return esc(r.reference || "—");
+      case "reference": return esc(r.referenceLabel || r.reference || "—");
       case "description": return esc(r.description || "");
       case "due_type": {
         const due = r.dueDate ? fmtDate(r.dueDate) : "";
@@ -285,7 +285,7 @@ export function buildAccountStatementPrintHTML(opts: BuildPrintOpts): string {
     const itemsTbl = `
       <tr class="items-row">
         <td colspan="${colCount}" class="items-cell">
-          <div class="items-label">أصناف الفاتورة ${esc(r.reference)} · ${items.length} صنف</div>
+          <div class="items-label">أصناف الفاتورة ${esc(r.referenceLabel || r.reference)} · ${items.length} صنف</div>
           <table class="items-tbl">
             <thead>
               <tr>
