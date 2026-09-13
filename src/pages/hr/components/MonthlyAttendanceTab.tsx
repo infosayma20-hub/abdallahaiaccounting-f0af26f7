@@ -1193,6 +1193,22 @@ export default function MonthlyAttendanceTab({
     return dt;
   }, []);
 
+  /** 🛡️ هل يوم العمل يعبر منتصف الليل فعلاً؟ (الخروج قبل الدخول بالساعة).
+   *  بدون هذا الشرط كان أي وقت سابق للدخول يُرحَّل تلقائياً لليوم التالي،
+   *  فتظهر رسالة "بعد الخروج" المضللة بدل "قبل الدخول"، وتُحتسب فجوة وهمية. */
+  const isOvernightDay = useMemo(
+    () =>
+      !!form.first_check_in &&
+      !!form.last_check_out &&
+      form.last_check_out < form.first_check_in,
+    [form.first_check_in, form.last_check_out],
+  );
+  const ovn = useCallback(
+    (anchor?: Date | null) => (isOvernightDay ? anchor ?? null : null),
+    [isOvernightDay],
+  );
+
+
   /** Live totals for the dialog: gross span − sum(closed sessions). */
   const liveTotals = useMemo(() => {
     if (!editing) return { gross: 0, breakMin: 0, net: 0 };
