@@ -15,7 +15,9 @@ import { format, differenceInMinutes } from "date-fns";
 import { ar } from "date-fns/locale";
 import { useState, useEffect, useMemo } from "react";
 import { getActionableOpenSession } from "@/lib/attendance-session";
+import { workDayKey } from "@/lib/attendance-work-day";
 import { mergeManualWithRealSessions, realSessionsOutsideWindow } from "@/lib/employeeAttendanceDisplay";
+
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useHasMultipleWorkspaces } from "@/hooks/useHasMultipleWorkspaces";
