@@ -70,8 +70,15 @@ export interface BuildPrintOpts {
   showDueOrType?: boolean;
   /** Hide tax column / chip when VAT is disabled at company level. */
   taxEnabled?: boolean;
-  /** Hide the opening-balance row and summary cell in the printed statement. */
+  /**
+   * Hide the opening-balance row and its summary cell.
+   * PRESENTATION ONLY — this builder never recalculates figures. The caller is
+   * the single source of truth: it must pass rows / closingBalance already
+   * computed the same way they are shown on screen.
+   */
   hideOpeningBalance?: boolean;
+  /** Mixed currencies detected → balances are not comparable; print a warning instead of a total. */
+  mixedCurrencies?: boolean;
 }
 
 const esc = (s: any) =>
