@@ -1065,19 +1065,28 @@ export default function MonthlyAttendanceTab({
     setBreaksLoading(true);
     setRawEvents([]);
     setRawLoading(true);
-    // Load raw punches for the day ONLY (same calendar day — لا نظهر بصمات
-    // اليوم التالي حتى لا يظهر مثلاً دخول الأحد ضمن يوم السبت).
+    // 🛡️ نافذة يوم الدوام = نفس تعريف الخادم (06:00 → 06:00 اليوم التالي)،
+    // حتى تُعرض بصمات الوردية الليلية ضمن يومها الصحيح ولا تظهر بصمات
+    // وردية الأمس داخل اليوم التالي. تُوسَّع النافذة عند الحاجة لتغطية
+    // دخول/خروج اليوم المحفوظ (تعديلات الموارد البشرية) فلا يختفي أي وقت معتمد.
     (async () => {
       try {
-        const dayStart = `${r.attendance_date}T00:00:00`;
-        const next = new Date(r.attendance_date + "T00:00:00");
-        next.setDate(next.getDate() + 1);
+        const winStart = new Date(`${r.attendance_date}T00:00:00`);
+        winStart.setHours(6, 0, 0, 0);
+        const winEnd = new Date(winStart);
+        winEnd.setDate(winEnd.getDate() + 1);
+        const ciAt = r.first_check_in ? new Date(r.first_check_in) : null;
+        const coAt = r.last_check_out ? new Date(r.last_check_out) : null;
+        const from = ciAt && ciAt.getTime() < winStart.getTime() ? ciAt : winStart;
+        const to = coAt && coAt.getTime() > winEnd.getTime()
+          ? new Date(coAt.getTime() + 1000)
+          : winEnd;
         const { data } = await supabase
           .from("attendance_events")
           .select("id, event_type, event_time, branch_id, status, notes, checkout_kind")
           .eq("employee_id", r.employee_id)
-          .gte("event_time", dayStart)
-          .lt("event_time", next.toISOString())
+          .gte("event_time", from.toISOString())
+          .lt("event_time", to.toISOString())
           .order("event_time", { ascending: true });
         const evs = (data as any[]) || [];
         setRawEvents(evs);
@@ -1089,9 +1098,17 @@ export default function MonthlyAttendanceTab({
         const dismissed = ((dis as any[]) || []) as GapDismissal[];
         // Suggest sessions derived from the punches for any gap that has no
         // stored attendance_breaks row yet (unsaved drafts — HR just saves).
-        const gaps = deriveGapsFromPunches(evs as RawPunch[], { maxGap: depMaxGap }).filter(
-          (g) => !gapIsDismissed(g, r.id, dismissed),
-        );
+        // 🛡️ تُقصر الاقتراحات على نطاق اليوم المعتمد (بين الدخول والخروج) —
+        // بصمة يتيمة سابقة للدخول (مثل خروج منسي من وردية أمس) كانت تُقترح
+        // كجلسة يرفض النظام حفظها، فتتعطل الموارد البشرية بلا مخرج.
+        const gaps = deriveGapsFromPunches(evs as RawPunch[], { maxGap: depMaxGap })
+          .filter((g) => !gapIsDismissed(g, r.id, dismissed))
+          .filter((g) => {
+            if (ciAt && new Date(g.out).getTime() < ciAt.getTime()) return false;
+            if (coAt && new Date(g.in).getTime() > coAt.getTime()) return false;
+            return true;
+          });
+
         if (gaps.length) {
           setBreaks((prev) => {
             const stored = prev.map((b) => ({
@@ -1176,11 +1193,27 @@ export default function MonthlyAttendanceTab({
     return dt;
   }, []);
 
+  /** 🛡️ هل يوم العمل يعبر منتصف الليل فعلاً؟ (الخروج قبل الدخول بالساعة).
+   *  بدون هذا الشرط كان أي وقت سابق للدخول يُرحَّل تلقائياً لليوم التالي،
+   *  فتظهر رسالة "بعد الخروج" المضللة بدل "قبل الدخول"، وتُحتسب فجوة وهمية. */
+  const isOvernightDay = useMemo(
+    () =>
+      !!form.first_check_in &&
+      !!form.last_check_out &&
+      form.last_check_out < form.first_check_in,
+    [form.first_check_in, form.last_check_out],
+  );
+  const ovn = useCallback(
+    (anchor?: Date | null) => (isOvernightDay ? anchor ?? null : null),
+    [isOvernightDay],
+  );
+
+
   /** Live totals for the dialog: gross span − sum(closed sessions). */
   const liveTotals = useMemo(() => {
     if (!editing) return { gross: 0, breakMin: 0, net: 0 };
     const ci = combineDT(editing.attendance_date, form.first_check_in);
-    const co = combineDT(editing.attendance_date, form.last_check_out, ci);
+    const co = combineDT(editing.attendance_date, form.last_check_out, ovn(ci));
     let gross = 0;
     if (ci && co && co.getTime() > ci.getTime()) {
       gross = roundSecondsToMinutes(co.getTime() - ci.getTime());
@@ -1190,8 +1223,8 @@ export default function MonthlyAttendanceTab({
       if (b._deleted) continue;
       // المهمة الخارجية = وقت عمل مدفوع اعتباراً من 21/08/2026 فقط (تجميد الأيام السابقة).
       if (b.break_type === "external_task" && editing.attendance_date >= "2026-08-21") continue;
-      const bo = combineDT(editing.attendance_date, b.out, ci);
-      const bi = combineDT(editing.attendance_date, b.in, bo || ci);
+      const bo = combineDT(editing.attendance_date, b.out, ovn(ci));
+      const bi = combineDT(editing.attendance_date, b.in, ovn(bo || ci));
       if (bo && bi && bi.getTime() > bo.getTime()) {
         breakMin += roundSecondsToMinutes(bi.getTime() - bo.getTime());
       }
@@ -1215,7 +1248,7 @@ export default function MonthlyAttendanceTab({
     // out, or the day was closed manually) must still be counted — close it at
     // the day's check-out time instead of dropping the whole evening session.
     const ci = combineDT(editing.attendance_date, form.first_check_in);
-    const closeAt = combineDT(editing.attendance_date, form.last_check_out, ci)?.getTime() ?? null;
+    const closeAt = combineDT(editing.attendance_date, form.last_check_out, ovn(ci))?.getTime() ?? null;
     let total = 0;
     let openIn: number | null = null;
     for (const e of sorted) {
@@ -1242,12 +1275,12 @@ export default function MonthlyAttendanceTab({
   const validateBreaks = (): string | null => {
     if (!editing) return null;
     const ci = combineDT(editing.attendance_date, form.first_check_in);
-    const co = combineDT(editing.attendance_date, form.last_check_out, ci);
+    const co = combineDT(editing.attendance_date, form.last_check_out, ovn(ci));
     const rows = breaks
       .filter((b) => !b._deleted && (b.out || b.in))
       .map((b) => {
-        const bo = combineDT(editing.attendance_date, b.out, ci);
-        const bi = combineDT(editing.attendance_date, b.in, bo || ci);
+        const bo = combineDT(editing.attendance_date, b.out, ovn(ci));
+        const bi = combineDT(editing.attendance_date, b.in, ovn(bo || ci));
         return { out: bo, in: bi, label: BREAK_TYPE_LABEL[b.break_type] };
       });
     for (const r of rows) {
@@ -1279,14 +1312,14 @@ export default function MonthlyAttendanceTab({
     setSaving(true);
     try {
       const ciDate = combineDT(editing.attendance_date, form.first_check_in);
-      const coDate = combineDT(editing.attendance_date, form.last_check_out, ciDate);
+      const coDate = combineDT(editing.attendance_date, form.last_check_out, ovn(ciDate));
       const ci = ciDate ? ciDate.toISOString() : null;
       const co = coDate ? coDate.toISOString() : null;
       const activeBreaks = ci && co ? breaks
         .filter((b) => !b._deleted)
         .map((b) => {
-          const breakOut = combineDT(editing.attendance_date, b.out, ciDate);
-          const breakIn = combineDT(editing.attendance_date, b.in, breakOut || ciDate);
+          const breakOut = combineDT(editing.attendance_date, b.out, ovn(ciDate));
+          const breakIn = combineDT(editing.attendance_date, b.in, ovn(breakOut || ciDate));
           return {
             break_type: b.break_type,
             break_out: breakOut?.toISOString() ?? "",
