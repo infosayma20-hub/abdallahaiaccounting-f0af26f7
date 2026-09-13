@@ -114,8 +114,8 @@ const typeLabel = (t: string) => {
 
 export function buildAccountStatementPrintHTML(opts: BuildPrintOpts): string {
   const {
-    company, contact, rows: rawRows,
-    openingBalance, totalDebit, totalCredit, closingBalance: rawClosingBalance,
+    company, contact, rows,
+    openingBalance, totalDebit, totalCredit, closingBalance,
     dateFrom, dateTo, statementNumber,
     currencyLabel, currencySymbol,
     includeInvoiceDetails = false,
@@ -124,17 +124,13 @@ export function buildAccountStatementPrintHTML(opts: BuildPrintOpts): string {
     showDueOrType = true,
     taxEnabled = true,
     hideOpeningBalance = false,
+    mixedCurrencies = false,
   } = opts;
 
-  // When the opening balance is hidden, remove its financial effect too:
-  // running balances and the closing balance are computed from the period's
-  // movements only (they no longer start from the opening balance).
-  const rows: PrintRow[] = hideOpeningBalance && openingBalance !== 0
-    ? rawRows.map(r => ({ ...r, balance: Number(r.balance || 0) - openingBalance }))
-    : rawRows;
-  const closingBalance = hideOpeningBalance
-    ? Number(rawClosingBalance || 0) - openingBalance
-    : rawClosingBalance;
+  // NOTE: no figure is recalculated here. Rows, totals and the closing balance
+  // are printed exactly as the caller computed them for the screen, so the
+  // printout can never drift from what the user reviewed.
+
 
 
   const fmt = (n: number) => {
