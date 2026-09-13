@@ -302,14 +302,27 @@ const InvoicesPage = () => {
    */
   const itemsCacheRef = useRef<Map<string, InvoiceItem[]>>(new Map());
 
+  /**
+   * Hydrate the line items of a single invoice.
+   *
+   * Two hard rules learned from a production bug (printed invoices came out
+   * with 0.00 totals):
+   *  1. Select ONLY columns that exist on `invoice_items`. A bad column makes
+   *     PostgREST fail the whole request, and a silently-ignored error used to
+   *     leave the invoice with zero items.
+   *  2. NEVER swallow the error and NEVER cache an empty result on failure —
+   *     throw so callers (print / preview / duplicate) can refuse to render a
+   *     bogus zero-value document.
+   */
   const hydrateInvoiceItems = async (inv: Invoice): Promise<Invoice> => {
     if (inv.items && inv.items.length > 0) return inv;
     const cached = itemsCacheRef.current.get(inv.id);
     if (cached) return { ...inv, items: cached };
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from("invoice_items")
-      .select("id, product_id, product_name, description, quantity, bonus_quantity, unit_price, discount, discount_type, tax_rate, tax_category, unit_of_measure, total_amount, products(sku, barcode)")
+      .select("id, product_id, product_name, description, quantity, bonus_quantity, unit_price, discount, discount_type, tax_rate, unit_of_measure, total_amount, products(sku, barcode)")
       .eq("invoice_id", inv.id);
+    if (error) throw error;
     const items: InvoiceItem[] = ((data as any[]) || []).map((item: any) => ({
       id: item.id,
       productId: item.product_id || undefined,
@@ -321,12 +334,40 @@ const InvoicesPage = () => {
       discount: Number(item.discount) || 0,
       discountType: (item.discount_type === 'percent' ? 'percent' : 'amount'),
       taxRate: Number(item.tax_rate) || 0,
-      taxCategory: item.tax_category || (Number(item.tax_rate) > 0 ? 'taxable' : 'exempt'),
+      taxCategory: (Number(item.tax_rate) > 0 ? 'taxable' : 'exempt'),
       unitOfMeasure: item.unit_of_measure || 'قطعة',
       subtotal: Number(item.total_amount) || 0,
     })) as InvoiceItem[];
-    itemsCacheRef.current.set(inv.id, items);
+    // Only cache a real, non-empty result — an empty array may simply mean the
+    // read was blocked, and caching it would poison every later print.
+    if (items.length > 0) itemsCacheRef.current.set(inv.id, items);
     return { ...inv, items };
+  };
+
+  /**
+   * Guard used by every print/PDF path: refuse to produce a document whose
+   * line items could not be loaded, instead of printing a 0.00 invoice.
+   */
+  const loadInvoiceForDocument = async (inv: Invoice): Promise<Invoice | null> => {
+    try {
+      const hydrated = await hydrateInvoiceItems(inv);
+      if (!hydrated.items || hydrated.items.length === 0) {
+        toast({
+          title: tt("تعذر تحميل أصناف الفاتورة"),
+          description: tt("لم يتم جلب بنود الفاتورة — تم إيقاف الطباعة لتفادي طباعة فاتورة بقيمة صفر. أعد المحاولة."),
+          variant: "destructive",
+        });
+        return null;
+      }
+      return hydrated;
+    } catch (e: any) {
+      toast({
+        title: tt("تعذر تحميل أصناف الفاتورة"),
+        description: e?.message || tt("أعد المحاولة"),
+        variant: "destructive",
+      });
+      return null;
+    }
   };
 
   const openPreview = async (inv: Invoice) => {
