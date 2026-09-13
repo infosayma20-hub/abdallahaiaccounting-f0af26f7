@@ -18,6 +18,13 @@ interface Props {
 export default function FilterPanel({ source, filters, onChange, groupBy, onGroupByChange, onRun, loading }: Props) {
   const update = (patch: Partial<ReportFilters>) => onChange({ ...filters, ...patch });
 
+  // The inventory source lists products; its only date column is the product
+  // creation date — NOT stock movement dates. Label it honestly so nobody
+  // reads a filtered product list as "stock movements in this period".
+  const isInventory = source.key === "inventory";
+  const dateFromLabel = isInventory ? "أضيف من تاريخ" : "من تاريخ";
+  const dateToLabel = isInventory ? "أضيف إلى تاريخ" : "إلى تاريخ";
+
   // Build group-by options including data fields with groupable flag
   const groupableFields = source.fields.filter(f => f.groupable);
   const allGroupOpts = [
@@ -31,7 +38,7 @@ export default function FilterPanel({ source, filters, onChange, groupBy, onGrou
         {/* Date range */}
         <div className="space-y-1">
           <label className="text-[10px] font-medium text-muted-foreground flex items-center gap-1">
-            <Calendar className="h-3 w-3" /> من تاريخ
+            <Calendar className="h-3 w-3" /> {dateFromLabel}
           </label>
           <Input
             type="date"
@@ -42,7 +49,7 @@ export default function FilterPanel({ source, filters, onChange, groupBy, onGrou
         </div>
         <div className="space-y-1">
           <label className="text-[10px] font-medium text-muted-foreground flex items-center gap-1">
-            <Calendar className="h-3 w-3" /> إلى تاريخ
+            <Calendar className="h-3 w-3" /> {dateToLabel}
           </label>
           <Input
             type="date"
@@ -113,6 +120,13 @@ export default function FilterPanel({ source, filters, onChange, groupBy, onGrou
           </Select>
         </div>
       </div>
+
+      {isInventory && (
+        <p className="text-[10px] text-muted-foreground leading-relaxed">
+          تنبيه: فلتر التاريخ هنا يخص <strong>تاريخ إضافة الصنف</strong> فقط، وليس حركات المخزون خلال الفترة.
+          اتركه فارغاً لعرض كل الأصناف، واستخدم تقرير «حركة المخزون» لمعرفة الحركات بين تاريخين.
+        </p>
+      )}
 
       <div className="flex justify-end pt-1">
         <Button onClick={onRun} disabled={loading} size="sm" className="gap-2 h-9">
