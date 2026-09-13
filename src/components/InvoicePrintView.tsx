@@ -649,7 +649,7 @@ const InvoicePrintView = ({
           {/* Tax */}
           {taxEnabled && totalTax > 0 && (
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", padding: "10px 4px", fontSize: "13px" }}>
-              <span style={{ color: "#4B5563" }}>ضريبة القيمة المضافة (16%)</span>
+              <span style={{ color: "#4B5563" }}>ضريبة القيمة المضافة{taxRateLabel ? ` (${taxRateLabel})` : ""}</span>
               <span style={{ fontWeight: 600, color: "#1B3A5C" }}>{invoice.taxInclusive ? "" : "+"}{fmtAmount(totalTax)}</span>
             </div>
           )}
