@@ -93,7 +93,7 @@ const FIELDS: Record<Tab, Array<{ key: keyof StatementViewOptions; label: string
     { key: "showCompanyLogo", label: "إظهار شعار الشركة" },
     { key: "showContactInfo", label: "إظهار بيانات التواصل" },
     { key: "showSignature", label: "إظهار خانات التوقيع والاعتماد" },
-    { key: "hideOpeningBalance", label: "إخفاء الرصيد الافتتاحي عند الطباعة", hint: "لا يظهر صف «رصيد أول المدة» ولا خانة الرصيد الافتتاحي في الطباعة و PDF" },
+    { key: "hideOpeningBalance", label: "إخفاء الرصيد الافتتاحي", hint: "يُخفي صف «رصيد أول المدة» وخانة الرصيد الافتتاحي، وتُحتسب الأرصدة من حركات الفترة فقط — على الشاشة وفي الطباعة و PDF و Excel" },
   ],
   noise: [
     { key: "hideCancelledEntries", label: "إخفاء السندات الملغاة", hint: "لا تُظهر القيود التي تم إلغاؤها (المشطوبة)" },

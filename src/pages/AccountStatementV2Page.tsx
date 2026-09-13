@@ -1265,7 +1265,10 @@ const AccountStatementV2Page = () => {
     const today = new Date();
     // FIFO net aging: credits (including reverse entries) consume the oldest debit lots first.
     // Anything netted to zero — including a reversed transaction — drops out of the buckets.
-    const sorted = [...rows].sort((a, b) => a.date.localeCompare(b.date));
+    // Built from the VISIBLE rows so the aging card and its Excel block obey the
+    // same filters (cancelled / reversals / type / cost center / search) as every
+    // other figure on the statement.
+    const sorted = [...filteredRows].sort((a, b) => a.date.localeCompare(b.date));
     const lots: { date: string; remaining: number }[] = [];
     let creditPool = 0;
     for (const row of sorted) {
@@ -1296,7 +1299,7 @@ const AccountStatementV2Page = () => {
     }
     const total = current + d1_30 + d31_60 + d60plus;
     return total === 0 ? null : { current, d1_30, d31_60, d60plus, total };
-  }, [rows, selectedEntityId, isAccountsTab]);
+  }, [filteredRows, selectedEntityId, isAccountsTab]);
 
   useEffect(() => { setDetailsMap(prev => ({ ...prev, agingSummary: agingData, companySettings: companyInfo })); }, [agingData, companyInfo]);
 
