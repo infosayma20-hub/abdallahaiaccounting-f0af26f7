@@ -705,18 +705,24 @@ if (warehouseFilter === "all") return products.map(p => withWh(p));
     (async () => {
       try {
         const { fetchAllRows } = await import("@/lib/fetch-all-rows");
-        const rows = await fetchAllRows<{ product_id: string | null }>((from, to) => {
-          let q: any = supabase
-            .from("stock_movements")
-            .select("product_id")
-            .eq("user_id", ownerId)
-            .range(from, to);
-          if (dateFrom) q = q.gte("created_at", `${dateFrom}T00:00:00`);
-          if (dateTo) q = q.lte("created_at", `${dateTo}T23:59:59.999`);
-          return q;
-        });
+        const loadFrom = (table: "stock_movements" | "pos_inventory_movements") =>
+          fetchAllRows<{ product_id: string | null }>((from, to) => {
+            let q: any = supabase
+              .from(table)
+              .select("product_id")
+              .eq("user_id", ownerId)
+              .range(from, to);
+            if (dateFrom) q = q.gte("created_at", `${dateFrom}T00:00:00`);
+            if (dateTo) q = q.lte("created_at", `${dateTo}T23:59:59.999`);
+            return q;
+          });
+        // Movement can come from the classic stock ledger or from POS sales.
+        const [stockRows, posRows] = await Promise.all([
+          loadFrom("stock_movements"),
+          loadFrom("pos_inventory_movements"),
+        ]);
         if (cancelled) return;
-        setMovedProductIds(new Set(rows.map(r => r.product_id).filter(Boolean) as string[]));
+        setMovedProductIds(new Set([...stockRows, ...posRows].map(r => r.product_id).filter(Boolean) as string[]));
       } catch (e: any) {
         if (cancelled) return;
         setMovedProductIds(null);
