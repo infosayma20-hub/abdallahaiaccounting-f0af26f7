@@ -373,7 +373,8 @@ const InvoicesPage = () => {
   const openPreview = async (inv: Invoice) => {
     setSelectedInvoice(inv);
     setShowPreviewDialog(true);
-    const full = await hydrateInvoiceItems(inv);
+    const full = await loadInvoiceForDocument(inv);
+    if (!full) return;
     setSelectedInvoice(prev => (prev && prev.id === full.id ? full : prev));
   };
 
@@ -978,7 +979,8 @@ const InvoicesPage = () => {
     const app = selectedInvoice.type === "purchase" ? "purchases" : "sales";
     const feature = selectedInvoice.type === "purchase" ? "purchase_invoices" : "invoices";
     try { await assertPermission(app, feature, "print"); } catch { return; }
-    const hydrated = await hydrateInvoiceItems(selectedInvoice);
+    const hydrated = await loadInvoiceForDocument(selectedInvoice);
+    if (!hydrated) return;
     // اجلب الرصيد الختامي للجهة من الحالة المحملة (contacts withBalances)
     const contactRow = (contacts as any[]).find(c => c.id === (hydrated as any).contactId);
     const closingBalance = contactRow && typeof contactRow.balance === "number" ? contactRow.balance : undefined;
@@ -1003,7 +1005,8 @@ const InvoicesPage = () => {
     const app = inv.type === "purchase" ? "purchases" : "sales";
     const feature = inv.type === "purchase" ? "purchase_invoices" : "invoices";
     try { await assertPermission(app, feature, "print"); } catch { return; }
-    const hydrated = await hydrateInvoiceItems(inv);
+    const hydrated = await loadInvoiceForDocument(inv);
+    if (!hydrated) return;
     printReactDocument(
       <InvoicePrintView invoice={hydrated} settings={companySettings} copyLabel={tt("أصلية")} />,
       {
