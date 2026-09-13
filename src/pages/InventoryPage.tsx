@@ -150,6 +150,12 @@ const InventoryPage = () => {
   const [whStockMap, setWhStockMap] = useState<Map<string, number>>(new Map());
   const [dateFrom, setDateFrom] = usePageSessionState<string>("dateFrom", "");
   const [dateTo, setDateTo] = usePageSessionState<string>("dateTo", "");
+  // Date filter meaning: "movement" = products that had stock movements inside
+  // the range (what accountants expect from "المخزون من تاريخ إلى تاريخ"),
+  // "added" = products created inside the range (the old, surprising behaviour).
+  const [dateMode, setDateMode] = usePageSessionState<"movement" | "added">("dateMode", "movement");
+  const [movedProductIds, setMovedProductIds] = useState<Set<string> | null>(null);
+  const [movedLoading, setMovedLoading] = useState(false);
   const [showProductDialog, setShowProductDialog] = useState(false);
   const [showMovementsDialog, setShowMovementsDialog] = useState(false);
   const [movements, setMovements] = useState<StockMovement[]>([]);
@@ -687,6 +693,41 @@ if (warehouseFilter === "all") return products.map(p => withWh(p));
     setMovementsLoading(false);
   };
 
+  // Load the set of products that actually moved inside the selected range.
+  useEffect(() => {
+    if (dateMode !== "movement" || (!dateFrom && !dateTo) || !ownerId) {
+      setMovedProductIds(null);
+      setMovedLoading(false);
+      return;
+    }
+    let cancelled = false;
+    setMovedLoading(true);
+    (async () => {
+      try {
+        const { fetchAllRows } = await import("@/lib/fetch-all-rows");
+        const rows = await fetchAllRows<{ product_id: string | null }>((from, to) => {
+          let q: any = supabase
+            .from("stock_movements")
+            .select("product_id")
+            .eq("user_id", ownerId)
+            .range(from, to);
+          if (dateFrom) q = q.gte("created_at", `${dateFrom}T00:00:00`);
+          if (dateTo) q = q.lte("created_at", `${dateTo}T23:59:59.999`);
+          return q;
+        });
+        if (cancelled) return;
+        setMovedProductIds(new Set(rows.map(r => r.product_id).filter(Boolean) as string[]));
+      } catch (e: any) {
+        if (cancelled) return;
+        setMovedProductIds(null);
+        toast({ title: "تعذر تحميل حركات المخزون للفترة", description: e?.message, variant: "destructive" });
+      } finally {
+        if (!cancelled) setMovedLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [dateMode, dateFrom, dateTo, ownerId, toast]);
+
   // Filtering
   const filtered = useMemo(() => {
     let data = [...displayProducts];
@@ -700,10 +741,18 @@ if (warehouseFilter === "all") return products.map(p => withWh(p));
     if (searchQuery) {
       data = data.filter(p => multiWordMatchAny(searchQuery, p.name, p.sku, p.category, p.barcode, (p as any).brand, (p as any).manufacturer, (p as any).model, (p as any).original_number, (p as any).factory_number, (p as any).print_name));
     }
-    if (dateFrom) data = data.filter(p => (p.created_at?.split("T")[0] || "") >= dateFrom);
-    if (dateTo) data = data.filter(p => (p.created_at?.split("T")[0] || "") <= dateTo);
+    if (dateFrom || dateTo) {
+      if (dateMode === "movement") {
+        // Only narrow once the movement ids are loaded; never show a wrong
+        // (empty) list while the query is still in flight.
+        if (movedProductIds) data = data.filter(p => movedProductIds.has(p.id));
+      } else {
+        if (dateFrom) data = data.filter(p => (p.created_at?.split("T")[0] || "") >= dateFrom);
+        if (dateTo) data = data.filter(p => (p.created_at?.split("T")[0] || "") <= dateTo);
+      }
+    }
     return applyFilters(data, shellFilters);
-  }, [displayProducts, filterCategory, stockFilter, searchQuery, dateFrom, dateTo, shellFilters]);
+  }, [displayProducts, filterCategory, stockFilter, searchQuery, dateFrom, dateTo, dateMode, movedProductIds, shellFilters]);
 
   // Sorting
   const sorted = useMemo(() => {
@@ -1146,14 +1195,36 @@ const negStock = displayProducts.filter(p => Number(p.quantity) < 0).length;
               </button>
             ))}
           </div>
-          <DateRangeFilter
-            dateFrom={dateFrom}
-            dateTo={dateTo}
-            onDateFromChange={setDateFrom}
-            onDateToChange={setDateTo}
-            onClear={() => { setDateFrom(""); setDateTo(""); }}
-            compact
-          />
+          <div className="flex items-center gap-1.5 flex-wrap">
+            <div className="flex rounded border border-border overflow-hidden shrink-0">
+              {([
+                { key: "movement", label: "حسب الحركة" },
+                { key: "added", label: "حسب الإضافة" },
+              ] as const).map(o => (
+                <button
+                  key={o.key}
+                  onClick={() => setDateMode(o.key)}
+                  title={o.key === "movement"
+                    ? "عرض الأصناف التي عليها حركة مخزون خلال الفترة"
+                    : "عرض الأصناف التي أُضيفت خلال الفترة"}
+                  className={`px-2 py-1 text-[10px] font-semibold transition-colors ${
+                    dateMode === o.key ? "bg-primary/10 text-primary" : "bg-card text-muted-foreground hover:bg-muted/40"
+                  }`}
+                >
+                  {o.label}
+                </button>
+              ))}
+            </div>
+            <DateRangeFilter
+              dateFrom={dateFrom}
+              dateTo={dateTo}
+              onDateFromChange={setDateFrom}
+              onDateToChange={setDateTo}
+              onClear={() => { setDateFrom(""); setDateTo(""); }}
+              compact
+            />
+            {movedLoading && <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground" />}
+          </div>
           {selected.size > 0 && (
             <span className="text-[11px] text-primary font-semibold whitespace-nowrap">{selected.size} صنف محدد</span>
           )}
