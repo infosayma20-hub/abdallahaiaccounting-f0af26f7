@@ -319,7 +319,7 @@ export function buildAccountStatementPrintHTML(opts: BuildPrintOpts): string {
         if (c.key === "description") return `<td><strong>الإجمالي</strong></td>`;
         if (c.key === "debit") return `<td class="al-left"><strong>${esc(fmt(totalDebit))}</strong></td>`;
         if (c.key === "credit") return `<td class="al-left"><strong>${esc(fmt(totalCredit))}</strong></td>`;
-        if (c.key === "balance") return `<td class="al-left"><strong>${esc(fmtSigned(closingBalance))}</strong></td>`;
+        if (c.key === "balance") return `<td class="al-left"><strong>${mixedCurrencies ? "—" : esc(fmtSigned(closingBalance))}</strong></td>`;
         return `<td></td>`;
       }).join("")}
     </tr>
@@ -463,6 +463,11 @@ export function buildAccountStatementPrintHTML(opts: BuildPrintOpts): string {
     .items-tbl th { font-weight: 600; background: #fafafa; color: #222; }
 
     /* Footer */
+    .doc-note {
+      font-size: 10px; color: #555;
+      margin: -8px 0 12px;
+    }
+
     .doc-foot {
       margin-top: 16px;
       padding-top: 6px;
