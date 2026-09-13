@@ -15,7 +15,9 @@ import { format, differenceInMinutes } from "date-fns";
 import { ar } from "date-fns/locale";
 import { useState, useEffect, useMemo } from "react";
 import { getActionableOpenSession } from "@/lib/attendance-session";
+import { workDayKey } from "@/lib/attendance-work-day";
 import { mergeManualWithRealSessions, realSessionsOutsideWindow } from "@/lib/employeeAttendanceDisplay";
+
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useHasMultipleWorkspaces } from "@/hooks/useHasMultipleWorkspaces";
@@ -197,20 +199,19 @@ export default function EmployeeHomeTab({ employeeName, todayRecord, todayEvents
     return `${h}س ${m}د`;
   };
 
-  // Per-date sessions (Asia/Hebron) built from recentEvents. Single source for hours.
+  // Per-work-day sessions (Asia/Hebron, 06:00 → 06:00 — same as the server) built
+  // from recentEvents. Single source for hours.
   const sessionsByDate = useMemo(() => {
     const MIN_MS = 60_000;
     const DEBOUNCE_MS = 60_000;
-    const dtf = new Intl.DateTimeFormat("en-CA", {
-      timeZone: "Asia/Hebron", year: "numeric", month: "2-digit", day: "2-digit",
-    });
     const byDate = new Map<string, { event_type: string; event_time: string }[]>();
     for (const e of recentEvents) {
-      const key = dtf.format(new Date(e.event_time));
+      const key = workDayKey(e.event_time);
       const arr = byDate.get(key) || [];
       arr.push(e);
       byDate.set(key, arr);
     }
+
     const result = new Map<string, { firstIn: string | null; lastOut: string | null; totalMs: number; count: number; sessions: { checkIn: string; checkOut: string | null; durationMs: number }[] }>();
     for (const [date, evs] of byDate) {
       const sorted = [...evs].sort((a, b) => new Date(a.event_time).getTime() - new Date(b.event_time).getTime());
