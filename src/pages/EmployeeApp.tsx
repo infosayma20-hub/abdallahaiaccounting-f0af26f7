@@ -34,28 +34,9 @@ import TeamRequestsTab from "@/components/employee/manager/TeamRequestsTab";
 import ShiftSwapsTab from "@/components/employee/manager/ShiftSwapsTab";
 import ManagerHeader from "@/components/employee/manager/ManagerHeader";
 import { getActionableOpenSession } from "@/lib/attendance-session";
+import { workDayKey, workDayRange } from "@/lib/attendance-work-day";
 
-function palestineDayRange(datePart: string): { start: string; end: string } {
-  const [year, month, day] = datePart.split("-").map(Number);
-  const toUtc = (dayOffset: number) => {
-    const target = new Date(Date.UTC(year, month - 1, day + dayOffset));
-    const targetDate = target.toISOString().slice(0, 10);
-    const noonUtc = new Date(`${targetDate}T12:00:00Z`);
-    const localHour = Number(new Intl.DateTimeFormat("en-US", {
-      timeZone: "Asia/Hebron",
-      hour: "2-digit",
-      hour12: false,
-    }).format(noonUtc));
-    const offsetHours = localHour - 12;
-    return new Date(Date.UTC(
-      target.getUTCFullYear(),
-      target.getUTCMonth(),
-      target.getUTCDate(),
-      -offsetHours,
-    )).toISOString();
-  };
-  return { start: toUtc(0), end: toUtc(1) };
-}
+
 
 function NoPerm({ onBack, text }: { onBack: () => void; text: string }) {
   return (
