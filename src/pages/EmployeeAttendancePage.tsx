@@ -143,8 +143,9 @@ export default function EmployeeAttendancePage() {
         .from("attendance_events")
         .select("event_type, event_time")
         .eq("employee_id", emp.id)
-        .gte("event_time", `${today}T00:00:00+03:00`)
-        .lte("event_time", `${today}T23:59:59+03:00`)
+        .gte("event_time", todayRange.start)
+        .lt("event_time", todayRange.end)
+
         .in("status", ["valid", "manual"])
         .order("event_time", { ascending: true });
       setTodayEvents(eventsData || []);
