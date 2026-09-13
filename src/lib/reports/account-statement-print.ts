@@ -13,7 +13,10 @@ export interface PrintRow {
   date: string;
   description: string;
   transaction_type: string;
+  /** RAW reference — used as the join key for invoice details. */
   reference: string;
+  /** Optional display label for the "المرجع" column (falls back to `reference`). */
+  referenceLabel?: string;
   debit: number;
   credit: number;
   balance: number;
