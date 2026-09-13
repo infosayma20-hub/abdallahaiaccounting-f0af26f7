@@ -1594,7 +1594,9 @@ const AccountStatementV2Page = () => {
       transaction_id: r.transaction_id,
       dueDate: r.dueDate,
     })),
-    openingBalance,
+    // Screen rows/closing are already recomputed from zero when the opening
+    // balance is hidden, so pass 0 to avoid subtracting it a second time.
+    openingBalance: statementOptions.hideOpeningBalance ? 0 : openingBalance,
     totalDebit: displayTotalDebit,
     totalCredit: displayTotalCredit,
     closingBalance: displayClosingBalance,
