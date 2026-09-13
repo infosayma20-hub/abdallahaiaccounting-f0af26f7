@@ -250,11 +250,11 @@ export default function EmployeeApp({ initialTab }: { initialTab?: Tab } = {}) {
       setEmployee(emp as Employee | null);
       if (!emp) { setLoading(false); return; }
 
-      // Use Asia/Hebron local date for "today"
-      const today = new Intl.DateTimeFormat("en-CA", {
-        timeZone: "Asia/Hebron", year: "numeric", month: "2-digit", day: "2-digit",
-      }).format(new Date());
-      const todayRange = palestineDayRange(today);
+      // Work day (Asia/Hebron, 06:00 → 06:00) — same definition the server uses
+      // for attendance_days, so night shifts stay on their own day.
+      const today = workDayKey();
+      const todayRange = workDayRange(today);
+
       // 60-day window for recent events (covers stats + last-5 days)
       const since = new Date(Date.now() - 60 * 86400_000).toISOString();
 
