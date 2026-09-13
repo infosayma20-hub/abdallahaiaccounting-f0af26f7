@@ -333,7 +333,9 @@ const InvoicesPage = () => {
       bonusQuantity: Number(item.bonus_quantity) || 0,
       unitPrice: Number(item.unit_price) || 0,
       discount: Number(item.discount) || 0,
-      discountType: (item.discount_type === 'percent' ? 'percent' : 'amount'),
+      // DB default for discount_type is 'percent' — mirror it exactly so a print
+      // and an edit of the same invoice never interpret a discount differently.
+      discountType: (item.discount_type === 'amount' ? 'amount' : 'percent'),
       taxRate: Number(item.tax_rate) || 0,
       taxCategory: (Number(item.tax_rate) > 0 ? 'taxable' : 'exempt'),
       unitOfMeasure: item.unit_of_measure || 'قطعة',
