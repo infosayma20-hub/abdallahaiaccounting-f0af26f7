@@ -1535,6 +1535,15 @@ const AccountStatementV2Page = () => {
     ];
 
     const header = [cols.map(c => c.label)];
+    // Opening-balance row — mirrors the on-screen table (omitted when hidden).
+    const openingRow = statementOptions.hideOpeningBalance ? null : cols.map(c => {
+      if (c.key === "date") return dateFrom ? fmtDate(dateFrom) : "";
+      if (c.key === "description") return "رصيد أول المدة";
+      if (c.key === "debit") return openingBalance > 0 ? openingBalance : "";
+      if (c.key === "credit") return openingBalance < 0 ? Math.abs(openingBalance) : "";
+      if (c.key === "balance") return openingBalance;
+      return "";
+    });
     const data = statementRowsWithDetails.map(r => cols.map(c => c.value(r)));
     const totalsRow = cols.map(c => {
       if (c.key === "description") return "الإجمالي";
@@ -1544,7 +1553,13 @@ const AccountStatementV2Page = () => {
       return "";
     });
 
-    const sheet: (string | number)[][] = [...header, ...data, [], totalsRow];
+    const sheet: (string | number)[][] = [
+      ...header,
+      ...(openingRow ? [openingRow] : []),
+      ...data,
+      [],
+      totalsRow,
+    ];
 
     // Append aging analysis if enabled
     if (statementOptions.showAging && agingData) {
