@@ -154,49 +154,64 @@ const InvoicePrintView = ({
     ? { width: "320px", height: "auto", objectFit: "contain" as const, display: "block" }
     : { width: "56px", height: "56px", borderRadius: "8px", objectFit: "contain" as const, background: "white", padding: "3px" };
 
-  // Calculate item-level tax
+  // Calculate item-level tax.
+  // The rate always comes from the line itself (item.taxRate); never assume 16%,
+  // otherwise a line saved with a different rate would print the wrong tax.
+  const itemDiscountAmount = (item: InvoiceItem) => {
+    const base = item.quantity * item.unitPrice;
+    const raw = Number(item.discount) || 0;
+    return item.discountType === "percent" ? base * (raw / 100) : raw;
+  };
+
   const calcItemTotal = (item: InvoiceItem) => {
     const base = item.quantity * item.unitPrice;
-    const rawDiscount = Number(item.discount) || 0;
-    const discountAmount = item.discountType === "percent"
-      ? base * (rawDiscount / 100)
-      : rawDiscount;
+    const discountAmount = itemDiscountAmount(item);
     const afterDiscount = base - discountAmount;
     if (!taxEnabled) return { base, afterDiscount, tax: 0, total: afterDiscount, category: "none" as const };
     const cat = item.taxCategory || (item.taxRate > 0 ? "taxable" : "exempt");
+    const rate = cat === "taxable" ? (Number(item.taxRate) > 0 ? Number(item.taxRate) : 16) : 0;
     if (invoice.taxInclusive) {
       // Price already includes tax — extract tax, don't add
-      const rate = cat === "taxable" ? 16 : 0;
       const tax = cat === "exempt" ? 0 : afterDiscount - (afterDiscount / (1 + rate / 100));
       return { base, afterDiscount, tax, total: afterDiscount, category: cat };
     }
-    const rate = cat === "taxable" ? 16 : 0;
     const tax = cat === "exempt" ? 0 : afterDiscount * (rate / 100);
     return { base, afterDiscount, tax, total: afterDiscount + tax, category: cat };
+  };
+
+  /** Net (tax-exclusive) amount of a line, whatever the tax mode is. */
+  const itemNetAmount = (item: InvoiceItem) => {
+    const calc = calcItemTotal(item);
+    if (!invoice.taxInclusive || calc.category !== "taxable") return calc.afterDiscount;
+    return calc.afterDiscount - calc.tax;
   };
 
   let taxableNetTotal = 0, zeroNetTotal = 0, exemptNetTotal = 0;
   invoice.items.forEach(item => {
     const calc = calcItemTotal(item);
-    const netAmount = invoice.taxInclusive && calc.category === "taxable" 
-      ? calc.afterDiscount / 1.16 
-      : calc.afterDiscount;
-    if (calc.category === "taxable") taxableNetTotal += netAmount;
+    if (calc.category === "taxable") taxableNetTotal += itemNetAmount(item);
     else if (calc.category === "zero") zeroNetTotal += calc.afterDiscount;
     else exemptNetTotal += calc.afterDiscount;
   });
 
-  const subtotalBeforeTax = invoice.taxInclusive
-    ? invoice.items.reduce((s, item) => {
-        const calc = calcItemTotal(item);
-        return s + (calc.category === "taxable" ? calc.afterDiscount / 1.16 : calc.afterDiscount);
-      }, 0)
-    : invoice.items.reduce((s, item) => s + calcItemTotal(item).afterDiscount, 0);
+  const subtotalBeforeTax = invoice.items.reduce((s, item) => s + itemNetAmount(item), 0);
   const totalTax = taxEnabled ? invoice.items.reduce((s, item) => s + calcItemTotal(item).tax, 0) : 0;
-  // Split discount into item-level (already applied inside afterDiscount) and invoice-level (global)
-  const itemsDiscountSum = invoice.items.reduce((s, item) => s + (Number(item.discount) || 0), 0);
+  // Label the VAT line with the rate(s) actually used on the invoice.
+  const taxRateLabel = (() => {
+    const rates = Array.from(new Set(
+      invoice.items
+        .filter(it => calcItemTotal(it).category === "taxable")
+        .map(it => (Number(it.taxRate) > 0 ? Number(it.taxRate) : 16)),
+    ));
+    return rates.length === 1 ? `${rates[0]}%` : "";
+  })();
+  // Split discount into item-level (already applied inside afterDiscount) and
+  // invoice-level (global). Item discounts must be summed as real amounts —
+  // summing raw percent values here used to understate the invoice-level part.
+  const itemsDiscountSum = invoice.items.reduce((s, item) => s + itemDiscountAmount(item), 0);
   const invoiceLevelDiscount = Math.max(0, (Number(invoice.totalDiscount) || 0) - itemsDiscountSum);
   const grandTotal = subtotalBeforeTax + totalTax - invoiceLevelDiscount;
+
 
   return (
     <div
@@ -643,7 +658,7 @@ const InvoicePrintView = ({
           {/* Tax */}
           {taxEnabled && totalTax > 0 && (
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", padding: "10px 4px", fontSize: "13px" }}>
-              <span style={{ color: "#4B5563" }}>ضريبة القيمة المضافة (16%)</span>
+              <span style={{ color: "#4B5563" }}>ضريبة القيمة المضافة{taxRateLabel ? ` (${taxRateLabel})` : ""}</span>
               <span style={{ fontWeight: 600, color: "#1B3A5C" }}>{invoice.taxInclusive ? "" : "+"}{fmtAmount(totalTax)}</span>
             </div>
           )}
