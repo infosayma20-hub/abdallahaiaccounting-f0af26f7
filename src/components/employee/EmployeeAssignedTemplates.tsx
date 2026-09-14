@@ -214,6 +214,20 @@ export default function EmployeeAssignedTemplates({ employeeId, jobTitle, jobTit
     return d.id;
   };
 
+  /**
+   * يستخرج الموظف المرتبط بالنموذج (المختار من القائمة المنسدلة) لربطه بملفه.
+   * يرجع null إن لم يُختر أحد — ولا يلمس أي بيانات أخرى.
+   */
+  const subjectEmployeeIdFrom = (formData: Record<string, any>): string | null => {
+    for (const v of Object.values(formData || {})) {
+      if (v && typeof v === "object" && !Array.isArray(v)) {
+        const id = (v as any).employee_id;
+        if (typeof id === "string" && id.length > 20) return id;
+      }
+    }
+    return null;
+  };
+
   const handleSubmit = async (formData: Record<string, any>) => {
     if (!activeTemplate) return;
     setSubmitting(true);
