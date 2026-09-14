@@ -16,7 +16,7 @@ import { toast } from "@/hooks/use-toast";
 export type FieldDef = {
   key: string;
   label: string;
-  type: "text" | "textarea" | "number" | "date" | "select" | "multi_select" | "currency" | "checkbox" | "radio" | "rating" | "yes_no" | "checklist";
+  type: "text" | "textarea" | "number" | "date" | "select" | "multi_select" | "currency" | "checkbox" | "radio" | "rating" | "yes_no" | "checklist" | "employee_picker";
   required?: boolean;
   options?: string[];
   placeholder?: string;
