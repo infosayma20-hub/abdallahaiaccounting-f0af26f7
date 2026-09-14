@@ -509,21 +509,31 @@ export default function EmployeeApp({ initialTab }: { initialTab?: Tab } = {}) {
 
         {activeTab === "manager-team" && (
           employee.can_view_team || employee.is_manager
-            ? <MyTeamTab branchId={employee.branch_id} branchName={branchName} onBack={() => setActiveTab("home")} />
+            ? <MyTeamTab
+                branchId={assignedBranchCount > 1 ? null : employee.branch_id}
+                branchName={assignedBranchCount > 1 ? `كل فروعي (${assignedBranchCount})` : branchName}
+                onBack={() => setActiveTab("home")} />
             : <NoPerm onBack={() => setActiveTab("home")} text="لا تملك صلاحية عرض الفريق" />
         )}
 
         {activeTab === "manager-attendance" && (
           employee.can_manage_attendance || employee.is_manager
-            ? <TeamAttendanceTab branchId={employee.branch_id} branchName={branchName} onBack={() => setActiveTab("home")} />
+            ? <TeamAttendanceTab
+                branchId={assignedBranchCount > 1 ? null : employee.branch_id}
+                branchName={assignedBranchCount > 1 ? `كل فروعي (${assignedBranchCount})` : branchName}
+                onBack={() => setActiveTab("home")} />
             : <NoPerm onBack={() => setActiveTab("home")} text="لا تملك صلاحية إدارة الحضور" />
         )}
 
         {activeTab === "manager-requests" && (
           employee.can_manage_attendance || employee.can_manage_schedule || employee.is_manager
-            ? <TeamRequestsTab branchId={employee.branch_id} branchName={branchName} onBack={() => setActiveTab("home")} />
+            ? <TeamRequestsTab
+                branchId={assignedBranchCount > 1 ? null : employee.branch_id}
+                branchName={assignedBranchCount > 1 ? `كل فروعي (${assignedBranchCount})` : branchName}
+                onBack={() => setActiveTab("home")} />
             : <NoPerm onBack={() => setActiveTab("home")} text="لا تملك صلاحية اعتماد الطلبات" />
         )}
+
 
         {activeTab === "manager-swaps" && (
           employee.can_manage_schedule || employee.is_manager
