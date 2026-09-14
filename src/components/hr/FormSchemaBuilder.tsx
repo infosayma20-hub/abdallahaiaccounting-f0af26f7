@@ -11,7 +11,7 @@ import {
 import {
   Plus, Trash2, ChevronUp, ChevronDown, GripVertical, Copy as CopyIcon,
   Type, AlignLeft, Hash, Calendar, ListChecks, CircleDot, CheckSquare, Star,
-  ThumbsUp, LayoutList, Repeat,
+  ThumbsUp, LayoutList, Repeat, UserRound,
 } from "lucide-react";
 
 /**
