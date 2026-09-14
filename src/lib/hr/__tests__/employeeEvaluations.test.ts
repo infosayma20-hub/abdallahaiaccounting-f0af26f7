@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import {
-  buildEvalRows, isEvaluationTemplate, scoreLabel,
+  buildEvalRows, buildCoverageRows, isEvaluationTemplate, resolveLegacySubjectId, scoreLabel,
   type EvalTemplateRow, type EvalFormRow,
 } from "../employeeEvaluations";
 
@@ -87,5 +87,26 @@ describe("employeeEvaluations", () => {
     expect(b.total).toBeNull();
     expect(b.acknowledged).toBe(false);
     expect(scoreLabel(b.average)).toBe("غير مكتمل");
+  });
+
+  it("يربط الاسم الثنائي القديم بالاسم الرباعي الوحيد في التغطية دون تخمين ملتبس", () => {
+    const roster = [
+      { id: "e1", full_name: "حمزة محمد عبد المجيد", job_title: null, branch_id: null },
+      { id: "e2", full_name: "أحمد خالد حسين", job_title: null, branch_id: null },
+    ];
+    expect(resolveLegacySubjectId("حمزة عبد المجيد", roster)).toBe("e1");
+    expect(resolveLegacySubjectId("احمد حسين", roster)).toBe("e2");
+
+    const [row] = buildEvalRows([{ ...realForm, form_data: { ...realForm.form_data, header: { employee_name: "حمزة عبد المجيد" } } }], [hrm06], employees, branches);
+    const coverage = buildCoverageRows(roster, [row], new Map(), new Date("2026-09-14T12:00:00Z"));
+    expect(coverage.find((item) => item.employeeId === "e1")?.evalCount).toBe(1);
+  });
+
+  it("لا يربط الاسم الثنائي إذا طابق أكثر من موظف", () => {
+    const roster = [
+      { id: "e1", full_name: "محمد أحمد علي", job_title: null, branch_id: null },
+      { id: "e2", full_name: "محمد خالد علي", job_title: null, branch_id: null },
+    ];
+    expect(resolveLegacySubjectId("محمد علي", roster)).toBeNull();
   });
 });
