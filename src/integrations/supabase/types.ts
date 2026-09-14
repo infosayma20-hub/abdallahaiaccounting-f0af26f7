@@ -15333,6 +15333,33 @@ export type Database = {
         }
         Relationships: []
       }
+      portal_feature_permissions: {
+        Row: {
+          auth_user_id: string
+          created_at: string
+          feature_key: string
+          id: string
+          is_active: boolean
+          user_id: string
+        }
+        Insert: {
+          auth_user_id: string
+          created_at?: string
+          feature_key: string
+          id?: string
+          is_active?: boolean
+          user_id: string
+        }
+        Update: {
+          auth_user_id?: string
+          created_at?: string
+          feature_key?: string
+          id?: string
+          is_active?: boolean
+          user_id?: string
+        }
+        Relationships: []
+      }
       portal_owner_contacts: {
         Row: {
           contact_id: string
