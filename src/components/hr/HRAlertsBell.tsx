@@ -291,7 +291,7 @@ export default function HRAlertsBell() {
 
         {visibleReminders.length > 0 && (
           <div>
-            <div className="px-3 py-1.5 text-[11px] text-muted-foreground bg-muted/40">تذكيراتي المخصصة</div>
+            <div className="px-3 py-1.5 text-[11px] text-muted-foreground bg-muted/40">تذكيراتي المخصصة ({visibleReminders.length})</div>
             {visibleReminders.map((r) => {
               const isDue = r.remind_at <= todayStr;
               return (
