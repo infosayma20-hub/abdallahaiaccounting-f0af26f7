@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import {
   ArrowRight, RefreshCw, Search, Loader2, Download, Printer,
-  ArrowUpDown, ArrowUp, ArrowDown, Star,
+  ArrowUpDown, ArrowUp, ArrowDown, Star, UserRound, Link2, ExternalLink, AlertTriangle,
 } from "lucide-react";
 import { formatHRDateTime } from "@/lib/hrDate";
 import * as XLSX from "xlsx";
@@ -21,10 +21,12 @@ import { setNextExportBranding } from "@/lib/excel-export";
 /* ------------------------------------------------------------------ */
 
 import {
-  buildEvalRows, isEvaluationTemplate, round1, scoreLabel,
-  type EvalRow, type EvalTemplateRow as TemplateRow, type EvalFormRow as FormRow,
+  buildEvalRows, buildCoverageRows, isEvaluationTemplate, round1, scoreLabel,
+  EVALUATION_CYCLE_DAYS,
+  type EvalRow, type CoverageRow, type EvalTemplateRow as TemplateRow, type EvalFormRow as FormRow,
   type EvalEmployeeLite as EmployeeLite,
 } from "@/lib/hr/employeeEvaluations";
+import EmployeePickerField from "@/components/forms/EmployeePickerField";
 
 /* ------------------------------------------------------------------ */
 /* ثوابت ومساعدات العرض                                                */
@@ -72,6 +74,11 @@ export default function EmployeeEvaluationsPage() {
   const [sortKey, setSortKey] = useState<keyof EvalRow>("created_at");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
   const [detail, setDetail] = useState<EvalRow | null>(null);
+  const [view, setView] = useState<"evals" | "coverage">("evals");
+  const [allEmployees, setAllEmployees] = useState<EmployeeLite[]>([]);
+  const [branchNames, setBranchNames] = useState<Map<string, string>>(new Map());
+  const [linking, setLinking] = useState(false);
+  const [coverageState, setCoverageState] = useState<"all" | "never" | "due">("all");
 
   /** خرائط عناوين الحقول لكل قالب (لعرض المعايير بأسمائها الحقيقية). */
   const templateMap = useMemo(() => {
@@ -96,7 +103,7 @@ export default function EmployeeEvaluationsPage() {
 
       const { data: forms, error: fErr } = await supabase
         .from("employee_forms")
-        .select("id, employee_id, template_id, title, form_data, status, workflow_status, created_at, submitted_at, hr_hidden_at, employee_acknowledged_at")
+        .select("id, employee_id, subject_employee_id, template_id, title, form_data, status, workflow_status, created_at, submitted_at, hr_hidden_at, employee_acknowledged_at")
         .eq("user_id", dataOwnerId)
         .in("template_id", evalTemplates.map((t) => t.id))
         .order("created_at", { ascending: false })
@@ -104,16 +111,31 @@ export default function EmployeeEvaluationsPage() {
       if (fErr) throw fErr;
 
       const formRows = (forms || []) as any as FormRow[];
-      const empIds = Array.from(new Set(formRows.map((f) => f.employee_id).filter(Boolean))) as string[];
 
-      let employees: EmployeeLite[] = [];
-      if (empIds.length) {
-        const { data: emps } = await supabase
+      // كل الموظفين النشطين: لازمين للتغطية (مين لسا ما تقيّم) ولأسماء المقيِّمين.
+      const { data: activeEmps } = await supabase
+        .from("employees")
+        .select("id, full_name, job_title, branch_id")
+        .eq("user_id", dataOwnerId)
+        .eq("is_active", true)
+        .order("full_name", { ascending: true });
+      const active = (activeEmps || []) as any as EmployeeLite[];
+
+      // موظفون مذكورون في التقييمات وقد لا يكونوا نشطين الآن.
+      const referenced = Array.from(new Set([
+        ...formRows.map((f) => f.employee_id),
+        ...formRows.map((f) => f.subject_employee_id),
+      ].filter(Boolean))) as string[];
+      const missing = referenced.filter((id) => !active.some((e) => e.id === id));
+      let employees: EmployeeLite[] = active;
+      if (missing.length) {
+        const { data: extra } = await supabase
           .from("employees")
           .select("id, full_name, job_title, branch_id")
-          .in("id", empIds);
-        employees = (emps || []) as any as EmployeeLite[];
+          .in("id", missing);
+        employees = [...active, ...((extra || []) as any as EmployeeLite[])];
       }
+
       const branchIds = Array.from(new Set(employees.map((e) => e.branch_id).filter(Boolean))) as string[];
       let branchMap = new Map<string, string>();
       if (branchIds.length) {
@@ -121,6 +143,8 @@ export default function EmployeeEvaluationsPage() {
         branchMap = new Map(((brs || []) as any[]).map((b) => [b.id as string, b.name as string]));
       }
 
+      setAllEmployees(active);
+      setBranchNames(branchMap);
       setRows(buildEvalRows(formRows, evalTemplates, employees, branchMap));
     } catch (e: any) {
       toast.error(e?.message || "تعذّر تحميل التقييمات");
