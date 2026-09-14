@@ -537,7 +537,14 @@ export default function SettlementsPage() {
       </Card>
 
       </div>
+      <EmploymentLetterDialog
+        open={showLetterDialog}
+        onOpenChange={setShowLetterDialog}
+        company={company || {}}
+        employee={letterEmp}
+      />
     </FinanceShell>
+
     </div>
   );
 }
@@ -1168,13 +1175,8 @@ function SettlementFormPage(props: {
         </div>
 
       </div>
-      <EmploymentLetterDialog
-        open={showLetterDialog}
-        onOpenChange={setShowLetterDialog}
-        company={company || {}}
-        employee={letterEmp}
-      />
     </FinanceShell>
+
 
     </div>
   );
