@@ -31,6 +31,7 @@ import PortalMyDrawingsTab from './PortalMyDrawingsTab';
 import PortalLoyaltyTab from './PortalLoyaltyTab';
 import PortalComplaintsTab from './PortalComplaintsTab';
 import PortalCompensationsTab from './PortalCompensationsTab';
+import PortalEmployeeEvaluationsTab from './PortalEmployeeEvaluationsTab';
 import PortalBusinessProfileDialog from './PortalBusinessProfileDialog';
 import { usePortalProfile } from '@/hooks/usePortalProfile';
 import HRBranchHoursReport from '@/pages/reports/HRBranchHoursReport';
@@ -190,6 +191,9 @@ export default function PortalDashboard() {
   const [showLoyaltyPage, setShowLoyaltyPage] = useState(false);
   const [showComplaintsPage, setShowComplaintsPage] = useState(false);
   const [showCompensationsPage, setShowCompensationsPage] = useState(false);
+  const [showEvaluationsPage, setShowEvaluationsPage] = useState(false);
+  const [focusEvaluationId, setFocusEvaluationId] = useState<string | null>(null);
+  const [canViewEvaluations, setCanViewEvaluations] = useState(false);
   const [showDrawingsPage, setShowDrawingsPage] = useState(false);
   const [hasDrawingsAccount, setHasDrawingsAccount] = useState(false);
   const [showSalesReportPage, setShowSalesReportPage] = useState<null | 'type' | 'area'>(null);
@@ -253,6 +257,7 @@ export default function PortalDashboard() {
       const settings = data?.settings;
       if (settings?.company_name) setCompanyName(settings.company_name);
       if (settings?.logo_url) setCompanyLogo(settings.logo_url);
+      setCanViewEvaluations(settings?.can_view_employee_evaluations === true);
       const linkedId = settings?.linked_user_id;
       if (linkedId) {
         setLinkedUserId(linkedId);
@@ -326,6 +331,8 @@ export default function PortalDashboard() {
     setShowPettyCashPage(false);
     setShowLoyaltyPage(false);
     setShowComplaintsPage(false);
+    setShowCompensationsPage(false);
+    setShowEvaluationsPage(false);
     setShowDrawingsPage(false);
   };
 
@@ -336,7 +343,7 @@ export default function PortalDashboard() {
     setShowRosterPage(false); setShowBranchHoursPage(false); setShowCampaignsPage(false);
     setShowFormsPage(false); setShowTrainingPage(false); setShowOrdersPage(false);
     setShowTrackingPage(false); setShowPettyCashPage(false); setShowLoyaltyPage(false);
-    setShowComplaintsPage(false); setShowDrawingsPage(false);
+    setShowComplaintsPage(false); setShowCompensationsPage(false); setShowEvaluationsPage(false); setShowDrawingsPage(false);
   };
 
   const openPortalReport = (kind: 'type' | 'area') => {
@@ -361,6 +368,7 @@ export default function PortalDashboard() {
     { label: 'المهام', icon: ClipboardList, color: '#F59E0B', group: 'العمليات', action: () => { setShowMore(false); setShowEmployeeRequests(false); setShowRosterPage(false); setActiveTab('home'); setShowTasksPage(true); } },
     { label: 'طلبات الموظفين', icon: FileText, color: '#2563EB', group: 'الموارد البشرية', action: () => { setShowMore(false); setShowTasksPage(false); setShowRosterPage(false); setActiveTab('home'); setShowEmployeeRequests(true); } },
     { label: 'النماذج المُسندة', icon: FileText, color: '#0EA5E9', group: 'الموارد البشرية', action: () => { setShowMore(false); setShowTasksPage(false); setShowEmployeeRequests(false); setShowRosterPage(false); setShowBranchHoursPage(false); setShowCampaignsPage(false); setActiveTab('home'); setShowFormsPage(true); } },
+    ...(canViewEvaluations ? [{ label: 'تقييم الموظفين', icon: Star, color: '#B45309', group: 'الموارد البشرية', action: () => { closeAllPages(); setActiveTab('home'); setFocusEvaluationId(null); setShowEvaluationsPage(true); } }] : []),
     { label: 'جداول الدوام', icon: CalendarClock, color: '#7C3AED', group: 'الموارد البشرية', action: () => { setShowMore(false); setShowTasksPage(false); setShowEmployeeRequests(false); setActiveTab('home'); setShowRosterPage(true); } },
     { label: 'الورشات والدورات', icon: GraduationCap, color: '#059669', group: 'الموارد البشرية', action: () => { setShowMore(false); setShowTasksPage(false); setShowEmployeeRequests(false); setShowRosterPage(false); setShowBranchHoursPage(false); setShowCampaignsPage(false); setShowFormsPage(false); setActiveTab('home'); setShowTrainingPage(true); } },
     { label: 'ساعات الفروع والمبيعات', icon: BarChart3, color: '#16A34A', group: 'التقارير', action: () => { setShowMore(false); setShowTasksPage(false); setShowEmployeeRequests(false); setShowRosterPage(false); setActiveTab('home'); setShowBranchHoursPage(true); } },
@@ -469,6 +477,16 @@ export default function PortalDashboard() {
 
 
   const renderContent = () => {
+    if (showEvaluationsPage) {
+      return (
+        <div>
+          <div style={{ padding: '12px 12px 0' }}>
+            <button onClick={() => { setShowEvaluationsPage(false); setFocusEvaluationId(null); }} style={{ background: c.chipBg, border: `1px solid ${c.chipBorder}`, borderRadius: 8, padding: '6px 10px', cursor: 'pointer', color: c.textPrimary, fontFamily: 'Cairo', fontSize: 12 }}>← رجوع</button>
+          </div>
+          <PortalEmployeeEvaluationsTab theme={themeMode} focusId={focusEvaluationId} />
+        </div>
+      );
+    }
     if (showDrawingsPage) {
       return (
         <div>
@@ -948,6 +966,14 @@ export default function PortalDashboard() {
             open={notifOpen}
             onOpenChange={setNotifOpen}
             onOpenPath={(path) => {
+              if (path.includes('tab=evaluations')) {
+                const m = path.match(/[?&]evaluation=([^&]+)/);
+                closeAllPages();
+                setFocusEvaluationId(m?.[1] ? decodeURIComponent(m[1]) : null);
+                setActiveTab('home');
+                setShowEvaluationsPage(true);
+                return;
+              }
               if (path.includes('tab=requests')) {
                 const m = path.match(/[?&]form=([^&]+)/);
                 setFocusFormId(m?.[1] ? decodeURIComponent(m[1]) : null);
