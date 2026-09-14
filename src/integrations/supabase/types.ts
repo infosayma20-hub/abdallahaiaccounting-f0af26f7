@@ -9868,6 +9868,60 @@ export type Database = {
         }
         Relationships: []
       }
+      form_notification_subscribers: {
+        Row: {
+          auth_user_id: string
+          created_at: string
+          created_by: string | null
+          employee_id: string | null
+          form_type: string
+          id: string
+          is_active: boolean
+          scope: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          auth_user_id: string
+          created_at?: string
+          created_by?: string | null
+          employee_id?: string | null
+          form_type: string
+          id?: string
+          is_active?: boolean
+          scope?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          auth_user_id?: string
+          created_at?: string
+          created_by?: string | null
+          employee_id?: string | null
+          form_type?: string
+          id?: string
+          is_active?: boolean
+          scope?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "form_notification_subscribers_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "form_notification_subscribers_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees_safe"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       form_section_assignments: {
         Row: {
           assigned_by: string | null
@@ -32277,6 +32331,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      notify_departure_violations: { Args: never; Returns: undefined }
       notify_employee_push:
         | {
             Args: {
