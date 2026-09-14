@@ -123,6 +123,28 @@ export default function EmployeeApp({ initialTab }: { initialTab?: Tab } = {}) {
   const [corrections, setCorrections] = useState<CorrectionRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [branchName, setBranchName] = useState("");
+  /**
+   * الفروع المُسندة لهذا المستخدم كمدير فروع (branch_manager_assignments).
+   * مدير أكثر من فرع تُفتح له شاشات الفريق على كل فروعه (branchId = null)،
+   * بدل حصرها بفرع سجله الوظيفي. مدير الفرع الواحد يبقى كما هو تماماً.
+   */
+  const [assignedBranchCount, setAssignedBranchCount] = useState(0);
+
+  useEffect(() => {
+    if (!user?.id) return;
+    let alive = true;
+    (async () => {
+      const { count } = await supabase
+        .from("branch_manager_assignments")
+        .select("branch_id", { count: "exact", head: true })
+        .eq("user_id", user.id);
+      if (alive) setAssignedBranchCount(count || 0);
+    })();
+    return () => { alive = false; };
+  }, [user?.id]);
+
+
+
   const [scanOpen, setScanOpen] = useState(false);
   const [scanAction, setScanAction] = useState<"checkin" | "checkout">("checkin");
   /** نية الخروج المختارة قبل مسح QR (فارغة عند الدخول). */
@@ -487,21 +509,31 @@ export default function EmployeeApp({ initialTab }: { initialTab?: Tab } = {}) {
 
         {activeTab === "manager-team" && (
           employee.can_view_team || employee.is_manager
-            ? <MyTeamTab branchId={employee.branch_id} branchName={branchName} onBack={() => setActiveTab("home")} />
+            ? <MyTeamTab
+                branchId={assignedBranchCount > 1 ? null : employee.branch_id}
+                branchName={assignedBranchCount > 1 ? `كل فروعي (${assignedBranchCount})` : branchName}
+                onBack={() => setActiveTab("home")} />
             : <NoPerm onBack={() => setActiveTab("home")} text="لا تملك صلاحية عرض الفريق" />
         )}
 
         {activeTab === "manager-attendance" && (
           employee.can_manage_attendance || employee.is_manager
-            ? <TeamAttendanceTab branchId={employee.branch_id} branchName={branchName} onBack={() => setActiveTab("home")} />
+            ? <TeamAttendanceTab
+                branchId={assignedBranchCount > 1 ? null : employee.branch_id}
+                branchName={assignedBranchCount > 1 ? `كل فروعي (${assignedBranchCount})` : branchName}
+                onBack={() => setActiveTab("home")} />
             : <NoPerm onBack={() => setActiveTab("home")} text="لا تملك صلاحية إدارة الحضور" />
         )}
 
         {activeTab === "manager-requests" && (
           employee.can_manage_attendance || employee.can_manage_schedule || employee.is_manager
-            ? <TeamRequestsTab branchId={employee.branch_id} branchName={branchName} onBack={() => setActiveTab("home")} />
+            ? <TeamRequestsTab
+                branchId={assignedBranchCount > 1 ? null : employee.branch_id}
+                branchName={assignedBranchCount > 1 ? `كل فروعي (${assignedBranchCount})` : branchName}
+                onBack={() => setActiveTab("home")} />
             : <NoPerm onBack={() => setActiveTab("home")} text="لا تملك صلاحية اعتماد الطلبات" />
         )}
+
 
         {activeTab === "manager-swaps" && (
           employee.can_manage_schedule || employee.is_manager
