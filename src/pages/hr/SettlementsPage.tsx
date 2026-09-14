@@ -446,22 +446,21 @@ export default function SettlementsPage() {
                           title="كتاب إثبات عمل"
                           onClick={() => {
                             if (!emp) return;
-                            openEmploymentVerificationLetter({
-                              company: company || {},
-                              employee: {
-                                full_name: emp.full_name,
-                                department: emp.department,
-                                job_title: emp.job_title || null,
-                                start_date: emp.start_date,
-                                national_id: emp.id_number || null,
-                                base_salary: emp.base_salary || null,
-                                is_active: emp.is_active,
-                              },
+                            setLetterEmp({
+                              full_name: emp.full_name,
+                              department: emp.department,
+                              job_title: emp.job_title || null,
+                              start_date: emp.start_date,
+                              national_id: emp.id_number || null,
+                              base_salary: emp.base_salary || null,
+                              is_active: emp.is_active,
                             });
+                            setShowLetterDialog(true);
                           }}
                         >
                           <FileSignature className="h-4 w-4" />
                         </Button>
+
                         <Button
                           variant="ghost"
                           size="sm"
