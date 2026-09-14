@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/accordion";
 import { Plus, Trash2, Save, Send, Loader2, FileDown } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
+import EmployeePickerField from "./EmployeePickerField";
 
 export type FieldDef = {
   key: string;
