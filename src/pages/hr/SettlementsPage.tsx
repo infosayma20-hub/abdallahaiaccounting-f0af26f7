@@ -18,7 +18,9 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 import { Plus, RefreshCw, CheckCircle2, AlertTriangle, FileText, Search, Wallet, Users as UsersIcon, ChevronsUpDown, Check, Save, ArrowRight, ChevronDown, Archive, ArchiveRestore } from "lucide-react";
 import { calculateLeaveBalance } from "@/lib/hr-utils";
 import { Printer, Award, Landmark } from "lucide-react";
-import { openSettlementPrint, openExperienceCertificate, openEmploymentVerificationLetter, openSalarySlip } from "@/lib/hr/settlement-print";
+import { openSettlementPrint, openExperienceCertificate, openSalarySlip } from "@/lib/hr/settlement-print";
+import EmploymentLetterDialog, { type EmploymentLetterTarget } from "@/components/hr/EmploymentLetterDialog";
+
 import { FileSignature, ReceiptText } from "lucide-react";
 import { FinanceShell, type ActionTab } from "@/components/finance/shell";
 
@@ -1166,7 +1168,14 @@ function SettlementFormPage(props: {
         </div>
 
       </div>
+      <EmploymentLetterDialog
+        open={showLetterDialog}
+        onOpenChange={setShowLetterDialog}
+        company={company || {}}
+        employee={letterEmp}
+      />
     </FinanceShell>
+
     </div>
   );
 }
