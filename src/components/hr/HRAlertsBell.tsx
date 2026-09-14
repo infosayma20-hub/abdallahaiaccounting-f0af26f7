@@ -228,11 +228,13 @@ export default function HRAlertsBell() {
   const todayMilestones = milestones.filter((m) => m.daysLeft === 0);
   // العدّاد يشمل أعياد ميلاد اليوم وغداً حتى يستعد قسم الموارد البشرية مسبقاً.
   const upcomingBirthdays = birthdays.filter((b) => b.daysLeft <= 1);
-  // تذكيرات HR المخصصة: المستحقة (حان تاريخها) تدخل بالعدّاد، والقادمة خلال 7 أيام تظهر بالقائمة.
+  // تذكيرات HR المخصصة: المستحقة (حان تاريخها) تدخل بالعدّاد،
+  // وكل التذكيرات غير المنتهية تظهر بالقائمة مرتّبة بتاريخها مهما كان بعيداً
+  // (سابقاً كانت تُخفى التذكيرات الأبعد من 7 أيام فتبدو وكأنها لم تُحفظ).
   const todayStr = localDateStr();
-  const weekStr = (() => { const d = new Date(); d.setDate(d.getDate() + 7); return localDateStr(d); })();
   const dueReminders = reminders.filter((r) => r.remind_at <= todayStr);
-  const visibleReminders = reminders.filter((r) => r.remind_at <= weekStr);
+  const visibleReminders = reminders;
+
   const total =
     forms.length + chats.reduce((s, c) => s + c.unread, 0) + upcomingBirthdays.length + todayMilestones.length + dueReminders.length;
 
