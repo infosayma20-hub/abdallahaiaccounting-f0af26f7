@@ -130,6 +130,21 @@ export default function EmployeeApp({ initialTab }: { initialTab?: Tab } = {}) {
    */
   const [assignedBranchCount, setAssignedBranchCount] = useState(0);
 
+  useEffect(() => {
+    if (!user?.id) return;
+    let alive = true;
+    (async () => {
+      const { count } = await supabase
+        .from("branch_manager_assignments")
+        .select("branch_id", { count: "exact", head: true })
+        .eq("user_id", user.id);
+      if (alive) setAssignedBranchCount(count || 0);
+    })();
+    return () => { alive = false; };
+  }, [user?.id]);
+
+
+
   const [scanOpen, setScanOpen] = useState(false);
   const [scanAction, setScanAction] = useState<"checkin" | "checkout">("checkin");
   /** نية الخروج المختارة قبل مسح QR (فارغة عند الدخول). */
