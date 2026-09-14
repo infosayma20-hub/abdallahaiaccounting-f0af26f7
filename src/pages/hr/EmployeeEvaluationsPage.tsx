@@ -357,21 +357,45 @@ export default function EmployeeEvaluationsPage() {
                 placeholder="بحث بالموظف، المقيِّم، الفرع..." className="pr-7 h-8 text-[12.5px]" />
             </div>
             <div className="flex items-center gap-1">
-              <Button size="sm" variant={statusFilter === "all" ? "default" : "outline"}
-                className="h-8 text-[12px]" onClick={() => setStatusFilter("all")}>
-                الكل ({counts.all})
+              <Button size="sm" variant={view === "evals" ? "default" : "outline"}
+                className="h-8 text-[12px]" onClick={() => setView("evals")}>
+                <Star className="w-3.5 h-3.5 ml-1" /> التقييمات ({counts.all})
               </Button>
-              {STATUSES.filter((s) => (counts[s.key] || 0) > 0).map((s) => (
-                <Button key={s.key} size="sm" variant={statusFilter === s.key ? "default" : "outline"}
-                  className="h-8 text-[12px]" onClick={() => setStatusFilter(s.key)}>
-                  {s.label} ({counts[s.key] || 0})
-                </Button>
-              ))}
+              <Button size="sm" variant={view === "coverage" ? "default" : "outline"}
+                className="h-8 text-[12px]" onClick={() => setView("coverage")}>
+                <UserRound className="w-3.5 h-3.5 ml-1" /> لسا ما تقيّم ({coverageCounts.never + coverageCounts.due})
+              </Button>
             </div>
+            {view === "evals" && (
+              <div className="flex items-center gap-1">
+                <Button size="sm" variant={statusFilter === "all" ? "default" : "outline"}
+                  className="h-8 text-[12px]" onClick={() => setStatusFilter("all")}>
+                  الكل ({counts.all})
+                </Button>
+                {STATUSES.filter((s) => (counts[s.key] || 0) > 0).map((s) => (
+                  <Button key={s.key} size="sm" variant={statusFilter === s.key ? "default" : "outline"}
+                    className="h-8 text-[12px]" onClick={() => setStatusFilter(s.key)}>
+                    {s.label} ({counts[s.key] || 0})
+                  </Button>
+                ))}
+              </div>
+            )}
           </div>
         }
       >
         <main className="flex-1 p-3 space-y-3">
+          {view === "coverage" ? (
+            <CoverageView
+              rows={coverageFiltered}
+              counts={coverageCounts}
+              stateFilter={coverageState}
+              onStateFilter={setCoverageState}
+              loading={loading}
+              onOpenEmployee={(id) => navigate(`/hr/employee/${id}`)}
+              onOpenEval={(id) => { const r = rows.find((x) => x.id === id); if (r) { setView("evals"); setDetail(r); } }}
+            />
+          ) : (
+          <>
           {/* فلاتر تفصيلية */}
           <div className="flex flex-wrap items-end gap-2 bg-muted/30 border rounded-lg p-2">
             <div className="space-y-1">
@@ -501,6 +525,8 @@ export default function EmployeeEvaluationsPage() {
                 </table>
               </div>
             </>
+          )}
+          </>
           )}
         </main>
       </FinanceShell>
