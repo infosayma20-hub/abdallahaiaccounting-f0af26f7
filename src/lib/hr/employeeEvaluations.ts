@@ -10,6 +10,8 @@ export type EvalTemplateRow = { id: string; name: string; schema: { sections?: E
 export type EvalFormRow = {
   id: string;
   employee_id: string | null;
+  /** الموظف المقيَّم المرتبط بملفه (يُملأ عند الاختيار من القائمة المنسدلة). */
+  subject_employee_id?: string | null;
   template_id: string | null;
   title: string | null;
   form_data: Record<string, any> | null;
@@ -28,8 +30,10 @@ export type EvalRow = {
   created_at: string;
   templateId: string;
   templateName: string;
-  /** الموظف الذي جرى تقييمه (نص داخل النموذج). */
+  /** الموظف الذي جرى تقييمه (نص داخل النموذج، أو اسم الموظف المرتبط). */
   evaluated: string;
+  /** معرّف الموظف المقيَّم إن كان التقييم مربوطاً بملفه. */
+  subjectEmployeeId: string | null;
   /** المدير الذي عبّأ التقييم (صاحب السجل في employee_forms). */
   evaluatorName: string;
   evaluatorJob: string;
@@ -92,19 +96,22 @@ export function buildEvalRows(
     const scored = criteriaFields.filter((c) => c.key !== "total");
     const values = scored.map((c) => numOrNull(criteria[c.key])).filter((n): n is number => n !== null);
     const emp = f.employee_id ? empMap.get(f.employee_id) : undefined;
+    const subject = f.subject_employee_id ? empMap.get(f.subject_employee_id) : undefined;
 
     return {
       id: f.id,
       created_at: f.created_at,
       templateId: f.template_id || "",
       templateName: tpl?.name || f.title || "تقييم",
-      evaluated: String(header.employee_name || "").trim() || "—",
+      evaluated: subject?.full_name || String(header.employee_name || "").trim() || "—",
+      subjectEmployeeId: f.subject_employee_id || null,
       evaluatorName: emp?.full_name || "—",
       evaluatorJob: emp?.job_title || "—",
       evaluatorRole: String(header.evaluator || header.evaluator_name || "").trim() || "—",
-      branch: (emp?.branch_id && branchNames.get(emp.branch_id)) || "—",
+      branch: (subject?.branch_id && branchNames.get(subject.branch_id))
+        || (emp?.branch_id && branchNames.get(emp.branch_id)) || "—",
       evalType: String(header.eval_type || "").trim() || "—",
-      jobTitle: String(header.job_title || header.department || "").trim() || "—",
+      jobTitle: subject?.job_title || String(header.job_title || header.department || "").trim() || "—",
       year: String(header.year || "").trim() || (f.created_at || "").slice(0, 4),
       evalDate: String(header.eval_date || header.probation_start || "").trim() || "",
       total: numOrNull(criteria.total),
@@ -115,5 +122,68 @@ export function buildEvalRows(
       status: f.workflow_status || "draft",
       raw: f,
     };
+  });
+}
+
+/* ------------------------------------------------------------------ */
+/* تغطية التقييم: مين تقيّم ومين لسا                                    */
+/* ------------------------------------------------------------------ */
+
+export const EVALUATION_CYCLE_DAYS = 90;
+
+export type CoverageRow = {
+  employeeId: string;
+  name: string;
+  jobTitle: string;
+  branch: string;
+  lastEvalAt: string | null;
+  lastEvalId: string | null;
+  daysSince: number | null;
+  /** never = لم يُقيَّم أبداً، due = تجاوز الدورة، ok = ضمن الدورة. */
+  state: "never" | "due" | "ok";
+  evalCount: number;
+};
+
+/**
+ * يبني قائمة تغطية التقييم لكل موظف نشط اعتماداً على التقييمات المربوطة بملفه فقط
+ * (التقييمات القديمة غير المربوطة لا تُحتسب — تُربط يدوياً من تفاصيل التقييم).
+ */
+export function buildCoverageRows(
+  employees: EvalEmployeeLite[],
+  rows: EvalRow[],
+  branchNames: Map<string, string>,
+  now: Date = new Date(),
+): CoverageRow[] {
+  const byEmp = new Map<string, EvalRow[]>();
+  for (const r of rows) {
+    if (!r.subjectEmployeeId) continue;
+    const arr = byEmp.get(r.subjectEmployeeId) || [];
+    arr.push(r);
+    byEmp.set(r.subjectEmployeeId, arr);
+  }
+
+  return employees.map((e) => {
+    const list = (byEmp.get(e.id) || []).slice().sort(
+      (a, b) => Date.parse(b.created_at) - Date.parse(a.created_at),
+    );
+    const last = list[0] || null;
+    const daysSince = last
+      ? Math.floor((now.getTime() - Date.parse(last.created_at)) / 86400000)
+      : null;
+    return {
+      employeeId: e.id,
+      name: e.full_name,
+      jobTitle: e.job_title || "—",
+      branch: (e.branch_id && branchNames.get(e.branch_id)) || "—",
+      lastEvalAt: last?.created_at || null,
+      lastEvalId: last?.id || null,
+      daysSince,
+      state: (!last ? "never" : (daysSince as number) >= EVALUATION_CYCLE_DAYS ? "due" : "ok") as CoverageRow["state"],
+      evalCount: list.length,
+    };
+  }).sort((a: CoverageRow, b: CoverageRow) => {
+    const rank = { never: 0, due: 1, ok: 2 } as const;
+    if (rank[a.state] !== rank[b.state]) return rank[a.state] - rank[b.state];
+    return (b.daysSince ?? 99999) - (a.daysSince ?? 99999);
   });
 }

@@ -8139,6 +8139,7 @@ export type Database = {
           reviewed_at: string | null
           reviewed_by: string | null
           status: string
+          subject_employee_id: string | null
           submitted_at: string | null
           template_id: string | null
           title: string | null
@@ -8177,6 +8178,7 @@ export type Database = {
           reviewed_at?: string | null
           reviewed_by?: string | null
           status?: string
+          subject_employee_id?: string | null
           submitted_at?: string | null
           template_id?: string | null
           title?: string | null
@@ -8215,6 +8217,7 @@ export type Database = {
           reviewed_at?: string | null
           reviewed_by?: string | null
           status?: string
+          subject_employee_id?: string | null
           submitted_at?: string | null
           template_id?: string | null
           title?: string | null
@@ -8233,6 +8236,20 @@ export type Database = {
           {
             foreignKeyName: "employee_forms_employee_id_fkey"
             columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees_safe"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_forms_subject_employee_id_fkey"
+            columns: ["subject_employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_forms_subject_employee_id_fkey"
+            columns: ["subject_employee_id"]
             isOneToOne: false
             referencedRelation: "employees_safe"
             referencedColumns: ["id"]
@@ -32352,6 +32369,7 @@ export type Database = {
             }
             Returns: undefined
           }
+      notify_evaluation_due: { Args: never; Returns: undefined }
       notify_hr_employee_birthdays: { Args: never; Returns: number }
       open_van_day: {
         Args: {

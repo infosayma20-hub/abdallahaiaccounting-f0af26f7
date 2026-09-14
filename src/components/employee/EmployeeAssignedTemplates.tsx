@@ -214,6 +214,20 @@ export default function EmployeeAssignedTemplates({ employeeId, jobTitle, jobTit
     return d.id;
   };
 
+  /**
+   * يستخرج الموظف المرتبط بالنموذج (المختار من القائمة المنسدلة) لربطه بملفه.
+   * يرجع null إن لم يُختر أحد — ولا يلمس أي بيانات أخرى.
+   */
+  const subjectEmployeeIdFrom = (formData: Record<string, any>): string | null => {
+    for (const v of Object.values(formData || {})) {
+      if (v && typeof v === "object" && !Array.isArray(v)) {
+        const id = (v as any).employee_id;
+        if (typeof id === "string" && id.length > 20) return id;
+      }
+    }
+    return null;
+  };
+
   const handleSubmit = async (formData: Record<string, any>) => {
     if (!activeTemplate) return;
     setSubmitting(true);
@@ -225,7 +239,7 @@ export default function EmployeeAssignedTemplates({ employeeId, jobTitle, jobTit
         // Update existing draft instead of creating a duplicate
         const { data, error } = await supabase
           .from("employee_forms")
-          .update({ form_data: clean, title: activeTemplate.name })
+          .update({ form_data: clean, title: activeTemplate.name, subject_employee_id: subjectEmployeeIdFrom(clean) })
           .eq("id", draftId)
           .select("id, template_id, title, status, workflow_status, pdf_url, company_id, created_at, form_data")
           .single();
@@ -239,6 +253,7 @@ export default function EmployeeAssignedTemplates({ employeeId, jobTitle, jobTit
           template_id: activeTemplate.id,
           title: activeTemplate.name,
           form_data: clean,
+          subject_employee_id: subjectEmployeeIdFrom(clean),
           status: "pending",
         })
         .select("id, template_id, title, status, workflow_status, pdf_url, company_id, created_at, form_data")
@@ -273,7 +288,7 @@ export default function EmployeeAssignedTemplates({ employeeId, jobTitle, jobTit
       if (draftId) {
         const { data, error } = await supabase
           .from("employee_forms")
-          .update({ form_data: payload, title: activeTemplate.name, workflow_status: "draft" })
+          .update({ form_data: payload, title: activeTemplate.name, workflow_status: "draft", subject_employee_id: subjectEmployeeIdFrom(payload) })
           .eq("id", draftId)
           .select("id, template_id, title, status, workflow_status, pdf_url, company_id, created_at, form_data")
           .single();
@@ -287,6 +302,7 @@ export default function EmployeeAssignedTemplates({ employeeId, jobTitle, jobTit
           template_id: activeTemplate.id,
           title: activeTemplate.name,
           form_data: payload,
+          subject_employee_id: subjectEmployeeIdFrom(payload),
           status: "pending",
           workflow_status: "draft",
         })

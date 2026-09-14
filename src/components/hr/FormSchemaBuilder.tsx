@@ -11,7 +11,7 @@ import {
 import {
   Plus, Trash2, ChevronUp, ChevronDown, GripVertical, Copy as CopyIcon,
   Type, AlignLeft, Hash, Calendar, ListChecks, CircleDot, CheckSquare, Star,
-  ThumbsUp, LayoutList, Repeat,
+  ThumbsUp, LayoutList, Repeat, UserRound,
 } from "lucide-react";
 
 /**
@@ -25,7 +25,7 @@ import {
 type FieldType =
   | "text" | "textarea" | "number" | "date"
   | "select" | "multi_select" | "radio" | "checklist"
-  | "checkbox" | "yes_no" | "rating";
+  | "checkbox" | "yes_no" | "rating" | "employee_picker";
 
 type Field = {
   key: string; label: string; type: FieldType;
@@ -54,6 +54,7 @@ const FIELD_TYPE_META: Record<FieldType, { label: string; icon: any; needsOption
   checkbox:     { label: "مربع موافقة",      icon: CheckSquare },
   yes_no:       { label: "نعم / لا / لا ينطبق", icon: ThumbsUp },
   rating:       { label: "تقييم نجوم (1-5)", icon: Star },
+  employee_picker: { label: "اختيار موظف (من السجل)", icon: UserRound },
 };
 
 const slug = (s: string) =>

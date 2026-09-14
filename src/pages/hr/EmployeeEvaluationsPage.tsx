@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import {
   ArrowRight, RefreshCw, Search, Loader2, Download, Printer,
-  ArrowUpDown, ArrowUp, ArrowDown, Star,
+  ArrowUpDown, ArrowUp, ArrowDown, Star, UserRound, Link2, ExternalLink, AlertTriangle,
 } from "lucide-react";
 import { formatHRDateTime } from "@/lib/hrDate";
 import * as XLSX from "xlsx";
@@ -21,10 +21,12 @@ import { setNextExportBranding } from "@/lib/excel-export";
 /* ------------------------------------------------------------------ */
 
 import {
-  buildEvalRows, isEvaluationTemplate, round1, scoreLabel,
-  type EvalRow, type EvalTemplateRow as TemplateRow, type EvalFormRow as FormRow,
+  buildEvalRows, buildCoverageRows, isEvaluationTemplate, round1, scoreLabel,
+  EVALUATION_CYCLE_DAYS,
+  type EvalRow, type CoverageRow, type EvalTemplateRow as TemplateRow, type EvalFormRow as FormRow,
   type EvalEmployeeLite as EmployeeLite,
 } from "@/lib/hr/employeeEvaluations";
+import EmployeePickerField from "@/components/forms/EmployeePickerField";
 
 /* ------------------------------------------------------------------ */
 /* ثوابت ومساعدات العرض                                                */
@@ -72,6 +74,11 @@ export default function EmployeeEvaluationsPage() {
   const [sortKey, setSortKey] = useState<keyof EvalRow>("created_at");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
   const [detail, setDetail] = useState<EvalRow | null>(null);
+  const [view, setView] = useState<"evals" | "coverage">("evals");
+  const [allEmployees, setAllEmployees] = useState<EmployeeLite[]>([]);
+  const [branchNames, setBranchNames] = useState<Map<string, string>>(new Map());
+  const [linking, setLinking] = useState(false);
+  const [coverageState, setCoverageState] = useState<"all" | "never" | "due">("all");
 
   /** خرائط عناوين الحقول لكل قالب (لعرض المعايير بأسمائها الحقيقية). */
   const templateMap = useMemo(() => {
@@ -96,7 +103,7 @@ export default function EmployeeEvaluationsPage() {
 
       const { data: forms, error: fErr } = await supabase
         .from("employee_forms")
-        .select("id, employee_id, template_id, title, form_data, status, workflow_status, created_at, submitted_at, hr_hidden_at, employee_acknowledged_at")
+        .select("id, employee_id, subject_employee_id, template_id, title, form_data, status, workflow_status, created_at, submitted_at, hr_hidden_at, employee_acknowledged_at")
         .eq("user_id", dataOwnerId)
         .in("template_id", evalTemplates.map((t) => t.id))
         .order("created_at", { ascending: false })
@@ -104,16 +111,31 @@ export default function EmployeeEvaluationsPage() {
       if (fErr) throw fErr;
 
       const formRows = (forms || []) as any as FormRow[];
-      const empIds = Array.from(new Set(formRows.map((f) => f.employee_id).filter(Boolean))) as string[];
 
-      let employees: EmployeeLite[] = [];
-      if (empIds.length) {
-        const { data: emps } = await supabase
+      // كل الموظفين النشطين: لازمين للتغطية (مين لسا ما تقيّم) ولأسماء المقيِّمين.
+      const { data: activeEmps } = await supabase
+        .from("employees")
+        .select("id, full_name, job_title, branch_id")
+        .eq("user_id", dataOwnerId)
+        .eq("is_active", true)
+        .order("full_name", { ascending: true });
+      const active = (activeEmps || []) as any as EmployeeLite[];
+
+      // موظفون مذكورون في التقييمات وقد لا يكونوا نشطين الآن.
+      const referenced = Array.from(new Set([
+        ...formRows.map((f) => f.employee_id),
+        ...formRows.map((f) => f.subject_employee_id),
+      ].filter(Boolean))) as string[];
+      const missing = referenced.filter((id) => !active.some((e) => e.id === id));
+      let employees: EmployeeLite[] = active;
+      if (missing.length) {
+        const { data: extra } = await supabase
           .from("employees")
           .select("id, full_name, job_title, branch_id")
-          .in("id", empIds);
-        employees = (emps || []) as any as EmployeeLite[];
+          .in("id", missing);
+        employees = [...active, ...((extra || []) as any as EmployeeLite[])];
       }
+
       const branchIds = Array.from(new Set(employees.map((e) => e.branch_id).filter(Boolean))) as string[];
       let branchMap = new Map<string, string>();
       if (branchIds.length) {
@@ -121,6 +143,8 @@ export default function EmployeeEvaluationsPage() {
         branchMap = new Map(((brs || []) as any[]).map((b) => [b.id as string, b.name as string]));
       }
 
+      setAllEmployees(active);
+      setBranchNames(branchMap);
       setRows(buildEvalRows(formRows, evalTemplates, employees, branchMap));
     } catch (e: any) {
       toast.error(e?.message || "تعذّر تحميل التقييمات");
@@ -191,6 +215,48 @@ export default function EmployeeEvaluationsPage() {
     const weak = filtered.filter((r) => r.average !== null && (r.average as number) < 6).length;
     return { avg, employees, evaluators, weak };
   }, [filtered]);
+
+  /** تغطية التقييم لكل موظف نشط (تعتمد على التقييمات المربوطة بملف الموظف). */
+  const coverage = useMemo(
+    () => buildCoverageRows(allEmployees, visible, branchNames),
+    [allEmployees, visible, branchNames],
+  );
+
+  const coverageFiltered = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    return coverage.filter((c) => {
+      if (coverageState !== "all" && c.state !== coverageState) return false;
+      if (branchFilter !== "all" && c.branch !== branchFilter) return false;
+      if (!q) return true;
+      return [c.name, c.jobTitle, c.branch].some((v) => (v || "").toLowerCase().includes(q));
+    });
+  }, [coverage, coverageState, branchFilter, search]);
+
+  const coverageCounts = useMemo(() => ({
+    all: coverage.length,
+    never: coverage.filter((c) => c.state === "never").length,
+    due: coverage.filter((c) => c.state === "due").length,
+    ok: coverage.filter((c) => c.state === "ok").length,
+  }), [coverage]);
+
+  /** ربط تقييم قديم بملف الموظف المقيَّم (لا يغيّر أي قيمة داخل النموذج). */
+  const linkSubject = async (formId: string, employeeId: string | null) => {
+    setLinking(true);
+    try {
+      const { error } = await supabase
+        .from("employee_forms")
+        .update({ subject_employee_id: employeeId })
+        .eq("id", formId);
+      if (error) throw error;
+      toast.success(employeeId ? "تم ربط التقييم بملف الموظف" : "تم فك الربط");
+      setDetail(null);
+      await load();
+    } catch (e: any) {
+      toast.error(e?.message || "تعذّر ربط التقييم");
+    } finally {
+      setLinking(false);
+    }
+  };
 
   const toggleSort = (key: keyof EvalRow) => {
     if (key === sortKey) setSortDir((d) => (d === "asc" ? "desc" : "asc"));
@@ -291,21 +357,45 @@ export default function EmployeeEvaluationsPage() {
                 placeholder="بحث بالموظف، المقيِّم، الفرع..." className="pr-7 h-8 text-[12.5px]" />
             </div>
             <div className="flex items-center gap-1">
-              <Button size="sm" variant={statusFilter === "all" ? "default" : "outline"}
-                className="h-8 text-[12px]" onClick={() => setStatusFilter("all")}>
-                الكل ({counts.all})
+              <Button size="sm" variant={view === "evals" ? "default" : "outline"}
+                className="h-8 text-[12px]" onClick={() => setView("evals")}>
+                <Star className="w-3.5 h-3.5 ml-1" /> التقييمات ({counts.all})
               </Button>
-              {STATUSES.filter((s) => (counts[s.key] || 0) > 0).map((s) => (
-                <Button key={s.key} size="sm" variant={statusFilter === s.key ? "default" : "outline"}
-                  className="h-8 text-[12px]" onClick={() => setStatusFilter(s.key)}>
-                  {s.label} ({counts[s.key] || 0})
-                </Button>
-              ))}
+              <Button size="sm" variant={view === "coverage" ? "default" : "outline"}
+                className="h-8 text-[12px]" onClick={() => setView("coverage")}>
+                <UserRound className="w-3.5 h-3.5 ml-1" /> لسا ما تقيّم ({coverageCounts.never + coverageCounts.due})
+              </Button>
             </div>
+            {view === "evals" && (
+              <div className="flex items-center gap-1">
+                <Button size="sm" variant={statusFilter === "all" ? "default" : "outline"}
+                  className="h-8 text-[12px]" onClick={() => setStatusFilter("all")}>
+                  الكل ({counts.all})
+                </Button>
+                {STATUSES.filter((s) => (counts[s.key] || 0) > 0).map((s) => (
+                  <Button key={s.key} size="sm" variant={statusFilter === s.key ? "default" : "outline"}
+                    className="h-8 text-[12px]" onClick={() => setStatusFilter(s.key)}>
+                    {s.label} ({counts[s.key] || 0})
+                  </Button>
+                ))}
+              </div>
+            )}
           </div>
         }
       >
         <main className="flex-1 p-3 space-y-3">
+          {view === "coverage" ? (
+            <CoverageView
+              rows={coverageFiltered}
+              counts={coverageCounts}
+              stateFilter={coverageState}
+              onStateFilter={setCoverageState}
+              loading={loading}
+              onOpenEmployee={(id) => navigate(`/hr/employee/${id}`)}
+              onOpenEval={(id) => { const r = rows.find((x) => x.id === id); if (r) { setView("evals"); setDetail(r); } }}
+            />
+          ) : (
+          <>
           {/* فلاتر تفصيلية */}
           <div className="flex flex-wrap items-end gap-2 bg-muted/30 border rounded-lg p-2">
             <div className="space-y-1">
@@ -436,6 +526,8 @@ export default function EmployeeEvaluationsPage() {
               </div>
             </>
           )}
+          </>
+          )}
         </main>
       </FinanceShell>
 
@@ -476,6 +568,38 @@ export default function EmployeeEvaluationsPage() {
                     <div className="font-medium">{String(v)}</div>
                   </div>
                 ))}
+              </div>
+
+              {/* الربط بملف الموظف */}
+              <div className="border rounded-lg p-2.5 space-y-2 bg-muted/30">
+                <div className="text-[11px] text-muted-foreground flex items-center gap-1">
+                  <Link2 className="w-3.5 h-3.5" /> ربط التقييم بملف الموظف المقيَّم
+                </div>
+                {detail.subjectEmployeeId ? (
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Badge className="bg-emerald-600 hover:bg-emerald-600">مربوط: {detail.evaluated}</Badge>
+                    <Button size="sm" variant="outline" className="h-7 text-[11px]"
+                      onClick={() => navigate(`/hr/employee/${detail.subjectEmployeeId}`)}>
+                      <ExternalLink className="w-3 h-3 ml-1" /> فتح ملف 360
+                    </Button>
+                    <Button size="sm" variant="ghost" className="h-7 text-[11px] text-destructive"
+                      disabled={linking} onClick={() => void linkSubject(detail.id, null)}>
+                      فك الربط
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="space-y-1.5">
+                    <p className="text-[11px] text-muted-foreground">
+                      هذا التقييم قديم والاسم فيه مكتوب يدوياً — اختر الموظف لربطه بملفه واحتسابه في تغطية التقييم.
+                    </p>
+                    <EmployeePickerField
+                      value=""
+                      placeholder={`اختر الموظف (المكتوب: ${detail.evaluated})`}
+                      disabled={linking}
+                      onChange={(_name, id) => { if (id) void linkSubject(detail.id, id); }}
+                    />
+                  </div>
+                )}
               </div>
 
               {/* المعايير */}
@@ -540,6 +664,121 @@ export default function EmployeeEvaluationsPage() {
           )}
         </DialogContent>
       </Dialog>
+    </div>
+  );
+}
+
+
+/* ------------------------------------------------------------------ */
+/* تغطية التقييم: مين لسا ما تقيّم                                      */
+/* ------------------------------------------------------------------ */
+
+function CoverageView({
+  rows, counts, stateFilter, onStateFilter, loading, onOpenEmployee, onOpenEval,
+}: {
+  rows: CoverageRow[];
+  counts: { all: number; never: number; due: number; ok: number };
+  stateFilter: "all" | "never" | "due";
+  onStateFilter: (v: "all" | "never" | "due") => void;
+  loading: boolean;
+  onOpenEmployee: (id: string) => void;
+  onOpenEval: (id: string) => void;
+}) {
+  const stateBadge = (c: CoverageRow) => {
+    if (c.state === "never") return <Badge className="bg-rose-600 hover:bg-rose-600">لم يُقيَّم أبداً</Badge>;
+    if (c.state === "due") return <Badge className="bg-amber-500 hover:bg-amber-500">مستحق ({c.daysSince} يوم)</Badge>;
+    return <Badge className="bg-emerald-600 hover:bg-emerald-600">محدَّث ({c.daysSince} يوم)</Badge>;
+  };
+
+  return (
+    <div className="space-y-3">
+      <div className="flex flex-wrap items-center gap-2 bg-muted/30 border rounded-lg p-2">
+        <span className="text-[11px] text-muted-foreground inline-flex items-center gap-1">
+          <AlertTriangle className="w-3.5 h-3.5" />
+          دورة التقييم كل {EVALUATION_CYCLE_DAYS} يوم (٣ شهور)
+        </span>
+        {([
+          ["all", `الكل (${counts.all})`],
+          ["never", `لم يُقيَّم أبداً (${counts.never})`],
+          ["due", `مستحق الآن (${counts.due})`],
+        ] as const).map(([k, label]) => (
+          <Button key={k} size="sm" variant={stateFilter === k ? "default" : "outline"}
+            className="h-8 text-[12px]" onClick={() => onStateFilter(k)}>
+            {label}
+          </Button>
+        ))}
+        <span className="text-[11px] text-muted-foreground">
+          ضمن الدورة: {counts.ok}
+        </span>
+      </div>
+
+      {loading ? (
+        <div className="flex justify-center py-16"><Loader2 className="w-6 h-6 animate-spin text-muted-foreground" /></div>
+      ) : rows.length === 0 ? (
+        <div className="text-center py-16 text-muted-foreground text-sm">لا يوجد موظفون مطابقون.</div>
+      ) : (
+        <>
+          <div className="grid gap-2 md:hidden">
+            {rows.map((c) => (
+              <div key={c.employeeId} onClick={() => onOpenEmployee(c.employeeId)}
+                className="text-right bg-background border rounded-lg p-3 space-y-1 hover:border-primary transition-colors cursor-pointer">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="font-semibold text-sm">{c.name}</span>
+                  {stateBadge(c)}
+                </div>
+                <div className="text-xs text-muted-foreground">{c.jobTitle} • {c.branch}</div>
+                <div className="text-[11px] text-muted-foreground">
+                  آخر تقييم: {c.lastEvalAt ? AR_DT(c.lastEvalAt) : "—"} • عدد التقييمات: {c.evalCount}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div className="hidden md:block bg-background border rounded-lg overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead className="bg-muted/60 text-xs">
+                <tr className="[&>th]:p-2 [&>th]:text-right [&>th]:font-medium">
+                  <th>الموظف</th>
+                  <th>المسمى الوظيفي</th>
+                  <th>الفرع</th>
+                  <th>آخر تقييم</th>
+                  <th>منذ (يوم)</th>
+                  <th>عدد التقييمات</th>
+                  <th>الحالة</th>
+                  <th className="w-32">إجراءات</th>
+                </tr>
+              </thead>
+              <tbody>
+                {rows.map((c) => (
+                  <tr key={c.employeeId} className="border-t hover:bg-muted/30 [&>td]:p-2">
+                    <td className="font-medium whitespace-nowrap">{c.name}</td>
+                    <td className="whitespace-nowrap">{c.jobTitle}</td>
+                    <td className="whitespace-nowrap">{c.branch}</td>
+                    <td className="whitespace-nowrap text-xs">{c.lastEvalAt ? AR_DT(c.lastEvalAt) : "—"}</td>
+                    <td className="whitespace-nowrap">{c.daysSince ?? "—"}</td>
+                    <td className="whitespace-nowrap">{c.evalCount}</td>
+                    <td className="whitespace-nowrap">{stateBadge(c)}</td>
+                    <td className="whitespace-nowrap">
+                      <div className="flex items-center gap-1">
+                        <Button size="sm" variant="outline" className="h-7 text-[11px]"
+                          onClick={() => onOpenEmployee(c.employeeId)}>
+                          <ExternalLink className="w-3 h-3 ml-1" /> ملف 360
+                        </Button>
+                        {c.lastEvalId && (
+                          <Button size="sm" variant="ghost" className="h-7 text-[11px]"
+                            onClick={() => onOpenEval(c.lastEvalId as string)}>
+                            آخر تقييم
+                          </Button>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </>
+      )}
     </div>
   );
 }
