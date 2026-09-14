@@ -18,7 +18,7 @@ import { Plus, Search, Users, DollarSign, FileText, Trash2, UserPlus, Loader2, U
 import { RefreshCw } from "lucide-react";
 import { FinanceShell, type ActionTab } from "@/components/finance/shell";
 import { FileSignature, ReceiptText } from "lucide-react";
-import { openEmploymentVerificationLetter } from "@/lib/hr/settlement-print";
+import EmploymentLetterDialog, { type EmploymentLetterTarget } from "@/components/hr/EmploymentLetterDialog";
 import { ArrowDownToLine, ArrowUpFromLine } from "lucide-react";
 import { validatePhoneOptional } from "@/lib/hr/phoneValidation";
 import { Switch } from "@/components/ui/switch";
@@ -252,6 +252,10 @@ const EmployeesPage = () => {
   const [showDeductionsExport, setShowDeductionsExport] = useState(false);
   // سجل طباعة كتب إثبات العمل (توثيق للموارد البشرية)
   const [showLetterLog, setShowLetterLog] = useState(false);
+  // خيارات كتاب إثبات العمل (اللغة/الجهة/الراتب) قبل الطباعة
+  const [showLetterDialog, setShowLetterDialog] = useState(false);
+  const [letterEmp, setLetterEmp] = useState<any>(null);
+
   const [letterLogRows, setLetterLogRows] = useState<any[]>([]);
   const [letterLogLoading, setLetterLogLoading] = useState(false);
 
