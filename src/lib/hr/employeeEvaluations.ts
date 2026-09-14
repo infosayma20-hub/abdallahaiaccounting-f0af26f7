@@ -178,10 +178,10 @@ export function buildCoverageRows(
       lastEvalAt: last?.created_at || null,
       lastEvalId: last?.id || null,
       daysSince,
-      state: !last ? "never" : (daysSince as number) >= EVALUATION_CYCLE_DAYS ? "due" : "ok",
+      state: (!last ? "never" : (daysSince as number) >= EVALUATION_CYCLE_DAYS ? "due" : "ok") as CoverageRow["state"],
       evalCount: list.length,
     };
-  }).sort((a, b) => {
+  }).sort((a: CoverageRow, b: CoverageRow) => {
     const rank = { never: 0, due: 1, ok: 2 } as const;
     if (rank[a.state] !== rank[b.state]) return rank[a.state] - rank[b.state];
     return (b.daysSince ?? 99999) - (a.daysSince ?? 99999);
