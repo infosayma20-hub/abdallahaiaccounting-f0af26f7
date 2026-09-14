@@ -53,6 +53,22 @@ const scoreCls = (avg: number | null) => {
   return "bg-rose-600 hover:bg-rose-600";
 };
 
+/** يجمع الملاحظات النصية من أقسام المتابعة/القرار مع عناوينها. */
+const evaluationNotes = (row: EvalRow, template?: TemplateRow): string => {
+  const parts: string[] = [];
+  for (const section of template?.schema?.sections || []) {
+    if (section.key === "header" || section.key === "criteria") continue;
+    const values = (row.raw.form_data?.[section.key] || {}) as Record<string, any>;
+    for (const field of section.fields || []) {
+      const value = values[field.key];
+      if (field.key === "employee_ack" || typeof value === "boolean") continue;
+      const text = String(value ?? "").trim();
+      if (text) parts.push(`${field.label}: ${text}`);
+    }
+  }
+  return parts.join(" • ");
+};
+
 /* ------------------------------------------------------------------ */
 /* الصفحة                                                              */
 /* ------------------------------------------------------------------ */
@@ -291,14 +307,12 @@ export default function EmployeeEvaluationsPage() {
         "المسمى الوظيفي": r.jobTitle,
         "المقيِّم": r.evaluatorName,
         "وظيفة المقيِّم": r.evaluatorJob,
-        "صفة المقيِّم": r.evaluatorRole,
-        "الفرع": r.branch,
         "نوع التقييم": r.evalType,
         "السنة": r.year,
         "تاريخ التقييم": r.evalDate || "—",
-        "المجموع": r.total ?? "—",
         "المعدل (من 10)": r.average ?? "—",
         "التقدير": scoreLabel(r.average),
+        "الملاحظات": evaluationNotes(r, tpl) || "—",
         "اعتماد الموظف": r.acknowledged ? "نعم" : "لا",
         "الحالة": statusMeta(r.status).label,
       };
@@ -461,11 +475,13 @@ export default function EmployeeEvaluationsPage() {
                       <Badge className={scoreCls(r.average)}>{r.average === null ? "—" : `${r.average}/10`}</Badge>
                     </div>
                     <div className="text-xs text-muted-foreground">
-                      المقيِّم: {r.evaluatorName} • {r.evaluatorRole}
+                      المقيِّم: {r.evaluatorName}
                     </div>
-                    <div className="text-[11px] text-muted-foreground">
-                      {r.branch} • {r.templateName}
-                    </div>
+                    {evaluationNotes(r, templateMap.get(r.templateId)) && (
+                      <div className="text-[11px] text-muted-foreground line-clamp-2">
+                        الملاحظات: {evaluationNotes(r, templateMap.get(r.templateId))}
+                      </div>
+                    )}
                     <div className="flex items-center justify-between">
                       <span className="text-[11px] text-muted-foreground">{AR_DT(r.created_at)}</span>
                       <Badge className={statusMeta(r.status).cls}>{statusMeta(r.status).label}</Badge>
@@ -483,13 +499,10 @@ export default function EmployeeEvaluationsPage() {
                       <SortableTh col="evaluated" label="الموظف المقيَّم" />
                       <SortableTh col="jobTitle" label="المسمى الوظيفي" />
                       <SortableTh col="evaluatorName" label="المدير المقيِّم" />
-                      <SortableTh col="evaluatorRole" label="صفة المقيِّم" />
-                      <SortableTh col="branch" label="الفرع" />
-                      <SortableTh col="templateName" label="النموذج" />
                       <SortableTh col="evalType" label="نوع التقييم" />
                       <SortableTh col="year" label="السنة" />
-                      <SortableTh col="total" label="المجموع" />
                       <SortableTh col="average" label="المعدل" />
+                      <th>الملاحظات</th>
                       <th>المعايير</th>
                       <th>اعتماد الموظف</th>
                       <SortableTh col="status" label="الحالة" />
@@ -503,16 +516,15 @@ export default function EmployeeEvaluationsPage() {
                         <td className="font-medium whitespace-nowrap">{r.evaluated}</td>
                         <td className="whitespace-nowrap">{r.jobTitle}</td>
                         <td className="whitespace-nowrap">{r.evaluatorName}</td>
-                        <td className="whitespace-nowrap">{r.evaluatorRole}</td>
-                        <td className="whitespace-nowrap">{r.branch}</td>
-                        <td className="max-w-[190px] truncate" title={r.templateName}>{r.templateName}</td>
                         <td className="whitespace-nowrap">{r.evalType}</td>
                         <td className="whitespace-nowrap">{r.year}</td>
-                        <td className="whitespace-nowrap">{r.total ?? "—"}</td>
                         <td className="whitespace-nowrap">
                           <Badge className={scoreCls(r.average)}>
                             {r.average === null ? "—" : `${r.average} / 10`}
                           </Badge>
+                        </td>
+                        <td className="max-w-[320px] truncate text-xs" title={evaluationNotes(r, templateMap.get(r.templateId)) || "لا توجد ملاحظات"}>
+                          {evaluationNotes(r, templateMap.get(r.templateId)) || "—"}
                         </td>
                         <td className="whitespace-nowrap text-xs text-muted-foreground">
                           {r.criteriaFilled}/{r.criteriaCount}
@@ -561,7 +573,6 @@ export default function EmployeeEvaluationsPage() {
                   ["نوع التقييم", detail.evalType],
                   ["السنة", detail.year],
                   ["تاريخ التقييم", detail.evalDate || "—"],
-                  ["المجموع المكتوب", detail.total ?? "—"],
                 ].map(([l, v]) => (
                   <div key={l as string} className="border rounded-lg p-2">
                     <div className="text-[11px] text-muted-foreground">{l}</div>
