@@ -81,6 +81,7 @@ const ROUTE_META: Record<string, { title: string; icon: string }> = {
   "/hr/people": { title: "الموظفون", icon: "usercheck" },
   "/hr/monthly-inventory": { title: "الجرد الشهري", icon: "package" },
   "/hr/job-applications": { title: "طلبات التوظيف", icon: "usercheck" },
+  "/hr/evaluations": { title: "تقييم الموظفين", icon: "clipboard" },
   "/hr/definitions": { title: "التعريفات", icon: "settings" },
   "/hr/day-types": { title: "أنواع الأيام", icon: "settings" },
   "/hr/shifts": { title: "الورديات", icon: "usercheck" },
