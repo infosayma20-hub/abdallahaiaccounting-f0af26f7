@@ -187,21 +187,35 @@ export function useManagedBranchEmployees(branchId?: string | null) {
         roleList.includes("super_admin") ||
         roleList.includes("manager");
 
-      // Reporting tree takes priority for non-admin managers: a manager's team
-      // can span multiple branches, and branch colleagues are NOT his team.
-      // Includes indirect reports (e.g. a shift assistant's own team).
+      // Non-admin managers: reporting tree (direct + indirect reports) UNION all
+      // employees of the branches explicitly assigned to them (multi-branch
+      // managers are responsible for whole branches, not just direct reports).
       if (!isAdmin) {
         const { data: teamIds } = await supabase.rpc("get_my_team_employee_ids" as any);
         const ids = ((teamIds || []) as any[])
           .map((r: any) => (typeof r === "string" ? r : r?.get_my_team_employee_ids ?? r?.id))
           .filter(Boolean) as string[];
-        if (ids.length) {
+
+        const { data: myAssignments } = await supabase
+          .from("branch_manager_assignments")
+          .select("branch_id")
+          .eq("user_id", user!.id);
+        let assignedBranchIds = ((myAssignments || []) as { branch_id: string }[]).map((a) => a.branch_id);
+        if (branchId) assignedBranchIds = assignedBranchIds.filter((id) => id === branchId);
+
+        if (ids.length || assignedBranchIds.length) {
           let q = supabase
             .from("employees")
             .select("id, full_name, position, phone, branch_id, company_id, manager_employee_id, department")
             .eq("user_id", dataOwnerId!)
-            .in("id", ids)
             .eq("is_active", true);
+          if (ids.length && assignedBranchIds.length) {
+            q = q.or(`id.in.(${ids.join(",")}),branch_id.in.(${assignedBranchIds.join(",")})`);
+          } else if (ids.length) {
+            q = q.in("id", ids);
+          } else {
+            q = q.in("branch_id", assignedBranchIds);
+          }
           // A manager's tree can span branches; narrow only when a branch is explicitly selected.
           if (branchId) q = q.eq("branch_id", branchId);
           const { data: reports } = await q.order("full_name");
@@ -209,6 +223,8 @@ export function useManagedBranchEmployees(branchId?: string | null) {
         }
 
       }
+
+
 
 
       let allowedBranchIds: string[] = [];
