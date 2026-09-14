@@ -23,6 +23,7 @@ import {
   Inbox,
   MessagesSquare,
   UserPlus,
+  Star,
   LayoutGrid,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -51,6 +52,7 @@ const ITEMS: Item[] = [
   { to: "/hr/messages-inbox", label: "الرسائل والإجراءات", Icon: Inbox, matchPrefixes: ["/hr/messages-inbox"], group: "الطلبات والمراسلة", chip: "text-rose-600 bg-rose-500/10" },
   { to: "/hr/chat", label: "المراسلة", Icon: MessagesSquare, matchPrefixes: ["/hr/chat"], group: "الطلبات والمراسلة", chip: "text-fuchsia-600 bg-fuchsia-500/10" },
   { to: "/hr/job-applications", label: "طلبات التوظيف", Icon: UserPlus, matchPrefixes: ["/hr/job-applications"], group: "الطلبات والمراسلة", chip: "text-teal-600 bg-teal-500/10" },
+  { to: "/hr/evaluations", label: "تقييم الموظفين", Icon: Star, matchPrefixes: ["/hr/evaluations"], group: "الطلبات والمراسلة", chip: "text-yellow-600 bg-yellow-500/10" },
   { to: "/hr/form-access", label: "إسناد النماذج", Icon: FileCheck, perms: ["can_manage_forms"], matchPrefixes: ["/hr/form-access"], group: "الطلبات والمراسلة", chip: "text-lime-600 bg-lime-500/10" },
   { to: "/payroll", label: "الرواتب", Icon: Banknote, perms: ["can_view_payroll", "can_process_payroll"], matchPrefixes: ["/payroll", "/payroll-settings"], group: "الرواتب والمالية", chip: "text-green-600 bg-green-500/10" },
   { to: "/hr-deductions", label: "الخصومات", Icon: Percent, perms: ["can_manage_deductions"], matchPrefixes: ["/hr-deductions"], group: "الرواتب والمالية", chip: "text-orange-600 bg-orange-500/10" },
