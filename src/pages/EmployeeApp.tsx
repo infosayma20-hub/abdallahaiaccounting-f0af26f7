@@ -123,6 +123,13 @@ export default function EmployeeApp({ initialTab }: { initialTab?: Tab } = {}) {
   const [corrections, setCorrections] = useState<CorrectionRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [branchName, setBranchName] = useState("");
+  /**
+   * الفروع المُسندة لهذا المستخدم كمدير فروع (branch_manager_assignments).
+   * مدير أكثر من فرع تُفتح له شاشات الفريق على كل فروعه (branchId = null)،
+   * بدل حصرها بفرع سجله الوظيفي. مدير الفرع الواحد يبقى كما هو تماماً.
+   */
+  const [assignedBranchCount, setAssignedBranchCount] = useState(0);
+
   const [scanOpen, setScanOpen] = useState(false);
   const [scanAction, setScanAction] = useState<"checkin" | "checkout">("checkin");
   /** نية الخروج المختارة قبل مسح QR (فارغة عند الدخول). */
