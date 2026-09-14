@@ -216,6 +216,48 @@ export default function EmployeeEvaluationsPage() {
     return { avg, employees, evaluators, weak };
   }, [filtered]);
 
+  /** تغطية التقييم لكل موظف نشط (تعتمد على التقييمات المربوطة بملف الموظف). */
+  const coverage = useMemo(
+    () => buildCoverageRows(allEmployees, visible, branchNames),
+    [allEmployees, visible, branchNames],
+  );
+
+  const coverageFiltered = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    return coverage.filter((c) => {
+      if (coverageState !== "all" && c.state !== coverageState) return false;
+      if (branchFilter !== "all" && c.branch !== branchFilter) return false;
+      if (!q) return true;
+      return [c.name, c.jobTitle, c.branch].some((v) => (v || "").toLowerCase().includes(q));
+    });
+  }, [coverage, coverageState, branchFilter, search]);
+
+  const coverageCounts = useMemo(() => ({
+    all: coverage.length,
+    never: coverage.filter((c) => c.state === "never").length,
+    due: coverage.filter((c) => c.state === "due").length,
+    ok: coverage.filter((c) => c.state === "ok").length,
+  }), [coverage]);
+
+  /** ربط تقييم قديم بملف الموظف المقيَّم (لا يغيّر أي قيمة داخل النموذج). */
+  const linkSubject = async (formId: string, employeeId: string | null) => {
+    setLinking(true);
+    try {
+      const { error } = await supabase
+        .from("employee_forms")
+        .update({ subject_employee_id: employeeId })
+        .eq("id", formId);
+      if (error) throw error;
+      toast.success(employeeId ? "تم ربط التقييم بملف الموظف" : "تم فك الربط");
+      setDetail(null);
+      await load();
+    } catch (e: any) {
+      toast.error(e?.message || "تعذّر ربط التقييم");
+    } finally {
+      setLinking(false);
+    }
+  };
+
   const toggleSort = (key: keyof EvalRow) => {
     if (key === sortKey) setSortDir((d) => (d === "asc" ? "desc" : "asc"));
     else { setSortKey(key); setSortDir("asc"); }
