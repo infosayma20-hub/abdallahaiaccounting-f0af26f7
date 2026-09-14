@@ -2097,7 +2097,45 @@ const EmployeesPage = () => {
         />
       )}
 
+      {/* خيارات كتاب إثبات العمل */}
+      <EmploymentLetterDialog
+        open={showLetterDialog}
+        onOpenChange={setShowLetterDialog}
+        company={printCompany || {}}
+        employee={
+          letterEmp
+            ? ({
+                id: letterEmp.id,
+                full_name: letterEmp.full_name,
+                department: letterEmp.department,
+                job_title: letterEmp.job_title || null,
+                start_date: letterEmp.start_date,
+                national_id: letterEmp.id_number || null,
+                base_salary: letterEmp.base_salary ?? null,
+                is_active: letterEmp.is_active,
+              } as EmploymentLetterTarget)
+            : null
+        }
+        onPrinted={() => {
+          // توثيق: تسجيل لمن طُبع كتاب إثبات عمل ومن قام بالطباعة
+          if (!letterEmp || !user || !dataOwnerId) return;
+          void (supabase as any).from("employee_letter_prints").insert({
+            owner_id: dataOwnerId,
+            company_id: (letterEmp as any).company_id ?? null,
+            employee_id: letterEmp.id,
+            employee_name: letterEmp.full_name,
+            letter_type: "employment_verification",
+            reference_number: "EMP-" + new Date().getFullYear(),
+            printed_by: user.id,
+            printed_by_name: (user as any).user_metadata?.full_name || user.email || null,
+          }).then(({ error }: any) => {
+            if (error) console.warn("letter print log failed:", error.message);
+          });
+        }}
+      />
+
       {/* Salary Slip Month Picker */}
+
       {/* سجل طباعة كتب إثبات العمل */}
       <Dialog open={showLetterLog} onOpenChange={setShowLetterLog}>
         <DialogContent className="sm:max-w-2xl max-h-[80vh] overflow-y-auto" dir="rtl">
