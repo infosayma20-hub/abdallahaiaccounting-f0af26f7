@@ -114,8 +114,6 @@ export default function EmployeeEvaluationsPage() {
           .in("id", empIds);
         employees = (emps || []) as any as EmployeeLite[];
       }
-      const empMap = new Map(employees.map((e) => [e.id, e]));
-
       const branchIds = Array.from(new Set(employees.map((e) => e.branch_id).filter(Boolean))) as string[];
       let branchMap = new Map<string, string>();
       if (branchIds.length) {
@@ -123,42 +121,7 @@ export default function EmployeeEvaluationsPage() {
         branchMap = new Map(((brs || []) as any[]).map((b) => [b.id as string, b.name as string]));
       }
 
-      const tplById = new Map(evalTemplates.map((t) => [t.id, t]));
-
-      const built: EvalRow[] = formRows.map((f) => {
-        const tpl = f.template_id ? tplById.get(f.template_id) : undefined;
-        const header = (f.form_data?.header || {}) as Record<string, any>;
-        const criteria = (f.form_data?.criteria || {}) as Record<string, any>;
-        const criteriaFields = (tpl?.schema?.sections || []).find((s) => s.key === "criteria")?.fields || [];
-        const scored = criteriaFields.filter((c) => c.key !== "total");
-        const values = scored.map((c) => numOrNull(criteria[c.key])).filter((n): n is number => n !== null);
-        const emp = f.employee_id ? empMap.get(f.employee_id) : undefined;
-
-        return {
-          id: f.id,
-          created_at: f.created_at,
-          templateId: f.template_id || "",
-          templateName: tpl?.name || f.title || "تقييم",
-          evaluated: String(header.employee_name || "").trim() || "—",
-          evaluatorName: emp?.full_name || "—",
-          evaluatorJob: emp?.job_title || "—",
-          evaluatorRole: String(header.evaluator || header.evaluator_name || "").trim() || "—",
-          branch: (emp?.branch_id && branchMap.get(emp.branch_id)) || "—",
-          evalType: String(header.eval_type || "").trim() || "—",
-          jobTitle: String(header.job_title || header.department || "").trim() || "—",
-          year: String(header.year || "").trim() || (f.created_at || "").slice(0, 4),
-          evalDate: String(header.eval_date || header.probation_start || "").trim() || "",
-          total: numOrNull(criteria.total),
-          average: values.length ? round1(values.reduce((a, b) => a + b, 0) / values.length) : null,
-          criteriaFilled: values.length,
-          criteriaCount: scored.length,
-          acknowledged: !!(f.employee_acknowledged_at || (f.form_data?.followup || {}).employee_ack),
-          status: f.workflow_status || "draft",
-          raw: f,
-        };
-      });
-
-      setRows(built);
+      setRows(buildEvalRows(formRows, evalTemplates, employees, branchMap));
     } catch (e: any) {
       toast.error(e?.message || "تعذّر تحميل التقييمات");
     } finally {
