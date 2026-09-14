@@ -570,6 +570,38 @@ export default function EmployeeEvaluationsPage() {
                 ))}
               </div>
 
+              {/* الربط بملف الموظف */}
+              <div className="border rounded-lg p-2.5 space-y-2 bg-muted/30">
+                <div className="text-[11px] text-muted-foreground flex items-center gap-1">
+                  <Link2 className="w-3.5 h-3.5" /> ربط التقييم بملف الموظف المقيَّم
+                </div>
+                {detail.subjectEmployeeId ? (
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Badge className="bg-emerald-600 hover:bg-emerald-600">مربوط: {detail.evaluated}</Badge>
+                    <Button size="sm" variant="outline" className="h-7 text-[11px]"
+                      onClick={() => navigate(`/hr/employee/${detail.subjectEmployeeId}`)}>
+                      <ExternalLink className="w-3 h-3 ml-1" /> فتح ملف 360
+                    </Button>
+                    <Button size="sm" variant="ghost" className="h-7 text-[11px] text-destructive"
+                      disabled={linking} onClick={() => void linkSubject(detail.id, null)}>
+                      فك الربط
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="space-y-1.5">
+                    <p className="text-[11px] text-muted-foreground">
+                      هذا التقييم قديم والاسم فيه مكتوب يدوياً — اختر الموظف لربطه بملفه واحتسابه في تغطية التقييم.
+                    </p>
+                    <EmployeePickerField
+                      value=""
+                      placeholder={`اختر الموظف (المكتوب: ${detail.evaluated})`}
+                      disabled={linking}
+                      onChange={(_name, id) => { if (id) void linkSubject(detail.id, id); }}
+                    />
+                  </div>
+                )}
+              </div>
+
               {/* المعايير */}
               {(() => {
                 const criteriaFields = (detailTemplate?.schema?.sections || []).find((s) => s.key === "criteria")?.fields || [];
@@ -632,6 +664,121 @@ export default function EmployeeEvaluationsPage() {
           )}
         </DialogContent>
       </Dialog>
+    </div>
+  );
+}
+
+
+/* ------------------------------------------------------------------ */
+/* تغطية التقييم: مين لسا ما تقيّم                                      */
+/* ------------------------------------------------------------------ */
+
+function CoverageView({
+  rows, counts, stateFilter, onStateFilter, loading, onOpenEmployee, onOpenEval,
+}: {
+  rows: CoverageRow[];
+  counts: { all: number; never: number; due: number; ok: number };
+  stateFilter: "all" | "never" | "due";
+  onStateFilter: (v: "all" | "never" | "due") => void;
+  loading: boolean;
+  onOpenEmployee: (id: string) => void;
+  onOpenEval: (id: string) => void;
+}) {
+  const stateBadge = (c: CoverageRow) => {
+    if (c.state === "never") return <Badge className="bg-rose-600 hover:bg-rose-600">لم يُقيَّم أبداً</Badge>;
+    if (c.state === "due") return <Badge className="bg-amber-500 hover:bg-amber-500">مستحق ({c.daysSince} يوم)</Badge>;
+    return <Badge className="bg-emerald-600 hover:bg-emerald-600">محدَّث ({c.daysSince} يوم)</Badge>;
+  };
+
+  return (
+    <div className="space-y-3">
+      <div className="flex flex-wrap items-center gap-2 bg-muted/30 border rounded-lg p-2">
+        <span className="text-[11px] text-muted-foreground inline-flex items-center gap-1">
+          <AlertTriangle className="w-3.5 h-3.5" />
+          دورة التقييم كل {EVALUATION_CYCLE_DAYS} يوم (٣ شهور)
+        </span>
+        {([
+          ["all", `الكل (${counts.all})`],
+          ["never", `لم يُقيَّم أبداً (${counts.never})`],
+          ["due", `مستحق الآن (${counts.due})`],
+        ] as const).map(([k, label]) => (
+          <Button key={k} size="sm" variant={stateFilter === k ? "default" : "outline"}
+            className="h-8 text-[12px]" onClick={() => onStateFilter(k)}>
+            {label}
+          </Button>
+        ))}
+        <span className="text-[11px] text-muted-foreground">
+          ضمن الدورة: {counts.ok}
+        </span>
+      </div>
+
+      {loading ? (
+        <div className="flex justify-center py-16"><Loader2 className="w-6 h-6 animate-spin text-muted-foreground" /></div>
+      ) : rows.length === 0 ? (
+        <div className="text-center py-16 text-muted-foreground text-sm">لا يوجد موظفون مطابقون.</div>
+      ) : (
+        <>
+          <div className="grid gap-2 md:hidden">
+            {rows.map((c) => (
+              <div key={c.employeeId} onClick={() => onOpenEmployee(c.employeeId)}
+                className="text-right bg-background border rounded-lg p-3 space-y-1 hover:border-primary transition-colors cursor-pointer">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="font-semibold text-sm">{c.name}</span>
+                  {stateBadge(c)}
+                </div>
+                <div className="text-xs text-muted-foreground">{c.jobTitle} • {c.branch}</div>
+                <div className="text-[11px] text-muted-foreground">
+                  آخر تقييم: {c.lastEvalAt ? AR_DT(c.lastEvalAt) : "—"} • عدد التقييمات: {c.evalCount}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div className="hidden md:block bg-background border rounded-lg overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead className="bg-muted/60 text-xs">
+                <tr className="[&>th]:p-2 [&>th]:text-right [&>th]:font-medium">
+                  <th>الموظف</th>
+                  <th>المسمى الوظيفي</th>
+                  <th>الفرع</th>
+                  <th>آخر تقييم</th>
+                  <th>منذ (يوم)</th>
+                  <th>عدد التقييمات</th>
+                  <th>الحالة</th>
+                  <th className="w-32">إجراءات</th>
+                </tr>
+              </thead>
+              <tbody>
+                {rows.map((c) => (
+                  <tr key={c.employeeId} className="border-t hover:bg-muted/30 [&>td]:p-2">
+                    <td className="font-medium whitespace-nowrap">{c.name}</td>
+                    <td className="whitespace-nowrap">{c.jobTitle}</td>
+                    <td className="whitespace-nowrap">{c.branch}</td>
+                    <td className="whitespace-nowrap text-xs">{c.lastEvalAt ? AR_DT(c.lastEvalAt) : "—"}</td>
+                    <td className="whitespace-nowrap">{c.daysSince ?? "—"}</td>
+                    <td className="whitespace-nowrap">{c.evalCount}</td>
+                    <td className="whitespace-nowrap">{stateBadge(c)}</td>
+                    <td className="whitespace-nowrap">
+                      <div className="flex items-center gap-1">
+                        <Button size="sm" variant="outline" className="h-7 text-[11px]"
+                          onClick={() => onOpenEmployee(c.employeeId)}>
+                          <ExternalLink className="w-3 h-3 ml-1" /> ملف 360
+                        </Button>
+                        {c.lastEvalId && (
+                          <Button size="sm" variant="ghost" className="h-7 text-[11px]"
+                            onClick={() => onOpenEval(c.lastEvalId as string)}>
+                            آخر تقييم
+                          </Button>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </>
+      )}
     </div>
   );
 }
