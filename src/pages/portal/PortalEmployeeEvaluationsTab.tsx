@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Loader2, Search, Star, UserRound, CalendarDays, ChevronDown, ChevronUp } from 'lucide-react';
+import { Loader2, Search, Star, UserRound, CalendarDays, ChevronDown, ChevronUp, type LucideIcon } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 
 type Criterion = { label: string; value: string | number };
@@ -59,11 +59,11 @@ export default function PortalEmployeeEvaluationsTab({ theme = 'light', focusId 
         <div style={{ fontSize: 11, color: t.muted }}>التقييمات المكتملة وملاحظات المدير</div>
       </div>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,minmax(0,1fr))', gap: 8, marginBottom: 12 }}>
-        {[
+        {([
           ['التقييمات', rows.length, Star],
           ['الموظفون', new Set(rows.map((r) => r.evaluated)).size, UserRound],
           ['المعدل', overall === null ? '—' : `${overall}/10`, CalendarDays],
-        ].map(([label, value, Icon]) => (
+        ] as [string, string | number, LucideIcon][]).map(([label, value, Icon]) => (
           <div key={String(label)} style={{ background: t.card, border: `1px solid ${t.border}`, borderRadius: 8, padding: 10, minWidth: 0 }}>
             <Icon size={15} color={t.accent} />
             <div style={{ color: t.text, fontSize: 16, fontWeight: 800, marginTop: 5 }}>{String(value)}</div>
