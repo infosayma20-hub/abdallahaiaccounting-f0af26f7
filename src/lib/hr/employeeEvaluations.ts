@@ -71,6 +71,38 @@ export const numOrNull = (v: any): number | null => {
 
 export const round1 = (n: number) => Math.round(n * 10) / 10;
 
+/** توحيد الاسم العربي للمقارنة فقط، دون تغيير الاسم المحفوظ أو المعروض. */
+export const normalizeArabicName = (value: string): string => String(value || "")
+  .normalize("NFKD")
+  .replace(/[\u064B-\u065F\u0670]/g, "")
+  .replace(/[إأآٱ]/g, "ا")
+  .replace(/ى/g, "ي")
+  .replace(/ؤ/g, "و")
+  .replace(/ئ/g, "ي")
+  .replace(/ة/g, "ه")
+  .replace(/[^\p{L}\p{N}\s]/gu, " ")
+  .replace(/\s+/g, " ")
+  .trim();
+
+/**
+ * يطابق الاسم النصي القديم مع موظف واحد فقط.
+ * يقبل الاسم الثنائي إذا كانت كلماته مرتبة داخل الاسم الرباعي، ويرفض أي تطابق ملتبس.
+ */
+export function resolveLegacySubjectId(typedName: string, employees: EvalEmployeeLite[]): string | null {
+  const wanted = normalizeArabicName(typedName).split(" ").filter(Boolean);
+  if (wanted.length < 2) return null;
+  const candidates = employees.filter((employee) => {
+    const full = normalizeArabicName(employee.full_name).split(" ").filter(Boolean);
+    let cursor = 0;
+    for (const token of full) {
+      if (token === wanted[cursor]) cursor += 1;
+      if (cursor === wanted.length) return true;
+    }
+    return false;
+  });
+  return candidates.length === 1 ? candidates[0].id : null;
+}
+
 export const scoreLabel = (avg: number | null) => {
   if (avg === null) return "غير مكتمل";
   if (avg >= 8) return "ممتاز";
@@ -156,10 +188,11 @@ export function buildCoverageRows(
 ): CoverageRow[] {
   const byEmp = new Map<string, EvalRow[]>();
   for (const r of rows) {
-    if (!r.subjectEmployeeId) continue;
-    const arr = byEmp.get(r.subjectEmployeeId) || [];
+    const resolvedId = r.subjectEmployeeId || resolveLegacySubjectId(r.evaluated, employees);
+    if (!resolvedId) continue;
+    const arr = byEmp.get(resolvedId) || [];
     arr.push(r);
-    byEmp.set(r.subjectEmployeeId, arr);
+    byEmp.set(resolvedId, arr);
   }
 
   return employees.map((e) => {

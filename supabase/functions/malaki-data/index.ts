@@ -337,6 +337,52 @@ async function signJobFile(supabase: any, path: string | null) {
   return data?.signedUrl || null;
 }
 
+function isEvaluationSchema(schema: any): boolean {
+  const sections = Array.isArray(schema?.sections) ? schema.sections : [];
+  return sections.some((section: any) => section?.key === "criteria" && Array.isArray(section.fields) && section.fields.length > 0)
+    && sections.some((section: any) => Array.isArray(section?.fields) && section.fields.some((field: any) => field?.key === "employee_name"));
+}
+
+async function loadPortalEmployeeEvaluations(supabase: any, linkedUserId: string) {
+  const { data: templates, error: templateError } = await supabase.from("form_templates").select("id, name, schema").eq("user_id", linkedUserId);
+  if (templateError) throw templateError;
+  const evaluationTemplates = (templates || []).filter((template: any) => isEvaluationSchema(template.schema));
+  if (!evaluationTemplates.length) return [];
+  const { data: forms, error: formsError } = await supabase.from("employee_forms")
+    .select("id, employee_id, subject_employee_id, template_id, form_data, workflow_status, created_at")
+    .eq("user_id", linkedUserId).in("template_id", evaluationTemplates.map((template: any) => template.id))
+    .neq("workflow_status", "draft").is("hr_hidden_at", null).order("created_at", { ascending: false }).limit(1000);
+  if (formsError) throw formsError;
+  const employeeIds = Array.from(new Set((forms || []).flatMap((form: any) => [form.employee_id, form.subject_employee_id]).filter(Boolean)));
+  const { data: employees, error: employeeError } = employeeIds.length
+    ? await supabase.from("employees").select("id, full_name, job_title").eq("user_id", linkedUserId).in("id", employeeIds)
+    : { data: [], error: null };
+  if (employeeError) throw employeeError;
+  const employeeMap = new Map((employees || []).map((employee: any) => [employee.id, employee]));
+  const templateMap = new Map(evaluationTemplates.map((template: any) => [template.id, template]));
+  return (forms || []).map((form: any) => {
+    const template: any = templateMap.get(form.template_id);
+    const header = form.form_data?.header || {};
+    const criteriaData = form.form_data?.criteria || {};
+    const criteriaFields = (template?.schema?.sections || []).find((section: any) => section.key === "criteria")?.fields || [];
+    const criteria = criteriaFields.filter((field: any) => field.key !== "total" && criteriaData[field.key] !== undefined && criteriaData[field.key] !== "").map((field: any) => ({ label: String(field.label || field.key), value: criteriaData[field.key] }));
+    const scores = criteria.map((item: any) => Number(item.value)).filter((value: number) => Number.isFinite(value));
+    const subject: any = form.subject_employee_id ? employeeMap.get(form.subject_employee_id) : null;
+    const evaluator: any = form.employee_id ? employeeMap.get(form.employee_id) : null;
+    const notes: string[] = [];
+    for (const section of template?.schema?.sections || []) {
+      if (section.key === "header" || section.key === "criteria") continue;
+      const values = form.form_data?.[section.key] || {};
+      for (const field of section.fields || []) {
+        const value = values[field.key];
+        if (field.key === "employee_ack" || typeof value === "boolean" || value == null || String(value).trim() === "") continue;
+        notes.push(`${String(field.label || field.key)}: ${String(value).trim()}`);
+      }
+    }
+    return { id: form.id, evaluated: subject?.full_name || String(header.employee_name || "").trim() || "—", jobTitle: subject?.job_title || String(header.job_title || header.department || "").trim() || "—", evaluator: evaluator?.full_name || "—", createdAt: form.created_at, average: scores.length ? Math.round((scores.reduce((a: number, b: number) => a + b, 0) / scores.length) * 10) / 10 : null, notes, criteria, status: form.workflow_status };
+  });
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
@@ -453,10 +499,21 @@ Deno.serve(async (req) => {
           if (!companyLogo && comp?.logo_url) companyLogo = comp.logo_url;
         }
       }
+      const { data: evaluationPermission } = authUserId
+        ? await supabase.from("portal_feature_permissions").select("id").eq("auth_user_id", authUserId).eq("feature_key", "employee_evaluations").eq("is_active", true).maybeSingle()
+        : { data: null };
       const settingsResponse = portalSettings
-        ? { ...portalSettings, linked_user_id: linkedUserId, company_name: companyName, logo_url: companyLogo }
-        : { linked_user_id: linkedUserId, company_name: companyName, logo_url: companyLogo };
+        ? { ...portalSettings, linked_user_id: linkedUserId, company_name: companyName, logo_url: companyLogo, can_view_employee_evaluations: !!evaluationPermission }
+        : { linked_user_id: linkedUserId, company_name: companyName, logo_url: companyLogo, can_view_employee_evaluations: !!evaluationPermission };
       return respond({ success: true, settings: settingsResponse });
+    }
+
+    if (action === "employee_evaluations") {
+      if (!linkedUserId || !authUserId) return respond({ success: false, error: "not_linked" }, 403);
+      const { data: permission } = await supabase.from("portal_feature_permissions").select("id")
+        .eq("auth_user_id", authUserId).eq("user_id", linkedUserId).eq("feature_key", "employee_evaluations").eq("is_active", true).maybeSingle();
+      if (!permission) return respond({ success: false, error: "forbidden" }, 403);
+      return respond({ success: true, evaluations: await loadPortalEmployeeEvaluations(supabase, linkedUserId) });
     }
 
     if (action === "update_settings") {
