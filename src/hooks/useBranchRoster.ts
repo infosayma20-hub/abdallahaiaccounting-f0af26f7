@@ -187,9 +187,10 @@ export function useManagedBranchEmployees(branchId?: string | null) {
         roleList.includes("super_admin") ||
         roleList.includes("manager");
 
-      // Non-admin managers: reporting tree (direct + indirect reports) UNION all
-      // employees of the branches explicitly assigned to them (multi-branch
-      // managers are responsible for whole branches, not just direct reports).
+      // Non-admin managers: reporting tree (direct + indirect reports).
+      // Branch-wide union applies ONLY to area managers responsible for more
+      // than one branch (e.g. اياد بزره). Single-branch managers keep their
+      // original scope: their own reporting tree, not the whole branch.
       if (!isAdmin) {
         const { data: teamIds } = await supabase.rpc("get_my_team_employee_ids" as any);
         const ids = ((teamIds || []) as any[])
@@ -200,8 +201,11 @@ export function useManagedBranchEmployees(branchId?: string | null) {
           .from("branch_manager_assignments")
           .select("branch_id")
           .eq("user_id", user!.id);
-        let assignedBranchIds = ((myAssignments || []) as { branch_id: string }[]).map((a) => a.branch_id);
+        const allAssignedBranchIds = ((myAssignments || []) as { branch_id: string }[]).map((a) => a.branch_id);
+        const isAreaManager = allAssignedBranchIds.length > 1;
+        let assignedBranchIds = isAreaManager ? allAssignedBranchIds : [];
         if (branchId) assignedBranchIds = assignedBranchIds.filter((id) => id === branchId);
+
 
         if (ids.length || assignedBranchIds.length) {
           let q = supabase
