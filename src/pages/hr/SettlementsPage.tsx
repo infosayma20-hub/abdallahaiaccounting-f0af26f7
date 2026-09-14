@@ -138,6 +138,10 @@ export default function SettlementsPage() {
   const [mode, setMode] = useState<"list" | "form">("list");
   const [editId, setEditId] = useState<string | null>(null);
   const [showArchived, setShowArchived] = useState(false);
+  // خيارات كتاب إثبات العمل قبل الطباعة
+  const [showLetterDialog, setShowLetterDialog] = useState(false);
+  const [letterEmp, setLetterEmp] = useState<EmploymentLetterTarget | null>(null);
+
 
   const { data: rows = [], isLoading, refetch } = useQuery({
     queryKey: ["termination-records", dataOwnerId, showArchived],
