@@ -498,12 +498,28 @@ export default function DynamicFormRenderer({
                         {f.label}
                         {f.required && <span className="text-destructive mr-1">*</span>}
                       </Label>
-                      <FieldInput
-                        field={f}
-                        value={data[section.key]?.[f.key]}
-                        onChange={(v) => setSectionFieldValue(section.key, f.key, v)}
-                        disabled={readOnly}
-                      />
+                      {f.type === "employee_picker" ? (
+                        <EmployeePickerField
+                          value={data[section.key]?.[f.key] ?? ""}
+                          employeeId={data[section.key]?.employee_id ?? null}
+                          placeholder={f.placeholder}
+                          disabled={readOnly}
+                          onChange={(name, id) => {
+                            dirtyRef.current = true;
+                            setData((prev) => ({
+                              ...prev,
+                              [section.key]: { ...(prev[section.key] || {}), [f.key]: name, employee_id: id },
+                            }));
+                          }}
+                        />
+                      ) : (
+                        <FieldInput
+                          field={f}
+                          value={data[section.key]?.[f.key]}
+                          onChange={(v) => setSectionFieldValue(section.key, f.key, v)}
+                          disabled={readOnly}
+                        />
+                      )}
                       {f.help && (
                         <p className="text-[10px] text-muted-foreground mt-1">{f.help}</p>
                       )}
