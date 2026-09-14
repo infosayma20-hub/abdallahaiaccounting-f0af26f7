@@ -283,36 +283,72 @@ function docChrome(opts: {
  * كتاب إثبات عمل — Employment Verification Letter.
  * تصميم مصمم على نفس نمط FinanceShell (شريط علوي كحلي + سطر تعريفي).
  */
+export type EmploymentLetterLanguage = "ar" | "en" | "both";
+
 export function openEmploymentVerificationLetter(args: {
   company: Company;
   employee: EmployeeLite & { base_salary?: number | null; is_active?: boolean };
+  /** الجهة الموجّه إليها الكتاب — الافتراضي «إلى من يهمه الأمر» */
   addressee?: string;
+  /** الجهة بالإنجليزي — الافتراضي "To Whom It May Concern" */
+  addresseeEn?: string;
   purpose?: string;
+  purposeEn?: string;
+  /** لغة الكتاب: عربي / إنجليزي / صفحتان */
+  language?: EmploymentLetterLanguage;
+  /** قيمة الراتب الأساسي المعروضة في الكتاب (طباعة فقط — لا تُحفظ في بيانات الموظف) */
+  baseSalaryOverride?: number | null;
+  /** إظهار أو إخفاء سطر الراتب الأساسي */
+  showSalary?: boolean;
+  /** اسم الموظف بالإنجليزي (للنسخة الإنجليزية) */
+  fullNameEn?: string | null;
 }) {
   const { company, employee } = args;
-  const addressee = args.addressee || "إلى من يهمه الأمر";
+  const language: EmploymentLetterLanguage = args.language || "ar";
+  const addressee = args.addressee?.trim() || "إلى من يهمه الأمر";
+  const addresseeEn = args.addresseeEn?.trim() || "To Whom It May Concern";
+  const nameEn = args.fullNameEn?.trim() || employee.full_name;
   const ref = "EMP-" + new Date().getFullYear() + "-" + shortId(String(employee.national_id || employee.full_name));
-  const salaryLine = employee.base_salary
-    ? `<div><span class="muted">الراتب الأساسي:</span> <b>${money(Number(employee.base_salary))}</b></div>`
-    : "";
-  const infoRows = `
+  const rawSalary =
+    args.baseSalaryOverride !== undefined && args.baseSalaryOverride !== null
+      ? Number(args.baseSalaryOverride)
+      : employee.base_salary != null
+        ? Number(employee.base_salary)
+        : null;
+  const showSalary = args.showSalary !== false && rawSalary != null && Number.isFinite(rawSalary) && rawSalary > 0;
+  const salaryText = showSalary ? money(Number(rawSalary)) : "";
+
+  const infoStyle = `
+    <style>
+      .info { border:1px solid #e2e8f0; border-radius:8px; overflow:hidden; margin: 10px 0 16px; }
+      .info .row { display:grid; grid-template-columns: 190px 1fr; padding:9px 14px; border-top:1px solid #f1f5f9; background:#fff; }
+      .info .row:first-child { border-top:none; }
+      .info .row:nth-child(even) { background:#f8fafc; }
+      .info .k { color:#64748b; font-size:12px; }
+      .info .v { font-size:12.5px; color:#0f172a; }
+    </style>`;
+
+  const infoRowsAr = `
     <div class="info">
       <div class="row"><span class="k">الاسم</span><span class="v"><b>${employee.full_name}</b></span></div>
       <div class="row"><span class="k">رقم الهوية</span><span class="v">${employee.national_id || "—"}</span></div>
       <div class="row"><span class="k">المسمى الوظيفي</span><span class="v">${employee.job_title || "—"}</span></div>
       <div class="row"><span class="k">القسم</span><span class="v">${employee.department || "—"}</span></div>
       <div class="row"><span class="k">تاريخ الالتحاق بالعمل</span><span class="v">${employee.start_date || "—"}</span></div>
-      ${employee.base_salary ? `<div class="row"><span class="k">الراتب الأساسي</span><span class="v"><b>${money(Number(employee.base_salary))}</b></span></div>` : ""}
+      ${showSalary ? `<div class="row"><span class="k">الراتب الأساسي</span><span class="v"><b>${salaryText}</b></span></div>` : ""}
       <div class="row"><span class="k">حالة العمل</span><span class="v"><b style="color:#065f46">على رأس العمل</b></span></div>
-    </div>
-    <style>
-      .info { border:1px solid #e2e8f0; border-radius:8px; overflow:hidden; margin: 10px 0 16px; }
-      .info .row { display:grid; grid-template-columns: 160px 1fr; padding:9px 14px; border-top:1px solid #f1f5f9; background:#fff; }
-      .info .row:first-child { border-top:none; }
-      .info .row:nth-child(even) { background:#f8fafc; }
-      .info .k { color:#64748b; font-size:12px; }
-      .info .v { font-size:12.5px; color:#0f172a; }
-    </style>`;
+    </div>${infoStyle}`;
+
+  const infoRowsEn = `
+    <div class="info" dir="ltr" style="text-align:left">
+      <div class="row"><span class="k">Full Name</span><span class="v"><b>${nameEn}</b></span></div>
+      <div class="row"><span class="k">ID Number</span><span class="v">${employee.national_id || "—"}</span></div>
+      <div class="row"><span class="k">Job Title</span><span class="v">${employee.job_title || "—"}</span></div>
+      <div class="row"><span class="k">Department</span><span class="v">${employee.department || "—"}</span></div>
+      <div class="row"><span class="k">Date of Joining</span><span class="v">${employee.start_date || "—"}</span></div>
+      ${showSalary ? `<div class="row"><span class="k">Basic Salary</span><span class="v"><b>${salaryText}</b></span></div>` : ""}
+      <div class="row"><span class="k">Employment Status</span><span class="v"><b style="color:#065f46">Currently Employed</b></span></div>
+    </div>${infoStyle}`;
 
   const letterheadTop = `
     <style>
@@ -345,7 +381,7 @@ export function openEmploymentVerificationLetter(args: {
       </div>
     </div>`;
 
-  const body = letterheadTop + docChrome({
+  const arabicPage = letterheadTop + docChrome({
     company,
     hideLogo: true,
     hideCompanyName: true,
@@ -356,7 +392,7 @@ export function openEmploymentVerificationLetter(args: {
       <p style="text-align:center; font-weight:700; font-size:14px; margin: 4px 0 14px; text-decoration: underline;">${addressee}</p>
       <p>نشهد نحن إدارة الموارد البشرية في <b>${company.name || ""}</b> بأن الموظف/ة المذكور بياناته أدناه يعمل لدينا،
          وقد صدر هذا الكتاب بناءً على طلبه دون أدنى مسؤولية على الشركة.</p>
-      ${infoRows}
+      ${infoRowsAr}
       <p>${args.purpose || "وقد أُعطي هذا الكتاب بناءً على طلبه لاستخدامه في الأغراض الرسمية التي يحتاجها، دون أن يترتب على ذلك أي التزامات مالية أو قانونية على الشركة."}</p>
       <p>وتفضلوا بقبول فائق الاحترام والتقدير،،،</p>
       ${letterheadBottom}
@@ -364,13 +400,43 @@ export function openEmploymentVerificationLetter(args: {
     `,
   });
 
+  const englishPage = `<div dir="ltr" style="text-align:left">` + letterheadTop + docChrome({
+    company,
+    hideLogo: true,
+    hideCompanyName: true,
+    title: "Employment Verification Letter",
+    englishTitle: "Employment Verification Letter",
+    referenceNumber: ref,
+    dateLabel: new Date().toLocaleDateString("en-GB", { year: "numeric", month: "long", day: "2-digit" }),
+    body: `
+      <p style="text-align:center; font-weight:700; font-size:14px; margin: 4px 0 14px; text-decoration: underline;">${addresseeEn}</p>
+      <p style="text-align:left">This is to certify that the Human Resources Department of <b>${company.name || ""}</b> confirms that the
+         employee whose details are listed below is currently employed by our company. This letter has been issued upon
+         the employee's request without any liability on the company.</p>
+      ${infoRowsEn}
+      <p style="text-align:left">${args.purposeEn || "This letter is issued upon the employee's request for official purposes, without creating any financial or legal obligation on the company."}</p>
+      <p style="text-align:left">Sincerely,</p>
+      ${letterheadBottom}
+      <div class="footer">This document is issued electronically by the Unify accounting system</div>
+    `,
+  }) + `</div>`;
+
+  const body =
+    language === "en" ? englishPage
+      : language === "both" ? `${arabicPage}<div style="page-break-before:always"></div>${englishPage}`
+      : arabicPage;
+
+  const docTitle = language === "en"
+    ? "Employment Verification Letter - " + nameEn
+    : "كتاب إثبات عمل - " + employee.full_name;
 
   const w = window.open("", "_blank", "width=980,height=1000");
   if (!w) return;
   w.document.open();
-  w.document.write(baseHtml("كتاب إثبات عمل - " + employee.full_name, body));
+  w.document.write(baseHtml(docTitle, body));
   w.document.close();
 }
+
 
 /**
  * قسيمة راتب — Salary Slip.

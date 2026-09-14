@@ -18,7 +18,9 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 import { Plus, RefreshCw, CheckCircle2, AlertTriangle, FileText, Search, Wallet, Users as UsersIcon, ChevronsUpDown, Check, Save, ArrowRight, ChevronDown, Archive, ArchiveRestore } from "lucide-react";
 import { calculateLeaveBalance } from "@/lib/hr-utils";
 import { Printer, Award, Landmark } from "lucide-react";
-import { openSettlementPrint, openExperienceCertificate, openEmploymentVerificationLetter, openSalarySlip } from "@/lib/hr/settlement-print";
+import { openSettlementPrint, openExperienceCertificate, openSalarySlip } from "@/lib/hr/settlement-print";
+import EmploymentLetterDialog, { type EmploymentLetterTarget } from "@/components/hr/EmploymentLetterDialog";
+
 import { FileSignature, ReceiptText } from "lucide-react";
 import { FinanceShell, type ActionTab } from "@/components/finance/shell";
 
@@ -136,6 +138,10 @@ export default function SettlementsPage() {
   const [mode, setMode] = useState<"list" | "form">("list");
   const [editId, setEditId] = useState<string | null>(null);
   const [showArchived, setShowArchived] = useState(false);
+  // خيارات كتاب إثبات العمل قبل الطباعة
+  const [showLetterDialog, setShowLetterDialog] = useState(false);
+  const [letterEmp, setLetterEmp] = useState<EmploymentLetterTarget | null>(null);
+
 
   const { data: rows = [], isLoading, refetch } = useQuery({
     queryKey: ["termination-records", dataOwnerId, showArchived],
@@ -446,22 +452,21 @@ export default function SettlementsPage() {
                           title="كتاب إثبات عمل"
                           onClick={() => {
                             if (!emp) return;
-                            openEmploymentVerificationLetter({
-                              company: company || {},
-                              employee: {
-                                full_name: emp.full_name,
-                                department: emp.department,
-                                job_title: emp.job_title || null,
-                                start_date: emp.start_date,
-                                national_id: emp.id_number || null,
-                                base_salary: emp.base_salary || null,
-                                is_active: emp.is_active,
-                              },
+                            setLetterEmp({
+                              full_name: emp.full_name,
+                              department: emp.department,
+                              job_title: emp.job_title || null,
+                              start_date: emp.start_date,
+                              national_id: emp.id_number || null,
+                              base_salary: emp.base_salary || null,
+                              is_active: emp.is_active,
                             });
+                            setShowLetterDialog(true);
                           }}
                         >
                           <FileSignature className="h-4 w-4" />
                         </Button>
+
                         <Button
                           variant="ghost"
                           size="sm"
@@ -536,7 +541,14 @@ export default function SettlementsPage() {
       </Card>
 
       </div>
+      <EmploymentLetterDialog
+        open={showLetterDialog}
+        onOpenChange={setShowLetterDialog}
+        company={company || {}}
+        employee={letterEmp}
+      />
     </FinanceShell>
+
     </div>
   );
 }
@@ -1168,6 +1180,8 @@ function SettlementFormPage(props: {
 
       </div>
     </FinanceShell>
+
+
     </div>
   );
 }
