@@ -3568,6 +3568,7 @@ export type Database = {
           name: string
           owner_id: string
           phone: string | null
+          session_exempt_roles: string[]
           session_timeout_minutes: number
           session_warning_minutes: number
           tax_number: string | null
@@ -3586,6 +3587,7 @@ export type Database = {
           name?: string
           owner_id: string
           phone?: string | null
+          session_exempt_roles?: string[]
           session_timeout_minutes?: number
           session_warning_minutes?: number
           tax_number?: string | null
@@ -3604,6 +3606,7 @@ export type Database = {
           name?: string
           owner_id?: string
           phone?: string | null
+          session_exempt_roles?: string[]
           session_timeout_minutes?: number
           session_warning_minutes?: number
           tax_number?: string | null
@@ -33205,7 +33208,11 @@ export type Database = {
       }
       uaao_is_actor_admin: { Args: { _actor: string }; Returns: boolean }
       update_company_session_policy: {
-        Args: { _timeout_minutes: number; _warning_minutes: number }
+        Args: {
+          _exempt_roles?: string[]
+          _timeout_minutes: number
+          _warning_minutes: number
+        }
         Returns: undefined
       }
       update_last_seen: { Args: never; Returns: undefined }

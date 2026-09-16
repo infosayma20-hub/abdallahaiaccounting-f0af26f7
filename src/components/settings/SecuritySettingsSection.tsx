@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
@@ -12,6 +13,15 @@ import AdvancedPermissionsSection from "./AdvancedPermissionsSection";
 import PasswordManagementSection from "./PasswordManagementSection";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+
+/** Roles that may be exempted from the idle auto-logout. */
+const EXEMPTABLE_ROLES: { value: string; label: string }[] = [
+  { value: "admin", label: "الإدارة (admin)" },
+  { value: "super_admin", label: "مدير النظام (super_admin)" },
+  { value: "hr_manager", label: "الموارد البشرية" },
+  { value: "accountant_senior", label: "المحاسب الرئيسي" },
+  { value: "supervisor", label: "المشرف" },
+];
 
 interface Props {
   settings: CompanySettings;
@@ -31,11 +41,16 @@ const SecuritySettingsSection = ({ settings, onChange }: Props) => {
    * in sync for the transitional period (existing screens still read
    * from there until they migrate).
    */
-  const persistPolicy = async (timeout: number, warning: number) => {
+  const persistPolicy = async (
+    timeout: number,
+    warning: number,
+    exemptRoles?: string[],
+  ) => {
     const { error } = await supabase.rpc("update_company_session_policy", {
       _timeout_minutes: timeout,
       _warning_minutes: warning,
-    });
+      ...(exemptRoles ? { _exempt_roles: exemptRoles } : {}),
+    } as never);
     if (error) {
       toast({
         title: "تعذّر حفظ إعداد الجلسة",
@@ -62,7 +77,36 @@ const SecuritySettingsSection = ({ settings, onChange }: Props) => {
   const handleWarningChange = (v: string) => {
     const num = Number(v);
     onChange({ security_warning_minutes: num });
-    void persistPolicy(timeoutValue, num);
+    void persistPolicy(timeoutValue, num, exemptRoles);
+  };
+
+  // ── Role-based exemption from the idle auto-logout ──────────────
+  // Stored on the company row (session_exempt_roles). Empty by default,
+  // so nothing changes until the owner opts a role in.
+  const [exemptRoles, setExemptRoles] = useState<string[]>([]);
+  const [loadingExempt, setLoadingExempt] = useState(true);
+
+  useEffect(() => {
+    let alive = true;
+    (async () => {
+      const { data } = await supabase
+        .from("companies")
+        .select("id, session_exempt_roles")
+        .limit(1)
+        .maybeSingle();
+      if (!alive) return;
+      setExemptRoles(((data as any)?.session_exempt_roles as string[]) ?? []);
+      setLoadingExempt(false);
+    })();
+    return () => { alive = false; };
+  }, []);
+
+  const toggleExemptRole = (role: string, on: boolean) => {
+    const next = on
+      ? Array.from(new Set([...exemptRoles, role]))
+      : exemptRoles.filter((r) => r !== role);
+    setExemptRoles(next);
+    void persistPolicy(timeoutValue, warningValue, next);
   };
 
   return (
@@ -130,6 +174,42 @@ const SecuritySettingsSection = ({ settings, onChange }: Props) => {
                 ستظهر نافذة تحذير قبل انتهاء الجلسة بالمدة المحددة
               </p>
             </div>
+          )}
+        </div>
+
+        {/* Role-based exemption */}
+        <div className="mt-4 space-y-3 p-4 bg-muted/20 rounded-xl border border-border/30">
+          <div>
+            <Label className="font-medium">استثناء من الخروج التلقائي (حسب الدور)</Label>
+            <p className="text-[11px] text-muted-foreground mt-1">
+              الأدوار المحددة هنا لن يُسجَّل خروجها تلقائياً عند الخمول. باقي المستخدمين يبقون على المدة أعلاه.
+            </p>
+          </div>
+          {loadingExempt ? (
+            <p className="text-xs text-muted-foreground">جارٍ التحميل…</p>
+          ) : (
+            <div className="space-y-2">
+              {EXEMPTABLE_ROLES.map((r) => (
+                <div
+                  key={r.value}
+                  className="flex items-center justify-between p-3 bg-background rounded-lg border border-border/40"
+                >
+                  <span className="text-sm font-medium">{r.label}</span>
+                  <Switch
+                    checked={exemptRoles.includes(r.value)}
+                    onCheckedChange={(on) => toggleExemptRole(r.value, on)}
+                  />
+                </div>
+              ))}
+            </div>
+          )}
+          {exemptRoles.length > 0 && (
+            <Alert variant="destructive" className="py-2">
+              <AlertTriangle className="h-4 w-4" />
+              <AlertDescription className="text-xs leading-relaxed">
+                الأدوار المستثناة تبقى جلستها مفتوحة حتى يسجّل المستخدم خروجه يدوياً — استخدمها للأجهزة المكتبية الموثوقة فقط.
+              </AlertDescription>
+            </Alert>
           )}
         </div>
       </div>
