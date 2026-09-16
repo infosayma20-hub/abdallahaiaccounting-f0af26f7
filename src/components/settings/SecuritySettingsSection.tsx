@@ -68,7 +68,36 @@ const SecuritySettingsSection = ({ settings, onChange }: Props) => {
   const handleWarningChange = (v: string) => {
     const num = Number(v);
     onChange({ security_warning_minutes: num });
-    void persistPolicy(timeoutValue, num);
+    void persistPolicy(timeoutValue, num, exemptRoles);
+  };
+
+  // ── Role-based exemption from the idle auto-logout ──────────────
+  // Stored on the company row (session_exempt_roles). Empty by default,
+  // so nothing changes until the owner opts a role in.
+  const [exemptRoles, setExemptRoles] = useState<string[]>([]);
+  const [loadingExempt, setLoadingExempt] = useState(true);
+
+  useEffect(() => {
+    let alive = true;
+    (async () => {
+      const { data } = await supabase
+        .from("companies")
+        .select("id, session_exempt_roles")
+        .limit(1)
+        .maybeSingle();
+      if (!alive) return;
+      setExemptRoles(((data as any)?.session_exempt_roles as string[]) ?? []);
+      setLoadingExempt(false);
+    })();
+    return () => { alive = false; };
+  }, []);
+
+  const toggleExemptRole = (role: string, on: boolean) => {
+    const next = on
+      ? Array.from(new Set([...exemptRoles, role]))
+      : exemptRoles.filter((r) => r !== role);
+    setExemptRoles(next);
+    void persistPolicy(timeoutValue, warningValue, next);
   };
 
   return (
