@@ -58,9 +58,17 @@ function ModifierGroupSection({
   selectedIds: string[];
   onToggle: (optId: string) => void;
 }) {
+  const collapsible = !!group.default_collapsed;
+  const [collapsed, setCollapsed] = useState(collapsible);
+  const expanded = !collapsible || !collapsed;
   return (
     <div>
-      <div className="flex items-center justify-between mb-3">
+      <div
+        className={`flex items-center justify-between ${expanded ? "mb-3" : ""} ${collapsible ? "cursor-pointer select-none" : ""}`}
+        onClick={collapsible ? () => setCollapsed((c) => !c) : undefined}
+        role={collapsible ? "button" : undefined}
+        aria-expanded={collapsible ? expanded : undefined}
+      >
         <div className="flex items-center gap-2">
           <h4 className="text-[14px] font-medium" style={{ color: 'white' }}>{group.name}</h4>
           <span
@@ -73,13 +81,22 @@ function ModifierGroupSection({
             {group.is_required ? "مطلوب" : "اختياري"}
           </span>
         </div>
-        <span className="text-[12px]" style={{ color: 'rgba(255,255,255,0.4)' }}>
-          {group.selection_type === "single"
-            ? "اختر واحداً"
-            : `اختر حتى ${group.max_select}`}
-        </span>
+        <div className="flex items-center gap-2">
+          <span className="text-[12px]" style={{ color: 'rgba(255,255,255,0.4)' }}>
+            {group.selection_type === "single"
+              ? "اختر واحداً"
+              : `اختر حتى ${group.max_select}`}
+          </span>
+          {collapsible && (
+            <ChevronDown
+              className="w-4 h-4 transition-transform"
+              style={{ color: 'rgba(255,255,255,0.5)', transform: expanded ? 'rotate(180deg)' : 'none' }}
+            />
+          )}
+        </div>
       </div>
 
+      {expanded && (
       <div className="grid grid-cols-3 gap-2">
         {group.options
           .sort((a, b) => a.sort_order - b.sort_order)
