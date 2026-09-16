@@ -1762,6 +1762,13 @@ const EmployeesPage = () => {
               </Select>
             </div>
             <div><label className="text-xs text-muted-foreground">تاريخ البداية</label><Input type="date" value={form.start_date || ""} onChange={e => setForm({ ...form, start_date: e.target.value })} /></div>
+            {editingId && (form.is_active === false || (form as any).is_terminated === true || !!(form as any).end_date) && (
+              <div>
+                <label className="text-xs text-muted-foreground">تاريخ نهاية الخدمة</label>
+                <Input type="date" value={(form as any).end_date || ""} onChange={e => setForm({ ...form, end_date: e.target.value } as any)} />
+                <div className="text-[11px] text-muted-foreground mt-1">يُستخدم في المخالصة والتقارير — لا يغيّر أي قيد مالي.</div>
+              </div>
+            )}
             <div><label className="text-xs text-muted-foreground">نوع العقد</label>
               <Select value={form.contract_type || "permanent"} onValueChange={v => setForm({ ...form, contract_type: v })}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
