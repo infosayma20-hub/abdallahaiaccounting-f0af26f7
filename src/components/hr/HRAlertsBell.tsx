@@ -341,6 +341,45 @@ export default function HRAlertsBell() {
           </div>
         )}
 
+        {doneReminders.length > 0 && (
+          <div>
+            <button
+              onClick={() => setShowDone((v) => !v)}
+              className="w-full text-right px-3 py-1.5 text-[11px] text-muted-foreground bg-muted/40 hover:bg-muted/60"
+            >
+              {showDone ? "إخفاء" : "عرض"} التذكيرات المنتهية ({doneReminders.length})
+            </button>
+            {showDone &&
+              doneReminders.map((r) => (
+                <div
+                  key={r.id}
+                  className="w-full text-right px-3 py-2 hover:bg-muted/50 border-b border-border/60 flex items-start gap-2 opacity-70"
+                >
+                  <button className="flex-1 text-right min-w-0" onClick={() => { setOpen(false); setActiveReminder(r); }}>
+                    <div className="flex items-center gap-2">
+                      <CheckCircle2 className="h-3.5 w-3.5 shrink-0 text-emerald-600" />
+                      <span className="text-xs font-semibold truncate line-through">{r.title}</span>
+                      <span className="text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground shrink-0">
+                        {formatHRDayMonth(r.remind_at + "T00:00:00")}
+                      </span>
+                    </div>
+                    <div className="text-[11px] text-muted-foreground truncate mt-0.5">
+                      {[r.employee_name, r.note].filter(Boolean).join(" — ")}
+                    </div>
+                  </button>
+                  <button
+                    title="إرجاع التذكير"
+                    aria-label="إرجاع"
+                    className="text-muted-foreground hover:text-primary shrink-0 mt-0.5"
+                    onClick={() => restore(r.id)}
+                  >
+                    <RotateCcw className="h-4 w-4" />
+                  </button>
+                </div>
+              ))}
+          </div>
+        )}
+
         {milestones.length > 0 && (
           <div>
             <div className="px-3 py-1.5 text-[11px] text-muted-foreground bg-muted/40">
