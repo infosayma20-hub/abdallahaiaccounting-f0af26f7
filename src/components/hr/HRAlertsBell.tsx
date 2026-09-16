@@ -164,7 +164,7 @@ export default function HRAlertsBell() {
       // `workflow_status`. Archived forms are excluded.
       supabase
         .from("employee_forms")
-        .select("id, title, form_type, status, submitted_at, created_at, workflow_status, employees!inner(full_name)")
+        .select("id, title, form_type, status, submitted_at, created_at, workflow_status, employees!employee_forms_employee_id_fkey!inner(full_name)")
         .is("archived_at", null)
         .is("hr_hidden_at", null)
         .or("status.eq.pending,workflow_status.in.(submitted,under_review)")

@@ -59,6 +59,8 @@ const KIND_META: Record<ActivityItem["kind"], { Icon: any; cls: string }> = {
 const AUDIT_ACTION: Record<string, { kind: ActivityItem["kind"]; verb: string }> = {
   created: { kind: "submit", verb: "قدّم طلب جديد" },
   workflow_submitted: { kind: "submit", verb: "أرسل طلباً للمراجعة" },
+  workflow_draft: { kind: "info", verb: "حفظ مسودة" },
+  in_progress: { kind: "info", verb: "بدأ العمل على" },
   approved: { kind: "approve", verb: "اعتمد" },
   rejected: { kind: "reject", verb: "رفض" },
   hr_recommendation_approve: { kind: "approve", verb: "قدّم توصية الموارد البشرية بالموافقة على" },
@@ -89,7 +91,7 @@ export function HrActivitySummary() {
       const [auditRes, printsRes, usersRes] = await Promise.all([
         supabase
           .from("employee_form_audit_log")
-          .select("id, created_at, action, actor_name, employee_forms(id, form_type, title, employees(full_name))")
+          .select("id, created_at, action, actor_name, employee_forms(id, form_type, title, employees!employee_forms_employee_id_fkey(full_name))")
           .gte("created_at", since)
           .order("created_at", { ascending: false })
           .limit(600),

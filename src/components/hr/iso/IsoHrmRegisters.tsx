@@ -74,7 +74,7 @@ export default function IsoHrmRegisters() {
 
       const { data: forms, error } = await supabase
         .from("employee_forms")
-        .select("id, template_id, employee_id, form_data, workflow_status, created_at, submitted_at, employees(full_name, job_title)")
+        .select("id, template_id, employee_id, form_data, workflow_status, created_at, submitted_at, employees!employee_forms_employee_id_fkey(full_name, job_title)")
         .in("template_id", ids)
         .order("created_at", { ascending: false });
       if (error) throw error;
