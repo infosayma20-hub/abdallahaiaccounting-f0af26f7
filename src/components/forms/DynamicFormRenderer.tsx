@@ -505,13 +505,17 @@ export default function DynamicFormRenderer({
                           employeeId={data[section.key]?.employee_id ?? null}
                           placeholder={f.placeholder}
                           disabled={readOnly}
-                          onChange={(name, id) => {
+                          onChange={(name, id, jobTitle) => {
                             dirtyRef.current = true;
-                            setData((prev) => ({
-                              ...prev,
-                              [section.key]: { ...(prev[section.key] || {}), [f.key]: name, employee_id: id },
-                            }));
+                            setData((prev) => {
+                              const sec = { ...(prev[section.key] || {}), [f.key]: name, employee_id: id } as Record<string, any>;
+                              // يملأ المسمى الوظيفي تلقائياً فقط إن كان فارغاً (لا يستبدل ما كتبه المدير)
+                              const hasJobField = section.fields.some((x) => x.key === "job_title");
+                              if (hasJobField && jobTitle && !String(sec.job_title || "").trim()) sec.job_title = jobTitle;
+                              return { ...prev, [section.key]: sec };
+                            });
                           }}
+
                         />
                       ) : (
                         <FieldInput
