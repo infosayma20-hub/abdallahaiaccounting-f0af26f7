@@ -101,7 +101,19 @@ export function useHRReminders() {
     [refresh],
   );
 
-  return { reminders, loading, refresh, add, markDone, remove, ownerId };
+  const restore = useCallback(
+    async (id: string) => {
+      const { error } = await (supabase as any)
+        .from("hr_reminders")
+        .update({ is_done: false, done_at: null })
+        .eq("id", id);
+      if (error) throw error;
+      await refresh();
+    },
+    [refresh],
+  );
+
+  return { reminders, doneReminders, loading, refresh, add, markDone, restore, remove, ownerId };
 }
 
 /** تاريخ اليوم المحلي بصيغة YYYY-MM-DD */
