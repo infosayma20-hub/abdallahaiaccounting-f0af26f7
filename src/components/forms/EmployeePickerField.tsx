@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -48,18 +48,21 @@ export default function EmployeePickerField({ value, employeeId, disabled, place
   const [list, setList] = useState<PickedEmployee[]>([]);
   const [q, setQ] = useState("");
 
+  const fetchedRef = useRef(false);
+
   useEffect(() => {
-    if (!open || list.length || loading) return;
-    let cancelled = false;
+    if (!open || fetchedRef.current) return;
+    fetchedRef.current = true;
+    setLoading(true);
     (async () => {
-      setLoading(true);
-      const { data } = await supabase
-        .from("employees")
-        .select("id, full_name, job_title, department, employee_number")
-        .eq("is_active", true)
-        .order("full_name", { ascending: true })
-        .limit(1000);
-      if (!cancelled) {
+      try {
+        const { data, error } = await supabase
+          .from("employees")
+          .select("id, full_name, job_title, department, employee_number")
+          .eq("is_active", true)
+          .order("full_name", { ascending: true })
+          .limit(1000);
+        if (error) throw error;
         setList(((data || []) as any[]).map((e) => ({
           id: e.id,
           full_name: e.full_name,
@@ -67,11 +70,15 @@ export default function EmployeePickerField({ value, employeeId, disabled, place
           department: e.department,
           employee_number: e.employee_number,
         })));
+      } catch (e) {
+        console.error("employee picker load failed", e);
+        fetchedRef.current = false;
+        setList([]);
+      } finally {
         setLoading(false);
       }
     })();
-    return () => { cancelled = true; };
-  }, [open, list.length, loading]);
+  }, [open]);
 
   // قفل تمرير الخلفية أثناء فتح اللوحة
   useEffect(() => {
