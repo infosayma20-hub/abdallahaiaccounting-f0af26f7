@@ -92,20 +92,20 @@ export function HrActivitySummary() {
           .select("id, created_at, action, actor_name, employee_forms(id, form_type, title, employees(full_name))")
           .gte("created_at", since)
           .order("created_at", { ascending: false })
-          .limit(150),
+          .limit(600),
         supabase
           .from("employee_letter_prints")
           .select("id, printed_at, printed_by_name, employee_name")
           .gte("printed_at", since)
           .order("printed_at", { ascending: false })
-          .limit(100),
+          .limit(400),
         supabase
           .from("activity_log")
           .select("id, created_at, action, actor_name, entity_label")
           .eq("entity_type", "user")
           .gte("created_at", since)
           .order("created_at", { ascending: false })
-          .limit(50),
+          .limit(200),
       ]);
 
       const out: ActivityItem[] = [];
