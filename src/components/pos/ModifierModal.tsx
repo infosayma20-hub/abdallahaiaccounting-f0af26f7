@@ -144,6 +144,7 @@ function ModifierGroupSection({
             );
           })}
       </div>
+      )}
     </div>
   );
 }
@@ -299,7 +300,7 @@ export default function ModifierModal({
           className="flex-1 overflow-y-auto p-4 space-y-4"
           style={{ background: '#112240', borderRadius: '0 0 14px 14px' }}
         >
-          {groups.map((group, idx) => (
+          {[...groups].sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0)).map((group, idx) => (
             <div key={group.id}>
               {idx > 0 && (
                 <div className="mb-3.5" style={{ borderTop: '1px solid rgba(255,255,255,0.08)', margin: '14px 0' }} />
