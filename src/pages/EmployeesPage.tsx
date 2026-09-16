@@ -538,7 +538,14 @@ const EmployeesPage = () => {
     if (phoneCheck.valid && phoneCheck.normalized) form.phone = phoneCheck.normalized;
     if (emergencyCheck.valid && emergencyCheck.normalized) form.emergency_phone = emergencyCheck.normalized;
 
-    const payload = { ...form, user_id: dataOwnerId };
+    const payload: Record<string, any> = { ...form, user_id: dataOwnerId };
+    // End of service date: empty input must be stored as NULL (date column),
+    // and the two legacy columns stay in sync so reports never disagree.
+    if ("end_date" in payload) {
+      const endDate = String(payload.end_date || "").trim();
+      payload.end_date = endDate || null;
+      payload.terminated_at = endDate || null;
+    }
 
     // ─── OFFLINE CAPTURE ───
     // No internet: a new employee record is queued locally and created later
