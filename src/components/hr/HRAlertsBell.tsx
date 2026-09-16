@@ -172,7 +172,7 @@ export default function HRAlertsBell() {
         .limit(50),
       supabase
         .from("hr_chat_threads")
-        .select("id, unread_for_hr, last_message_preview, last_message_at, employees!employee_forms_employee_id_fkey!inner(full_name)")
+        .select("id, unread_for_hr, last_message_preview, last_message_at, employees!inner(full_name)")
         .gt("unread_for_hr", 0)
         .order("last_message_at", { ascending: false, nullsFirst: false })
         .limit(25),
