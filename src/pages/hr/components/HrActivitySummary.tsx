@@ -151,7 +151,7 @@ export function HrActivitySummary() {
       }
 
       out.sort((a, b) => b.at.localeCompare(a.at));
-      return out.slice(0, 150);
+      return out.slice(0, 800);
     },
     refetchInterval: 60_000,
   });
