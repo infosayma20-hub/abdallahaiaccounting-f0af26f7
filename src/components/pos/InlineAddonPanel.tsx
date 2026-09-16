@@ -67,6 +67,11 @@ export default function InlineAddonPanel({
   confirmLabel,
 }: Props) {
   const groups = useMemo(() => augmentGroupsWithNone(rawGroups), [rawGroups]);
+  const [collapsedMap, setCollapsedMap] = useState<Record<string, boolean>>(() => {
+    const m: Record<string, boolean> = {};
+    groups.forEach((g) => { if (g.default_collapsed) m[g.id] = true; });
+    return m;
+  });
   const [selected, setSelected] = useState<Record<string, string[]>>(() => {
     const defaults: Record<string, string[]> = {};
     // If editing, hydrate from initialModifiers; otherwise use is_default flags.
