@@ -77,7 +77,11 @@ const USER_ACTION: Record<string, string> = {
 
 export function HrActivitySummary() {
   const navigate = useNavigate();
-  const since = useMemo(() => new Date(Date.now() - DAYS_BACK * DAY_MS).toISOString(), []);
+  const [daysBack, setDaysBack] = useState<number>(30);
+  const since = useMemo(
+    () => new Date(Date.now() - daysBack * DAY_MS).toISOString(),
+    [daysBack],
+  );
 
   const { data: items, isLoading } = useQuery({
     queryKey: ["hr-activity-summary", since],
