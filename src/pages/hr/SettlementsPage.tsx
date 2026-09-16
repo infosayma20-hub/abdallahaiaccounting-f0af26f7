@@ -819,7 +819,7 @@ function SettlementFormPage(props: {
       if (isPaid && emp) {
         await supabase
           .from("employees")
-          .update({ is_terminated: true, is_active: false, end_date: terminationDate })
+          .update({ is_terminated: true, is_active: false, end_date: terminationDate, terminated_at: terminationDate } as any)
           .eq("id", emp.id)
           .eq("user_id", dataOwnerId);
       }

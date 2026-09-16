@@ -1404,7 +1404,7 @@ const EmployeesPage = () => {
                       if (!confirm(`هل تريد إعادة تفعيل الموظف "${selectedEmployee.full_name}"؟`)) return;
                       const { error } = await supabase
                         .from("employees")
-                        .update({ is_active: true, is_terminated: false, terminated_at: null } as any)
+                        .update({ is_active: true, is_terminated: false, terminated_at: null, end_date: null } as any)
                         .eq("id", selectedEmployee.id);
                       if (error) { toast.error("فشل إعادة التفعيل: " + error.message); return; }
                       toast.success("تم إعادة تفعيل الموظف");
