@@ -39,7 +39,7 @@ export default function IsoMtmRegisters() {
       if (!ids.length) { setForms([]); return; }
       const { data, error } = await supabase
         .from("employee_forms")
-        .select("id, form_data, workflow_status, created_at, employees(full_name)")
+        .select("id, form_data, workflow_status, created_at, employees!employee_forms_employee_id_fkey(full_name)")
         .in("template_id", ids)
         .order("created_at", { ascending: false });
       if (error) throw error;

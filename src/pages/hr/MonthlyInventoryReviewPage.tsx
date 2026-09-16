@@ -77,7 +77,7 @@ export default function MonthlyInventoryReviewPage() {
     setLoading(true);
     const { data, error } = await supabase
       .from("employee_forms")
-      .select("id, created_at, status, archived_at, form_data, employees(full_name)")
+      .select("id, created_at, status, archived_at, form_data, employees!employee_forms_employee_id_fkey(full_name)")
       .or("form_data->>kind.eq.monthly_inventory,form_type.eq.inventory_balance,template_id.eq.a369fcf6-adfd-4c00-b421-310c89e04fc1")
       .order("created_at", { ascending: false })
       .limit(500);

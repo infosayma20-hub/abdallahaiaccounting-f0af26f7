@@ -164,7 +164,7 @@ export default function HRAlertsBell() {
       // `workflow_status`. Archived forms are excluded.
       supabase
         .from("employee_forms")
-        .select("id, title, form_type, status, submitted_at, created_at, workflow_status, employees!inner(full_name)")
+        .select("id, title, form_type, status, submitted_at, created_at, workflow_status, employees!employee_forms_employee_id_fkey!inner(full_name)")
         .is("archived_at", null)
         .is("hr_hidden_at", null)
         .or("status.eq.pending,workflow_status.in.(submitted,under_review)")
@@ -172,7 +172,7 @@ export default function HRAlertsBell() {
         .limit(50),
       supabase
         .from("hr_chat_threads")
-        .select("id, unread_for_hr, last_message_preview, last_message_at, employees!inner(full_name)")
+        .select("id, unread_for_hr, last_message_preview, last_message_at, employees!employee_forms_employee_id_fkey!inner(full_name)")
         .gt("unread_for_hr", 0)
         .order("last_message_at", { ascending: false, nullsFirst: false })
         .limit(25),
