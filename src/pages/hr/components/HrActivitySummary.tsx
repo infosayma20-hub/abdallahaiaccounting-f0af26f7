@@ -1,9 +1,9 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+
 import { Skeleton } from "@/components/ui/skeleton";
 import { Activity, CheckCircle2, XCircle, ClipboardList, Printer, UserCog, Eye, Send, UserCheck, ChevronLeft } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -20,7 +20,12 @@ type ActivityItem = {
 };
 
 const DAY_MS = 24 * 60 * 60 * 1000;
-const DAYS_BACK = 7;
+const RANGE_OPTIONS = [
+  { days: 7, label: "آخر 7 أيام" },
+  { days: 30, label: "آخر 30 يوم" },
+  { days: 90, label: "آخر 3 شهور" },
+  { days: 365, label: "آخر سنة" },
+] as const;
 
 function formatDayLabel(dateStr: string): string {
   const d = new Date(dateStr);
@@ -72,7 +77,11 @@ const USER_ACTION: Record<string, string> = {
 
 export function HrActivitySummary() {
   const navigate = useNavigate();
-  const since = useMemo(() => new Date(Date.now() - DAYS_BACK * DAY_MS).toISOString(), []);
+  const [daysBack, setDaysBack] = useState<number>(30);
+  const since = useMemo(
+    () => new Date(Date.now() - daysBack * DAY_MS).toISOString(),
+    [daysBack],
+  );
 
   const { data: items, isLoading } = useQuery({
     queryKey: ["hr-activity-summary", since],
@@ -83,20 +92,20 @@ export function HrActivitySummary() {
           .select("id, created_at, action, actor_name, employee_forms(id, form_type, title, employees(full_name))")
           .gte("created_at", since)
           .order("created_at", { ascending: false })
-          .limit(150),
+          .limit(600),
         supabase
           .from("employee_letter_prints")
           .select("id, printed_at, printed_by_name, employee_name")
           .gte("printed_at", since)
           .order("printed_at", { ascending: false })
-          .limit(100),
+          .limit(400),
         supabase
           .from("activity_log")
           .select("id, created_at, action, actor_name, entity_label")
           .eq("entity_type", "user")
           .gte("created_at", since)
           .order("created_at", { ascending: false })
-          .limit(50),
+          .limit(200),
       ]);
 
       const out: ActivityItem[] = [];
@@ -142,7 +151,7 @@ export function HrActivitySummary() {
       }
 
       out.sort((a, b) => b.at.localeCompare(a.at));
-      return out.slice(0, 150);
+      return out.slice(0, 800);
     },
     refetchInterval: 60_000,
   });
@@ -167,11 +176,23 @@ export function HrActivitySummary() {
             </span>
             ملخص النشاطات
           </span>
-          {items && (
-            <Badge variant="secondary" className="text-xs font-normal">
-              آخر {DAYS_BACK} أيام
-            </Badge>
-          )}
+          <div className="flex flex-wrap items-center gap-1.5">
+            {RANGE_OPTIONS.map((opt) => (
+              <button
+                key={opt.days}
+                type="button"
+                onClick={() => setDaysBack(opt.days)}
+                className={cn(
+                  "rounded-full border px-3 py-1 text-xs font-normal transition-colors",
+                  daysBack === opt.days
+                    ? "border-primary bg-primary text-primary-foreground"
+                    : "border-border/60 bg-muted/50 text-muted-foreground hover:bg-muted",
+                )}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
         </CardTitle>
         <p className="text-sm text-muted-foreground">
           الحركات التي تمت على نماذج الموظفين والطلبات والكتب، مجمّعة حسب اليوم
