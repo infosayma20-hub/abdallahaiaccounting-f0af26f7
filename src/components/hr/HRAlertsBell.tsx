@@ -265,8 +265,12 @@ export default function HRAlertsBell() {
           )}
         </Button>
       </PopoverTrigger>
-      <PopoverContent dir="rtl" align="end" className="w-[340px] p-0 max-h-[420px] overflow-y-auto">
-        <div className="px-3 py-2 border-b border-border flex items-center justify-between gap-2">
+      <PopoverContent
+        dir="rtl"
+        align="end"
+        className="w-[min(92vw,380px)] p-0 max-h-[min(80vh,640px)] overflow-y-auto overscroll-contain"
+      >
+        <div className="sticky top-0 z-10 bg-popover px-3 py-2 border-b border-border flex items-center justify-between gap-2">
           <span className="text-sm font-semibold">تنبيهات الموظفين</span>
           <Button
             variant="ghost"
