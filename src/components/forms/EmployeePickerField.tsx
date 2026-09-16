@@ -19,7 +19,7 @@ interface Props {
   employeeId?: string | null;
   disabled?: boolean;
   placeholder?: string;
-  onChange: (name: string, employeeId: string | null) => void;
+  onChange: (name: string, employeeId: string | null, jobTitle?: string | null) => void;
 }
 
 /** توحيد الحروف العربية للمقارنة فقط (همزات/تاء مربوطة/تشكيل). */
@@ -94,7 +94,7 @@ export default function EmployeePickerField({ value, employeeId, disabled, place
   }, [list, q]);
 
   const pick = (e: PickedEmployee) => {
-    onChange(e.full_name, e.id);
+    onChange(e.full_name, e.id, e.job_title);
     setOpen(false);
     setQ("");
   };
