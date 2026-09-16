@@ -20,7 +20,12 @@ type ActivityItem = {
 };
 
 const DAY_MS = 24 * 60 * 60 * 1000;
-const DAYS_BACK = 7;
+const RANGE_OPTIONS = [
+  { days: 7, label: "آخر 7 أيام" },
+  { days: 30, label: "آخر 30 يوم" },
+  { days: 90, label: "آخر 3 شهور" },
+  { days: 365, label: "آخر سنة" },
+] as const;
 
 function formatDayLabel(dateStr: string): string {
   const d = new Date(dateStr);
