@@ -86,7 +86,7 @@ const SecuritySettingsSection = ({ settings, onChange }: Props) => {
   // so nothing changes until the owner opts a role in.
   const [exemptRoles, setExemptRoles] = useState<string[]>([]);
   const [loadingExempt, setLoadingExempt] = useState(true);
-  const dataOwnerId = useDataOwnerId();
+  const { dataOwnerId } = useDataOwnerId();
 
   useEffect(() => {
     if (!dataOwnerId) return;
