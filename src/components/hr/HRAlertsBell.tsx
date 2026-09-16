@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Bell, BellRing, CheckCircle2, ClipboardList, MessagesSquare, Loader2, Cake, Award, Plus } from "lucide-react";
+import { Bell, BellRing, CheckCircle2, ClipboardList, MessagesSquare, Loader2, Cake, Award, Plus, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { supabase } from "@/integrations/supabase/client";
@@ -154,7 +154,8 @@ export default function HRAlertsBell() {
   const [reminderOpen, setReminderOpen] = useState(false);
   const [activeReminder, setActiveReminder] = useState<HRReminder | null>(null);
   const prevTotal = useRef<number | null>(null);
-  const { reminders, refresh: refreshReminders, markDone } = useHRReminders();
+  const { reminders, doneReminders, refresh: refreshReminders, markDone, restore } = useHRReminders();
+  const [showDone, setShowDone] = useState(false);
 
   const load = useCallback(async () => {
     refreshReminders();
