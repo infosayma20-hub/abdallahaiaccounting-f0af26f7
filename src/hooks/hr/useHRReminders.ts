@@ -40,16 +40,15 @@ export function useHRReminders() {
       .from("hr_reminders")
       .select("id, title, note, remind_at, is_done, employee_id, related_form_id, employees(full_name)")
       .eq("user_id", ownerId)
-      .eq("is_done", false)
       .order("remind_at", { ascending: true })
-      .limit(200);
+      .limit(400);
     if (!error) {
-      setReminders(
-        ((data ?? []) as any[]).map((r) => ({
-          ...r,
-          employee_name: r.employees?.full_name ?? null,
-        })),
-      );
+      const mapped = ((data ?? []) as any[]).map((r) => ({
+        ...r,
+        employee_name: r.employees?.full_name ?? null,
+      })) as HRReminder[];
+      setReminders(mapped.filter((r) => !r.is_done));
+      setDoneReminders(mapped.filter((r) => r.is_done).reverse());
     }
     setLoading(false);
   }, [ownerId]);
