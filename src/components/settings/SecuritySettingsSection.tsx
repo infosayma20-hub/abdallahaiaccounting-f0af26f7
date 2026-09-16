@@ -13,6 +13,7 @@ import AdvancedPermissionsSection from "./AdvancedPermissionsSection";
 import PasswordManagementSection from "./PasswordManagementSection";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { useDataOwnerId } from "@/hooks/useDataOwnerId";
 
 /** Roles that may be exempted from the idle auto-logout. */
 const EXEMPTABLE_ROLES: { value: string; label: string }[] = [
@@ -85,13 +86,20 @@ const SecuritySettingsSection = ({ settings, onChange }: Props) => {
   // so nothing changes until the owner opts a role in.
   const [exemptRoles, setExemptRoles] = useState<string[]>([]);
   const [loadingExempt, setLoadingExempt] = useState(true);
+  const dataOwnerId = useDataOwnerId();
 
   useEffect(() => {
+    if (!dataOwnerId) return;
     let alive = true;
     (async () => {
+      // Read the SAME company row the RPC writes to (owner-scoped), so the
+      // switches never reflect another tenant's row when RLS exposes more
+      // than one company to this session.
       const { data } = await supabase
         .from("companies")
         .select("id, session_exempt_roles")
+        .eq("owner_id", dataOwnerId)
+        .order("created_at", { ascending: true })
         .limit(1)
         .maybeSingle();
       if (!alive) return;
@@ -99,7 +107,7 @@ const SecuritySettingsSection = ({ settings, onChange }: Props) => {
       setLoadingExempt(false);
     })();
     return () => { alive = false; };
-  }, []);
+  }, [dataOwnerId]);
 
   const toggleExemptRole = (role: string, on: boolean) => {
     const next = on
