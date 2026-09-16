@@ -20,6 +20,7 @@ export type HRReminder = {
 export function useHRReminders() {
   const [ownerId, setOwnerId] = useState<string | null>(null);
   const [reminders, setReminders] = useState<HRReminder[]>([]);
+  const [doneReminders, setDoneReminders] = useState<HRReminder[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
