@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
@@ -31,11 +32,16 @@ const SecuritySettingsSection = ({ settings, onChange }: Props) => {
    * in sync for the transitional period (existing screens still read
    * from there until they migrate).
    */
-  const persistPolicy = async (timeout: number, warning: number) => {
+  const persistPolicy = async (
+    timeout: number,
+    warning: number,
+    exemptRoles?: string[],
+  ) => {
     const { error } = await supabase.rpc("update_company_session_policy", {
       _timeout_minutes: timeout,
       _warning_minutes: warning,
-    });
+      ...(exemptRoles ? { _exempt_roles: exemptRoles } : {}),
+    } as never);
     if (error) {
       toast({
         title: "تعذّر حفظ إعداد الجلسة",
