@@ -14,6 +14,15 @@ import PasswordManagementSection from "./PasswordManagementSection";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
+/** Roles that may be exempted from the idle auto-logout. */
+const EXEMPTABLE_ROLES: { value: string; label: string }[] = [
+  { value: "admin", label: "الإدارة (admin)" },
+  { value: "super_admin", label: "مدير النظام (super_admin)" },
+  { value: "hr_manager", label: "الموارد البشرية" },
+  { value: "accountant_senior", label: "المحاسب الرئيسي" },
+  { value: "supervisor", label: "المشرف" },
+];
+
 interface Props {
   settings: CompanySettings;
   onChange: (partial: Partial<CompanySettings>) => void;
