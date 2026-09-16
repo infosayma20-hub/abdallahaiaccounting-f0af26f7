@@ -176,11 +176,23 @@ export function HrActivitySummary() {
             </span>
             ملخص النشاطات
           </span>
-          {items && (
-            <Badge variant="secondary" className="text-xs font-normal">
-              آخر {DAYS_BACK} أيام
-            </Badge>
-          )}
+          <div className="flex flex-wrap items-center gap-1.5">
+            {RANGE_OPTIONS.map((opt) => (
+              <button
+                key={opt.days}
+                type="button"
+                onClick={() => setDaysBack(opt.days)}
+                className={cn(
+                  "rounded-full border px-3 py-1 text-xs font-normal transition-colors",
+                  daysBack === opt.days
+                    ? "border-primary bg-primary text-primary-foreground"
+                    : "border-border/60 bg-muted/50 text-muted-foreground hover:bg-muted",
+                )}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
         </CardTitle>
         <p className="text-sm text-muted-foreground">
           الحركات التي تمت على نماذج الموظفين والطلبات والكتب، مجمّعة حسب اليوم
