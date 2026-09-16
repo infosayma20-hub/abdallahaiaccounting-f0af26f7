@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { X, Minus, Plus } from "lucide-react";
+import { X, Minus, Plus, ChevronDown } from "lucide-react";
 import { augmentGroupsWithNone, isNoneOptionId } from "@/lib/pos/modifier-none-option";
 
 interface ModifierOption {
@@ -18,6 +18,8 @@ interface ModifierGroup {
   is_required: boolean;
   min_select: number;
   max_select: number;
+  sort_order?: number;
+  default_collapsed?: boolean;
   options: ModifierOption[];
 }
 

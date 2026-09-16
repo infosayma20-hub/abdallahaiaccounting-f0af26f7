@@ -21,6 +21,8 @@ interface ModifierGroup {
   is_required: boolean;
   min_select: number;
   max_select: number;
+  sort_order?: number;
+  default_collapsed?: boolean;
   options: ModifierOption[];
 }
 
