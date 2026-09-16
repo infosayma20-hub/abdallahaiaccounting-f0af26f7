@@ -339,8 +339,9 @@ export default function InlineAddonPanel({
                       );
                     })}
                 </div>
+                )}
 
-                {maxReached && (
+                {isExpanded && maxReached && (
                   <p className="mt-1 text-center text-[10px] text-muted-foreground">وصلت للحد الأقصى</p>
                 )}
               </div>
