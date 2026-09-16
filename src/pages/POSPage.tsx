@@ -2628,7 +2628,7 @@ const POSPage = () => {
      if (!dataOwnerId) return;
      const { data: groups } = await supabase
        .from("modifier_groups")
-       .select("id, name, selection_type, is_required, min_select, max_select, sort_order, is_active")
+       .select("id, name, selection_type, is_required, min_select, max_select, sort_order, is_active, default_collapsed")
        .eq("user_id", dataOwnerId)
        .eq("is_active", true)
        .order("sort_order");

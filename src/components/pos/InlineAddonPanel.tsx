@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect, useCallback } from "react";
 import { createPortal } from "react-dom";
-import { X, Check, Minus, Plus } from "lucide-react";
+import { X, Check, Minus, Plus, ChevronDown } from "lucide-react";
 import { motion } from "framer-motion";
 import type { SelectedModifier } from "@/components/pos/ModifierModal";
 import { augmentGroupsWithNone, isNoneOptionId } from "@/lib/pos/modifier-none-option";
@@ -21,6 +21,8 @@ interface ModifierGroup {
   is_required: boolean;
   min_select: number;
   max_select: number;
+  sort_order?: number;
+  default_collapsed?: boolean;
   options: ModifierOption[];
 }
 
@@ -65,6 +67,11 @@ export default function InlineAddonPanel({
   confirmLabel,
 }: Props) {
   const groups = useMemo(() => augmentGroupsWithNone(rawGroups), [rawGroups]);
+  const [collapsedMap, setCollapsedMap] = useState<Record<string, boolean>>(() => {
+    const m: Record<string, boolean> = {};
+    groups.forEach((g) => { if (g.default_collapsed) m[g.id] = true; });
+    return m;
+  });
   const [selected, setSelected] = useState<Record<string, string[]>>(() => {
     const defaults: Record<string, string[]> = {};
     // If editing, hydrate from initialModifiers; otherwise use is_default flags.
@@ -238,14 +245,21 @@ export default function InlineAddonPanel({
         </div>
 
         <div className="max-h-[56vh] overflow-y-auto p-4 space-y-3">
-          {groups.map((group, gi) => {
+          {[...groups].sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0)).map((group, gi) => {
             const currentSelected = selected[group.id] || [];
             const maxReached = group.selection_type === "multiple" && currentSelected.length >= group.max_select;
+            const isCollapsible = !!group.default_collapsed;
+            const isExpanded = !isCollapsible || !collapsedMap[group.id];
 
             return (
               <div key={group.id}>
                 {gi > 0 && <div className="my-3 border-t border-dashed border-border" />}
-                <div className="mb-2 flex items-center justify-between gap-2">
+                <div
+                  className={`${isExpanded ? "mb-2" : ""} flex items-center justify-between gap-2 ${isCollapsible ? "cursor-pointer select-none" : ""}`}
+                  onClick={isCollapsible ? () => setCollapsedMap((m) => ({ ...m, [group.id]: !m[group.id] })) : undefined}
+                  role={isCollapsible ? "button" : undefined}
+                  aria-expanded={isCollapsible ? isExpanded : undefined}
+                >
                   <div className="flex items-center gap-1.5">
                     <span className="text-xs font-bold text-foreground">{group.name}</span>
                     {group.is_required && (
@@ -254,11 +268,19 @@ export default function InlineAddonPanel({
                       </span>
                     )}
                   </div>
-                  <span className="text-[10px] text-muted-foreground">
-                    {group.selection_type === "single" ? "اختر واحداً" : `اختر حتى ${group.max_select}`}
-                  </span>
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-[10px] text-muted-foreground">
+                      {group.selection_type === "single" ? "اختر واحداً" : `اختر حتى ${group.max_select}`}
+                    </span>
+                    {isCollapsible && (
+                      <ChevronDown
+                        className={`h-3.5 w-3.5 text-muted-foreground transition-transform ${isExpanded ? "rotate-180" : ""}`}
+                      />
+                    )}
+                  </div>
                 </div>
 
+                {isExpanded && (
                 <div className={`grid ${getGridCols(group.options.length)} gap-2`}>
                   {group.options
                     .sort((a, b) => a.sort_order - b.sort_order)
@@ -317,8 +339,9 @@ export default function InlineAddonPanel({
                       );
                     })}
                 </div>
+                )}
 
-                {maxReached && (
+                {isExpanded && maxReached && (
                   <p className="mt-1 text-center text-[10px] text-muted-foreground">وصلت للحد الأقصى</p>
                 )}
               </div>

@@ -1,0 +1,1 @@
+ALTER TABLE public.modifier_groups ADD COLUMN IF NOT EXISTS default_collapsed boolean NOT NULL DEFAULT false;

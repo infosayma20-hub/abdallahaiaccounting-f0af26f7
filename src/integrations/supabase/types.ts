@@ -13838,6 +13838,7 @@ export type Database = {
       modifier_groups: {
         Row: {
           created_at: string | null
+          default_collapsed: boolean
           id: string
           is_active: boolean | null
           is_required: boolean | null
@@ -13851,6 +13852,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string | null
+          default_collapsed?: boolean
           id?: string
           is_active?: boolean | null
           is_required?: boolean | null
@@ -13864,6 +13866,7 @@ export type Database = {
         }
         Update: {
           created_at?: string | null
+          default_collapsed?: boolean
           id?: string
           is_active?: boolean | null
           is_required?: boolean | null

@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { X, Minus, Plus } from "lucide-react";
+import { X, Minus, Plus, ChevronDown } from "lucide-react";
 import { augmentGroupsWithNone, isNoneOptionId } from "@/lib/pos/modifier-none-option";
 
 interface ModifierOption {
@@ -18,6 +18,8 @@ interface ModifierGroup {
   is_required: boolean;
   min_select: number;
   max_select: number;
+  sort_order?: number;
+  default_collapsed?: boolean;
   options: ModifierOption[];
 }
 
@@ -56,9 +58,17 @@ function ModifierGroupSection({
   selectedIds: string[];
   onToggle: (optId: string) => void;
 }) {
+  const collapsible = !!group.default_collapsed;
+  const [collapsed, setCollapsed] = useState(collapsible);
+  const expanded = !collapsible || !collapsed;
   return (
     <div>
-      <div className="flex items-center justify-between mb-3">
+      <div
+        className={`flex items-center justify-between ${expanded ? "mb-3" : ""} ${collapsible ? "cursor-pointer select-none" : ""}`}
+        onClick={collapsible ? () => setCollapsed((c) => !c) : undefined}
+        role={collapsible ? "button" : undefined}
+        aria-expanded={collapsible ? expanded : undefined}
+      >
         <div className="flex items-center gap-2">
           <h4 className="text-[14px] font-medium" style={{ color: 'white' }}>{group.name}</h4>
           <span
@@ -71,13 +81,22 @@ function ModifierGroupSection({
             {group.is_required ? "مطلوب" : "اختياري"}
           </span>
         </div>
-        <span className="text-[12px]" style={{ color: 'rgba(255,255,255,0.4)' }}>
-          {group.selection_type === "single"
-            ? "اختر واحداً"
-            : `اختر حتى ${group.max_select}`}
-        </span>
+        <div className="flex items-center gap-2">
+          <span className="text-[12px]" style={{ color: 'rgba(255,255,255,0.4)' }}>
+            {group.selection_type === "single"
+              ? "اختر واحداً"
+              : `اختر حتى ${group.max_select}`}
+          </span>
+          {collapsible && (
+            <ChevronDown
+              className="w-4 h-4 transition-transform"
+              style={{ color: 'rgba(255,255,255,0.5)', transform: expanded ? 'rotate(180deg)' : 'none' }}
+            />
+          )}
+        </div>
       </div>
 
+      {expanded && (
       <div className="grid grid-cols-3 gap-2">
         {group.options
           .sort((a, b) => a.sort_order - b.sort_order)
@@ -125,6 +144,7 @@ function ModifierGroupSection({
             );
           })}
       </div>
+      )}
     </div>
   );
 }
@@ -280,7 +300,7 @@ export default function ModifierModal({
           className="flex-1 overflow-y-auto p-4 space-y-4"
           style={{ background: '#112240', borderRadius: '0 0 14px 14px' }}
         >
-          {groups.map((group, idx) => (
+          {[...groups].sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0)).map((group, idx) => (
             <div key={group.id}>
               {idx > 0 && (
                 <div className="mb-3.5" style={{ borderTop: '1px solid rgba(255,255,255,0.08)', margin: '14px 0' }} />
