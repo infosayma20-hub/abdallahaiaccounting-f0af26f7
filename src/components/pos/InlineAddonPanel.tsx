@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect, useCallback } from "react";
 import { createPortal } from "react-dom";
-import { X, Check, Minus, Plus } from "lucide-react";
+import { X, Check, Minus, Plus, ChevronDown } from "lucide-react";
 import { motion } from "framer-motion";
 import type { SelectedModifier } from "@/components/pos/ModifierModal";
 import { augmentGroupsWithNone, isNoneOptionId } from "@/lib/pos/modifier-none-option";
