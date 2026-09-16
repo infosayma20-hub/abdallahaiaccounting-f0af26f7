@@ -284,6 +284,8 @@ export default function TerminationDialog({ open, onClose, employee, userId, onS
       is_active: false,
       is_terminated: true,
       terminated_at: termDate,
+      // Keep both date columns in sync — reports and settlements read end_date.
+      end_date: termDate,
       termination_reason: reason,
     } as any).eq("id", employee.id);
 

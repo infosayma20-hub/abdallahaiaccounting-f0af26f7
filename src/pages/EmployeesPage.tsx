@@ -538,7 +538,14 @@ const EmployeesPage = () => {
     if (phoneCheck.valid && phoneCheck.normalized) form.phone = phoneCheck.normalized;
     if (emergencyCheck.valid && emergencyCheck.normalized) form.emergency_phone = emergencyCheck.normalized;
 
-    const payload = { ...form, user_id: dataOwnerId };
+    const payload: Record<string, any> = { ...form, user_id: dataOwnerId };
+    // End of service date: empty input must be stored as NULL (date column),
+    // and the two legacy columns stay in sync so reports never disagree.
+    if ("end_date" in payload) {
+      const endDate = String(payload.end_date || "").trim();
+      payload.end_date = endDate || null;
+      payload.terminated_at = endDate || null;
+    }
 
     // ─── OFFLINE CAPTURE ───
     // No internet: a new employee record is queued locally and created later
@@ -1404,7 +1411,7 @@ const EmployeesPage = () => {
                       if (!confirm(`هل تريد إعادة تفعيل الموظف "${selectedEmployee.full_name}"؟`)) return;
                       const { error } = await supabase
                         .from("employees")
-                        .update({ is_active: true, is_terminated: false, terminated_at: null } as any)
+                        .update({ is_active: true, is_terminated: false, terminated_at: null, end_date: null } as any)
                         .eq("id", selectedEmployee.id);
                       if (error) { toast.error("فشل إعادة التفعيل: " + error.message); return; }
                       toast.success("تم إعادة تفعيل الموظف");
@@ -1755,6 +1762,13 @@ const EmployeesPage = () => {
               </Select>
             </div>
             <div><label className="text-xs text-muted-foreground">تاريخ البداية</label><Input type="date" value={form.start_date || ""} onChange={e => setForm({ ...form, start_date: e.target.value })} /></div>
+            {editingId && (form.is_active === false || (form as any).is_terminated === true || !!(form as any).end_date) && (
+              <div>
+                <label className="text-xs text-muted-foreground">تاريخ نهاية الخدمة</label>
+                <Input type="date" value={(form as any).end_date || ""} onChange={e => setForm({ ...form, end_date: e.target.value } as any)} />
+                <div className="text-[11px] text-muted-foreground mt-1">يُستخدم في المخالصة والتقارير — لا يغيّر أي قيد مالي.</div>
+              </div>
+            )}
             <div><label className="text-xs text-muted-foreground">نوع العقد</label>
               <Select value={form.contract_type || "permanent"} onValueChange={v => setForm({ ...form, contract_type: v })}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
