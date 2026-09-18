@@ -17,6 +17,24 @@ export type HRReminder = {
  * النطاق: فريق الشركة (user_id = get_team_owner_id()) — مثل فترات حظر الإجازات.
  * فشل صامت عند القراءة: تبقى القائمة فاضية ويشتغل النظام كالسابق.
  */
+/**
+ * ناقل تزامن محلي: أي نسخة من الهوك (الجرس، نافذة الإضافة، صفحة الطلبات)
+ * تُعلم باقي النسخ وباقي تبويبات المتصفح فور أي تعديل، حتى يظهر التذكير
+ * مباشرة بدون تحديث الصفحة.
+ */
+const REMINDERS_SYNC_EVENT = "hr-reminders:changed";
+const remindersChannel =
+  typeof BroadcastChannel !== "undefined" ? new BroadcastChannel(REMINDERS_SYNC_EVENT) : null;
+
+function notifyRemindersChanged() {
+  try {
+    window.dispatchEvent(new CustomEvent(REMINDERS_SYNC_EVENT));
+    remindersChannel?.postMessage(Date.now());
+  } catch {
+    /* تزامن اختياري — لا يؤثر على الحفظ */
+  }
+}
+
 export function useHRReminders() {
   const [ownerId, setOwnerId] = useState<string | null>(null);
   const [reminders, setReminders] = useState<HRReminder[]>([]);
