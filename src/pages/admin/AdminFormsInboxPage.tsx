@@ -231,7 +231,10 @@ export default function AdminFormsInboxPage() {
                       </div>
                     ) : (
                       <div className="rounded-lg bg-background border p-3 text-xs">
-                        {Object.entries(r.form_data || {}).map(([k, v]) => (
+                        {Object.entries(r.form_data || {})
+                          .filter(([k]) => k !== "attachment_path" && k !== "attachment_paths")
+                          .filter(([k]) => !(Array.isArray((r.form_data || {}).attachment_urls) && k === "attachment_url"))
+                          .map(([k, v]) => (
                           <div key={k} className="flex flex-col sm:flex-row gap-1 sm:gap-2 py-1.5 border-b last:border-0">
                             <span className="font-medium text-muted-foreground sm:min-w-[160px]">
                               {fieldLabel(r, k)}:
@@ -239,9 +242,29 @@ export default function AdminFormsInboxPage() {
                             <span className="break-all text-foreground">
                               {v === null || v === undefined || v === ""
                                 ? "—"
-                                : typeof v === "object"
-                                  ? JSON.stringify(v)
-                                  : String(v)}
+                                : Array.isArray(v)
+                                  ? (
+                                    <span className="flex flex-wrap gap-2">
+                                      {v.map((item, i) =>
+                                        typeof item === "string" && item.startsWith("http") ? (
+                                          <a key={i} href={item} target="_blank" rel="noreferrer" className="text-primary underline">
+                                            مرفق {i + 1}
+                                          </a>
+                                        ) : (
+                                          <span key={i}>{typeof item === "object" ? JSON.stringify(item) : String(item)}</span>
+                                        ),
+                                      )}
+                                    </span>
+                                  )
+                                  : typeof v === "string" && v.startsWith("http")
+                                    ? (
+                                      <a href={v} target="_blank" rel="noreferrer" className="text-primary underline">
+                                        فتح المرفق
+                                      </a>
+                                    )
+                                    : typeof v === "object"
+                                      ? JSON.stringify(v)
+                                      : String(v)}
                             </span>
                           </div>
                         ))}
