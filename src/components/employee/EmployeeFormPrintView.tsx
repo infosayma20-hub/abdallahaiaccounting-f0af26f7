@@ -123,7 +123,15 @@ const EmployeeFormPrintView = ({ open, onClose, form, employeeName, employeeBran
   };
 
   const formData = form.form_data || {};
-  const dataEntries = Object.entries(formData).filter(([k]) => k !== "attachment_url" && k !== "employee_name" && k !== "branch");
+  const dataEntries = Object.entries(formData).filter(
+    ([k]) =>
+      k !== "attachment_url" &&
+      k !== "attachment_urls" &&
+      k !== "attachment_path" &&
+      k !== "attachment_paths" &&
+      k !== "employee_name" &&
+      k !== "branch",
+  );
 
   const formatFieldValue = (key: string, value: any): string => {
     if (key === "leave_type") return leaveTypes[String(value)] || String(value);

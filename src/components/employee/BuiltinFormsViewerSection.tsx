@@ -15,6 +15,7 @@ const GENERIC_LABELS: Record<string, string> = {
   reason: "السبب",
   date: "التاريخ",
   attachment_url: "مرفق",
+  attachment_urls: "المرفقات",
   ...INVENTORY_BALANCE_LABELS,
 };
 
@@ -26,7 +27,7 @@ const fieldLabel = (k: string) => GENERIC_LABELS[k] || k;
  * أي حقل غير معروف يُعرض قبل الملاحظات بترتيب وروده.
  */
 const HEAD_KEYS = ["employee_name", "branch", "shift", "department", "date"];
-const TAIL_KEYS = ["notes", "reason", "attachment_url"];
+const TAIL_KEYS = ["notes", "reason", "attachment_url", "attachment_urls"];
 const ITEM_KEYS = INVENTORY_BALANCE_ITEMS.map((i) => i.key);
 
 const fieldRank = (k: string) => {
@@ -39,11 +40,16 @@ const fieldRank = (k: string) => {
   return 300;
 };
 
-const orderedEntries = (data: Record<string, unknown> | null | undefined) =>
-  Object.entries(data || {})
+const orderedEntries = (data: Record<string, unknown> | null | undefined) => {
+  const obj = data || {};
+  const hasMulti = Array.isArray((obj as any).attachment_urls) && (obj as any).attachment_urls.length > 0;
+  return Object.entries(obj)
+    .filter(([k]) => k !== "attachment_paths" && k !== "attachment_path")
+    .filter(([k]) => !(hasMulti && k === "attachment_url"))
     .map((e, idx) => ({ e, idx }))
     .sort((a, b) => fieldRank(a.e[0]) - fieldRank(b.e[0]) || a.idx - b.idx)
     .map((x) => x.e);
+};
 
 type PeriodKey = "today" | "yesterday" | "week" | "month" | "all";
 
@@ -316,7 +322,19 @@ export default function BuiltinFormsViewerSection({
                   <div key={k} className="flex items-center justify-between gap-3 p-2.5">
                     <span className="text-xs text-muted-foreground">{fieldLabel(k)}</span>
                     <span className="text-sm font-medium break-all">
-                      {typeof v === "string" && v.startsWith("http") ? (
+                      {Array.isArray(v) ? (
+                        <span className="flex flex-wrap gap-2 justify-end">
+                          {v.map((item, i) =>
+                            typeof item === "string" && item.startsWith("http") ? (
+                              <a key={i} href={item} target="_blank" rel="noreferrer" className="text-primary underline">
+                                مرفق {i + 1}
+                              </a>
+                            ) : (
+                              <span key={i}>{String(item ?? "")}</span>
+                            ),
+                          )}
+                        </span>
+                      ) : typeof v === "string" && v.startsWith("http") ? (
                         <a href={v} target="_blank" rel="noreferrer" className="text-primary underline">
                           فتح المرفق
                         </a>

@@ -8,6 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import BuiltinFormsViewerSection from "@/components/employee/BuiltinFormsViewerSection";
+import FormImagesField from "@/components/employee/FormImagesField";
 import { INVENTORY_BALANCE_ITEMS } from "@/lib/hr/inventoryBalanceItems";
 import {
   Palmtree, Banknote, HandCoins, UserCog, Award, FileText,
@@ -550,6 +551,22 @@ export default function EmployeeFormsTab({
     const card = [...employeeForms, ...hiddenLegacyForms, ...managerForms].find(f => f.id === type);
     return card?.label || type;
   };
+
+  // مرفقات متعددة: نحتفظ بـ attachment_url/attachment_path (أول مرفق) للتوافق مع الشاشات القديمة.
+  const attachUrls: string[] = Array.isArray((formData as any).attachment_urls)
+    ? (formData as any).attachment_urls
+    : formData.attachment_url ? [formData.attachment_url] : [];
+  const attachPaths: string[] = Array.isArray((formData as any).attachment_paths)
+    ? (formData as any).attachment_paths
+    : (formData as any).attachment_path ? [(formData as any).attachment_path] : [];
+  const setAttachments = (next: { urls: string[]; paths: string[] }) =>
+    setFormData(p => ({
+      ...p,
+      attachment_urls: next.urls,
+      attachment_paths: next.paths,
+      attachment_url: next.urls[0] || "",
+      attachment_path: next.paths[0] || "",
+    }) as any);
 
   const renderFormFields = () => {
     switch (activeForm) {
@@ -1301,16 +1318,13 @@ export default function EmployeeFormsTab({
               <Textarea value={formData.description || ""} onChange={e => setFormData(p => ({ ...p, description: e.target.value }))} rows={4} className="rounded-xl" placeholder="مثلاً: التسكع أثناء أوقات العمل الرسمية" maxLength={2000} />
               <p className="text-[10px] text-muted-foreground text-left mt-0.5">{(formData.description || "").length}/2000</p>
             </div>
-            <div>
-              <label className="text-xs text-muted-foreground mb-1 block">مرفق صوري</label>
-              <p className="text-[10px] text-muted-foreground mb-1">مرفق صوري/فيديو للمخالفة إن وجد</p>
-              <label className="border-2 border-dashed border-border rounded-xl p-6 flex flex-col items-center gap-2 cursor-pointer hover:bg-muted/50 transition-colors">
-                <Upload className="h-6 w-6 text-muted-foreground" />
-                <span className="text-xs text-primary">اختر ملف أو اسحبه هنا</span>
-                <input type="file" className="hidden" onChange={handleFileUpload} accept="image/*,video/*,.pdf" />
-              </label>
-              {formData.attachment_url && <p className="text-xs text-emerald-500 mt-1">✅ تم رفع الملف</p>}
-            </div>
+            <FormImagesField
+              label="مرفق صوري"
+              hint="صور للمخالفة إن وجدت"
+              urls={attachUrls}
+              paths={attachPaths}
+              onChange={setAttachments}
+            />
           </>
         );
 
@@ -1369,15 +1383,13 @@ export default function EmployeeFormsTab({
                 <span className="text-sm">{item}</span>
               </label>
             ))}
-            <div>
-              <label className="text-xs text-muted-foreground mb-1 block">مرفق صور</label>
-              <label className="border-2 border-dashed border-border rounded-xl p-6 flex flex-col items-center gap-2 cursor-pointer hover:bg-muted/50 transition-colors">
-                <Upload className="h-6 w-6 text-muted-foreground" />
-                <span className="text-xs text-primary">اختر ملف أو اسحبه هنا</span>
-                <input type="file" className="hidden" onChange={handleFileUpload} accept="image/*,video/*,.pdf" />
-              </label>
-              {formData.attachment_url && <p className="text-xs text-emerald-500 mt-1">✅ تم رفع الملف</p>}
-            </div>
+            <FormImagesField
+              label="مرفق صور"
+              ephemeral
+              urls={attachUrls}
+              paths={attachPaths}
+              onChange={setAttachments}
+            />
             <div>
               <label className="text-xs text-muted-foreground mb-1 block">ملاحظات إضافية</label>
               <Textarea value={formData.notes || ""} onChange={e => setFormData(p => ({ ...p, notes: e.target.value }))} rows={2} className="rounded-xl" />
@@ -1415,15 +1427,14 @@ export default function EmployeeFormsTab({
                  ))}
                </div>
              </div>
-            <div>
-              <label className="text-xs text-muted-foreground mb-1 block">مرفق صوري *</label>
-              <label className="border-2 border-dashed border-border rounded-xl p-6 flex flex-col items-center gap-2 cursor-pointer hover:bg-muted/50 transition-colors">
-                <Upload className="h-6 w-6 text-muted-foreground" />
-                <span className="text-xs text-primary">اختر ملف أو اسحبه هنا</span>
-                <input type="file" className="hidden" onChange={handleFileUpload} accept="image/*,video/*,.pdf" />
-              </label>
-              {formData.attachment_url && <p className="text-xs text-emerald-500 mt-1">✅ تم رفع الملف</p>}
-            </div>
+            <FormImagesField
+              label="مرفق صوري"
+              required
+              ephemeral
+              urls={attachUrls}
+              paths={attachPaths}
+              onChange={setAttachments}
+            />
             <div>
               <label className="text-xs text-muted-foreground mb-1 block">ملاحظات</label>
               <Textarea value={formData.notes || ""} onChange={e => setFormData(p => ({ ...p, notes: e.target.value }))} rows={2} className="rounded-xl" />
@@ -1456,10 +1467,14 @@ export default function EmployeeFormsTab({
                 />
               </div>
             ))}
-            <div>
-              <label className="text-xs text-muted-foreground mb-1 block">صورة</label>
-              <Input type="file" accept="image/*" onChange={handleFileUpload} className="rounded-xl" />
-            </div>
+            <FormImagesField
+              label="صور"
+              ephemeral
+              accept="image/*"
+              urls={attachUrls}
+              paths={attachPaths}
+              onChange={setAttachments}
+            />
           </>
         );
       }
