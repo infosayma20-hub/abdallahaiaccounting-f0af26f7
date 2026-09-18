@@ -2162,6 +2162,24 @@ export default function EmployeeFormsManagementPage() {
                       {g.fields.map((fld, i) => {
                         const val = fld.value;
                         const isAttachment = fld.isUrl || /^https?:\/\//i.test(String(val || ""));
+                        const rawUrl = String(val || "");
+                        const isImageAttachment =
+                          isAttachment && /^https?:\/\//i.test(rawUrl) && !/\.pdf(\?|$)/i.test(rawUrl);
+                        if (isImageAttachment) {
+                          return (
+                            <div key={`${fld.label}-${i}`} className="flex items-start justify-between gap-3 text-sm">
+                              <span className="text-muted-foreground shrink-0">{fld.label}:</span>
+                              <button
+                                type="button"
+                                onClick={() => openPolicyFile(rawUrl)}
+                                className="rounded-lg overflow-hidden border border-border hover:border-primary/40 transition-colors"
+                                title="فتح المرفق بالحجم الكامل"
+                              >
+                                <img src={rawUrl} alt={fld.label} className="h-24 w-24 object-cover" loading="lazy" />
+                              </button>
+                            </div>
+                          );
+                        }
                         return (
                           <div key={`${fld.label}-${i}`} className="flex justify-between gap-3 text-sm">
                             <span className="text-muted-foreground shrink-0">{fld.label}:</span>
