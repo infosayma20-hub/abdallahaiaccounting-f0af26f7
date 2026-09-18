@@ -1426,15 +1426,14 @@ export default function EmployeeFormsTab({
                  ))}
                </div>
              </div>
-            <div>
-              <label className="text-xs text-muted-foreground mb-1 block">مرفق صوري *</label>
-              <label className="border-2 border-dashed border-border rounded-xl p-6 flex flex-col items-center gap-2 cursor-pointer hover:bg-muted/50 transition-colors">
-                <Upload className="h-6 w-6 text-muted-foreground" />
-                <span className="text-xs text-primary">اختر ملف أو اسحبه هنا</span>
-                <input type="file" className="hidden" onChange={handleFileUpload} accept="image/*,video/*,.pdf" />
-              </label>
-              {formData.attachment_url && <p className="text-xs text-emerald-500 mt-1">✅ تم رفع الملف</p>}
-            </div>
+            <FormImagesField
+              label="مرفق صوري"
+              required
+              ephemeral
+              urls={attachUrls}
+              paths={attachPaths}
+              onChange={setAttachments}
+            />
             <div>
               <label className="text-xs text-muted-foreground mb-1 block">ملاحظات</label>
               <Textarea value={formData.notes || ""} onChange={e => setFormData(p => ({ ...p, notes: e.target.value }))} rows={2} className="rounded-xl" />
