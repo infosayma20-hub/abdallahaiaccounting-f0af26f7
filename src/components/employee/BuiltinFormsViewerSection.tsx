@@ -27,7 +27,7 @@ const fieldLabel = (k: string) => GENERIC_LABELS[k] || k;
  * أي حقل غير معروف يُعرض قبل الملاحظات بترتيب وروده.
  */
 const HEAD_KEYS = ["employee_name", "branch", "shift", "department", "date"];
-const TAIL_KEYS = ["notes", "reason", "attachment_url"];
+const TAIL_KEYS = ["notes", "reason", "attachment_url", "attachment_urls"];
 const ITEM_KEYS = INVENTORY_BALANCE_ITEMS.map((i) => i.key);
 
 const fieldRank = (k: string) => {
