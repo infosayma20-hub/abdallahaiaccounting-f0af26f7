@@ -316,7 +316,24 @@ export function getDetailGroups(r: AnyRequest): DetailGroup[] {
 
   const isUuid = (v: any) => typeof v === "string" && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(v);
 
+  // مرفقات متعددة (attachment_urls) — تُعرض كل صورة كمرفق مستقل.
+  const multiUrls: string[] = Array.isArray(merged.attachment_urls)
+    ? merged.attachment_urls.filter((u: any) => typeof u === "string" && u)
+    : [];
+  if (multiUrls.length) {
+    multiUrls.forEach((u, i) => {
+      attachmentFields.push({
+        label: multiUrls.length > 1 ? `المرفق ${i + 1}` : "المرفق",
+        value: u,
+        isUrl: true,
+      });
+    });
+  }
+
   for (const [key, raw] of Object.entries(merged)) {
+    if (key === "attachment_urls" || key === "attachment_paths") continue;
+    // تجنّب تكرار أول مرفق عندما تكون هناك قائمة مرفقات
+    if (multiUrls.length && (key === "attachment_url" || key === "attachment_path")) continue;
     if (raw == null || raw === "" || (Array.isArray(raw) && raw.length === 0)) continue;
     // Never show raw UUID identifiers to users — the *_name counterpart is shown instead.
     if (isUuid(raw)) continue;
