@@ -1466,10 +1466,14 @@ export default function EmployeeFormsTab({
                 />
               </div>
             ))}
-            <div>
-              <label className="text-xs text-muted-foreground mb-1 block">صورة</label>
-              <Input type="file" accept="image/*" onChange={handleFileUpload} className="rounded-xl" />
-            </div>
+            <FormImagesField
+              label="صور"
+              ephemeral
+              accept="image/*"
+              urls={attachUrls}
+              paths={attachPaths}
+              onChange={setAttachments}
+            />
           </>
         );
       }
