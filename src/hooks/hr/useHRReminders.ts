@@ -73,6 +73,22 @@ export function useHRReminders() {
 
   useEffect(() => { refresh(); }, [refresh]);
 
+  // تحديث فوري عند أي إضافة/تعديل من أي شاشة أو تبويب، وعند العودة للتبويب.
+  useEffect(() => {
+    const onChanged = () => { refresh(); };
+    const onVisible = () => { if (document.visibilityState === "visible") refresh(); };
+    window.addEventListener(REMINDERS_SYNC_EVENT, onChanged);
+    remindersChannel?.addEventListener("message", onChanged);
+    document.addEventListener("visibilitychange", onVisible);
+    window.addEventListener("focus", onVisible);
+    return () => {
+      window.removeEventListener(REMINDERS_SYNC_EVENT, onChanged);
+      remindersChannel?.removeEventListener("message", onChanged);
+      document.removeEventListener("visibilitychange", onVisible);
+      window.removeEventListener("focus", onVisible);
+    };
+  }, [refresh]);
+
   const add = useCallback(
     async (input: {
       title: string;
