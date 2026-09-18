@@ -18,18 +18,14 @@ Deno.serve(async (req) => {
   const cutoff = new Date(Date.now() - RETENTION_DAYS * 864e5).toISOString();
 
   try {
-    const { data, error } = await supabase
-      .schema("storage")
-      .from("objects")
-      .select("name")
-      .eq("bucket_id", BUCKET)
-      .like("name", "%/t90/%")
-      .lt("created_at", cutoff)
-      .limit(BATCH);
+    const { data, error } = await supabase.rpc("list_expired_form_attachments", {
+      p_days: RETENTION_DAYS,
+      p_limit: BATCH,
+    });
 
     if (error) throw error;
 
-    const paths = (data || []).map((r: { name: string }) => r.name);
+    const paths = (data || []).map((r: { object_name: string }) => r.object_name);
     let removed = 0;
     if (paths.length) {
       const { error: rmErr } = await supabase.storage.from(BUCKET).remove(paths);
