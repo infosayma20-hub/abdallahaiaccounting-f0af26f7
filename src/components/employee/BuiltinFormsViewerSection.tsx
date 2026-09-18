@@ -15,6 +15,7 @@ const GENERIC_LABELS: Record<string, string> = {
   reason: "السبب",
   date: "التاريخ",
   attachment_url: "مرفق",
+  attachment_urls: "المرفقات",
   ...INVENTORY_BALANCE_LABELS,
 };
 
