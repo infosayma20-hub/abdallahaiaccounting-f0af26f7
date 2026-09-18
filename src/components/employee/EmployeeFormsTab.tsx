@@ -564,9 +564,9 @@ export default function EmployeeFormsTab({
       ...p,
       attachment_urls: next.urls,
       attachment_paths: next.paths,
-      attachment_url: next.urls[0] || undefined,
-      attachment_path: next.paths[0] || undefined,
-    }));
+      attachment_url: next.urls[0] || "",
+      attachment_path: next.paths[0] || "",
+    }) as any);
 
   const renderFormFields = () => {
     switch (activeForm) {
