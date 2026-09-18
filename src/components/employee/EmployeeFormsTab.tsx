@@ -551,6 +551,22 @@ export default function EmployeeFormsTab({
     return card?.label || type;
   };
 
+  // مرفقات متعددة: نحتفظ بـ attachment_url/attachment_path (أول مرفق) للتوافق مع الشاشات القديمة.
+  const attachUrls: string[] = Array.isArray((formData as any).attachment_urls)
+    ? (formData as any).attachment_urls
+    : formData.attachment_url ? [formData.attachment_url] : [];
+  const attachPaths: string[] = Array.isArray((formData as any).attachment_paths)
+    ? (formData as any).attachment_paths
+    : (formData as any).attachment_path ? [(formData as any).attachment_path] : [];
+  const setAttachments = (next: { urls: string[]; paths: string[] }) =>
+    setFormData(p => ({
+      ...p,
+      attachment_urls: next.urls,
+      attachment_paths: next.paths,
+      attachment_url: next.urls[0] || undefined,
+      attachment_path: next.paths[0] || undefined,
+    }));
+
   const renderFormFields = () => {
     switch (activeForm) {
       case HR_CONTACT_HUB:
