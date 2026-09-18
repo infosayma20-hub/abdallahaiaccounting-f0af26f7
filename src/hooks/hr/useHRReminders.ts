@@ -17,6 +17,24 @@ export type HRReminder = {
  * النطاق: فريق الشركة (user_id = get_team_owner_id()) — مثل فترات حظر الإجازات.
  * فشل صامت عند القراءة: تبقى القائمة فاضية ويشتغل النظام كالسابق.
  */
+/**
+ * ناقل تزامن محلي: أي نسخة من الهوك (الجرس، نافذة الإضافة، صفحة الطلبات)
+ * تُعلم باقي النسخ وباقي تبويبات المتصفح فور أي تعديل، حتى يظهر التذكير
+ * مباشرة بدون تحديث الصفحة.
+ */
+const REMINDERS_SYNC_EVENT = "hr-reminders:changed";
+const remindersChannel =
+  typeof BroadcastChannel !== "undefined" ? new BroadcastChannel(REMINDERS_SYNC_EVENT) : null;
+
+function notifyRemindersChanged() {
+  try {
+    window.dispatchEvent(new CustomEvent(REMINDERS_SYNC_EVENT));
+    remindersChannel?.postMessage(Date.now());
+  } catch {
+    /* تزامن اختياري — لا يؤثر على الحفظ */
+  }
+}
+
 export function useHRReminders() {
   const [ownerId, setOwnerId] = useState<string | null>(null);
   const [reminders, setReminders] = useState<HRReminder[]>([]);
@@ -55,6 +73,22 @@ export function useHRReminders() {
 
   useEffect(() => { refresh(); }, [refresh]);
 
+  // تحديث فوري عند أي إضافة/تعديل من أي شاشة أو تبويب، وعند العودة للتبويب.
+  useEffect(() => {
+    const onChanged = () => { refresh(); };
+    const onVisible = () => { if (document.visibilityState === "visible") refresh(); };
+    window.addEventListener(REMINDERS_SYNC_EVENT, onChanged);
+    remindersChannel?.addEventListener("message", onChanged);
+    document.addEventListener("visibilitychange", onVisible);
+    window.addEventListener("focus", onVisible);
+    return () => {
+      window.removeEventListener(REMINDERS_SYNC_EVENT, onChanged);
+      remindersChannel?.removeEventListener("message", onChanged);
+      document.removeEventListener("visibilitychange", onVisible);
+      window.removeEventListener("focus", onVisible);
+    };
+  }, [refresh]);
+
   const add = useCallback(
     async (input: {
       title: string;
@@ -75,6 +109,7 @@ export function useHRReminders() {
         related_form_id: input.related_form_id || null,
       });
       if (error) throw error;
+      notifyRemindersChanged();
       await refresh();
     },
     [ownerId, refresh],
@@ -87,6 +122,7 @@ export function useHRReminders() {
         .update({ is_done: true, done_at: new Date().toISOString() })
         .eq("id", id);
       if (error) throw error;
+      notifyRemindersChanged();
       await refresh();
     },
     [refresh],
@@ -96,6 +132,7 @@ export function useHRReminders() {
     async (id: string) => {
       const { error } = await (supabase as any).from("hr_reminders").delete().eq("id", id);
       if (error) throw error;
+      notifyRemindersChanged();
       await refresh();
     },
     [refresh],
@@ -108,6 +145,7 @@ export function useHRReminders() {
         .update({ is_done: false, done_at: null })
         .eq("id", id);
       if (error) throw error;
+      notifyRemindersChanged();
       await refresh();
     },
     [refresh],

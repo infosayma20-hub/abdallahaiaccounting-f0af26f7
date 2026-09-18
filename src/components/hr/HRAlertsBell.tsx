@@ -249,7 +249,14 @@ export default function HRAlertsBell() {
   }, [total, loading]);
 
   return (
-    <Popover open={open} onOpenChange={setOpen}>
+    <Popover
+      open={open}
+      onOpenChange={(v) => {
+        setOpen(v);
+        // تحديث القائمة عند كل فتح للجرس حتى تظهر التذكيرات المضافة من أي شاشة.
+        if (v) load();
+      }}
+    >
       <PopoverTrigger asChild>
         <Button
           variant="ghost"
