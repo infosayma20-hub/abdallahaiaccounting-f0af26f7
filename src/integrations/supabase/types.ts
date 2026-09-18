@@ -32196,6 +32196,12 @@ export type Database = {
           account_name: string
         }[]
       }
+      list_expired_form_attachments: {
+        Args: { p_days?: number; p_limit?: number }
+        Returns: {
+          object_name: string
+        }[]
+      }
       list_orphaned_employee_account_posts: {
         Args: { p_user_id: string }
         Returns: {
