@@ -109,6 +109,7 @@ export function useHRReminders() {
         related_form_id: input.related_form_id || null,
       });
       if (error) throw error;
+      notifyRemindersChanged();
       await refresh();
     },
     [ownerId, refresh],
@@ -121,6 +122,7 @@ export function useHRReminders() {
         .update({ is_done: true, done_at: new Date().toISOString() })
         .eq("id", id);
       if (error) throw error;
+      notifyRemindersChanged();
       await refresh();
     },
     [refresh],
@@ -130,6 +132,7 @@ export function useHRReminders() {
     async (id: string) => {
       const { error } = await (supabase as any).from("hr_reminders").delete().eq("id", id);
       if (error) throw error;
+      notifyRemindersChanged();
       await refresh();
     },
     [refresh],
@@ -142,6 +145,7 @@ export function useHRReminders() {
         .update({ is_done: false, done_at: null })
         .eq("id", id);
       if (error) throw error;
+      notifyRemindersChanged();
       await refresh();
     },
     [refresh],
