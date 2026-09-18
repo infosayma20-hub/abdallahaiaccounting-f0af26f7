@@ -322,7 +322,19 @@ export default function BuiltinFormsViewerSection({
                   <div key={k} className="flex items-center justify-between gap-3 p-2.5">
                     <span className="text-xs text-muted-foreground">{fieldLabel(k)}</span>
                     <span className="text-sm font-medium break-all">
-                      {typeof v === "string" && v.startsWith("http") ? (
+                      {Array.isArray(v) ? (
+                        <span className="flex flex-wrap gap-2 justify-end">
+                          {v.map((item, i) =>
+                            typeof item === "string" && item.startsWith("http") ? (
+                              <a key={i} href={item} target="_blank" rel="noreferrer" className="text-primary underline">
+                                مرفق {i + 1}
+                              </a>
+                            ) : (
+                              <span key={i}>{String(item ?? "")}</span>
+                            ),
+                          )}
+                        </span>
+                      ) : typeof v === "string" && v.startsWith("http") ? (
                         <a href={v} target="_blank" rel="noreferrer" className="text-primary underline">
                           فتح المرفق
                         </a>
