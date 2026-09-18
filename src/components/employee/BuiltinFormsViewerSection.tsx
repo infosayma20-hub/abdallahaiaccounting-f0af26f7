@@ -39,11 +39,16 @@ const fieldRank = (k: string) => {
   return 300;
 };
 
-const orderedEntries = (data: Record<string, unknown> | null | undefined) =>
-  Object.entries(data || {})
+const orderedEntries = (data: Record<string, unknown> | null | undefined) => {
+  const obj = data || {};
+  const hasMulti = Array.isArray((obj as any).attachment_urls) && (obj as any).attachment_urls.length > 0;
+  return Object.entries(obj)
+    .filter(([k]) => k !== "attachment_paths" && k !== "attachment_path")
+    .filter(([k]) => !(hasMulti && k === "attachment_url"))
     .map((e, idx) => ({ e, idx }))
     .sort((a, b) => fieldRank(a.e[0]) - fieldRank(b.e[0]) || a.idx - b.idx)
     .map((x) => x.e);
+};
 
 type PeriodKey = "today" | "yesterday" | "week" | "month" | "all";
 
