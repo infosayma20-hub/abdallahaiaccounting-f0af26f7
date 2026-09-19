@@ -167,6 +167,10 @@ export default function EmployeeFormsManagementPage() {
   // فلاتر محفوظة بالجلسة — تبقى كما هي بعد تحديث الصفحة أو التنقل والرجوع.
   const [filterCategory, setFilterCategory] = usePageSessionState<CategoryKey>("filterCategory", "all");
   const [filterStatus, setFilterStatus] = usePageSessionState<string>("filterStatus", "all");
+  // فلتر النماذج المتعدد: تحديد النماذج المطلوبة (include) أو استثناء نماذج (exclude).
+  const [formKeyMode, setFormKeyMode] = usePageSessionState<"include" | "exclude">("formKeyMode", "include");
+  const [formKeys, setFormKeys] = usePageSessionState<string[]>("formKeys", []);
+  const [formKeysQuery, setFormKeysQuery] = useState("");
   const [dateFrom, setDateFrom] = useState(() => getDefaultDateRangeThisYear().fromISO);
   const [dateTo, setDateTo] = useState(() => getDefaultDateRangeThisYear().toISO);
   const [filterBranch, setFilterBranch] = usePageSessionState<string>("filterBranch", "all");
