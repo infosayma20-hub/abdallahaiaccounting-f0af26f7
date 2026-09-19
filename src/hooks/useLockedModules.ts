@@ -40,22 +40,14 @@ export function useLockedModules() {
     return false;
   };
 
-  const isRouteLocked = (path: string): boolean => {
-    for (const [prefix, appId] of Object.entries(ROUTE_TO_APP_ID)) {
-      if (path.startsWith(prefix) && isModuleLocked(appId)) {
-        return true;
-      }
-    }
-    return false;
+  const isRouteLocked = (path: string, search?: string): boolean => {
+    const appId = resolveRouteAppId(path, search);
+    return appId ? isModuleLocked(appId) : false;
   };
 
-  const getLockedModuleName = (path: string): string => {
-    for (const [prefix, appId] of Object.entries(ROUTE_TO_APP_ID)) {
-      if (path.startsWith(prefix)) {
-        return APP_NAMES_AR[appId] || "هذا الموديل";
-      }
-    }
-    return "هذا الموديل";
+  const getLockedModuleName = (path: string, search?: string): string => {
+    const appId = resolveRouteAppId(path, search);
+    return (appId && APP_NAMES_AR[appId]) || "هذا الموديل";
   };
 
   return { hiddenApps, enabledModules, isModuleLocked, isRouteLocked, getLockedModuleName, allowOverrides, denyOverrides };
