@@ -46,6 +46,8 @@ import { useNavigate } from "react-router-dom";
 import { PasswordResetRequestsPanel } from "@/pages/hr/components/PasswordResetRequestsPanel";
 import { openEmployeeFormsStorageFile } from "@/lib/employeeStorageFiles";
 import usePageSessionState, { usePageScrollRestoration } from "@/hooks/usePageSessionState";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { ListFilter } from "lucide-react";
 
 import { ScheduleModeEditor } from "@/components/hr/ScheduleModeEditor";
 import { LeaveBlackoutDatesEditor } from "@/components/hr/LeaveBlackoutDatesEditor";
@@ -128,6 +130,18 @@ const CATEGORY_CHIPS: { key: CategoryKey; label: string; icon: LucideIcon; types
   { key: "info",       label: "المعلومات الشخصية",     icon: UserRound,         types: ["employee_info", "birthday_whatsapp"] },
 ];
 
+/**
+ * مفتاح النموذج للفلترة المتعددة.
+ * النماذج المخصصة (dynamic_template) تُفرَّق حسب عنوان القالب نفسه،
+ * حتى تقدر الموارد تستثني قالباً بعينه (مثل «جرد شهري») دون باقي القوالب.
+ */
+const itemFormKey = (f: any) =>
+  f?.form_type === "dynamic_template" && f?.title ? `tpl::${f.title}` : String(f?.form_type || "");
+const itemFormLabel = (f: any) =>
+  f?.form_type === "dynamic_template" && f?.title
+    ? String(f.title)
+    : (formTypeLabels[f?.form_type] || String(f?.form_type || ""));
+
 export default function EmployeeFormsManagementPage() {
   const { user } = useAuth();
   const { dataOwnerId } = useDataOwnerId();
@@ -153,6 +167,10 @@ export default function EmployeeFormsManagementPage() {
   // فلاتر محفوظة بالجلسة — تبقى كما هي بعد تحديث الصفحة أو التنقل والرجوع.
   const [filterCategory, setFilterCategory] = usePageSessionState<CategoryKey>("filterCategory", "all");
   const [filterStatus, setFilterStatus] = usePageSessionState<string>("filterStatus", "all");
+  // فلتر النماذج المتعدد: تحديد النماذج المطلوبة (include) أو استثناء نماذج (exclude).
+  const [formKeyMode, setFormKeyMode] = usePageSessionState<"include" | "exclude">("formKeyMode", "include");
+  const [formKeys, setFormKeys] = usePageSessionState<string[]>("formKeys", []);
+  const [formKeysQuery, setFormKeysQuery] = useState("");
   const [dateFrom, setDateFrom] = useState(() => getDefaultDateRangeThisYear().fromISO);
   const [dateTo, setDateTo] = useState(() => getDefaultDateRangeThisYear().toISO);
   const [filterBranch, setFilterBranch] = usePageSessionState<string>("filterBranch", "all");
@@ -989,6 +1007,11 @@ export default function EmployeeFormsManagementPage() {
       if (cat && !cat.types.includes(f.form_type)) return false;
     }
     if (filterType !== "all" && f.form_type !== filterType) return false;
+    // فلتر النماذج المتعدد (تحديد / استثناء)
+    if (formKeys.length > 0) {
+      const inSet = formKeys.includes(itemFormKey(f));
+      if (formKeyMode === "include" ? !inSet : inSet) return false;
+    }
     if (filterStatus !== "all" && f.status !== filterStatus) return false;
     // Archive filter (only applies to employee_forms; correction_requests are always visible)
     if (f._source === "employee_forms" || f.form_type !== "_attendance_correction") {
@@ -1518,15 +1541,109 @@ export default function EmployeeFormsManagementPage() {
                   <SelectItem value="all">الكل</SelectItem>
                 </SelectContent>
               </Select>
-              <Select value={filterType} onValueChange={v => { setFilterType(v); setPage(1); }}>
-                <SelectTrigger className="w-[160px] h-8 text-[12px] rounded-sm border-[#EDEBE9]"><SelectValue placeholder="نوع النموذج" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">كل الأنواع</SelectItem>
-                  {Object.entries(formTypeLabels).map(([k, v]) => (
-                    <SelectItem key={k} value={k}>{v}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              {(() => {
+                // قائمة النماذج الفعلية الموجودة بالبيانات (مع تفريق القوالب المخصصة حسب عنوانها)
+                const optMap = new Map<string, { key: string; label: string; count: number }>();
+                allItems.forEach((f: any) => {
+                  const key = itemFormKey(f);
+                  if (!key) return;
+                  const cur = optMap.get(key);
+                  if (cur) cur.count += 1;
+                  else optMap.set(key, { key, label: itemFormLabel(f), count: 1 });
+                });
+                const options = Array.from(optMap.values()).sort((a, b) => a.label.localeCompare(b.label, "ar"));
+                const q = formKeysQuery.trim().toLowerCase();
+                const shown = q ? options.filter(o => o.label.toLowerCase().includes(q)) : options;
+                const selectedLabels = formKeys
+                  .map(k => optMap.get(k)?.label || k)
+                  .filter(Boolean);
+                const triggerText = formKeys.length === 0
+                  ? "كل النماذج"
+                  : `${formKeyMode === "include" ? "محدد" : "مستثنى"}: ${formKeys.length === 1 ? selectedLabels[0] : `${formKeys.length} نماذج`}`;
+                const toggle = (key: string) => {
+                  setFormKeys(prev => (prev.includes(key) ? prev.filter(k => k !== key) : [...prev, key]));
+                  setFilterType("all");
+                  setPage(1);
+                };
+                return (
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className={`h-8 min-w-[180px] max-w-[280px] justify-between gap-1.5 text-[12px] rounded-sm border-[#EDEBE9] font-normal ${
+                          formKeys.length ? "bg-[#EFF6FC] text-[#0F6CBD] border-[#0F6CBD]" : ""
+                        }`}
+                        title="فلترة النماذج: تحديد ما يخصك أو استثناء ما لا يخصك"
+                      >
+                        <span className="flex items-center gap-1.5 truncate">
+                          <ListFilter className="h-3.5 w-3.5 shrink-0" strokeWidth={1.75} />
+                          <span className="truncate">{triggerText}</span>
+                        </span>
+                        <ChevronDown className="h-3.5 w-3.5 shrink-0 opacity-60" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent align="start" dir="rtl" className="w-[300px] p-0">
+                      <div className="p-2 space-y-2 border-b border-[#EDEBE9]">
+                        <div className="grid grid-cols-2 gap-1">
+                          {([["include", "تحديد النماذج"], ["exclude", "استثناء النماذج"]] as const).map(([m, label]) => (
+                            <button
+                              key={m}
+                              type="button"
+                              onClick={() => { setFormKeyMode(m); setPage(1); }}
+                              className={`h-7 rounded-sm text-[12px] border transition-colors ${
+                                formKeyMode === m
+                                  ? "bg-[#EFF6FC] text-[#0F6CBD] border-[#0F6CBD]"
+                                  : "bg-transparent text-[#323130] border-[#EDEBE9] hover:bg-[#F3F2F1]"
+                              }`}
+                            >
+                              {label}
+                            </button>
+                          ))}
+                        </div>
+                        <Input
+                          value={formKeysQuery}
+                          onChange={e => setFormKeysQuery(e.target.value)}
+                          placeholder="ابحث عن نموذج..."
+                          className="h-8 text-[12px] rounded-sm border-[#EDEBE9]"
+                        />
+                        <div className="flex items-center justify-between text-[11px] text-[#605E5C]">
+                          <button
+                            type="button"
+                            className="underline hover:text-[#323130]"
+                            onClick={() => { setFormKeys(shown.map(o => o.key)); setFilterType("all"); setPage(1); }}
+                          >
+                            تحديد الكل
+                          </button>
+                          <button
+                            type="button"
+                            className="underline hover:text-[#323130]"
+                            onClick={() => { setFormKeys([]); setPage(1); }}
+                          >
+                            مسح الاختيار
+                          </button>
+                        </div>
+                      </div>
+                      <div className="max-h-[320px] overflow-y-auto p-1">
+                        {shown.length === 0 ? (
+                          <div className="py-6 text-center text-[12px] text-[#605E5C]">لا يوجد نموذج مطابق</div>
+                        ) : shown.map(o => (
+                          <label
+                            key={o.key}
+                            className="flex items-center gap-2 px-2 py-1.5 rounded-sm text-[12px] hover:bg-[#F3F2F1] cursor-pointer"
+                          >
+                            <Checkbox
+                              checked={formKeys.includes(o.key)}
+                              onCheckedChange={() => toggle(o.key)}
+                            />
+                            <span className="flex-1 truncate">{o.label}</span>
+                            <span className="text-[10px] rounded-sm px-1 bg-[#EDEBE9] text-[#605E5C]">{o.count}</span>
+                          </label>
+                        ))}
+                      </div>
+                    </PopoverContent>
+                  </Popover>
+                );
+              })()}
               {branches.length > 0 && (
                 <Select value={filterBranch} onValueChange={v => { setFilterBranch(v); setPage(1); }}>
                   <SelectTrigger className="w-[130px] h-8 text-[12px] rounded-sm border-[#EDEBE9]"><SelectValue placeholder="الفرع" /></SelectTrigger>
