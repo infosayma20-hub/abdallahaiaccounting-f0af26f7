@@ -3,7 +3,7 @@ import { useState, useEffect, useRef, useMemo } from "react";
 import { FinanceShell } from "@/components/finance/shell/FinanceShell";
 import type { ActionTab } from "@/components/finance/shell/types";
 
-import { ArrowRight, Loader2, Plus, FileText, Printer, Search, ShoppingCart, Receipt, Package, Trash2, Save, Eye, AlertTriangle, CreditCard, Building2, Banknote, Clock, ChevronDown, ChevronLeft, ChevronRight, X, Filter, LayoutGrid, Table2, ArrowUpDown, FileSpreadsheet, Copy, Pencil, MoreHorizontal, Download, Mail, Send, TrendingUp, RefreshCw, Home } from "lucide-react";
+import { ArrowRight, Loader2, Plus, FileText, Printer, Search, ShoppingCart, Receipt, Package, Trash2, Save, Eye, AlertTriangle, CreditCard, Building2, Banknote, Clock, ChevronDown, ChevronLeft, ChevronRight, X, Filter, LayoutGrid, Table2, ArrowUpDown, FileSpreadsheet, Copy, Pencil, MoreHorizontal, Download, Mail, Send, TrendingUp, RefreshCw, Home, Lock } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Label } from "@/components/ui/label";
@@ -41,6 +41,7 @@ function arabicDayName(isoDate: string): string {
 import { Can } from "@/components/permissions/Can";
 import { assertPermission } from "@/lib/permissions/assertPermission";
 import { assertAccountantPermission } from "@/lib/permissions/assertAccountantPermission";
+import { usePermission } from "@/hooks/usePermission";
 import { useCompanySettings } from "@/hooks/useCompanySettings";
 import InvoicePrintView from "@/components/InvoicePrintView";
 import { printReactDocument } from "@/lib/print/printReactDocument";
@@ -178,6 +179,18 @@ const InvoicesPage = () => {
   const [quickAddForm, setQuickAddForm] = useState({ name: "", sell_price: 0, buy_price: 0, unit: "قطعة", quantity: 0 });
   const [contactSearch, setContactSearch] = useState("");
   const [showContactDropdown, setShowContactDropdown] = useState(false);
+
+  // صلاحيات المشاهدة: من مُنِع "مشاهدة" فواتير المبيعات/المشتريات لا يرى القوائم
+  // ولا الإجماليات، لكن يبقى قادراً على الإنشاء (صلاحية create مستقلة).
+  const salesInvPerm = usePermission("sales");
+  const purchaseInvPerm = usePermission("purchases");
+  const invPermsLoading = salesInvPerm.loading || purchaseInvPerm.loading;
+  const canViewSalesList = salesInvPerm.can("invoices", "view");
+  const canViewPurchaseList = purchaseInvPerm.can("purchase_invoices", "view");
+  const canViewCurrentList =
+    filterType === "purchase" ? canViewPurchaseList
+    : filterType === "sales" ? canViewSalesList
+    : canViewSalesList && canViewPurchaseList;
   const [contactDebtWarning, setContactDebtWarning] = useState<string | null>(null);
   const [showPDFPreview, setShowPDFPreview] = useState(false);
   // على الجوال تكون البطاقات هي العرض الافتراضي (الجدول يبقى الافتراضي على الشاشات الكبيرة)
@@ -518,11 +531,19 @@ const InvoicesPage = () => {
 
   useEffect(() => {
     if (!user) return;
+    if (!invPermsLoading && !canViewCurrentList) {
+      // ممنوع من مشاهدة القوائم — لا نجلب الفواتير إطلاقاً، فقط بيانات نموذج الإنشاء
+      fetchContacts();
+      fetchProducts();
+      fetchWarehouses();
+      setLoading(false);
+      return;
+    }
     fetchInvoices();
     fetchContacts();
     fetchProducts();
     fetchWarehouses();
-  }, [user]);
+  }, [user, invPermsLoading, canViewCurrentList]);
 
   const fetchWarehouses = async () => {
     if (!user) return;
@@ -1480,6 +1501,67 @@ const InvoicesPage = () => {
       ],
     },
   ];
+
+  // ⛔ ممنوع من مشاهدة القوائم: نعرض شاشة قفل مع إبقاء زر الإنشاء (صلاحية منفصلة)
+  if (!invPermsLoading && !canViewCurrentList) {
+    const createType = filterType === "purchase" ? "purchase" : "sales";
+    const altType = canViewSalesList ? "sales" : canViewPurchaseList ? "purchase" : null;
+    const lockedTabs: ActionTab[] = [
+      {
+        key: "home",
+        label: tt("الرئيسية"),
+        groups: [
+          {
+            key: "new",
+            label: tt("جديد"),
+            items: [
+              {
+                key: "new-invoice",
+                label: tt("فاتورة جديدة"),
+                icon: Plus,
+                variant: "primary",
+                onClick: () => navigate(`/invoices/new?type=${createType}`),
+                shortcut: "Alt+N",
+              },
+            ],
+          },
+        ],
+      },
+    ];
+    return (
+      <FinanceShell
+        title={pageTitle}
+        breadcrumb={[
+          { label: tt("المالية"), href: "/finance" },
+          { label: filterType === "purchase" ? tt("المشتريات") : tt("المبيعات") },
+          { label: tt("الفواتير") },
+        ]}
+        actionTabs={lockedTabs}
+      >
+        <div dir="rtl" className="flex flex-col items-center justify-center gap-4 py-20 text-center">
+          <div className="flex items-center justify-center w-14 h-14 rounded-2xl bg-muted/60">
+            <Lock className="h-6 w-6 text-muted-foreground" />
+          </div>
+          <div className="space-y-1">
+            <p className="text-sm font-semibold text-foreground">{tt("لا تملك صلاحية عرض قوائم الفواتير")}</p>
+            <p className="text-xs text-muted-foreground">{tt("يمكنك إنشاء فاتورة جديدة فقط — القوائم والإجماليات غير متاحة لحسابك")}</p>
+          </div>
+          <div className="flex flex-wrap items-center justify-center gap-2">
+            <Can app={createType === "purchase" ? "purchases" : "sales"} feature={createType === "purchase" ? "purchase_invoices" : "invoices"} perm="create">
+              <Button size="sm" className="gap-1.5 rounded-xl" onClick={() => navigate(`/invoices/new?type=${createType}`)}>
+                <Plus className="h-4 w-4" /> {tt("إنشاء فاتورة")}
+              </Button>
+            </Can>
+            {altType && (
+              <Button size="sm" variant="outline" className="rounded-xl" onClick={() => setFilterType(altType)}>
+                {altType === "sales" ? tt("عرض فواتير المبيعات") : tt("عرض فواتير المشتريات")}
+              </Button>
+            )}
+          </div>
+        </div>
+      </FinanceShell>
+    );
+  }
 
   return (
     <FinanceShell
