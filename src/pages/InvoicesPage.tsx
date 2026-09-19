@@ -3,7 +3,7 @@ import { useState, useEffect, useRef, useMemo } from "react";
 import { FinanceShell } from "@/components/finance/shell/FinanceShell";
 import type { ActionTab } from "@/components/finance/shell/types";
 
-import { ArrowRight, Loader2, Plus, FileText, Printer, Search, ShoppingCart, Receipt, Package, Trash2, Save, Eye, AlertTriangle, CreditCard, Building2, Banknote, Clock, ChevronDown, ChevronLeft, ChevronRight, X, Filter, LayoutGrid, Table2, ArrowUpDown, FileSpreadsheet, Copy, Pencil, MoreHorizontal, Download, Mail, Send, TrendingUp, RefreshCw, Home } from "lucide-react";
+import { ArrowRight, Loader2, Plus, FileText, Printer, Search, ShoppingCart, Receipt, Package, Trash2, Save, Eye, AlertTriangle, CreditCard, Building2, Banknote, Clock, ChevronDown, ChevronLeft, ChevronRight, X, Filter, LayoutGrid, Table2, ArrowUpDown, FileSpreadsheet, Copy, Pencil, MoreHorizontal, Download, Mail, Send, TrendingUp, RefreshCw, Home, Lock } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Label } from "@/components/ui/label";
@@ -41,6 +41,7 @@ function arabicDayName(isoDate: string): string {
 import { Can } from "@/components/permissions/Can";
 import { assertPermission } from "@/lib/permissions/assertPermission";
 import { assertAccountantPermission } from "@/lib/permissions/assertAccountantPermission";
+import { usePermission } from "@/hooks/usePermission";
 import { useCompanySettings } from "@/hooks/useCompanySettings";
 import InvoicePrintView from "@/components/InvoicePrintView";
 import { printReactDocument } from "@/lib/print/printReactDocument";
@@ -178,6 +179,18 @@ const InvoicesPage = () => {
   const [quickAddForm, setQuickAddForm] = useState({ name: "", sell_price: 0, buy_price: 0, unit: "قطعة", quantity: 0 });
   const [contactSearch, setContactSearch] = useState("");
   const [showContactDropdown, setShowContactDropdown] = useState(false);
+
+  // صلاحيات المشاهدة: من مُنِع "مشاهدة" فواتير المبيعات/المشتريات لا يرى القوائم
+  // ولا الإجماليات، لكن يبقى قادراً على الإنشاء (صلاحية create مستقلة).
+  const salesInvPerm = usePermission("sales");
+  const purchaseInvPerm = usePermission("purchases");
+  const invPermsLoading = salesInvPerm.loading || purchaseInvPerm.loading;
+  const canViewSalesList = salesInvPerm.can("invoices", "view");
+  const canViewPurchaseList = purchaseInvPerm.can("purchase_invoices", "view");
+  const canViewCurrentList =
+    filterType === "purchase" ? canViewPurchaseList
+    : filterType === "sales" ? canViewSalesList
+    : canViewSalesList && canViewPurchaseList;
   const [contactDebtWarning, setContactDebtWarning] = useState<string | null>(null);
   const [showPDFPreview, setShowPDFPreview] = useState(false);
   // على الجوال تكون البطاقات هي العرض الافتراضي (الجدول يبقى الافتراضي على الشاشات الكبيرة)
