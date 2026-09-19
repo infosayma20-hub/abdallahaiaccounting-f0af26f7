@@ -85,9 +85,13 @@ function invoicesAppId(search?: string): string {
 }
 
 /** Resolve the app id that owns a given route, or null when unknown. */
-export function resolveRouteAppId(path: string, search?: string): string | null {
-  if (path === "/invoices" || path.startsWith("/invoices/") || path.startsWith("/invoices?")) {
-    return invoicesAppId(search);
+export function resolveRouteAppId(fullPath: string, search?: string): string | null {
+  const qIndex = fullPath.indexOf("?");
+  const path = qIndex >= 0 ? fullPath.slice(0, qIndex) : fullPath;
+  const query = search || (qIndex >= 0 ? fullPath.slice(qIndex) : undefined);
+
+  if (path === "/invoices" || path.startsWith("/invoices/")) {
+    return invoicesAppId(query);
   }
   for (const [prefix, appId] of ROUTE_TO_APP_ID) {
     if (path === prefix || path.startsWith(`${prefix}/`) || path.startsWith(`${prefix}?`)) {
