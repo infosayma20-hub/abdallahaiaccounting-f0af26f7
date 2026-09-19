@@ -2,6 +2,7 @@ import { useLocation } from "react-router-dom";
 import { useLockedModules } from "@/hooks/useLockedModules";
 import { useSubscriptionGuard } from "@/hooks/useSubscriptionGuard";
 import { useMyAppOverrides } from "@/hooks/useMyAppOverrides";
+import { resolveRouteAppId } from "@/lib/permissions/routeAppId";
 import LockedModulePage from "./LockedModulePage";
 
 interface Props {
