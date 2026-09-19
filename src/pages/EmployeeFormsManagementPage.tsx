@@ -130,6 +130,18 @@ const CATEGORY_CHIPS: { key: CategoryKey; label: string; icon: LucideIcon; types
   { key: "info",       label: "المعلومات الشخصية",     icon: UserRound,         types: ["employee_info", "birthday_whatsapp"] },
 ];
 
+/**
+ * مفتاح النموذج للفلترة المتعددة.
+ * النماذج المخصصة (dynamic_template) تُفرَّق حسب عنوان القالب نفسه،
+ * حتى تقدر الموارد تستثني قالباً بعينه (مثل «جرد شهري») دون باقي القوالب.
+ */
+const itemFormKey = (f: any) =>
+  f?.form_type === "dynamic_template" && f?.title ? `tpl::${f.title}` : String(f?.form_type || "");
+const itemFormLabel = (f: any) =>
+  f?.form_type === "dynamic_template" && f?.title
+    ? String(f.title)
+    : (formTypeLabels[f?.form_type] || String(f?.form_type || ""));
+
 export default function EmployeeFormsManagementPage() {
   const { user } = useAuth();
   const { dataOwnerId } = useDataOwnerId();
