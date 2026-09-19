@@ -531,11 +531,19 @@ const InvoicesPage = () => {
 
   useEffect(() => {
     if (!user) return;
+    if (!invPermsLoading && !canViewCurrentList) {
+      // ممنوع من مشاهدة القوائم — لا نجلب الفواتير إطلاقاً، فقط بيانات نموذج الإنشاء
+      fetchContacts();
+      fetchProducts();
+      fetchWarehouses();
+      setLoading(false);
+      return;
+    }
     fetchInvoices();
     fetchContacts();
     fetchProducts();
     fetchWarehouses();
-  }, [user]);
+  }, [user, invPermsLoading, canViewCurrentList]);
 
   const fetchWarehouses = async () => {
     if (!user) return;
