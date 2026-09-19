@@ -1007,6 +1007,11 @@ export default function EmployeeFormsManagementPage() {
       if (cat && !cat.types.includes(f.form_type)) return false;
     }
     if (filterType !== "all" && f.form_type !== filterType) return false;
+    // فلتر النماذج المتعدد (تحديد / استثناء)
+    if (formKeys.length > 0) {
+      const inSet = formKeys.includes(itemFormKey(f));
+      if (formKeyMode === "include" ? !inSet : inSet) return false;
+    }
     if (filterStatus !== "all" && f.status !== filterStatus) return false;
     // Archive filter (only applies to employee_forms; correction_requests are always visible)
     if (f._source === "employee_forms" || f.form_type !== "_attendance_correction") {
