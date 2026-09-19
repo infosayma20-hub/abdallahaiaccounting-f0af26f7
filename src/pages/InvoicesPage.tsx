@@ -1502,6 +1502,67 @@ const InvoicesPage = () => {
     },
   ];
 
+  // ⛔ ممنوع من مشاهدة القوائم: نعرض شاشة قفل مع إبقاء زر الإنشاء (صلاحية منفصلة)
+  if (!invPermsLoading && !canViewCurrentList) {
+    const createType = filterType === "purchase" ? "purchase" : "sales";
+    const altType = canViewSalesList ? "sales" : canViewPurchaseList ? "purchase" : null;
+    const lockedTabs: ActionTab[] = [
+      {
+        key: "home",
+        label: tt("الرئيسية"),
+        groups: [
+          {
+            key: "new",
+            label: tt("جديد"),
+            items: [
+              {
+                key: "new-invoice",
+                label: tt("فاتورة جديدة"),
+                icon: Plus,
+                variant: "primary",
+                onClick: () => navigate(`/invoices/new?type=${createType}`),
+                shortcut: "Alt+N",
+              },
+            ],
+          },
+        ],
+      },
+    ];
+    return (
+      <FinanceShell
+        title={pageTitle}
+        breadcrumb={[
+          { label: tt("المالية"), href: "/finance" },
+          { label: filterType === "purchase" ? tt("المشتريات") : tt("المبيعات") },
+          { label: tt("الفواتير") },
+        ]}
+        actionTabs={lockedTabs}
+      >
+        <div dir="rtl" className="flex flex-col items-center justify-center gap-4 py-20 text-center">
+          <div className="flex items-center justify-center w-14 h-14 rounded-2xl bg-muted/60">
+            <Lock className="h-6 w-6 text-muted-foreground" />
+          </div>
+          <div className="space-y-1">
+            <p className="text-sm font-semibold text-foreground">{tt("لا تملك صلاحية عرض قوائم الفواتير")}</p>
+            <p className="text-xs text-muted-foreground">{tt("يمكنك إنشاء فاتورة جديدة فقط — القوائم والإجماليات غير متاحة لحسابك")}</p>
+          </div>
+          <div className="flex flex-wrap items-center justify-center gap-2">
+            <Can app={createType === "purchase" ? "purchases" : "sales"} feature={createType === "purchase" ? "purchase_invoices" : "invoices"} perm="create">
+              <Button size="sm" className="gap-1.5 rounded-xl" onClick={() => navigate(`/invoices/new?type=${createType}`)}>
+                <Plus className="h-4 w-4" /> {tt("إنشاء فاتورة")}
+              </Button>
+            </Can>
+            {altType && (
+              <Button size="sm" variant="outline" className="rounded-xl" onClick={() => setFilterType(altType)}>
+                {altType === "sales" ? tt("عرض فواتير المبيعات") : tt("عرض فواتير المشتريات")}
+              </Button>
+            )}
+          </div>
+        </div>
+      </FinanceShell>
+    );
+  }
+
   return (
     <FinanceShell
       title={pageTitle}
