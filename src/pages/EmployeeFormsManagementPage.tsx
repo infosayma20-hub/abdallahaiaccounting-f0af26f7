@@ -61,7 +61,7 @@ const formTypeLabels: Record<string, string> = {
   leave_request: "طلب إجازة",
   advance_request: "طلب سلفة",
   loan_request: "طلب قرض حسن",
-  correction_request: "تصحيح بصمة",
+  correction_request: "تصحيح بصمة (نموذج الموظف)",
   overtime_request: "طلب أوفرتايم",
   hr_message: "رسالة لـ HR",
   employee_info: "تعبئة معلومات",
@@ -74,7 +74,7 @@ const formTypeLabels: Record<string, string> = {
   inventory_balance: "رصيد الأصناف",
   dynamic_template: "نموذج مخصص",
   // Virtual types from correction_requests:
-  _attendance_correction: "تصحيح بصمة",
+  _attendance_correction: "تصحيح بصمة (من شاشة الحضور)",
   _hr_message: "رسالة HR",
   _hr_inquiry: "طلب توضيح",
   _hr_warning: "إنذار",
