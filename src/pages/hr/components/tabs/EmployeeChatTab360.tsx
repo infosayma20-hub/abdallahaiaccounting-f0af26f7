@@ -1,11 +1,13 @@
 import { Loader2 } from "lucide-react";
 import ChatThreadView from "@/components/chat/ChatThreadView";
 import { useHRChatThreadId } from "@/hooks/useHRChat";
+import { useHREmployeeChatEnabled } from "@/hooks/useHREmployeeChatEnabled";
 
 export function EmployeeChatTab360({ employeeId, employeeName }: { employeeId: string; employeeName?: string }) {
   const { threadId, loading, error } = useHRChatThreadId(employeeId);
+  const { enabled: chatEnabled, loading: chatFlagLoading } = useHREmployeeChatEnabled();
 
-  if (loading) {
+  if (loading || chatFlagLoading) {
     return (
       <div className="flex justify-center py-12">
         <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
@@ -23,8 +25,10 @@ export function EmployeeChatTab360({ employeeId, employeeName }: { employeeId: s
         threadId={threadId}
         side="hr"
         title={employeeName || "محادثة"}
-        subtitle="محادثة مباشرة مع الموظف"
+        subtitle={chatEnabled ? "محادثة مباشرة مع الموظف" : "المراسلة متوقفة — عرض السجل فقط"}
         className="h-full"
+        readOnly={!chatEnabled}
+        readOnlyHint="نظام المراسلة متوقف من إعدادات الموارد البشرية. السجل للاطلاع فقط."
       />
     </div>
   );

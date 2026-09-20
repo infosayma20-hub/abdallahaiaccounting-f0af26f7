@@ -25,6 +25,7 @@ import EmployeeDisciplinaryActionsTab from "@/components/employee/EmployeeDiscip
 import EmployeeTrainingTab from "@/components/employee/EmployeeTrainingTab";
 import EmployeeChatTab from "@/components/employee/EmployeeChatTab";
 import { isHRChatPilotEmployee } from "@/config/hrChatPilot";
+import { useHREmployeeChatEnabled } from "@/hooks/useHREmployeeChatEnabled";
 import { ensureNotificationPermission, notifyChat, setAppBadgeCount } from "@/lib/chat-notify";
 import DisciplinaryNotificationGate from "@/components/employee/DisciplinaryNotificationGate";
 import BranchRosterPage from "@/pages/manager/BranchRosterPage";
@@ -177,7 +178,9 @@ export default function EmployeeApp({ initialTab }: { initialTab?: Tab } = {}) {
 
   // Unread HR chat badge (live).
   const employeeId = employee?.id;
-  const chatEnabled = isHRChatPilotEmployee(employeeId);
+  // Chat visibility = rollout flag AND the company switch from HR settings.
+  const { enabled: companyChatEnabled } = useHREmployeeChatEnabled();
+  const chatEnabled = isHRChatPilotEmployee(employeeId) && companyChatEnabled;
   useEffect(() => {
     if (!employeeId || !chatEnabled) return;
     let cancelled = false;

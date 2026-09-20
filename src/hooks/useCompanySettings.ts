@@ -167,6 +167,8 @@ export interface CompanySettings {
   // HR — Requests intake windows
   hr_allow_advance_requests: boolean;
   hr_allow_leave_requests: boolean;
+  /** نظام المراسلة المباشرة بين الموظف والموارد البشرية (تبويب «المراسلة» بتطبيق الموظف). */
+  hr_employee_chat_enabled: boolean;
   hr_advance_requests_closed_message: string;
   hr_leave_requests_closed_message: string;
   // Security
@@ -329,6 +331,7 @@ const defaultSettings: CompanySettings = {
   hr_social_security: false,
   hr_allow_advance_requests: true,
   hr_allow_leave_requests: true,
+  hr_employee_chat_enabled: true,
   hr_advance_requests_closed_message: "",
   hr_leave_requests_closed_message: "",
   // Security
@@ -518,7 +521,7 @@ export function useCompanySettings() {
     "hr_shift_start","hr_shift_end","hr_late_grace_minutes",
     "hr_departure_cap_enabled","hr_departure_cap_minutes","hr_departure_max_gap_minutes","hr_departure_paid_within_cap","hr_departure_policy_from",
     "hr_work_days_per_week","hr_daily_hours",
-    "hr_allow_advance_requests","hr_allow_leave_requests",
+    "hr_allow_advance_requests","hr_allow_leave_requests","hr_employee_chat_enabled",
     "hr_advance_requests_closed_message","hr_leave_requests_closed_message",
     "onboarding_completed","onboarding_step","business_type","has_employees",
     "employee_count_range","has_pos","pos_count","inventory_method",

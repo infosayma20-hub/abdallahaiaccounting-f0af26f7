@@ -26,6 +26,9 @@ interface Props {
   /** Extra classes for the outer wrapper (height handling). */
   className?: string;
   emptyHint?: string;
+  /** Messaging switched off for this tenant — history stays visible, composer hidden. */
+  readOnly?: boolean;
+  readOnlyHint?: string;
 }
 
 function dayLabel(iso: string) {
@@ -42,7 +45,7 @@ function timeLabel(iso: string) {
   return new Date(iso).toLocaleTimeString("ar-EG", { hour: "2-digit", minute: "2-digit" });
 }
 
-export default function ChatThreadView({ threadId, side, title, subtitle, className, emptyHint }: Props) {
+export default function ChatThreadView({ threadId, side, title, subtitle, className, emptyHint, readOnly, readOnlyHint }: Props) {
   const { messages, loading, sending, hasMore, send, loadOlder, editMessage, deleteMessage, myUserId } =
     useHRChatThread(threadId, side);
   const [text, setText] = useState("");
@@ -295,6 +298,11 @@ export default function ChatThreadView({ threadId, side, title, subtitle, classN
         <div ref={bottomRef} />
       </div>
 
+      {readOnly ? (
+        <div className="shrink-0 border-t border-border p-3 bg-muted/40 text-center text-[12.5px] text-muted-foreground">
+          {readOnlyHint || "المراسلة متوقفة حالياً. المحادثات السابقة للاطلاع فقط."}
+        </div>
+      ) : (
       <div className="shrink-0 border-t border-border p-2 flex items-end gap-2 bg-card">
         <Textarea
           value={text}
@@ -320,6 +328,7 @@ export default function ChatThreadView({ threadId, side, title, subtitle, classN
           {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
         </Button>
       </div>
+      )}
 
       <AlertDialog open={!!confirmDelete} onOpenChange={(o) => !o && setConfirmDelete(null)}>
         <AlertDialogContent dir="rtl">

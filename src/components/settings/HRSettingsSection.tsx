@@ -200,6 +200,25 @@ const HRSettingsSection = ({ settings, onChange }: Props) => {
         </div>
       </SettingsSection>
 
+      <SettingsSection
+        title="المراسلة الداخلية مع الموظفين"
+        description="تبويب «المراسلة» في تطبيق الموظف — محادثة مباشرة بين الموظف ودائرة الموارد البشرية."
+      >
+        <div className="flex items-center justify-between p-3 bg-muted/40 rounded-lg">
+          <div>
+            <p className="font-medium text-sm">تفعيل المراسلة بين الموظف والموارد البشرية</p>
+            <p className="text-xs text-muted-foreground">
+              عند الإيقاف: يختفي تبويب «المراسلة» من تطبيق الموظف ولا يمكن إرسال أي رسالة جديدة من الطرفين.
+              المحادثات السابقة تبقى محفوظة ويمكن للموارد الاطلاع عليها.
+            </p>
+          </div>
+          <Switch
+            checked={settings.hr_employee_chat_enabled !== false}
+            onCheckedChange={v => onChange({ hr_employee_chat_enabled: v })}
+          />
+        </div>
+      </SettingsSection>
+
       <SettingsSection title="الرواتب" description="موعد الصرف والعملة وخصومات افتراضية.">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="space-y-2">
