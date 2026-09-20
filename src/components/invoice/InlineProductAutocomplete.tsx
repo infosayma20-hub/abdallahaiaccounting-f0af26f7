@@ -4,7 +4,9 @@ import { Plus, Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import { useSearchableDropdown } from "@/hooks/useSearchableDropdown";
+import { scoreSearchMatch, toSearchTokens } from "@/lib/productSearch";
 import { cn } from "@/lib/utils";
+
 
 type ProductOption = {
   id: string;
