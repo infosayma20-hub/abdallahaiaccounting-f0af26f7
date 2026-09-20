@@ -46,7 +46,7 @@ type CampaignDetails = {
 const ALL = "__all__";
 
 const SEASON_LABEL: Record<string, string> = {
-  ramadan: "رمضان", tawjihi: "توجيهي", winter: "الشتاء",
+  ramadan: "رمضان", tawjihi: "توجيهي", winter: "الشتاء", autumn: "الخريف",
   eid: "عيد الفطر", opening: "افتتاح", other: "عرض",
 };
 
@@ -54,10 +54,12 @@ const SEASON_STYLE: Record<string, { pill: string; bar: string; ring: string }> 
   ramadan: { pill: "bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-300", bar: "bg-violet-500", ring: "ring-violet-400" },
   tawjihi: { pill: "bg-sky-100 text-sky-700 dark:bg-sky-900/30 dark:text-sky-300", bar: "bg-sky-500", ring: "ring-sky-400" },
   winter:  { pill: "bg-cyan-100 text-cyan-700 dark:bg-cyan-900/30 dark:text-cyan-300", bar: "bg-cyan-500", ring: "ring-cyan-400" },
+  autumn:  { pill: "bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300", bar: "bg-orange-500", ring: "ring-orange-400" },
   eid:     { pill: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300", bar: "bg-amber-500", ring: "ring-amber-400" },
   opening: { pill: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300", bar: "bg-emerald-500", ring: "ring-emerald-400" },
   other:   { pill: "bg-muted text-muted-foreground", bar: "bg-slate-500", ring: "ring-slate-400" },
 };
+
 
 // hsl vars from index.css — use CSS variables so charts follow theme
 const CHART_PALETTE = ["#8B5CF6", "#0EA5E9", "#06B6D4", "#F59E0B", "#10B981", "#EF4444", "#DB2777", "#0F766E", "#B45309"];
