@@ -313,6 +313,17 @@ export default function JobApplicationsPage() {
         photoUrl = data?.signedUrl || "";
       }
 
+      // Preload both images before mounting the isolated print document. This
+      // prevents a fast print dialog from capturing an empty photo/logo box.
+      await Promise.all(
+        [malakyLogo.url, photoUrl].filter(Boolean).map((src) => new Promise<void>((resolve) => {
+          const image = new Image();
+          image.onload = () => resolve();
+          image.onerror = () => resolve();
+          image.src = src;
+        })),
+      );
+
       printReactDocument(
         <JobApplicationPrintDocument
           application={application}
