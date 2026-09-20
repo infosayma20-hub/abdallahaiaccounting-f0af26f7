@@ -32,6 +32,8 @@ import { setNextExportBranding } from "@/lib/excel-export";
 import malakyLogo from "@/assets/malaky-logo.png.asset.json";
 import JobFormBuilderDialog from "@/components/hr/JobFormBuilderDialog";
 import { parseCustomAnswers } from "@/lib/hr/jobApplicationForm";
+import JobApplicationPrintDocument from "@/components/hr/JobApplicationPrintDocument";
+import { printReactDocument } from "@/lib/print/printReactDocument";
 
 type LinkRow = {
   id: string; slug: string; title: string; description: string | null; is_active: boolean;
@@ -174,6 +176,7 @@ export default function JobApplicationsPage() {
   const [detail, setDetail] = useState<AppRow | null>(null);
   /** رابط مؤقّت لصورة المتقدّم داخل نافذة التفاصيل. */
   const [detailPhotoUrl, setDetailPhotoUrl] = useState<string>("");
+  const [printingId, setPrintingId] = useState<string | null>(null);
   const [savingId, setSavingId] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<AppRow | null>(null);
   const qrWrapRef = useRef<HTMLDivElement>(null);
@@ -296,6 +299,56 @@ export default function JobApplicationsPage() {
     const { data, error } = await supabase.storage.from("job-applications").createSignedUrl(path, 300);
     if (error || !data?.signedUrl) return toast.error("تعذّر فتح المرفق");
     window.open(data.signedUrl, "_blank");
+  };
+
+  const printApplication = async (application: AppRow) => {
+    setPrintingId(application.id);
+    try {
+      let photoUrl = detailPhotoUrl;
+      if (application.photo_path && !photoUrl) {
+        const { data, error } = await supabase.storage
+          .from("job-applications")
+          .createSignedUrl(application.photo_path, 600);
+        if (error) throw error;
+        photoUrl = data?.signedUrl || "";
+      }
+
+      // Preload both images before mounting the isolated print document. This
+      // prevents a fast print dialog from capturing an empty photo/logo box.
+      await Promise.all(
+        [malakyLogo.url, photoUrl].filter(Boolean).map((src) => new Promise<void>((resolve) => {
+          const image = new Image();
+          image.onload = () => resolve();
+          image.onerror = () => resolve();
+          image.src = src;
+        })),
+      );
+
+      printReactDocument(
+        <JobApplicationPrintDocument
+          application={application}
+          photoUrl={photoUrl}
+          logoUrl={malakyLogo.url}
+          statusLabel={statusMeta(application.status).label}
+          formattedCreatedAt={AR_DT(application.created_at)}
+        />,
+        {
+          title: `طلب توظيف - ${application.full_name}`,
+          headExtra: `<style>
+            @page { size: A4 portrait; margin: 10mm; }
+            body { color: #172033; }
+            table { width: 100%; border-collapse: collapse; }
+            thead { display: table-header-group; }
+            tr, img, section { break-inside: avoid; page-break-inside: avoid; }
+          </style>`,
+          onError: () => toast.error("تعذّرت طباعة طلب التوظيف"),
+        },
+      );
+    } catch {
+      toast.error("تعذّر تجهيز صورة المتقدم للطباعة");
+    } finally {
+      setPrintingId(null);
+    }
   };
 
   const copyLink = async () => {
@@ -709,6 +762,14 @@ export default function JobApplicationsPage() {
           {detail && (
             <div className="space-y-4 text-sm">
               <div className="flex flex-wrap gap-1.5">
+                <Button size="sm" variant="outline" className="h-8 text-[12px] gap-1"
+                  disabled={printingId === detail.id}
+                  onClick={() => void printApplication(detail)}>
+                  {printingId === detail.id
+                    ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    : <Printer className="w-3.5 h-3.5" />}
+                  طباعة الطلب
+                </Button>
                 {STATUSES.map((s) => (
                   <Button key={s.key} size="sm" disabled={savingId === detail.id}
                     variant={detail.status === s.key ? "default" : "outline"}
