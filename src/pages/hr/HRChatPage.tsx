@@ -55,10 +55,21 @@ export default function HRChatPage() {
       <div className="flex items-center gap-2 px-1 pb-2 shrink-0">
         <MessagesSquare className="h-5 w-5 text-primary" />
         <h1 className="text-lg font-bold text-foreground">مراسلة الموظفين</h1>
-        <Button size="sm" className="h-8 text-xs gap-1 mr-auto" onClick={() => setStartOpen(true)}>
-          <UserPlus className="h-4 w-4" /> محادثة جديدة
-        </Button>
+        {chatEnabled && (
+          <Button size="sm" className="h-8 text-xs gap-1 mr-auto" onClick={() => setStartOpen(true)}>
+            <UserPlus className="h-4 w-4" /> محادثة جديدة
+          </Button>
+        )}
       </div>
+
+      {!chatEnabled && (
+        <div className="mb-2 shrink-0 rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-[12.5px] text-foreground">
+          نظام المراسلة بين الموظفين والموارد البشرية <strong>متوقف</strong> حالياً. تبويب «المراسلة» مخفي من تطبيق
+          الموظف ولا يمكن إرسال رسائل جديدة. المحادثات السابقة تظهر للاطلاع فقط، ويمكن إعادة التفعيل من الإعدادات ←
+          الموارد البشرية.
+        </div>
+      )}
+
 
       <StartHRChatDialog
         open={startOpen}
@@ -87,14 +98,16 @@ export default function HRChatPage() {
                 className="pr-8 h-9 text-sm"
               />
             </div>
-            <Button
-              variant="outline"
-              size="sm"
-              className="w-full h-8 text-xs gap-1"
-              onClick={() => setStartOpen(true)}
-            >
-              <UserPlus className="h-3.5 w-3.5" /> بدء محادثة مع موظف
-            </Button>
+            {chatEnabled && (
+              <Button
+                variant="outline"
+                size="sm"
+                className="w-full h-8 text-xs gap-1"
+                onClick={() => setStartOpen(true)}
+              >
+                <UserPlus className="h-3.5 w-3.5" /> بدء محادثة مع موظف
+              </Button>
+            )}
           </div>
           <div className="flex-1 min-h-0 overflow-y-auto">
             {loading && (
