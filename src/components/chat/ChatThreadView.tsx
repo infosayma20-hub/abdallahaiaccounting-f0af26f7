@@ -45,7 +45,7 @@ function timeLabel(iso: string) {
   return new Date(iso).toLocaleTimeString("ar-EG", { hour: "2-digit", minute: "2-digit" });
 }
 
-export default function ChatThreadView({ threadId, side, title, subtitle, className, emptyHint }: Props) {
+export default function ChatThreadView({ threadId, side, title, subtitle, className, emptyHint, readOnly, readOnlyHint }: Props) {
   const { messages, loading, sending, hasMore, send, loadOlder, editMessage, deleteMessage, myUserId } =
     useHRChatThread(threadId, side);
   const [text, setText] = useState("");
@@ -328,6 +328,7 @@ export default function ChatThreadView({ threadId, side, title, subtitle, classN
           {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
         </Button>
       </div>
+      )}
 
       <AlertDialog open={!!confirmDelete} onOpenChange={(o) => !o && setConfirmDelete(null)}>
         <AlertDialogContent dir="rtl">
