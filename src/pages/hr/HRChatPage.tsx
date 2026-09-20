@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import ChatThreadView from "@/components/chat/ChatThreadView";
 import StartHRChatDialog from "@/components/hr/StartHRChatDialog";
 import { useHRChatInbox } from "@/hooks/useHRChat";
+import { useHREmployeeChatEnabled } from "@/hooks/useHREmployeeChatEnabled";
 import { toast } from "sonner";
 import { formatHRDayMonth } from "@/lib/hrDate";
 
@@ -183,8 +184,10 @@ export default function HRChatPage() {
                 threadId={active}
                 side="hr"
                 title={activeThread?.employee_name || "محادثة"}
-                subtitle="محادثة مباشرة مع الموظف"
+                subtitle={chatEnabled ? "محادثة مباشرة مع الموظف" : "المراسلة متوقفة — عرض السجل فقط"}
                 className="flex-1 min-h-0"
+                readOnly={!chatEnabled}
+                readOnlyHint="نظام المراسلة متوقف من الإعدادات ← الموارد البشرية. السجل للاطلاع فقط."
               />
             </>
           ) : (
