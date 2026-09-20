@@ -4,7 +4,9 @@ import { Plus, Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import { useSearchableDropdown } from "@/hooks/useSearchableDropdown";
+import { scoreSearchMatch, toSearchTokens } from "@/lib/productSearch";
 import { cn } from "@/lib/utils";
+
 
 type ProductOption = {
   id: string;
@@ -110,17 +112,24 @@ export default function InlineProductAutocomplete({
   }, [open, recomputePosition]);
 
   const filteredProducts = React.useMemo(() => {
-    const query = debouncedQuery.toLowerCase();
-    const base = query
-      ? products.filter((product) => {
-          const haystack = [product.name, product.barcode, product.sku, product.unit, product.color]
-            .filter(Boolean)
-            .join(" ")
-            .toLowerCase();
-
-          return haystack.includes(query);
-        })
+    const tokens = toSearchTokens(debouncedQuery);
+    const base = tokens.length
+      ? products
+          .map((product, index) => ({
+            product,
+            index,
+            score: scoreSearchMatch(
+              product.name || "",
+              [product.barcode, product.sku, product.unit, product.color],
+              tokens,
+              debouncedQuery,
+            ),
+          }))
+          .filter((row) => row.score >= 0)
+          .sort((a, b) => (b.score - a.score) || (a.index - b.index))
+          .map((row) => row.product)
       : products;
+
 
     // For purchase invoices with a chosen supplier: surface products linked to
     // that supplier first (stable order preserved within each group). This
