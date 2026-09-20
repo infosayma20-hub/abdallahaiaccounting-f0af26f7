@@ -29,6 +29,13 @@
       "when": 1789811207607,
       "tag": "0003_grant_hr_complaints_view_to_fadi",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1789891327239,
+      "tag": "0004_hr_employee_chat_toggle",
+      "breakpoints": true
     }
   ]
 }

@@ -3742,6 +3742,7 @@ export type Database = {
           hr_departure_max_gap_minutes: number
           hr_departure_paid_within_cap: boolean
           hr_departure_policy_from: string | null
+          hr_employee_chat_enabled: boolean
           hr_intake_auto_managed: boolean
           hr_late_grace_minutes: number | null
           hr_leave_intake_close_day: number | null
@@ -3949,6 +3950,7 @@ export type Database = {
           hr_departure_max_gap_minutes?: number
           hr_departure_paid_within_cap?: boolean
           hr_departure_policy_from?: string | null
+          hr_employee_chat_enabled?: boolean
           hr_intake_auto_managed?: boolean
           hr_late_grace_minutes?: number | null
           hr_leave_intake_close_day?: number | null
@@ -4156,6 +4158,7 @@ export type Database = {
           hr_departure_max_gap_minutes?: number
           hr_departure_paid_within_cap?: boolean
           hr_departure_policy_from?: string | null
+          hr_employee_chat_enabled?: boolean
           hr_intake_auto_managed?: boolean
           hr_late_grace_minutes?: number | null
           hr_leave_intake_close_day?: number | null
