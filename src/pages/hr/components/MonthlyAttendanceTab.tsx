@@ -1343,6 +1343,34 @@ export default function MonthlyAttendanceTab({
         } as any,
       );
       if (saveError) throw saveError;
+
+      // 🛡️ المغادرات المشتقة من البصمات ليست صفوفاً مخزّنة، لذلك حذفها من
+      // النافذة لا يكفي: بدون تسجيل استبعاد دائم تعود تلقائياً عند إعادة
+      // الفتح ويبقى تنبيه تجاوز سقف المغادرات ظاهراً. نسجّلها هنا.
+      const dismissals = breaks
+        .filter((b) => b._deleted && b._derived && !b.id)
+        .map((b) => {
+          const gOut = combineDT(editing.attendance_date, b._origOut || b.out, ovn(ciDate));
+          const gIn = combineDT(editing.attendance_date, b._origIn || b.in, ovn(gOut || ciDate));
+          return gOut && gIn
+            ? {
+                attendance_day_id: editing.id,
+                employee_id: editing.employee_id,
+                gap_out: gOut.toISOString(),
+                gap_in: gIn.toISOString(),
+                reason: form.reason.trim(),
+                dismissed_by: user.id,
+              }
+            : null;
+        })
+        .filter(Boolean) as any[];
+      if (dismissals.length) {
+        const { error: disError } = await supabase
+          .from("attendance_derived_gap_dismissals")
+          .insert(dismissals);
+        if (disError) throw disError;
+      }
+
       toast({ title: "تم حفظ التعديل" });
       setEditing(null);
       fetchRows();
