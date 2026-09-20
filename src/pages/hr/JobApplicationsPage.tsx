@@ -59,6 +59,7 @@ type AppRow = {
 const STATUSES = [
   { key: "new", label: "جديد", cls: "bg-sky-600 hover:bg-sky-600" },
   { key: "shortlisted", label: "قيد الدراسة", cls: "bg-amber-500 hover:bg-amber-500" },
+  { key: "interview_scheduled", label: "تم تحديد مقابلة", cls: "bg-violet-600 hover:bg-violet-600" },
   { key: "hired", label: "تم التوظيف", cls: "bg-emerald-600 hover:bg-emerald-600" },
   { key: "rejected", label: "مرفوض", cls: "bg-rose-600 hover:bg-rose-600" },
 ] as const;
