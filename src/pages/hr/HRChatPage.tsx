@@ -17,6 +17,7 @@ export default function HRChatPage() {
   const active = params.get("thread");
   const [search, setSearch] = useState("");
   const [startOpen, setStartOpen] = useState(false);
+  const { enabled: chatEnabled } = useHREmployeeChatEnabled();
 
   const filtered = useMemo(() => {
     const q = search.trim();
