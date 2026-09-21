@@ -596,15 +596,15 @@ export default function JobApplicationsPage() {
         breadcrumb={[{ label: "الموارد البشرية", href: "/hr" }, { label: "طلبات التوظيف" }]}
         actionTabs={actionTabs}
         rightSlot={
-          <div className="flex items-center gap-2">
+          <div className="flex max-w-full flex-wrap items-center gap-2">
             {/* Unified app-wide convention: search always first (rightmost in RTL) */}
-            <div className="relative w-[220px]">
+            <div className="relative w-[min(220px,70vw)]">
               <Search className="w-3.5 h-3.5 absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground" />
               <Input value={search} onChange={(e) => setSearch(e.target.value)}
                 placeholder="بحث بالاسم، الهاتف، الوظيفة..." className="pr-7 h-8 text-[12.5px]" />
             </div>
             <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="h-8 w-[210px] text-[12px]">
+              <SelectTrigger className="h-8 w-[min(210px,70vw)] text-[12px]">
                 <SelectValue placeholder="فلترة حسب المرحلة" />
               </SelectTrigger>
               <SelectContent dir="rtl" className="max-h-[420px]">
@@ -626,7 +626,7 @@ export default function JobApplicationsPage() {
               return (
                 <div key={card.label} className="flex min-h-20 items-center gap-3 rounded-md border border-border bg-card px-3 py-2.5">
                   <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-md ${card.tone}`}>
-                    <Icon className="h-4.5 w-4.5" />
+                    <Icon className="h-4 w-4" />
                   </div>
                   <div className="min-w-0">
                     <div className="text-xl font-bold tabular-nums text-foreground">{card.value}</div>
