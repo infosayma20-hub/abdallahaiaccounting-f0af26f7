@@ -47,6 +47,7 @@ import InvoicePrintView from "@/components/InvoicePrintView";
 import { printReactDocument } from "@/lib/print/printReactDocument";
 import * as XLSX from "xlsx";
 import useFocusHighlight from "@/hooks/useFocusHighlight";
+import useAllowedWarehouses from "@/hooks/useAllowedWarehouses";
 
 import { setNextExportBranding } from "@/lib/excel-export";
 import { buildInvoiceListPrintHTML, printInvoiceListHTML } from "@/lib/reports/invoice-list-print";
@@ -182,6 +183,12 @@ const InvoicesPage = () => {
 
   // صلاحيات المشاهدة: من مُنِع "مشاهدة" فواتير المبيعات/المشتريات لا يرى القوائم
   // ولا الإجماليات، لكن يبقى قادراً على الإنشاء (صلاحية create مستقلة).
+  // نطاق الفرع/المستودع: المستخدم المقيّد يرى فواتير مستودعات فرعه فقط.
+  const {
+    allowedIds: allowedWarehouseIds,
+    restricted: warehouseScoped,
+    loading: warehouseScopeLoading,
+  } = useAllowedWarehouses();
   const salesInvPerm = usePermission("sales");
   const purchaseInvPerm = usePermission("purchases");
   const invPermsLoading = salesInvPerm.loading || purchaseInvPerm.loading;
@@ -423,8 +430,7 @@ const InvoicesPage = () => {
       // line items here used to ship megabytes of JSON on each visit (and made
       // the screen crawl on large tenants); items are now hydrated on demand
       // for the single invoice being previewed / printed / duplicated.
-      const [{ data: dbInvoices }, cbRes, baRes] = await Promise.all([
-        supabase
+      let invoicesQuery = supabase
         .from("invoices")
         .select(
           "id, invoice_type, invoice_number, invoice_date, created_at, due_date, contact_name, contact_id, " +
@@ -433,8 +439,17 @@ const InvoicesPage = () => {
           "warehouse_id, billing_address, salesperson_id, order_id, " +
           "contacts(tax_number, phone, email, address), cost_centers(name)"
         )
-        .eq("user_id", ownerId)
-        .order("created_at", { ascending: false }),
+        .eq("user_id", ownerId);
+
+      // المستخدم المقيّد بفرع/مستودع يرى فواتير مستودعاته فقط.
+      if (warehouseScoped && allowedWarehouseIds) {
+        invoicesQuery = allowedWarehouseIds.length > 0
+          ? invoicesQuery.in("warehouse_id", allowedWarehouseIds)
+          : invoicesQuery.in("warehouse_id", ["00000000-0000-0000-0000-000000000000"]);
+      }
+
+      const [{ data: dbInvoices }, cbRes, baRes] = await Promise.all([
+        invoicesQuery.order("created_at", { ascending: false }),
         supabase.from("cash_boxes").select("name, gl_account_code").eq("user_id", ownerId),
         supabase.from("bank_accounts").select("name, gl_account_code").eq("user_id", ownerId),
       ]);
@@ -531,6 +546,7 @@ const InvoicesPage = () => {
 
   useEffect(() => {
     if (!user) return;
+    if (warehouseScopeLoading) return; // ننتظر معرفة نطاق الفرع قبل جلب الفواتير
     if (!invPermsLoading && !canViewCurrentList) {
       // ممنوع من مشاهدة القوائم — لا نجلب الفواتير إطلاقاً، فقط بيانات نموذج الإنشاء
       fetchContacts();
@@ -543,7 +559,7 @@ const InvoicesPage = () => {
     fetchContacts();
     fetchProducts();
     fetchWarehouses();
-  }, [user, invPermsLoading, canViewCurrentList]);
+  }, [user, invPermsLoading, canViewCurrentList, warehouseScopeLoading, allowedWarehouseIds]);
 
   const fetchWarehouses = async () => {
     if (!user) return;
@@ -552,7 +568,12 @@ const InvoicesPage = () => {
       .select("id, name")
       .eq("user_id", ownerId)
       .order("name");
-    setWarehouses((data as any[]) || []);
+    const list = (data as any[]) || [];
+    setWarehouses(
+      warehouseScoped && allowedWarehouseIds
+        ? list.filter(w => allowedWarehouseIds.includes(w.id))
+        : list,
+    );
   };
 
   const fetchProducts = async () => {
