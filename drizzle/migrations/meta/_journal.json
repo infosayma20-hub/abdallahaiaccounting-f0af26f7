@@ -43,6 +43,13 @@
       "when": 1789995416147,
       "tag": "0005_employee_form_privacy_rules",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1789997191572,
+      "tag": "0006_accountants_can_manage_products",
+      "breakpoints": true
     }
   ]
 }
