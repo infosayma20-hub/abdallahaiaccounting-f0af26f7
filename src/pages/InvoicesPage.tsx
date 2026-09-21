@@ -546,6 +546,7 @@ const InvoicesPage = () => {
 
   useEffect(() => {
     if (!user) return;
+    if (warehouseScopeLoading) return; // ننتظر معرفة نطاق الفرع قبل جلب الفواتير
     if (!invPermsLoading && !canViewCurrentList) {
       // ممنوع من مشاهدة القوائم — لا نجلب الفواتير إطلاقاً، فقط بيانات نموذج الإنشاء
       fetchContacts();
@@ -558,7 +559,7 @@ const InvoicesPage = () => {
     fetchContacts();
     fetchProducts();
     fetchWarehouses();
-  }, [user, invPermsLoading, canViewCurrentList]);
+  }, [user, invPermsLoading, canViewCurrentList, warehouseScopeLoading, allowedWarehouseIds]);
 
   const fetchWarehouses = async () => {
     if (!user) return;
@@ -567,7 +568,12 @@ const InvoicesPage = () => {
       .select("id, name")
       .eq("user_id", ownerId)
       .order("name");
-    setWarehouses((data as any[]) || []);
+    const list = (data as any[]) || [];
+    setWarehouses(
+      warehouseScoped && allowedWarehouseIds
+        ? list.filter(w => allowedWarehouseIds.includes(w.id))
+        : list,
+    );
   };
 
   const fetchProducts = async () => {
