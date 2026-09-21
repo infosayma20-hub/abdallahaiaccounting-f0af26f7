@@ -445,7 +445,7 @@ const InvoicesPage = () => {
       if (warehouseScoped && allowedWarehouseIds) {
         invoicesQuery = allowedWarehouseIds.length > 0
           ? invoicesQuery.in("warehouse_id", allowedWarehouseIds)
-          : invoicesQuery.is("warehouse_id", "__none__");
+          : invoicesQuery.in("warehouse_id", ["00000000-0000-0000-0000-000000000000"]);
       }
 
       const [{ data: dbInvoices }, cbRes, baRes] = await Promise.all([
