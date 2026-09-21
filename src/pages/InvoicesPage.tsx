@@ -47,6 +47,7 @@ import InvoicePrintView from "@/components/InvoicePrintView";
 import { printReactDocument } from "@/lib/print/printReactDocument";
 import * as XLSX from "xlsx";
 import useFocusHighlight from "@/hooks/useFocusHighlight";
+import useAllowedWarehouses from "@/hooks/useAllowedWarehouses";
 
 import { setNextExportBranding } from "@/lib/excel-export";
 import { buildInvoiceListPrintHTML, printInvoiceListHTML } from "@/lib/reports/invoice-list-print";
@@ -182,6 +183,12 @@ const InvoicesPage = () => {
 
   // صلاحيات المشاهدة: من مُنِع "مشاهدة" فواتير المبيعات/المشتريات لا يرى القوائم
   // ولا الإجماليات، لكن يبقى قادراً على الإنشاء (صلاحية create مستقلة).
+  // نطاق الفرع/المستودع: المستخدم المقيّد يرى فواتير مستودعات فرعه فقط.
+  const {
+    allowedIds: allowedWarehouseIds,
+    restricted: warehouseScoped,
+    loading: warehouseScopeLoading,
+  } = useAllowedWarehouses();
   const salesInvPerm = usePermission("sales");
   const purchaseInvPerm = usePermission("purchases");
   const invPermsLoading = salesInvPerm.loading || purchaseInvPerm.loading;
