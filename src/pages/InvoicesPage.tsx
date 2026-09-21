@@ -774,7 +774,7 @@ const InvoicesPage = () => {
   const handleQuickAddProduct = async () => {
     if (!user || !quickAddForm.name.trim()) { toast({ title: tt("اسم الصنف مطلوب"), variant: "destructive" }); return; }
     const { error } = await supabase.from("products").insert({ ...quickAddForm, user_id: ownerId } as any);
-    if (error) { toast({ title: tt("خطأ في الإضافة"), variant: "destructive" }); return; }
+    if (error) { toast({ title: tt("خطأ في الإضافة"), description: error.message, variant: "destructive" }); return; }
     toast({ title: `تمت إضافة "${quickAddForm.name}" ✅` });
     setShowQuickAdd(false);
     setQuickAddForm({ name: "", sell_price: 0, buy_price: 0, unit: "قطعة", quantity: 0 });
