@@ -15,8 +15,9 @@ import { Label } from "@/components/ui/label";
 import { QRCodeCanvas } from "qrcode.react";
 import {
   ArrowRight, RefreshCw, Search, Loader2, QrCode, Copy, Download,
-  Paperclip, CheckCircle2, XCircle, Clock3, Printer, SlidersHorizontal,
+  Paperclip, CheckCircle2, Printer, SlidersHorizontal,
   MoreHorizontal, Archive, ArchiveRestore, Trash2, ArrowUpDown, ArrowUp, ArrowDown,
+  Users, UserCheck, CalendarCheck2, BriefcaseBusiness,
 } from "lucide-react";
 import { formatHRDateTime } from "@/lib/hrDate";
 import {
@@ -34,6 +35,12 @@ import JobFormBuilderDialog from "@/components/hr/JobFormBuilderDialog";
 import { parseCustomAnswers } from "@/lib/hr/jobApplicationForm";
 import JobApplicationPrintDocument from "@/components/hr/JobApplicationPrintDocument";
 import { printReactDocument } from "@/lib/print/printReactDocument";
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from "@/components/ui/select";
+import {
+  JOB_APPLICATION_STATUSES, getJobApplicationStatus,
+} from "@/lib/hr/jobApplicationStatus";
 
 type LinkRow = {
   id: string; slug: string; title: string; description: string | null; is_active: boolean;
@@ -56,15 +63,14 @@ type AppRow = {
 };
 
 
-const STATUSES = [
-  { key: "new", label: "جديد", cls: "bg-sky-600 hover:bg-sky-600" },
-  { key: "shortlisted", label: "قيد الدراسة", cls: "bg-amber-500 hover:bg-amber-500" },
-  { key: "interview_scheduled", label: "تم تحديد مقابلة", cls: "bg-cyan-700 hover:bg-cyan-700" },
-  { key: "hired", label: "تم التوظيف", cls: "bg-emerald-600 hover:bg-emerald-600" },
-  { key: "rejected", label: "مرفوض", cls: "bg-rose-600 hover:bg-rose-600" },
+const STATUS_GROUPS = [
+  { key: "active", label: "الفرز الأولي" },
+  { key: "interview", label: "المقابلات" },
+  { key: "decision", label: "القرار والتعيين" },
+  { key: "closed", label: "النتائج والمتابعة" },
 ] as const;
 
-const statusMeta = (s: string) => STATUSES.find((x) => x.key === s) || STATUSES[0];
+const statusMeta = getJobApplicationStatus;
 
 /** يسطّح صفوف jsonb (تعليم، دورات، لغات، خبرات، معرفون، إجابات مخصصة) لنص واحد للإكسل. */
 const flattenRows = (rows: any): string => {
@@ -515,9 +521,17 @@ export default function JobApplicationsPage() {
   const counts = useMemo(() => {
     const live = rows.filter((r) => !r.archived_at);
     const c: Record<string, number> = { all: live.length, archived: rows.length - live.length };
-    for (const s of STATUSES) c[s.key] = live.filter((r) => (r.status || "new") === s.key).length;
+    for (const s of JOB_APPLICATION_STATUSES) c[s.key] = live.filter((r) => (r.status || "new") === s.key).length;
     return c;
   }, [rows]);
+
+  const summaryCards = useMemo(() => [
+    { label: "طلبات نشطة", value: rows.filter((r) => !r.archived_at && !["hired", "rejected", "rejected_after_interview", "candidate_withdrew", "closed_archived"].includes(r.status)).length, icon: Users, tone: "text-primary bg-primary/10" },
+    { label: "مؤهلون للمقابلة", value: (counts.qualified_for_interview || 0), icon: UserCheck, tone: "text-success bg-success/10" },
+    { label: "مقابلات محددة", value: (counts.interview_scheduled || 0), icon: CalendarCheck2, tone: "text-primary bg-primary/10" },
+    { label: "عروض وظيفية", value: (counts.job_offer || 0), icon: BriefcaseBusiness, tone: "text-warning bg-warning/10" },
+    { label: "تم التوظيف", value: (counts.hired || 0), icon: CheckCircle2, tone: "text-success bg-success/10" },
+  ], [counts, rows]);
 
   /** قائمة إجراءات الطلب: أرشفة / استرجاع / حذف نهائي. */
   const RowActions = ({ row }: { row: AppRow }) => (
@@ -589,27 +603,50 @@ export default function JobApplicationsPage() {
               <Input value={search} onChange={(e) => setSearch(e.target.value)}
                 placeholder="بحث بالاسم، الهاتف، الوظيفة..." className="pr-7 h-8 text-[12.5px]" />
             </div>
-            <div className="flex items-center gap-1">
-              <Button size="sm" variant={statusFilter === "all" ? "default" : "outline"}
-                className="h-8 text-[12px]" onClick={() => setStatusFilter("all")}>
-                الكل ({counts.all})
-              </Button>
-              {STATUSES.map((s) => (
-                <Button key={s.key} size="sm" variant={statusFilter === s.key ? "default" : "outline"}
-                  className="h-8 text-[12px]" onClick={() => setStatusFilter(s.key)}>
-                  {s.label} ({counts[s.key] || 0})
-                </Button>
-              ))}
-              <Button size="sm" variant={statusFilter === "archived" ? "default" : "outline"}
-                className="h-8 text-[12px] gap-1" onClick={() => setStatusFilter("archived")}>
-                <Archive className="w-3.5 h-3.5" /> الأرشيف ({counts.archived || 0})
-              </Button>
-            </div>
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger className="h-8 w-[210px] text-[12px]">
+                <SelectValue placeholder="فلترة حسب المرحلة" />
+              </SelectTrigger>
+              <SelectContent dir="rtl" className="max-h-[420px]">
+                <SelectItem value="all">كل الطلبات ({counts.all})</SelectItem>
+                {JOB_APPLICATION_STATUSES.map((s) => (
+                  <SelectItem key={s.key} value={s.key}>{s.label} ({counts[s.key] || 0})</SelectItem>
+                ))}
+                <SelectItem value="archived">الأرشيف الفعلي ({counts.archived || 0})</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
 
         }
       >
-        <main className="flex-1 p-3 space-y-3">
+        <main className="flex-1 space-y-3">
+          <section aria-label="ملخص طلبات التوظيف" className="grid grid-cols-2 gap-2 lg:grid-cols-5">
+            {summaryCards.map((card) => {
+              const Icon = card.icon;
+              return (
+                <div key={card.label} className="flex min-h-20 items-center gap-3 rounded-md border border-border bg-card px-3 py-2.5">
+                  <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-md ${card.tone}`}>
+                    <Icon className="h-4.5 w-4.5" />
+                  </div>
+                  <div className="min-w-0">
+                    <div className="text-xl font-bold tabular-nums text-foreground">{card.value}</div>
+                    <div className="text-[11px] leading-4 text-muted-foreground">{card.label}</div>
+                  </div>
+                </div>
+              );
+            })}
+          </section>
+
+          <section className="flex flex-col gap-2 rounded-md border border-border bg-card p-2.5 md:flex-row md:items-center md:justify-between">
+            <div className="flex min-w-0 items-center gap-2">
+              <span className="text-xs font-semibold text-foreground">المرحلة الحالية</span>
+              <Badge variant="outline" className="font-normal">{statusFilter === "all" ? `كل الطلبات · ${counts.all}` : statusFilter === "archived" ? `الأرشيف · ${counts.archived || 0}` : `${statusMeta(statusFilter).label} · ${counts[statusFilter] || 0}`}</Badge>
+            </div>
+            <div className="flex flex-wrap gap-x-3 gap-y-1 text-[10px] text-muted-foreground">
+              {STATUS_GROUPS.map((group) => <span key={group.key}>{group.label}: {JOB_APPLICATION_STATUSES.filter((s) => s.group === group.key).length} مراحل</span>)}
+            </div>
+          </section>
+
           {loading ? (
             <div className="flex justify-center py-16"><Loader2 className="w-6 h-6 animate-spin text-muted-foreground" /></div>
           ) : filtered.length === 0 ? (
@@ -629,7 +666,7 @@ export default function JobApplicationsPage() {
                     <div className="flex items-center justify-between gap-2">
                       <span className="font-semibold text-sm">{r.full_name}</span>
                       <div className="flex items-center gap-1">
-                        <Badge className={statusMeta(r.status).cls}>{statusMeta(r.status).label}</Badge>
+                        <Badge variant="outline" className={statusMeta(r.status).badgeClass}>{statusMeta(r.status).label}</Badge>
                         <RowActions row={r} />
                       </div>
                     </div>
@@ -642,17 +679,14 @@ export default function JobApplicationsPage() {
               </div>
 
               {/* Desktop table */}
-              <div className="hidden md:block bg-background border rounded-lg overflow-x-auto">
+              <div className="hidden md:block bg-background border rounded-md overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead className="bg-muted/60 text-xs">
                     <tr className="[&>th]:p-2 [&>th]:text-right [&>th]:font-medium">
                       <SortableTh col="created_at" label="التاريخ والوقت" /><SortableTh col="full_name" label="الاسم" />
                       <SortableTh col="desired_position" label="الوظيفة المطلوبة" /><SortableTh col="phone" label="الهاتف" />
-                      <SortableTh col="gender" label="الجنس" /><SortableTh col="birth_date" label="تاريخ الميلاد" />
-                      <SortableTh col="birth_place" label="مكان السكن" /><SortableTh col="marital_status" label="الحالة الاجتماعية" />
-                      <SortableTh col="smoker" label="التدخين" /><SortableTh col="works_friday" label="الجمعة" />
-                      <SortableTh col="works_holidays" label="المناسبات" />
-                      <SortableTh col="shift_preference" label="الفترة" /><SortableTh col="preferred_city" label="المدينة المفضلة" />
+                      <SortableTh col="birth_place" label="مكان السكن" />
+                      <SortableTh col="shift_preference" label="الفترة" /><SortableTh col="preferred_city" label="المدينة" />
                       <th>مرفق</th><SortableTh col="status" label="الحالة" /><th>إجراءات</th>
                     </tr>
                   </thead>
@@ -664,19 +698,13 @@ export default function JobApplicationsPage() {
                         <td className="font-medium whitespace-nowrap">{r.full_name}</td>
                         <td className="whitespace-nowrap">{r.desired_position || "—"}</td>
                         <td className="whitespace-nowrap">{r.phone || "—"}</td>
-                        <td className="whitespace-nowrap">{r.gender || "—"}</td>
-                        <td className="whitespace-nowrap text-xs">{r.birth_date || "—"}</td>
                         <td className="max-w-[180px] truncate" title={r.birth_place || ""}>{r.birth_place || "—"}</td>
-                        <td className="whitespace-nowrap">{r.marital_status || "—"}</td>
-                        <td className="whitespace-nowrap">{r.smoker == null ? "—" : r.smoker ? "مدخن" : "غير مدخن"}</td>
-                        <td className="whitespace-nowrap">{boolAr(r.works_friday) || "—"}</td>
-                        <td className="whitespace-nowrap">{boolAr(r.works_holidays) || "—"}</td>
                         <td className="whitespace-nowrap">{r.shift_preference || "—"}</td>
                         <td className="whitespace-nowrap">{r.preferred_city || "—"}</td>
                         <td>{r.attachment_path ? <Paperclip className="w-4 h-4 text-primary" /> : "—"}</td>
                         <td>
                           <div className="flex items-center gap-1">
-                            <Badge className={statusMeta(r.status).cls}>{statusMeta(r.status).label}</Badge>
+                            <Badge variant="outline" className={statusMeta(r.status).badgeClass}>{statusMeta(r.status).label}</Badge>
                             {r.archived_at && <Badge variant="outline" className="text-[10px]">مؤرشف</Badge>}
                           </div>
                         </td>
@@ -758,11 +786,14 @@ export default function JobApplicationsPage() {
 
       {/* Application detail */}
       <Dialog open={!!detail} onOpenChange={(o) => !o && setDetail(null)}>
-        <DialogContent dir="rtl" className="max-w-2xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader><DialogTitle className="text-right">{detail?.full_name}</DialogTitle></DialogHeader>
+        <DialogContent dir="rtl" className="max-w-4xl max-h-[92vh] overflow-y-auto p-0">
+          <DialogHeader className="border-b border-border px-5 py-4">
+            <DialogTitle className="text-right">{detail?.full_name}</DialogTitle>
+            {detail && <p className="text-right text-xs text-muted-foreground">{detail.desired_position || "متقدم لوظيفة"} · {detail.phone || "لا يوجد هاتف"}</p>}
+          </DialogHeader>
           {detail && (
-            <div className="space-y-4 text-sm">
-              <div className="flex flex-wrap gap-1.5">
+            <div className="space-y-4 p-5 text-sm">
+              <div className="flex flex-col gap-3 border-b border-border pb-4 lg:flex-row lg:items-end">
                 <Button size="sm" variant="outline" className="h-8 text-[12px] gap-1"
                   disabled={printingId === detail.id}
                   onClick={() => void printApplication(detail)}>
@@ -771,18 +802,26 @@ export default function JobApplicationsPage() {
                     : <Printer className="w-3.5 h-3.5" />}
                   طباعة الطلب
                 </Button>
-                {STATUSES.map((s) => (
-                  <Button key={s.key} size="sm" disabled={savingId === detail.id}
-                    variant={detail.status === s.key ? "default" : "outline"}
-                    className="h-8 text-[12px] gap-1"
-                    onClick={() => setStatus(detail, s.key)}>
-                    {s.key === "hired" ? <CheckCircle2 className="w-3.5 h-3.5" />
-                      : s.key === "rejected" ? <XCircle className="w-3.5 h-3.5" />
-                      : <Clock3 className="w-3.5 h-3.5" />}
-                    {s.label}
-                  </Button>
-                ))}
-                <div className="ms-auto flex items-center gap-1.5">
+                <div className="min-w-[260px] flex-1 lg:max-w-sm">
+                  <Label className="mb-1 block text-[11px] text-muted-foreground">المرحلة الحالية</Label>
+                  <Select value={detail.status || "new"} onValueChange={(value) => void setStatus(detail, value)} disabled={savingId === detail.id}>
+                    <SelectTrigger className="h-9">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent dir="rtl" className="max-h-[420px]">
+                      {STATUS_GROUPS.map((group) => (
+                        <div key={group.key}>
+                          <div className="px-2 pb-1 pt-2 text-[10px] font-bold text-muted-foreground">{group.label}</div>
+                          {JOB_APPLICATION_STATUSES.filter((status) => status.group === group.key).map((status) => (
+                            <SelectItem key={status.key} value={status.key}>{status.label}</SelectItem>
+                          ))}
+                        </div>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <Badge variant="outline" className={`h-8 px-3 ${statusMeta(detail.status).badgeClass}`}>{statusMeta(detail.status).label}</Badge>
+                <div className="flex items-center gap-1.5 lg:me-auto">
                   <Button size="sm" variant="outline" className="h-8 text-[12px] gap-1"
                     disabled={savingId === detail.id}
                     onClick={() => void setArchived(detail, !detail.archived_at)}>

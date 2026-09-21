@@ -8,6 +8,7 @@ import { getDetailGroups, sanitizeHumanText } from "@/lib/employeeRequestDisplay
 import { openEmployeeFormsStorageFile } from "@/lib/employeeStorageFiles";
 import { displayReason } from "@/lib/hrMessages";
 import { downloadEmployeeFormWord, shareEmployeeFormViaWhatsApp } from "@/lib/employee-forms/exportFormWord";
+import { getJobApplicationStatus, jobApplicationStatusToUnified } from "@/lib/hr/jobApplicationStatus";
 
 const ACCENT = '#2A7B9B';
 
@@ -47,16 +48,6 @@ const isDisciplinary = (formType: string) =>
   formType === 'disciplinary' || formType === 'disciplinary_action';
 
 /** حالة طلب التوظيف الأصلية → حالة موحّدة مع باقي الطلبات (فلاتر/مؤشرات). */
-const JOB_STATUS_LABELS: Record<string, string> = {
-  new: 'جديد',
-  shortlisted: 'قيد الدراسة',
-  hired: 'تم التوظيف',
-  rejected: 'مرفوض',
-};
-const jobStatusToUnified = (s: string) =>
-  s === 'hired' ? 'approved' : s === 'rejected' ? 'rejected' : 'pending';
-
-
 const formTypeLabels: Record<string, string> = {
   leave: '🏖️ إجازة',
   leave_request: '🏖️ إجازة',
@@ -225,7 +216,7 @@ export default function PortalEmployeeRequestsTab({ theme = 'light', focusFormId
         source: 'job' as const,
         employeeName: a.full_name || 'متقدّم',
         formType: 'job_application',
-        status: jobStatusToUnified(String(a.status || 'new')),
+        status: jobApplicationStatusToUnified(String(a.status || 'new')),
         jobStatus: String(a.status || 'new'),
         amount: null,
         createdAt: a.created_at,
@@ -523,7 +514,7 @@ export default function PortalEmployeeRequestsTab({ theme = 'light', focusFormId
           {filtered.map(r => {
             const baseSt = statusLabels[r.status] || statusLabels.pending;
             const st = r.source === 'job'
-              ? { ...baseSt, label: JOB_STATUS_LABELS[r.jobStatus || 'new'] || baseSt.label }
+              ? { ...baseSt, label: getJobApplicationStatus(r.jobStatus).label }
               : baseSt;
             const details = r.details || {};
             const detailParts: string[] = [];
