@@ -7938,6 +7938,57 @@ export type Database = {
           },
         ]
       }
+      employee_form_privacy_rules: {
+        Row: {
+          allowed_viewer_auth_ids: string[]
+          created_at: string
+          created_by: string | null
+          employee_id: string
+          id: string
+          is_active: boolean
+          note: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          allowed_viewer_auth_ids?: string[]
+          created_at?: string
+          created_by?: string | null
+          employee_id: string
+          id?: string
+          is_active?: boolean
+          note?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          allowed_viewer_auth_ids?: string[]
+          created_at?: string
+          created_by?: string | null
+          employee_id?: string
+          id?: string
+          is_active?: boolean
+          note?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "employee_form_privacy_rules_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: true
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_form_privacy_rules_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: true
+            referencedRelation: "employees_safe"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       employee_form_referrals: {
         Row: {
           assigned_by: string | null
@@ -31103,6 +31154,10 @@ export type Database = {
           p_payload: Json
         }
         Returns: string
+      }
+      employee_form_privacy_allows: {
+        Args: { _employee_id: string; _owner: string; _viewer: string }
+        Returns: boolean
       }
       enqueue_email: {
         Args: { payload: Json; queue_name: string }
