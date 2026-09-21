@@ -430,8 +430,7 @@ const InvoicesPage = () => {
       // line items here used to ship megabytes of JSON on each visit (and made
       // the screen crawl on large tenants); items are now hydrated on demand
       // for the single invoice being previewed / printed / duplicated.
-      const [{ data: dbInvoices }, cbRes, baRes] = await Promise.all([
-        supabase
+      let invoicesQuery = supabase
         .from("invoices")
         .select(
           "id, invoice_type, invoice_number, invoice_date, created_at, due_date, contact_name, contact_id, " +
@@ -440,8 +439,17 @@ const InvoicesPage = () => {
           "warehouse_id, billing_address, salesperson_id, order_id, " +
           "contacts(tax_number, phone, email, address), cost_centers(name)"
         )
-        .eq("user_id", ownerId)
-        .order("created_at", { ascending: false }),
+        .eq("user_id", ownerId);
+
+      // المستخدم المقيّد بفرع/مستودع يرى فواتير مستودعاته فقط.
+      if (warehouseScoped && allowedWarehouseIds) {
+        invoicesQuery = allowedWarehouseIds.length > 0
+          ? invoicesQuery.in("warehouse_id", allowedWarehouseIds)
+          : invoicesQuery.is("warehouse_id", "__none__");
+      }
+
+      const [{ data: dbInvoices }, cbRes, baRes] = await Promise.all([
+        invoicesQuery.order("created_at", { ascending: false }),
         supabase.from("cash_boxes").select("name, gl_account_code").eq("user_id", ownerId),
         supabase.from("bank_accounts").select("name, gl_account_code").eq("user_id", ownerId),
       ]);
