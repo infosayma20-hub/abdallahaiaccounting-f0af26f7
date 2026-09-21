@@ -587,7 +587,7 @@ export default function JobApplicationsPage() {
         },
       ],
     },
-  ], [load, navigate]);
+  ], [filtered, load, navigate]);
 
   return (
     <div dir="rtl" className="min-h-[100dvh] bg-background">
