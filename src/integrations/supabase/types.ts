@@ -31424,6 +31424,17 @@ export type Database = {
         Args: { p_user_id: string }
         Returns: string
       }
+      get_account_balances_summary: {
+        Args: { _codes: string[]; _month_start: string; _owner: string }
+        Returns: {
+          account_code: string
+          balance: number
+          inflow: number
+          last_date: string
+          native_balance: number
+          outflow: number
+        }[]
+      }
       get_accounting_center_kpi_breakdown: {
         Args: { _natural?: string; _prefix: string }
         Returns: Json
