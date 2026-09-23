@@ -30102,6 +30102,7 @@ export type Database = {
         Returns: undefined
       }
       _capture_client_request_info: { Args: never; Returns: Json }
+      _currency_code_label: { Args: { _c: string }; Returns: string }
       _currency_label_to_code: { Args: { _c: string }; Returns: string }
       _fc_validate_postable_account: {
         Args: { p_account_code: string; p_user_id: string }

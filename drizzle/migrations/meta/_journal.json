@@ -71,6 +71,13 @@
       "when": 1790188061778,
       "tag": "0009_foreign_account_currency_guard",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1790188128506,
+      "tag": "0010_foreign_currency_guard_arabic_labels",
+      "breakpoints": true
     }
   ]
 }
