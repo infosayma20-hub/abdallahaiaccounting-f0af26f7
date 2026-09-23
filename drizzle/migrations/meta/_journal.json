@@ -78,6 +78,20 @@
       "when": 1790188128506,
       "tag": "0010_foreign_currency_guard_arabic_labels",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1790188592881,
+      "tag": "0011_cash_box_balances_summary_rpc",
+      "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1790188639656,
+      "tag": "0012_cash_box_balances_summary_rpc_v2",
+      "breakpoints": true
     }
   ]
 }

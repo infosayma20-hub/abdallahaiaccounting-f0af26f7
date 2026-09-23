@@ -30109,6 +30109,7 @@ export type Database = {
         Returns: undefined
       }
       _infer_bulk_emp_category: { Args: { _desc: string }; Returns: string }
+      _norm_currency_code: { Args: { _c: string }; Returns: string }
       _payroll_post_payment:
         | {
             Args: {
@@ -31423,6 +31424,22 @@ export type Database = {
       generate_sales_rep_account_code: {
         Args: { p_user_id: string }
         Returns: string
+      }
+      get_account_balances_summary: {
+        Args: {
+          _codes: string[]
+          _currencies: string[]
+          _month_start: string
+          _owner: string
+        }
+        Returns: {
+          account_code: string
+          balance: number
+          inflow: number
+          last_date: string
+          native_balance: number
+          outflow: number
+        }[]
       }
       get_accounting_center_kpi_breakdown: {
         Args: { _natural?: string; _prefix: string }
