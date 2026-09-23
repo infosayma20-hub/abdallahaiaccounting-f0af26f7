@@ -411,6 +411,21 @@ export default function TeamAccountManager({ type }: TeamAccountManagerProps) {
                           updatePosAudit(m, { enabled: next.enabled, branchIds: next.branchIds })
                         }
                       />
+                      <div className="mt-3">
+                        <CashBoxScopePanel
+                          branchIds={(m.cash_box_branch_ids as string[]) || []}
+                          allBranches={branchesList}
+                          onChange={async (ids) => {
+                            const { error } = await supabase
+                              .from(tableName as any)
+                              .update({ cash_box_branch_ids: ids } as any)
+                              .eq("id", m.id);
+                            if (error) { toast.error("فشل حفظ فروع الصناديق"); return; }
+                            toast.success("تم الحفظ");
+                            loadMembers();
+                          }}
+                        />
+                      </div>
                     </div>
                   )}
                 </div>
@@ -511,6 +526,58 @@ function POSAuditPanel({
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+/* ── Cash-box branch scope (view only) ──
+   Empty list = accountant sees all cash boxes. Boxes with no branch are always visible.
+   Enforced in the database by a restrictive RLS policy on cash_boxes. */
+function CashBoxScopePanel({
+  branchIds,
+  allBranches,
+  onChange,
+}: {
+  branchIds: string[];
+  allBranches: { id: string; name: string }[];
+  onChange: (ids: string[]) => void;
+}) {
+  const toggle = (id: string) => {
+    const set = new Set(branchIds);
+    set.has(id) ? set.delete(id) : set.add(id);
+    onChange(Array.from(set));
+  };
+  return (
+    <div className="border border-border rounded-lg p-3 bg-card space-y-2">
+      <div className="flex items-center justify-between">
+        <p className="text-sm font-semibold">
+          الصناديق المعروضة حسب الفرع
+          <span className="mr-1 text-[11px] text-muted-foreground">
+            ({branchIds.length === 0 ? "كل الصناديق" : `${branchIds.length} فرع`})
+          </span>
+        </p>
+        {branchIds.length > 0 && (
+          <button type="button" onClick={() => onChange([])}
+            className="text-[10px] text-muted-foreground hover:text-foreground underline">
+            إلغاء التقييد
+          </button>
+        )}
+      </div>
+      <p className="text-[10px] text-muted-foreground leading-snug">
+        يرى المحاسب صناديق الفروع المحددة فقط، والصناديق غير المرتبطة بفرع (مثل نقد في الطريق) تظهر للجميع.
+      </p>
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-1.5 max-h-40 overflow-auto pr-1">
+        {allBranches.map(b => {
+          const checked = branchIds.includes(b.id);
+          return (
+            <label key={b.id} className={"flex items-center gap-2 px-2 py-1 rounded border text-[12px] cursor-pointer " +
+              (checked ? "border-primary bg-primary/10 text-foreground" : "border-border text-muted-foreground hover:text-foreground")}>
+              <input type="checkbox" className="accent-primary" checked={checked} onChange={() => toggle(b.id)} />
+              <span className="truncate">{b.name}</span>
+            </label>
+          );
+        })}
+      </div>
     </div>
   );
 }

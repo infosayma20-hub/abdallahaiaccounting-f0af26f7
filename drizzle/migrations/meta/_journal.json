@@ -50,6 +50,13 @@
       "when": 1789997191572,
       "tag": "0006_accountants_can_manage_products",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1790182781903,
+      "tag": "0007_accountant_cash_box_branch_scope",
+      "breakpoints": true
     }
   ]
 }
