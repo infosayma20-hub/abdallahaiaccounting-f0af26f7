@@ -64,6 +64,13 @@
       "when": 1790187169136,
       "tag": "0008_pos_change_out_native_foreign_amount",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1790188061778,
+      "tag": "0009_foreign_account_currency_guard",
+      "breakpoints": true
     }
   ]
 }
