@@ -12,3 +12,9 @@
 - [x] إعادة تصنيف سلفة أدهم 500 ₪ إلى حساب الموظف الصحيح وإسنادها لخصومات شهر 9 دون تعديل القيد الأصلي.
 - [x] إعداد تقييم معماري شامل قراءة فقط لـ Unify ERP تحت `docs/architecture/`، مع خرائط الكتابة والنزاهة والأمن والأداء وخارطة انتقال تدريجية، دون أي تغيير تشغيلي.
 - [x] إضافة اختيار رقم قادم فارغ لفواتير البيع والشراء مع منع إعادة استخدام أي رقم صادر واستمرار التسلسل بأمان.
+
+## Malaky cash boxes (2026-09-23)
+- [ ] Fix BRV-2026-0002 (reverse + payment voucher) — waiting approval of opening-balance table
+- [ ] Branch opening balances (Faisal, Sufian USD/JOD, Ramallah, petty cash) vs 3300 — waiting: rates + posting dates confirmation
+- [ ] POS cashier boxes (Plaza 1/2 etc.) — deferred to next meeting
+- [ ] Native-currency account balances (professional design) — waiting user decisions
