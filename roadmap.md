@@ -14,7 +14,7 @@
 - [x] إضافة اختيار رقم قادم فارغ لفواتير البيع والشراء مع منع إعادة استخدام أي رقم صادر واستمرار التسلسل بأمان.
 
 ## Malaky cash boxes (2026-09-23)
-- [ ] Fix BRV-2026-0002 (reverse + payment voucher) — waiting approval of opening-balance table
-- [ ] Branch opening balances (Faisal, Sufian USD/JOD, Ramallah, petty cash) vs 3300 — waiting: rates + posting dates confirmation
+- [x] Fix BRV-2026-0002 (reversed + re-entered as payment)
+- [x] Branch opening balances posted (OBFIX-2026-09-23, 17 entries vs 3300)
 - [ ] POS cashier boxes (Plaza 1/2 etc.) — deferred to next meeting
-- [ ] Native-currency account balances (professional design) — waiting user decisions
+- [ ] Phase 1 (currency guard, monitor mode + POS change-out native amount) and Phase 2 (native balance function + UI) — next
