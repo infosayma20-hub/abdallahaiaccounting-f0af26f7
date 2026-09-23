@@ -62,7 +62,7 @@ function formatReferenceLabel(ref: string | null | undefined): string {
 
 // ─── TYPES ───
 interface Contact { id: string; contact_name: string; contact_type: string; phone: string | null; email: string | null; address: string | null; linked_account_code: string | null; credit_limit?: number; current_balance?: number; contact_class?: string; }
-interface Account { id: string; account_code: string; account_name: string; account_type: string; }
+interface Account { id: string; account_code: string; account_name: string; account_type: string; currency?: string | null; }
 interface EmployeeEntity { id: string; full_name: string; department: string | null; job_title: string | null; phone: string | null; base_salary: number; account_code: string | null; }
 interface Transaction { id: string; description: string; transaction_type: string; amount: number; currency: string; transaction_date: string; debit_account_code: string; credit_account_code: string; reference: string | null; is_deleted: boolean; contact_id: string | null; payment_method: string | null; foreign_amount: number | null; exchange_rate: number | null; reversed_by_id?: string | null; cost_center_id?: string | null; }
 interface Cheque { id: string; cheque_number: string | null; cheque_type: string; amount: number; currency: string; cheque_date: string; party_name: string; status: string; bank_name: string | null; }
@@ -456,7 +456,7 @@ const AccountStatementV2Page = () => {
         return all;
       };
       const [{ data: accData }, { data: empData }, { data: seedContactData }] = await Promise.all([
-        supabase.from("accounts").select("id, account_code, account_name, account_type, employee_id").eq("user_id", dataOwnerId).eq("is_active", true).order("account_code"),
+        supabase.from("accounts").select("id, account_code, account_name, account_type, employee_id, currency").eq("user_id", dataOwnerId).eq("is_active", true).order("account_code").range(0, 9999),
         supabase.from("employees").select("id, full_name, department, job_title, phone, base_salary").eq("user_id", dataOwnerId).eq("is_active", true).order("full_name"),
         // Only the single contact we may need up-front (statement opened for a contact).
         urlContactId
@@ -938,16 +938,20 @@ const AccountStatementV2Page = () => {
       (resolveDebitCredit as any).__sameNameIds = sameNameIds;
     }
 
-    const foreignCashAccounts = ["1111", "1112", "1113", "1114"];
-    const isForeignCash = isAccountsTab && selectedAccount && foreignCashAccounts.includes(selectedAccount.account_code);
+    // Foreign-currency account → statement runs in the account's own currency
+    // (driven by accounts.currency, not by hard-coded codes).
+    const accountCurrencyCode = isAccountsTab && selectedAccount ? toCurrencyCode(selectedAccount.currency) : "ILS";
+    const isForeignCash = accountCurrencyCode !== "ILS";
+    const accountCurrencyName = CURRENCY_LABEL[accountCurrencyCode];
     const isForeignDisplay = displayCurrency !== "ILS" && !isForeignCash;
     const dispCurrName = codeToCurrencyName[displayCurrency] || "شيكل";
     const dispRate = currentExchangeRate[displayCurrency] || 1;
 
     // Get display amount based on currency mode
-    const getDisplayAmt = (tx: Transaction): { amount: number; isConverted: boolean; isMismatch: boolean; conversionRate?: number; usedHistoricRate?: boolean } => {
-      if (isForeignCash && tx.foreign_amount != null && tx.foreign_amount > 0) {
-        return { amount: tx.foreign_amount, isConverted: false, isMismatch: false };
+    const getDisplayAmt = (tx: Transaction): { amount: number; isConverted: boolean; isMismatch: boolean; conversionRate?: number; usedHistoricRate?: boolean; nativeKind?: NativeKind; ils?: number } => {
+      if (isForeignCash) {
+        const n = nativeAmountForAccount(tx, accountCurrencyCode);
+        return { amount: n.native, isConverted: false, isMismatch: false, nativeKind: n.kind, ils: n.ils };
       }
       if (!isForeignDisplay) {
         return { amount: tx.amount || 0, isConverted: false, isMismatch: false };
