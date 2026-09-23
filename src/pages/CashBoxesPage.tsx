@@ -1,3 +1,4 @@
+import { toCurrencyCode, nativeAmountForAccount, type CurrencyCode } from "@/lib/currency/native-amount";
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import {
@@ -42,6 +43,8 @@ const TYPE_LABELS: Record<string, string> = {
   bank: "حساب بنكي",
 };
 
+const CUR_SYMBOL: Record<string, string> = { USD: "$", JOD: "د.أ", EUR: "€", EGP: "£", ILS: "₪" };
+
 interface UnifiedRow {
   id: string;
   raw: any;
@@ -53,6 +56,8 @@ interface UnifiedRow {
   code: string;
   currency: string;
   balance: number;
+  /** Balance in the box's own currency (foreign boxes only). */
+  nativeBalance?: number | null;
   inflow: number;
   outflow: number;
   status: "active" | "inactive";
@@ -155,32 +160,25 @@ const CashBoxesPage = () => {
       const monthStart = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-01`;
       const result: Record<string, { balance: number; inflow: number; outflow: number; foreignBalances: Record<string, number>; lastDate: string | null }> = {};
 
+      // Account (box) currency per GL code — the native balance runs in that currency.
+      const codeCurrency: Record<string, CurrencyCode> = {};
+      for (const b of boxes) if (b.gl_account_code) codeCurrency[b.gl_account_code] = toCurrencyCode(b.currency);
+      for (const b of bankAccounts) if (b.gl_account_code && !codeCurrency[b.gl_account_code]) codeCurrency[b.gl_account_code] = toCurrencyCode(b.currency);
+
       for (const code of allCodes) {
-        let balance = 0, inflow = 0, outflow = 0;
+        let balance = 0, inflow = 0, outflow = 0, nativeBalance = 0;
         let lastDate: string | null = null;
         const foreignBalances: Record<string, number> = {};
+        const accCur = codeCurrency[code] || "ILS";
         (txs || []).forEach(tx => {
           const amt = Number(tx.amount) || 0;
-          const foreignAmt = Number(tx.foreign_amount) || 0;
-          const rate = Number(tx.exchange_rate) || 1;
-          let txCurrency = "ILS";
-          if (foreignAmt > 0 && rate > 1) {
-            const cur = tx.currency;
-            if (cur === "دولار" || cur === "USD") txCurrency = "USD";
-            else if (cur === "دينار" || cur === "JOD") txCurrency = "JOD";
-            else if (cur === "يورو" || cur === "EUR") txCurrency = "EUR";
-          }
           const isDebit = tx.debit_account_code === code;
           const isCredit = tx.credit_account_code === code;
           if (!isDebit && !isCredit) return;
-          if (isDebit) {
-            balance += amt;
-            if (txCurrency !== "ILS" && foreignAmt > 0) foreignBalances[txCurrency] = (foreignBalances[txCurrency] || 0) + foreignAmt;
-          }
-          if (isCredit) {
-            balance -= amt;
-            if (txCurrency !== "ILS" && foreignAmt > 0) foreignBalances[txCurrency] = (foreignBalances[txCurrency] || 0) - foreignAmt;
-          }
+          const n = nativeAmountForAccount(tx, accCur);
+          if (isDebit) { balance += amt; nativeBalance += n.native; }
+          if (isCredit) { balance -= amt; nativeBalance -= n.native; }
+          if (accCur !== "ILS") foreignBalances[accCur] = nativeBalance;
           if (tx.transaction_date >= monthStart) {
             if (isDebit) inflow += amt;
             if (isCredit) outflow += amt;
@@ -220,6 +218,7 @@ const CashBoxesPage = () => {
         code,
         currency: b.currency || "ILS",
         balance: bal.balance,
+        nativeBalance: toCurrencyCode(b.currency) !== "ILS" ? (bal.foreignBalances[toCurrencyCode(b.currency)] || 0) : null,
         inflow: bal.inflow,
         outflow: bal.outflow,
         status: b.is_active ? "active" : "inactive",
@@ -240,6 +239,7 @@ const CashBoxesPage = () => {
         code,
         currency: b.currency || "ILS",
         balance: bal.balance,
+        nativeBalance: toCurrencyCode(b.currency) !== "ILS" ? (bal.foreignBalances[toCurrencyCode(b.currency)] || 0) : null,
         inflow: bal.inflow,
         outflow: bal.outflow,
         status: b.is_active === false ? "inactive" : "active",
@@ -355,7 +355,8 @@ const CashBoxesPage = () => {
       "الفرع/الموقع": r.branch_label,
       "الكود": r.code,
       "العملة": r.currency,
-      "الرصيد": r.balance,
+      "الرصيد بعملة الصندوق": r.nativeBalance ?? r.balance,
+      "المعادل بالشيكل": r.balance,
       "وارد الشهر": r.inflow,
       "صادر الشهر": r.outflow,
       "الحالة": r.status_label,
@@ -492,8 +493,13 @@ const CashBoxesPage = () => {
                   {show("code") && <TableCell className="text-xs font-mono text-muted-foreground">{r.code || "—"}</TableCell>}
                   {show("currency") && <TableCell className="text-xs">{r.currency}</TableCell>}
                   {show("balance") && (
-                    <TableCell className={`text-xs font-mono font-bold text-left ${r.balance < 0 ? "text-red-600" : "text-foreground"}`}>
-                      ₪{fmt(r.balance)}
+                    <TableCell className={`text-xs font-mono font-bold text-left ${(r.nativeBalance ?? r.balance) < 0 ? "text-red-600" : "text-foreground"}`}>
+                      {r.nativeBalance != null ? (
+                        <div className="flex flex-col items-end leading-tight">
+                          <span>{CUR_SYMBOL[toCurrencyCode(r.currency)] || r.currency} {fmt(r.nativeBalance)}</span>
+                          <span className="text-[10px] font-normal text-muted-foreground" title="المعادل الدفتري بالشيكل">₪{fmt(r.balance)}</span>
+                        </div>
+                      ) : <>₪{fmt(r.balance)}</>}
                     </TableCell>
                   )}
                   {show("inflow") && <TableCell className="text-xs font-mono text-left text-emerald-600">₪{fmt(r.inflow)}</TableCell>}
@@ -526,8 +532,8 @@ const CashBoxesPage = () => {
                   {r.type_label}{r.branch_label !== "—" ? ` · ${r.branch_label}` : ""}
                 </div>
               </div>
-              <div className={`text-xs font-mono font-bold shrink-0 ${r.balance < 0 ? "text-red-600" : "text-foreground"}`}>
-                ₪{fmt(r.balance)}
+              <div className={`text-xs font-mono font-bold shrink-0 ${(r.nativeBalance ?? r.balance) < 0 ? "text-red-600" : "text-foreground"}`}>
+                {r.nativeBalance != null ? <>{CUR_SYMBOL[toCurrencyCode(r.currency)] || r.currency} {fmt(r.nativeBalance)} <span className="text-[10px] font-normal text-muted-foreground">(₪{fmt(r.balance)})</span></> : <>₪{fmt(r.balance)}</>}
               </div>
             </button>
           ))}

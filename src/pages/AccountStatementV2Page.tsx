@@ -1,4 +1,5 @@
 import { Fragment, useState, useEffect, useMemo, useCallback, useRef } from "react";
+import { toCurrencyCode, CURRENCY_LABEL, nativeAmountForAccount, type NativeKind } from "@/lib/currency/native-amount";
 import { createPortal } from "react-dom";
 import {
   ArrowRight, Loader2, RefreshCw, Search, FileSpreadsheet,
@@ -62,7 +63,7 @@ function formatReferenceLabel(ref: string | null | undefined): string {
 
 // ─── TYPES ───
 interface Contact { id: string; contact_name: string; contact_type: string; phone: string | null; email: string | null; address: string | null; linked_account_code: string | null; credit_limit?: number; current_balance?: number; contact_class?: string; }
-interface Account { id: string; account_code: string; account_name: string; account_type: string; }
+interface Account { id: string; account_code: string; account_name: string; account_type: string; currency?: string | null; }
 interface EmployeeEntity { id: string; full_name: string; department: string | null; job_title: string | null; phone: string | null; base_salary: number; account_code: string | null; }
 interface Transaction { id: string; description: string; transaction_type: string; amount: number; currency: string; transaction_date: string; debit_account_code: string; credit_account_code: string; reference: string | null; is_deleted: boolean; contact_id: string | null; payment_method: string | null; foreign_amount: number | null; exchange_rate: number | null; reversed_by_id?: string | null; cost_center_id?: string | null; }
 interface Cheque { id: string; cheque_number: string | null; cheque_type: string; amount: number; currency: string; cheque_date: string; party_name: string; status: string; bank_name: string | null; }
@@ -456,7 +457,7 @@ const AccountStatementV2Page = () => {
         return all;
       };
       const [{ data: accData }, { data: empData }, { data: seedContactData }] = await Promise.all([
-        supabase.from("accounts").select("id, account_code, account_name, account_type, employee_id").eq("user_id", dataOwnerId).eq("is_active", true).order("account_code"),
+        supabase.from("accounts").select("id, account_code, account_name, account_type, employee_id, currency").eq("user_id", dataOwnerId).eq("is_active", true).order("account_code").range(0, 9999),
         supabase.from("employees").select("id, full_name, department, job_title, phone, base_salary").eq("user_id", dataOwnerId).eq("is_active", true).order("full_name"),
         // Only the single contact we may need up-front (statement opened for a contact).
         urlContactId
@@ -895,8 +896,8 @@ const AccountStatementV2Page = () => {
   }, [employeeEntities, transactions]);
 
   // ─── STATEMENT ROWS ───
-  const { rows, openingBalance, closingBalance, totalDebit, totalCredit } = useMemo(() => {
-    if (!selectedEntityId) return { rows: [] as StatementRow[], openingBalance: 0, closingBalance: 0, totalDebit: 0, totalCredit: 0 };
+  const { rows, openingBalance, closingBalance, totalDebit, totalCredit, accountCurrencyName, closingBalanceIls } = useMemo(() => {
+    if (!selectedEntityId) return { rows: [] as StatementRow[], openingBalance: 0, closingBalance: 0, totalDebit: 0, totalCredit: 0, accountCurrencyName: null as string | null, closingBalanceIls: null as number | null };
 
     let related: Transaction[];
     let resolveDebitCredit: (tx: Transaction) => { isDebit: boolean; isCredit: boolean };
@@ -938,16 +939,20 @@ const AccountStatementV2Page = () => {
       (resolveDebitCredit as any).__sameNameIds = sameNameIds;
     }
 
-    const foreignCashAccounts = ["1111", "1112", "1113", "1114"];
-    const isForeignCash = isAccountsTab && selectedAccount && foreignCashAccounts.includes(selectedAccount.account_code);
+    // Foreign-currency account → statement runs in the account's own currency
+    // (driven by accounts.currency, not by hard-coded codes).
+    const accountCurrencyCode = isAccountsTab && selectedAccount ? toCurrencyCode(selectedAccount.currency) : "ILS";
+    const isForeignCash = accountCurrencyCode !== "ILS";
+    const accountCurrencyName = CURRENCY_LABEL[accountCurrencyCode];
     const isForeignDisplay = displayCurrency !== "ILS" && !isForeignCash;
     const dispCurrName = codeToCurrencyName[displayCurrency] || "شيكل";
     const dispRate = currentExchangeRate[displayCurrency] || 1;
 
     // Get display amount based on currency mode
-    const getDisplayAmt = (tx: Transaction): { amount: number; isConverted: boolean; isMismatch: boolean; conversionRate?: number; usedHistoricRate?: boolean } => {
-      if (isForeignCash && tx.foreign_amount != null && tx.foreign_amount > 0) {
-        return { amount: tx.foreign_amount, isConverted: false, isMismatch: false };
+    const getDisplayAmt = (tx: Transaction): { amount: number; isConverted: boolean; isMismatch: boolean; conversionRate?: number; usedHistoricRate?: boolean; nativeKind?: NativeKind; ils?: number } => {
+      if (isForeignCash) {
+        const n = nativeAmountForAccount(tx, accountCurrencyCode);
+        return { amount: n.native, isConverted: false, isMismatch: false, nativeKind: n.kind, ils: n.ils };
       }
       if (!isForeignDisplay) {
         return { amount: tx.amount || 0, isConverted: false, isMismatch: false };
@@ -988,6 +993,7 @@ const AccountStatementV2Page = () => {
     };
 
     let openBal = 0;
+    let openIls = 0; // ILS book value (foreign-currency accounts only)
     const periodTx: Transaction[] = [];
     const infoTxIds = new Set<string>(); // tx that affect contact info but not balance (cash sale/pay)
     for (const tx of related) {
@@ -1004,8 +1010,8 @@ const AccountStatementV2Page = () => {
         }
         continue;
       }
-      const { amount: amt } = getDisplayAmt(tx);
-      if (dateFrom && tx.transaction_date < dateFrom) { if (isDebit) openBal += amt; if (isCredit) openBal -= amt; }
+      const { amount: amt, ils: ilsAmt } = getDisplayAmt(tx);
+      if (dateFrom && tx.transaction_date < dateFrom) { if (isDebit) { openBal += amt; openIls += ilsAmt || 0; } if (isCredit) { openBal -= amt; openIls -= ilsAmt || 0; } }
       else if (!dateTo || tx.transaction_date <= dateTo) periodTx.push(tx);
     }
 
@@ -1022,30 +1028,36 @@ const AccountStatementV2Page = () => {
       return String(a.transaction_date).localeCompare(String(b.transaction_date));
     });
 
-    let running = openBal, sD = 0, sC = 0;
+    let running = openBal, sD = 0, sC = 0, runningIls = openIls;
     const result: StatementRow[] = periodTx.map(tx => {
       const { isDebit, isCredit } = resolveDebitCredit(tx);
-      const { amount: amt, isConverted, isMismatch, conversionRate, usedHistoricRate } = getDisplayAmt(tx);
+      const { amount: amt, isConverted, isMismatch, conversionRate, usedHistoricRate, nativeKind, ils: ilsAmt } = getDisplayAmt(tx);
       const isInfo = infoTxIds.has(tx.id);
       const debit = isInfo ? amt : (isDebit ? amt : 0);
       const credit = isInfo ? amt : (isCredit ? amt : 0);
       // Info rows (cash sales/payments) do NOT change the running balance.
-      if (!isInfo) { running += debit - credit; sD += debit; sC += credit; }
+      if (!isInfo) { running += debit - credit; sD += debit; sC += credit; if (isForeignCash) runningIls += (isDebit ? 1 : -1) * (ilsAmt || 0); }
       let dueDate: string | undefined;
       if (tx.reference?.startsWith("INV-") || tx.reference?.startsWith("PO-")) { try { const d = parseISO(tx.transaction_date); d.setDate(d.getDate() + 30); dueDate = format(d, "yyyy-MM-dd"); } catch {} }
-      const rowCurrency = isMismatch ? "شيكل" : isForeignCash ? normalizeCurrency(tx.currency) : dispCurrName;
+      const rowCurrency = isMismatch ? "شيكل" : isForeignCash ? accountCurrencyName : dispCurrName;
       const descBase = tx.description || tx.transaction_type || "—";
-      const description = isInfo ? `${descBase} — معاملة نقدية (لا تؤثر على الذمة)` : descBase;
+      const ilsNote = isForeignCash && nativeKind === "ils_only"
+        ? ` — قيد بالشيكل فقط (₪${(ilsAmt || 0).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}) يغيّر المعادل بالشيكل ولا يغيّر رصيد ال${accountCurrencyName}`
+        : isForeignCash && nativeKind === "currency_mismatch"
+          ? ` — ⚠️ مسجّل بعملة ${normalizeCurrency(tx.currency)} على حساب ${accountCurrencyName} (₪${(ilsAmt || 0).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}) — يحتاج مراجعة`
+          : "";
+      const description = (isInfo ? `${descBase} — معاملة نقدية (لا تؤثر على الذمة)` : descBase) + ilsNote;
       return { date: tx.transaction_date, description, transaction_type: tx.transaction_type || "", reference: tx.reference || "", debit, credit, balance: running, transaction_id: tx.id, currency: rowCurrency, payment_method: tx.payment_method || null, dueDate, foreignDetail: getForeignDetail(tx), isConverted, isMismatch, conversionRate, usedHistoricRate, isCancelled: !!tx.is_deleted, reversedById: tx.reversed_by_id || null, cost_center_id: tx.cost_center_id || null };
     });
-    return { rows: result, openingBalance: openBal, closingBalance: running, totalDebit: sD, totalCredit: sC };
+    return { rows: result, openingBalance: openBal, closingBalance: running, totalDebit: sD, totalCredit: sC, accountCurrencyName: isForeignCash ? accountCurrencyName : null, closingBalanceIls: isForeignCash ? runningIls : null };
   }, [transactions, selectedEntityId, dateFrom, dateTo, activeTab, selectedAccount, selectedEmployee, displayCurrency, currentExchangeRate, contacts, selectedContact, repExtraCodes]);
 
   const statementCurrency = useMemo(() => {
+    if (accountCurrencyName) return accountCurrencyName;
     if (rows.length > 0) { const f: Record<string, number> = {}; rows.forEach(r => { f[r.currency] = (f[r.currency] || 0) + 1; }); const s = Object.entries(f).sort((a, b) => b[1] - a[1]); return s[0]?.[0] || "شيكل"; }
     if (isAccountsTab && selectedAccount) { const nm = selectedAccount.account_name; if (nm.includes("دولار")) return "دولار"; if (nm.includes("دينار")) return "دينار"; }
     return "شيكل";
-  }, [rows, isAccountsTab, selectedAccount]);
+  }, [rows, isAccountsTab, selectedAccount, accountCurrencyName]);
 
   const hasMixedCurrencies = useMemo(() => {
     if (displayCurrency === "ILS") return false;
@@ -1942,7 +1954,7 @@ const AccountStatementV2Page = () => {
                   {hasMixedCurrencies ? (
                     <span style={{ color: "#D97706", fontWeight: 600, fontSize: 12 }}>⚠️ عملات مختلطة — لا يمكن احتساب رصيد إجمالي</span>
                   ) : (
-                    <><span style={{ color: "#6B7280" }}>الرصيد: </span><span style={{ color: balColor(displayClosingBalance), fontWeight: 700, fontSize: 15 }}>{fmtAmount(displayClosingBalance, statementCurrency)}</span><span className="text-[11px] mr-1" style={{ color: "#6B7280" }}>{displayClosingBalance > 0 ? "(مدين)" : displayClosingBalance < 0 ? "(دائن)" : ""}</span></>
+                    <><span style={{ color: "#6B7280" }}>الرصيد: </span><span style={{ color: balColor(displayClosingBalance), fontWeight: 700, fontSize: 15 }}>{fmtAmount(displayClosingBalance, statementCurrency)}</span><span className="text-[11px] mr-1" style={{ color: "#6B7280" }}>{displayClosingBalance > 0 ? "(مدين)" : displayClosingBalance < 0 ? "(دائن)" : ""}</span>{closingBalanceIls != null && (<span className="text-[11px] mr-2" style={{ color: "#6B7280" }} title="القيمة الدفترية بالشيكل (تشمل فروقات إعادة التقييم)">المعادل بالشيكل: <span style={{ fontWeight: 600, color: "#111827" }}>{fmtAmount(closingBalanceIls, "شيكل")}</span></span>)}</>
                   )}
                 </div>
               </div>
