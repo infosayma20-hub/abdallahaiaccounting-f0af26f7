@@ -577,6 +577,7 @@ export type Database = {
           can_view_profit_loss: boolean | null
           can_view_reports: boolean | null
           can_view_trial_balance: boolean | null
+          cash_box_branch_ids: string[]
           created_at: string | null
           email: string
           full_name: string
@@ -639,6 +640,7 @@ export type Database = {
           can_view_profit_loss?: boolean | null
           can_view_reports?: boolean | null
           can_view_trial_balance?: boolean | null
+          cash_box_branch_ids?: string[]
           created_at?: string | null
           email: string
           full_name: string
@@ -701,6 +703,7 @@ export type Database = {
           can_view_profit_loss?: boolean | null
           can_view_reports?: boolean | null
           can_view_trial_balance?: boolean | null
+          cash_box_branch_ids?: string[]
           created_at?: string | null
           email?: string
           full_name?: string
@@ -30422,6 +30425,10 @@ export type Database = {
       cancel_stock_transfer: {
         Args: { p_reason?: string; p_transfer_id: string }
         Returns: Json
+      }
+      cash_box_visible_to: {
+        Args: { _branch_id: string; _viewer: string }
+        Returns: boolean
       }
       change_pos_payment_method: {
         Args: {
