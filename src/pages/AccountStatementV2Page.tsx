@@ -1954,7 +1954,7 @@ const AccountStatementV2Page = () => {
                   {hasMixedCurrencies ? (
                     <span style={{ color: "#D97706", fontWeight: 600, fontSize: 12 }}>⚠️ عملات مختلطة — لا يمكن احتساب رصيد إجمالي</span>
                   ) : (
-                    <><span style={{ color: "#6B7280" }}>الرصيد: </span><span style={{ color: balColor(displayClosingBalance), fontWeight: 700, fontSize: 15 }}>{fmtAmount(displayClosingBalance, statementCurrency)}</span><span className="text-[11px] mr-1" style={{ color: "#6B7280" }}>{displayClosingBalance > 0 ? "(مدين)" : displayClosingBalance < 0 ? "(دائن)" : ""}</span></>
+                    <><span style={{ color: "#6B7280" }}>الرصيد: </span><span style={{ color: balColor(displayClosingBalance), fontWeight: 700, fontSize: 15 }}>{fmtAmount(displayClosingBalance, statementCurrency)}</span><span className="text-[11px] mr-1" style={{ color: "#6B7280" }}>{displayClosingBalance > 0 ? "(مدين)" : displayClosingBalance < 0 ? "(دائن)" : ""}</span>{closingBalanceIls != null && (<span className="text-[11px] mr-2" style={{ color: "#6B7280" }} title="القيمة الدفترية بالشيكل (تشمل فروقات إعادة التقييم)">المعادل بالشيكل: <span style={{ fontWeight: 600, color: "#111827" }}>{fmtAmount(closingBalanceIls, "شيكل")}</span></span>)}</>
                   )}
                 </div>
               </div>
