@@ -137,57 +137,40 @@ const CashBoxesPage = () => {
     if (allCodes.length === 0) return;
 
     (async () => {
-      // ── Parity with AccountStatementV2 ──
-      // 1) Scope by tenant owner (team-member sub-accounts must read the OWNER's ledger).
-      // 2) Paginate — PostgREST caps at 1000 rows/request; without it the tail
-      //    silently disappears and the box balance diverges from SOA.
-      // 3) Include reversed-linked rows so the original + reversal net to zero
-      //    exactly like the printed statement.
-      // 4) Filter server-side by the actual account codes to keep the payload small.
+      // Balances are aggregated server-side (get_account_balances_summary) with the
+      // exact same rules as nativeAmountForAccount / AccountStatementV2:
+      // owner-scoped ledger, reversed-linked rows included, native balance counts
+      // foreign_amount only when the line currency matches the account currency.
+      // Caller RLS still applies (SECURITY INVOKER).
       const ownerId = dataOwnerId || user.id;
-      const codesCsv = allCodes.map((c) => `"${c}"`).join(",");
-      const txs = await fetchAllRows<any>((from, to) =>
-        supabase
-          .from("transactions")
-          .select("amount, debit_account_code, credit_account_code, transaction_date, foreign_amount, exchange_rate, currency")
-          .eq("user_id", ownerId)
-          .or("is_deleted.eq.false,reversed_by_id.not.is.null")
-          .or(`debit_account_code.in.(${codesCsv}),credit_account_code.in.(${codesCsv})`)
-          .range(from, to) as any,
-      );
-
-      const now = new Date();
-      const monthStart = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-01`;
-      const result: Record<string, { balance: number; inflow: number; outflow: number; foreignBalances: Record<string, number>; lastDate: string | null }> = {};
-
-      // Account (box) currency per GL code — the native balance runs in that currency.
       const codeCurrency: Record<string, CurrencyCode> = {};
       for (const b of boxes) if (b.gl_account_code) codeCurrency[b.gl_account_code] = toCurrencyCode(b.currency);
       for (const b of bankAccounts) if (b.gl_account_code && !codeCurrency[b.gl_account_code]) codeCurrency[b.gl_account_code] = toCurrencyCode(b.currency);
 
-      for (const code of allCodes) {
-        let balance = 0, inflow = 0, outflow = 0, nativeBalance = 0;
-        let lastDate: string | null = null;
+      const now = new Date();
+      const monthStart = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-01`;
+      const { data, error } = await supabase.rpc("get_account_balances_summary", {
+        _owner: ownerId,
+        _codes: allCodes,
+        _currencies: allCodes.map((c) => codeCurrency[c] || "ILS"),
+        _month_start: monthStart,
+      });
+      if (error) {
+        console.error("[CashBoxes] balances summary failed", error);
+        return;
+      }
+      const result: Record<string, { balance: number; inflow: number; outflow: number; foreignBalances: Record<string, number>; lastDate: string | null }> = {};
+      for (const r of (data || []) as any[]) {
+        const accCur = codeCurrency[r.account_code] || "ILS";
         const foreignBalances: Record<string, number> = {};
-        const accCur = codeCurrency[code] || "ILS";
-        (txs || []).forEach(tx => {
-          const amt = Number(tx.amount) || 0;
-          const isDebit = tx.debit_account_code === code;
-          const isCredit = tx.credit_account_code === code;
-          if (!isDebit && !isCredit) return;
-          const n = nativeAmountForAccount(tx, accCur);
-          if (isDebit) { balance += amt; nativeBalance += n.native; }
-          if (isCredit) { balance -= amt; nativeBalance -= n.native; }
-          if (accCur !== "ILS") foreignBalances[accCur] = nativeBalance;
-          if (tx.transaction_date >= monthStart) {
-            if (isDebit) inflow += amt;
-            if (isCredit) outflow += amt;
-          }
-          if (tx.transaction_date && (!lastDate || tx.transaction_date > lastDate)) {
-            lastDate = tx.transaction_date;
-          }
-        });
-        result[code] = { balance, inflow, outflow, foreignBalances, lastDate };
+        if (accCur !== "ILS") foreignBalances[accCur] = Number(r.native_balance) || 0;
+        result[r.account_code] = {
+          balance: Number(r.balance) || 0,
+          inflow: Number(r.inflow) || 0,
+          outflow: Number(r.outflow) || 0,
+          foreignBalances,
+          lastDate: r.last_date || null,
+        };
       }
       setBalances(result);
     })();
