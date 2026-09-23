@@ -43,6 +43,8 @@ const TYPE_LABELS: Record<string, string> = {
   bank: "حساب بنكي",
 };
 
+const CUR_SYMBOL: Record<string, string> = { USD: "$", JOD: "د.أ", EUR: "€", EGP: "£", ILS: "₪" };
+
 interface UnifiedRow {
   id: string;
   raw: any;
@@ -54,6 +56,8 @@ interface UnifiedRow {
   code: string;
   currency: string;
   balance: number;
+  /** Balance in the box's own currency (foreign boxes only). */
+  nativeBalance?: number | null;
   inflow: number;
   outflow: number;
   status: "active" | "inactive";
@@ -351,7 +355,8 @@ const CashBoxesPage = () => {
       "الفرع/الموقع": r.branch_label,
       "الكود": r.code,
       "العملة": r.currency,
-      "الرصيد": r.balance,
+      "الرصيد بعملة الصندوق": r.nativeBalance ?? r.balance,
+      "المعادل بالشيكل": r.balance,
       "وارد الشهر": r.inflow,
       "صادر الشهر": r.outflow,
       "الحالة": r.status_label,
@@ -527,8 +532,8 @@ const CashBoxesPage = () => {
                   {r.type_label}{r.branch_label !== "—" ? ` · ${r.branch_label}` : ""}
                 </div>
               </div>
-              <div className={`text-xs font-mono font-bold shrink-0 ${r.balance < 0 ? "text-red-600" : "text-foreground"}`}>
-                ₪{fmt(r.balance)}
+              <div className={`text-xs font-mono font-bold shrink-0 ${(r.nativeBalance ?? r.balance) < 0 ? "text-red-600" : "text-foreground"}`}>
+                {r.nativeBalance != null ? <>{CUR_SYMBOL[toCurrencyCode(r.currency)] || r.currency} {fmt(r.nativeBalance)} <span className="text-[10px] font-normal text-muted-foreground">(₪{fmt(r.balance)})</span></> : <>₪{fmt(r.balance)}</>}
               </div>
             </button>
           ))}
