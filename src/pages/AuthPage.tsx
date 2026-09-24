@@ -660,21 +660,21 @@ const AuthPage = () => {
                         style={{ ...inputStyle, minWidth: 110, appearance: 'auto' }}
                         aria-label={t("common:auth.countryCode")}
                       >
-                        <option value="+970">🇵🇸 +970</option>
-                        <option value="+972">🇮🇱 +972</option>
-                        <option value="+962">🇯🇴 +962</option>
-                        <option value="+966">🇸🇦 +966</option>
-                        <option value="+971">🇦🇪 +971</option>
-                        <option value="+974">🇶🇦 +974</option>
-                        <option value="+965">🇰🇼 +965</option>
-                        <option value="+973">🇧🇭 +973</option>
-                        <option value="+968">🇴🇲 +968</option>
-                        <option value="+961">🇱🇧 +961</option>
-                        <option value="+20">🇪🇬 +20</option>
-                        <option value="+964">🇮🇶 +964</option>
-                        <option value="+90">🇹🇷 +90</option>
-                        <option value="+1">🇺🇸 +1</option>
-                        <option value="+44">🇬🇧 +44</option>
+                        <option className="bg-card text-foreground" value="+970">🇵🇸 +970</option>
+                        <option className="bg-card text-foreground" value="+972">🇮🇱 +972</option>
+                        <option className="bg-card text-foreground" value="+962">🇯🇴 +962</option>
+                        <option className="bg-card text-foreground" value="+966">🇸🇦 +966</option>
+                        <option className="bg-card text-foreground" value="+971">🇦🇪 +971</option>
+                        <option className="bg-card text-foreground" value="+974">🇶🇦 +974</option>
+                        <option className="bg-card text-foreground" value="+965">🇰🇼 +965</option>
+                        <option className="bg-card text-foreground" value="+973">🇧🇭 +973</option>
+                        <option className="bg-card text-foreground" value="+968">🇴🇲 +968</option>
+                        <option className="bg-card text-foreground" value="+961">🇱🇧 +961</option>
+                        <option className="bg-card text-foreground" value="+20">🇪🇬 +20</option>
+                        <option className="bg-card text-foreground" value="+964">🇮🇶 +964</option>
+                        <option className="bg-card text-foreground" value="+90">🇹🇷 +90</option>
+                        <option className="bg-card text-foreground" value="+1">🇺🇸 +1</option>
+                        <option className="bg-card text-foreground" value="+44">🇬🇧 +44</option>
                       </select>
                       <input
                         type="tel"
@@ -701,15 +701,15 @@ const AuthPage = () => {
                         className="w-full h-11 rounded-xl px-3 text-sm outline-none transition-all"
                         style={{ ...inputStyle, appearance: 'auto' }}
                       >
-                        <option value="">{t("common:auth.choose")}</option>
-                        <option value="retail">{t("common:auth.typeRetail")}</option>
-                        <option value="wholesale">{t("common:auth.typeWholesale")}</option>
-                        <option value="restaurant">{t("common:auth.typeRestaurant")}</option>
-                        <option value="services">{t("common:auth.typeServices")}</option>
-                        <option value="manufacturing">{t("common:auth.typeManufacturing")}</option>
-                        <option value="contracting">{t("common:auth.typeContracting")}</option>
-                        <option value="accounting_office">{t("common:auth.typeAccountingOffice")}</option>
-                        <option value="other">{t("common:auth.typeOther")}</option>
+                        <option className="bg-card text-foreground" value="">{t("common:auth.choose")}</option>
+                        <option className="bg-card text-foreground" value="retail">{t("common:auth.typeRetail")}</option>
+                        <option className="bg-card text-foreground" value="wholesale">{t("common:auth.typeWholesale")}</option>
+                        <option className="bg-card text-foreground" value="restaurant">{t("common:auth.typeRestaurant")}</option>
+                        <option className="bg-card text-foreground" value="services">{t("common:auth.typeServices")}</option>
+                        <option className="bg-card text-foreground" value="manufacturing">{t("common:auth.typeManufacturing")}</option>
+                        <option className="bg-card text-foreground" value="contracting">{t("common:auth.typeContracting")}</option>
+                        <option className="bg-card text-foreground" value="accounting_office">{t("common:auth.typeAccountingOffice")}</option>
+                        <option className="bg-card text-foreground" value="other">{t("common:auth.typeOther")}</option>
                       </select>
                     </div>
                     <div className="space-y-1.5">
@@ -720,13 +720,13 @@ const AuthPage = () => {
                         className="w-full h-11 rounded-xl px-3 text-sm outline-none transition-all"
                         style={{ ...inputStyle, appearance: 'auto' }}
                       >
-                        <option value="">{t("common:auth.choose")}</option>
-                        <option value="1">{t("common:auth.size1")}</option>
-                        <option value="2-5">{t("common:auth.size2")}</option>
-                        <option value="6-20">{t("common:auth.size3")}</option>
-                        <option value="21-50">{t("common:auth.size4")}</option>
-                        <option value="51-200">{t("common:auth.size5")}</option>
-                        <option value="200+">{t("common:auth.size6")}</option>
+                        <option className="bg-card text-foreground" value="">{t("common:auth.choose")}</option>
+                        <option className="bg-card text-foreground" value="1">{t("common:auth.size1")}</option>
+                        <option className="bg-card text-foreground" value="2-5">{t("common:auth.size2")}</option>
+                        <option className="bg-card text-foreground" value="6-20">{t("common:auth.size3")}</option>
+                        <option className="bg-card text-foreground" value="21-50">{t("common:auth.size4")}</option>
+                        <option className="bg-card text-foreground" value="51-200">{t("common:auth.size5")}</option>
+                        <option className="bg-card text-foreground" value="200+">{t("common:auth.size6")}</option>
                       </select>
                     </div>
                   </div>
