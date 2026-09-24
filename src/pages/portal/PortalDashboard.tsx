@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { usePortalAuth } from '@/hooks/usePortalAuth';
+import BirthdayCelebration from '@/components/employee/BirthdayCelebration';
 import { usePortalData } from '@/hooks/usePortalData';
 import { getBusinessDay, formatArabicTime, formatArabicDate } from '@/lib/portal-business-day';
 import {

@@ -13,6 +13,7 @@ export interface PortalUser {
   can_see_all_branches: boolean;
   allowed_branch_ids: string[] | null;
   user_id: string;
+  date_of_birth?: string | null;
 }
 
 export function usePortalAuth() {
@@ -56,6 +57,7 @@ export function usePortalAuth() {
             can_see_all_branches: data.can_see_all_branches ?? true,
             allowed_branch_ids: data.allowed_branch_ids,
             user_id: data.user_id,
+            date_of_birth: (data as any).date_of_birth ?? null,
           });
           // Touch last_login ONCE per browser tab session (fire-and-forget).
           // Prevents dozens of UPDATE writes/day per user on every auth-state change.
