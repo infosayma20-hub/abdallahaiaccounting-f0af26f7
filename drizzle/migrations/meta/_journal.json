@@ -92,6 +92,13 @@
       "when": 1790188639656,
       "tag": "0012_cash_box_balances_summary_rpc_v2",
       "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1790240966118,
+      "tag": "0013_guard_products_quantity_client_writes",
+      "breakpoints": true
     }
   ]
 }
