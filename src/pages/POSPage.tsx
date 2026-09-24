@@ -109,6 +109,7 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { multiWordMatchAny, normalizeArabicSearch } from "@/lib/utils";
+import GeneralManagerCelebration from "@/components/pos/GeneralManagerCelebration";
 
 // Types
 interface CartItem {
@@ -7229,6 +7230,7 @@ const POSPage = () => {
 
   return (
     <div className="h-screen flex flex-col overflow-hidden pos-container pos-page-root" dir="rtl" data-pos-layout>
+      <GeneralManagerCelebration authUserId={userId} />
       {/* ⛔ Device-level guard — blocks selling when branch/terminal/bridge are missing or in conflict */}
       <POSDeviceGuard
         config={deviceConfig}
