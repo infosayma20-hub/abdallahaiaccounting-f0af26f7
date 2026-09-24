@@ -48,6 +48,17 @@ import { openEmployeeFormsStorageFile } from "@/lib/employeeStorageFiles";
 import usePageSessionState, { usePageScrollRestoration } from "@/hooks/usePageSessionState";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { ListFilter } from "lucide-react";
+import { monthsBetween, serviceYearsLabel, LOAN_MIN_MONTHS_OF_SERVICE } from "@/lib/employeeFinancialDisplay";
+
+const DEDUCTION_CATEGORY_LABELS: Record<string, string> = {
+  advance: "سلف",
+  food: "أكل",
+  cash_shortage: "عجز صندوق",
+  purchase: "مشتريات",
+  penalty: "عقوبات",
+  transport: "مواصلات",
+  other: "أخرى",
+};
 
 import { ScheduleModeEditor } from "@/components/hr/ScheduleModeEditor";
 import { LeaveBlackoutDatesEditor } from "@/components/hr/LeaveBlackoutDatesEditor";
@@ -158,7 +169,7 @@ export default function EmployeeFormsManagementPage() {
   const [printForm, setPrintForm] = useState<any | null>(null);
   const [forwardForm, setForwardForm] = useState<any | null>(null);
   const [reminderFor, setReminderFor] = useState<any | null>(null);
-  const [employeeMap, setEmployeeMap] = useState<Record<string, { name: string; branch: string }>>({});
+  const [employeeMap, setEmployeeMap] = useState<Record<string, { name: string; branch: string; startDate: string | null }>>({});
   const [branches, setBranches] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -421,13 +432,13 @@ export default function EmployeeFormsManagementPage() {
     if (!user || !dataOwnerId) return;
     const { data } = await supabase
       .from("employees")
-      .select("id, full_name, branch_id, branches(name)")
+      .select("id, full_name, branch_id, start_date, branches(name)")
       .eq("user_id", dataOwnerId);
-    const map: Record<string, { name: string; branch: string }> = {};
+    const map: Record<string, { name: string; branch: string; startDate: string | null }> = {};
     const branchSet = new Set<string>();
     (data || []).forEach((e: any) => {
       const branchName = e.branches?.name || "";
-      map[e.id] = { name: e.full_name, branch: branchName };
+      map[e.id] = { name: e.full_name, branch: branchName, startDate: e.start_date || null };
       if (branchName) branchSet.add(branchName);
     });
     setEmployeeMap(map);
@@ -435,48 +446,72 @@ export default function EmployeeFormsManagementPage() {
   };
 
   /**
-   * Total advances actually disbursed per employee, per salary month.
-   * Mirrors the employee wallet ("محفظتي") logic: category = advance,
-   * debit movements, rejected rows excluded, bucketed by salary_month/year
-   * with a fallback to movement_date for legacy untagged rows.
+   * خصومات الموظف الكاملة لكل شهر راتب — نفس مصدر «محفظتي» وشاشة الخصومات:
+   * employee_financial_movements (مدين، بدون المرفوض)، مجمّعة حسب salary_month/year
+   * مع الرجوع لتاريخ الحركة للسجلات القديمة. + الرصيد الابتدائي من كشف رواتب
+   * 07/2026 (صافي سالب) — نفس مصدر عمود «رصيد ابتدائي» في شاشة الخصومات.
    * Key: `${employee_id}|${YYYY}-${MM}`
    */
-  const [advanceTotals, setAdvanceTotals] = useState<Record<string, number>>({});
+  type MonthDeductions = { total: number; byCat: Record<string, number> };
+  const [deductionTotals, setDeductionTotals] = useState<Record<string, MonthDeductions>>({});
+  const [openingBalances, setOpeningBalances] = useState<Record<string, number>>({});
   const monthKey = (empId: string, dateStr: string) => {
     const d = new Date(dateStr);
     return `${empId}|${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
   };
 
   useEffect(() => {
-    if (filterCategory !== "advances") return;
+    if (filterCategory !== "advances" || !dataOwnerId) return;
     let cancelled = false;
     (async () => {
-      // Widen the window a bit so movements tagged to an adjacent salary month
-      // are still bucketed correctly.
       const from = new Date(dateFrom); from.setDate(from.getDate() - 45);
       const to = new Date(dateTo); to.setDate(to.getDate() + 45);
       const iso = (d: Date) => d.toISOString().slice(0, 10);
-      const { data, error } = await supabase
-        .from("employee_financial_movements")
-        .select("employee_id, amount, movement_date, salary_month, salary_year, status")
-        .eq("category", "advance")
-        .eq("movement_type", "debit")
-        .gte("movement_date", iso(from))
-        .lte("movement_date", iso(to))
-        .limit(5000);
-      if (cancelled || error) return;
-      const totals: Record<string, number> = {};
-      (data || []).forEach((m: any) => {
-        if (m.status === "rejected") return;
+      const PAGE = 1000;
+      const rows: any[] = [];
+      for (let offset = 0; ; offset += PAGE) {
+        const { data, error } = await supabase
+          .from("employee_financial_movements")
+          .select("id, employee_id, amount, category, movement_date, salary_month, salary_year, status")
+          .eq("user_id", dataOwnerId)
+          .eq("movement_type", "debit")
+          .neq("status", "rejected")
+          .gte("movement_date", iso(from))
+          .lte("movement_date", iso(to))
+          .order("id", { ascending: true })
+          .range(offset, offset + PAGE - 1);
+        if (cancelled || error) return;
+        rows.push(...(data || []));
+        if (!data || data.length < PAGE) break;
+      }
+      const totals: Record<string, MonthDeductions> = {};
+      rows.forEach((m: any) => {
+        const cat = m.category || "food";
+        if (cat === "cash_surplus") return;
         const y = m.salary_year || new Date(m.movement_date).getFullYear();
         const mo = m.salary_month || new Date(m.movement_date).getMonth() + 1;
         const key = `${m.employee_id}|${y}-${String(mo).padStart(2, "0")}`;
-        totals[key] = (totals[key] || 0) + Number(m.amount || 0);
+        const amt = Number(m.amount || 0);
+        const t = (totals[key] ||= { total: 0, byCat: {} });
+        t.total += amt;
+        t.byCat[cat] = (t.byCat[cat] || 0) + amt;
       });
-      setAdvanceTotals(totals);
+
+      const { data: opening } = await supabase
+        .from("employee_payroll")
+        .select("employee_id, net_salary")
+        .eq("user_id", dataOwnerId)
+        .eq("period_year", 2026)
+        .eq("period_month", 7)
+        .lt("net_salary", 0);
+      if (cancelled) return;
+      const ob: Record<string, number> = {};
+      (opening || []).forEach((r: any) => { ob[r.employee_id] = Math.abs(Number(r.net_salary) || 0); });
+      setDeductionTotals(totals);
+      setOpeningBalances(ob);
     })();
     return () => { cancelled = true; };
-  }, [filterCategory, dateFrom, dateTo]);
+  }, [filterCategory, dateFrom, dateTo, dataOwnerId]);
 
   const fetchPolicies = async () => {
     const { data } = await supabase
@@ -1761,9 +1796,14 @@ export default function EmployeeFormsManagementPage() {
                           <TableHead className="text-right text-white font-semibold cursor-pointer select-none" onMouseDown={(e) => e.preventDefault()} onClick={(e) => toggleSort("amount", e.shiftKey)}>المبلغ{sortIndicator("amount")}</TableHead>
                         )}
                         {filterCategory === "advances" && (
-                          <TableHead className="text-right text-white font-semibold" title="مجموع السلف المصروفة للموظف خلال نفس الشهر (كما تظهر في محفظتي)">
-                            مجموع السلف بالشهر
-                          </TableHead>
+                          <>
+                            <TableHead className="text-right text-white font-semibold" title="تاريخ بدء العمل ومدة الخدمة">
+                              تاريخ التعيين
+                            </TableHead>
+                            <TableHead className="text-right text-white font-semibold" title="الرصيد الابتدائي + كل خصومات الموظف لنفس شهر الراتب (سلف، أكل، عجز، مشتريات، أخرى…) من نفس مصدر شاشة الخصومات">
+                              خصومات الشهر
+                            </TableHead>
+                          </>
                         )}
                         <TableHead className="text-right text-white font-semibold cursor-pointer select-none" onMouseDown={(e) => e.preventDefault()} onClick={(e) => toggleSort("date", e.shiftKey)}>التاريخ{sortIndicator("date")}</TableHead>
                         <TableHead className="text-right text-white font-semibold">الحالة</TableHead>
@@ -1774,7 +1814,7 @@ export default function EmployeeFormsManagementPage() {
                     <TableBody>
                       {paginated.length === 0 ? (
                         <TableRow>
-                          <TableCell colSpan={9 + (filterCategory === "leaves" ? 1 : 0) + ((filterCategory === "all" || filterCategory === "advances") ? 1 : 0) + ((filterCategory === "all" || filterCategory === "advances" || filterCategory === "loans") ? 1 : 0) + (filterCategory === "advances" ? 1 : 0)} className="text-center py-8 text-muted-foreground">لا يوجد نماذج</TableCell>
+                          <TableCell colSpan={9 + (filterCategory === "leaves" ? 1 : 0) + ((filterCategory === "all" || filterCategory === "advances") ? 1 : 0) + ((filterCategory === "all" || filterCategory === "advances" || filterCategory === "loans") ? 1 : 0) + (filterCategory === "advances" ? 2 : 0)} className="text-center py-8 text-muted-foreground">لا يوجد نماذج</TableCell>
                         </TableRow>
                       ) : (
                         paginated.map(f => {
@@ -1895,15 +1935,52 @@ export default function EmployeeFormsManagementPage() {
                                 </TableCell>
                               )}
                               {filterCategory === "advances" && (() => {
-                                const total = advanceTotals[monthKey(f.employee_id, f.created_at)] || 0;
+                                const d = deductionTotals[monthKey(f.employee_id, f.created_at)];
+                                const opening = openingBalances[f.employee_id] || 0;
+                                const total = (d?.total || 0) + opening;
+                                const start = emp?.startDate || null;
+                                const months = start ? monthsBetween(start) : null;
+                                const catOrder = ["advance", "food", "cash_shortage", "purchase", "penalty", "transport", "other"];
+                                const cats = d ? Object.entries(d.byCat).sort((a, b) => catOrder.indexOf(a[0]) - catOrder.indexOf(b[0])) : [];
                                 return (
-                                  <TableCell className="text-sm whitespace-nowrap text-right">
-                                    {total > 0 ? (
-                                      <span className="font-semibold text-primary">{total.toLocaleString()} ₪</span>
-                                    ) : (
-                                      <span className="text-muted-foreground">—</span>
-                                    )}
-                                  </TableCell>
+                                  <>
+                                    <TableCell className="text-xs whitespace-nowrap text-right">
+                                      {start ? (
+                                        <div className="flex flex-col leading-tight">
+                                          <span className="font-medium text-foreground" dir="ltr">{format(new Date(start), "dd/MM/yyyy")}</span>
+                                          <span className={`text-[10px] ${months != null && months < LOAN_MIN_MONTHS_OF_SERVICE ? "text-destructive font-semibold" : "text-muted-foreground"}`}>
+                                            {serviceYearsLabel(months)}
+                                          </span>
+                                        </div>
+                                      ) : (
+                                        <span className="text-muted-foreground">غير مسجّل</span>
+                                      )}
+                                    </TableCell>
+                                    <TableCell className="text-xs whitespace-nowrap text-right">
+                                      {total > 0 ? (
+                                        <Popover>
+                                          <PopoverTrigger asChild>
+                                            <button type="button" className="font-semibold text-primary underline-offset-2 hover:underline">
+                                              {total.toLocaleString("en-US", { maximumFractionDigits: 2 })} ₪
+                                            </button>
+                                          </PopoverTrigger>
+                                          <PopoverContent className="w-56 p-3 text-xs" dir="rtl">
+                                            <div className="space-y-1">
+                                              {opening > 0 && (
+                                                <div className="flex justify-between"><span className="text-muted-foreground">رصيد ابتدائي</span><span dir="ltr">{opening.toLocaleString("en-US", { maximumFractionDigits: 2 })} ₪</span></div>
+                                              )}
+                                              {cats.map(([c, v]) => (
+                                                <div key={c} className="flex justify-between"><span className="text-muted-foreground">{DEDUCTION_CATEGORY_LABELS[c] || c}</span><span dir="ltr">{v.toLocaleString("en-US", { maximumFractionDigits: 2 })} ₪</span></div>
+                                              ))}
+                                              <div className="flex justify-between border-t border-border pt-1 font-semibold"><span>الإجمالي</span><span dir="ltr">{total.toLocaleString("en-US", { maximumFractionDigits: 2 })} ₪</span></div>
+                                            </div>
+                                          </PopoverContent>
+                                        </Popover>
+                                      ) : (
+                                        <span className="text-muted-foreground">—</span>
+                                      )}
+                                    </TableCell>
+                                  </>
                                 );
                               })()}
                               <TableCell className="text-xs text-muted-foreground whitespace-nowrap text-right">
