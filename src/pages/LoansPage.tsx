@@ -4,6 +4,7 @@ import { useDataOwnerId } from "@/hooks/useDataOwnerId";
 import { useCompany } from "@/hooks/useCompanyContext";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { resolveEmployeeSubAccount } from "@/lib/employeeAccountResolver";
 import { Download, Wallet, Users, Calendar, CheckCircle2, Clock, ChevronDown, ChevronUp, Plus, Search, UserCheck, Printer, Pencil, CalendarClock } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -868,43 +869,7 @@ function AddLoanDialog({ open, onOpenChange, userId, companyId, onSuccess }: {
     setSaving(true);
     try {
       // 1. Find or create employee account under 2180
-      let empAccountCode = "";
-      const empAccName = `ذمم موظف - ${selectedEmp.full_name}`;
-      const { data: existingAcc } = await supabase
-        .from("accounts")
-        .select("account_code")
-        .eq("user_id", userId)
-        .eq("parent_code", "2180")
-        .or(`account_name.eq.${empAccName},account_name.ilike.%${selectedEmp.full_name}%`)
-        .limit(1)
-        .maybeSingle();
-
-      if (existingAcc) {
-        empAccountCode = existingAcc.account_code;
-      } else {
-        // Get next available code under 2180
-        const { data: siblings } = await supabase
-          .from("accounts")
-          .select("account_code")
-          .eq("user_id", userId)
-          .eq("parent_code", "2180")
-          .order("account_code", { ascending: false })
-          .limit(1);
-
-        const lastCode = siblings?.[0]?.account_code || "21800";
-        const nextNum = parseInt(lastCode) + 1;
-        empAccountCode = String(nextNum);
-
-        await supabase.from("accounts").insert({
-          user_id: userId,
-          account_code: empAccountCode,
-          account_name: empAccName,
-          account_type: "التزامات",
-          parent_code: "2180",
-          is_active: true,
-          is_system: false,
-        });
-      }
+      const empAccountCode = await resolveEmployeeSubAccount(userId!, selectedEmp.id);
 
       // 2. Create loan record
       const { data: loanRecord, error: loanErr } = await supabase
