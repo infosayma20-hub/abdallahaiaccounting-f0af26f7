@@ -99,9 +99,16 @@ export default function PurchaseModal({ open, onOpenChange, dataOwnerId, userId,
           shift_id: sessionId || null,
           created_by: userId,
         });
-        await supabase.from("products").update({
-          quantity: selectedProduct.quantity + qty,
-        }).eq("id", selectedProduct.id);
+        // products.quantity is updated by the DB from stock_movements
+        const { error: smErr } = await supabase.from("stock_movements").insert({
+          user_id: dataOwnerId,
+          product_id: selectedProduct.id,
+          quantity: qty,
+          movement_type: "وارد",
+          reference_type: "pos_purchase_in",
+          reference_note: "مشتريات من الكاشير",
+        } as any);
+        if (smErr) throw smErr;
       }
 
       // 3. Journal entry

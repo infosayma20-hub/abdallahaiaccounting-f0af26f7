@@ -578,6 +578,8 @@ if (warehouseFilter === "all") return products.map(p => withWh(p));
       warranty_notes: form.has_warranty ? (form.warranty_notes.trim() || null) : null,
     };
     if (editMode && selectedProduct) {
+      // quantity is derived from stock_movements — edits go through سند إدخال/إخراج
+      delete payload.quantity;
       const { error } = await supabase.from("products").update(payload).eq("id", selectedProduct.id);
       if (error) toast({ title: "خطأ في تحديث المنتج", variant: "destructive" });
       else toast({ title: "تم تحديث المنتج" });
@@ -1683,7 +1685,7 @@ const negStock = displayProducts.filter(p => Number(p.quantity) < 0).length;
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="text-xs text-muted-foreground mb-1 block">الكمية الحالية</label>
-                <Input type="number" placeholder="0" value={form.quantity} onChange={e => setForm(p => ({ ...p, quantity: e.target.value }))} className="rounded-xl" dir="ltr" />
+                <Input type="number" placeholder="0" value={form.quantity} onChange={e => setForm(p => ({ ...p, quantity: e.target.value }))} disabled={editMode} title={editMode ? "الكمية تتغير فقط عبر سند إدخال/إخراج أو الفواتير" : undefined} className="rounded-xl" dir="ltr" />
               </div>
               <div>
                 <label className="text-xs text-muted-foreground mb-1 block">الحد الأدنى (للتنبيه)</label>

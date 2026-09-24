@@ -72,18 +72,17 @@ export default function SpartaInventoryPage() {
         // products.quantity is auto-synced by trg_batch_movements_sync_qty.
       } else {
         // Non-batch product: write stock_movements (legacy path) and adjust quantity manually
-        await supabase.from("stock_movements").insert({
+        const { error: smErr } = await supabase.from("stock_movements").insert({
           user_id: ownerUserId!,
           product_id: iForm.product_id,
           warehouse_id: iForm.warehouse_id,
           quantity: iForm.quantity,
-          movement_type: "out",
+          movement_type: "صادر",
+          reference_type: "sparta_manual_issue",
           notes: iForm.notes || "Sparta manual issue",
         } as any);
-        await supabase
-          .from("products")
-          .update({ quantity: Math.max(0, Number(product.quantity || 0) - iForm.quantity) })
-          .eq("id", iForm.product_id);
+        if (smErr) throw smErr;
+        // products.quantity is synced by trg_sync_product_qty.
       }
       toast.success("تم خصم المخزون");
       setOpenIssue(false);

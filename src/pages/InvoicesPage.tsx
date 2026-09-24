@@ -809,7 +809,8 @@ const InvoicesPage = () => {
         ? Number(prod.quantity) - item.quantity
         : Number(prod.quantity) + item.quantity;
 
-      await supabase.from("products").update({ quantity: newQty } as any).eq("id", item.productId);
+      // products.quantity is derived from stock_movements — no direct write.
+      void newQty;
       // stock_movements are written by the DB trigger
       // `sync_invoice_item_stock` (WB-1) on invoice_items INSERT.
     }

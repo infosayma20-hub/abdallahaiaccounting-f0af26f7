@@ -78,9 +78,16 @@ export default function InventoryInputModal({ open, onOpenChange, dataOwnerId, u
       });
 
       // 2. Update product stock
-      await supabase.from("products").update({
-        quantity: selectedProduct.quantity + qty,
-      }).eq("id", selectedProduct.id);
+      // products.quantity is updated by the DB from stock_movements
+      const { error: smErr } = await supabase.from("stock_movements").insert({
+        user_id: dataOwnerId,
+        product_id: selectedProduct.id,
+        quantity: qty,
+        movement_type: "وارد",
+        reference_type: "pos_production_in",
+        reference_note: "إدخال بضاعة من الكاشير",
+      } as any);
+      if (smErr) throw smErr;
 
       // 3. Create journal entry (inventory debit, production cost credit)
       const amount = qty * selectedProduct.buy_price;

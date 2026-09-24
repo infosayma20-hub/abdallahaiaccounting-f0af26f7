@@ -357,7 +357,7 @@ ${JSON.stringify(productsList, null, 0)}
       if (parsed.data.name) updates.name = parsed.data.name;
       if (parsed.data.category) updates.category = parsed.data.category;
       if (parsed.data.unit) updates.unit = parsed.data.unit;
-      if (parsed.data.quantity !== undefined) updates.quantity = Number(parsed.data.quantity);
+      // quantity is derived from stock_movements — not editable via commands
       if (parsed.data.buy_price !== undefined) updates.buy_price = Number(parsed.data.buy_price);
       if (parsed.data.sell_price !== undefined) updates.sell_price = Number(parsed.data.sell_price);
       if (parsed.data.min_quantity !== undefined) updates.min_quantity = Number(parsed.data.min_quantity);
