@@ -4,10 +4,17 @@ import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 
 const CAMPAIGN_ID = "unify-general-manager-malaky-2026-09";
+const MALAKY_OWNER_ID = "0b08eba6-c81a-4f6c-b371-e6e324016e73";
 
 type Eligibility = "checking" | "eligible" | "excluded";
 
-export default function GeneralManagerCelebration({ authUserId }: { authUserId?: string | null }) {
+export default function GeneralManagerCelebration({
+  authUserId,
+  dataOwnerId,
+}: {
+  authUserId?: string | null;
+  dataOwnerId?: string | null;
+}) {
   const [eligibility, setEligibility] = useState<Eligibility>("checking");
   const [open, setOpen] = useState(false);
   const acknowledgementKey = authUserId
@@ -17,7 +24,12 @@ export default function GeneralManagerCelebration({ authUserId }: { authUserId?:
   useEffect(() => {
     let cancelled = false;
 
-    if (!authUserId || !acknowledgementKey) {
+    if (!authUserId || !acknowledgementKey || !dataOwnerId) {
+      setEligibility("checking");
+      return () => { cancelled = true; };
+    }
+
+    if (dataOwnerId !== MALAKY_OWNER_ID) {
       setEligibility("excluded");
       return () => { cancelled = true; };
     }
@@ -50,7 +62,7 @@ export default function GeneralManagerCelebration({ authUserId }: { authUserId?:
     })();
 
     return () => { cancelled = true; };
-  }, [acknowledgementKey, authUserId]);
+  }, [acknowledgementKey, authUserId, dataOwnerId]);
 
   const confetti = useMemo(
     () => Array.from({ length: 44 }, (_, index) => ({
