@@ -1,19 +1,21 @@
 import { useEffect, useMemo, useState } from "react";
-import { Crown, PartyPopper, Sparkles, X } from "lucide-react";
+import { Cake, Gift, PartyPopper, Sparkles, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
+import { MALAKY_OWNER_ID } from "@/lib/malakyAccess";
 
-const CAMPAIGN_ID = "unify-general-manager-malaky-2026-09";
-const MALAKY_OWNER_ID = "0b08eba6-c81a-4f6c-b371-e6e324016e73";
+const CAMPAIGN_ID = "unify-mosab-general-manager-birthday-2026-09-24";
 
 type Eligibility = "checking" | "eligible" | "excluded";
 
 export default function GeneralManagerCelebration({
   authUserId,
   dataOwnerId,
+  verifyPosAccount = true,
 }: {
   authUserId?: string | null;
   dataOwnerId?: string | null;
+  verifyPosAccount?: boolean;
 }) {
   const [eligibility, setEligibility] = useState<Eligibility>("checking");
   const [open, setOpen] = useState(false);
@@ -41,6 +43,12 @@ export default function GeneralManagerCelebration({
       return () => { cancelled = true; };
     }
 
+    if (!verifyPosAccount) {
+      setEligibility("eligible");
+      setOpen(true);
+      return () => { cancelled = true; };
+    }
+
     void (async () => {
       const { data, error } = await supabase
         .from("pos_users")
@@ -62,7 +70,7 @@ export default function GeneralManagerCelebration({
     })();
 
     return () => { cancelled = true; };
-  }, [acknowledgementKey, authUserId, dataOwnerId]);
+  }, [acknowledgementKey, authUserId, dataOwnerId, verifyPosAccount]);
 
   const confetti = useMemo(
     () => Array.from({ length: 44 }, (_, index) => ({
@@ -95,13 +103,13 @@ export default function GeneralManagerCelebration({
           0% { transform: translateY(22px) scale(.94); opacity: 0; }
           100% { transform: translateY(0) scale(1); opacity: 1; }
         }
-        @keyframes unify-crown-float {
+        @keyframes unify-birthday-float {
           0%,100% { transform: translateY(0) rotate(-2deg); }
           50% { transform: translateY(-7px) rotate(2deg); }
         }
         @media (prefers-reduced-motion: reduce) {
           .unify-confetti { display: none; }
-          .unify-celebration-card, .unify-celebration-crown { animation: none !important; }
+          .unify-celebration-card, .unify-birthday-cake { animation: none !important; }
         }
       `}</style>
 
@@ -138,31 +146,34 @@ export default function GeneralManagerCelebration({
         <div className="bg-primary px-6 pb-14 pt-9 text-center text-primary-foreground">
           <div className="mb-3 flex items-center justify-center gap-2 text-accent">
             <Sparkles className="h-4 w-4" />
-            <span className="text-xs font-bold">رسالة تقدير واعتزاز</span>
+            <span className="text-xs font-bold">مناسبة مميزة لعائلة الملكي</span>
             <Sparkles className="h-4 w-4" />
           </div>
           <h2 id="general-manager-celebration-title" className="text-2xl font-extrabold leading-relaxed sm:text-3xl">
-            إلى المدير العام
+            عيد ميلاد سعيد
           </h2>
-          <p className="mt-1 text-base font-semibold text-primary-foreground/85">شركة مطاعم الدجاج الملكي</p>
+          <p className="mt-1 text-xl font-bold text-primary-foreground/90">مصعب القتلوني</p>
+          <p className="mt-1 text-sm font-semibold text-primary-foreground/75">المدير العام لشركة مطاعم الدجاج الملكي</p>
         </div>
 
-        <div className="unify-celebration-crown relative mx-auto -mt-10 flex h-20 w-20 items-center justify-center rounded-full border-4 border-card bg-accent text-accent-foreground shadow-lg" style={{ animation: "unify-crown-float 2.8s ease-in-out infinite" }}>
-          <Crown className="h-9 w-9" />
+        <div className="unify-birthday-cake relative mx-auto -mt-10 flex h-20 w-20 items-center justify-center rounded-full border-4 border-card bg-accent text-accent-foreground shadow-lg" style={{ animation: "unify-birthday-float 2.8s ease-in-out infinite" }}>
+          <Cake className="h-9 w-9" />
         </div>
 
         <div className="px-6 pb-7 pt-4 text-center sm:px-10">
-          <p className="text-base font-bold text-foreground">بكل فخر وتقدير</p>
+          <p className="flex items-center justify-center gap-2 text-base font-bold text-foreground">
+            <Gift className="h-4 w-4 text-accent" /> كل عام وأنتم بألف خير
+          </p>
           <p className="mt-3 text-sm leading-7 text-foreground/85 sm:text-base sm:leading-8">
-            نتقدّم إليكم بخالص الشكر والامتنان على قيادتكم الملهمة، ورؤيتكم التي تصنع النجاح، وجهودكم التي تجمع الفريق على التميّز والعطاء.
+            بمناسبة عيد ميلادكم، يسعدنا أن نتقدم إليكم بأصدق التهاني وأطيب الأمنيات، راجين لكم عاماً جديداً حافلاً بالصحة والسعادة والنجاح.
           </p>
           <p className="mt-3 text-sm leading-7 text-foreground/85 sm:text-base">
-            دمتم قائداً للإنجاز، ومصدر ثقة وفخر لكل أفراد عائلة الملكي.
+            دمتم قائداً ملهماً، وعاماً بعد عام من الإنجاز والتميّز والعطاء.
           </p>
           <div className="my-5 h-px bg-border" />
-          <p className="text-sm font-extrabold text-primary">مع خالص المحبة والتقدير — عائلة برنامج Unify</p>
+          <p className="text-sm font-extrabold text-primary">مع خالص المحبة وأطيب التمنيات — عائلة Unify</p>
           <Button type="button" onClick={acknowledge} className="mt-6 h-11 w-full text-base">
-            <PartyPopper className="h-4 w-4" /> شكراً لكم
+            <PartyPopper className="h-4 w-4" /> كل عام وأنتم بخير
           </Button>
         </div>
       </section>
