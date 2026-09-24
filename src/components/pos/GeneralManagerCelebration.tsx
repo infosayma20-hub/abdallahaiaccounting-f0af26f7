@@ -5,6 +5,16 @@ import { supabase } from "@/integrations/supabase/client";
 import { MALAKY_OWNER_ID } from "@/lib/malakyAccess";
 
 const CAMPAIGN_ID = "unify-mosab-general-manager-birthday-2026-09-24";
+const BIRTHDAY_DATE = "2026-09-24";
+
+function jerusalemDateKey() {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Jerusalem",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date());
+}
 
 type Eligibility = "checking" | "eligible" | "excluded";
 
@@ -31,7 +41,7 @@ export default function GeneralManagerCelebration({
       return () => { cancelled = true; };
     }
 
-    if (dataOwnerId !== MALAKY_OWNER_ID) {
+    if (dataOwnerId !== MALAKY_OWNER_ID || jerusalemDateKey() !== BIRTHDAY_DATE) {
       setEligibility("excluded");
       return () => { cancelled = true; };
     }
