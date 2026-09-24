@@ -936,6 +936,12 @@ export default function PortalDashboard() {
       transition: 'background 0.3s, color 0.3s',
     }}>
 
+      <BirthdayCelebration
+        employeeId={`portal-${user.id}`}
+        employeeName={user.full_name}
+        dateOfBirth={user.date_of_birth}
+        companyName="الملكي"
+      />
       {/* ═══════ HEADER ═══════ */}
       <div style={{
         flexShrink: 0,
