@@ -173,6 +173,20 @@ export default function EmployeeHomeTab({ employeeName, todayRecord, todayEvents
     // 🛠️ HR/Admin edit override: النافذة المعدّلة يدوياً تغطي البصمات المتقاطعة
     // معها فقط؛ أي جلسة حقيقية خارجها (وردية ثانية فُتحت بعد تعديل الإدارة)
     // تُدمج وتبقى ظاهرة للموظف بدل إخفاء كل بصمات اليوم خلف جلسة واحدة مُصطنعة.
+    // تعديل وقت الدخول فقط: نبدّل بداية أول جلسة ونبقي باقي الجلسات الحقيقية كما هي
+    if (
+      todayRecord?.is_manually_adjusted &&
+      todayRecord.first_check_in &&
+      (todayRecord as any).manual_check_out_set === false &&
+      result.length > 0
+    ) {
+      const first = result[0];
+      const checkIn = todayRecord.first_check_in;
+      const durationMs = first.checkOut
+        ? Math.max(0, new Date(first.checkOut).getTime() - new Date(checkIn).getTime())
+        : 0;
+      return [{ ...first, checkIn, durationMs }, ...result.slice(1)];
+    }
     if (todayRecord?.is_manually_adjusted && todayRecord.first_check_in) {
       return mergeManualWithRealSessions(
         { checkIn: todayRecord.first_check_in, checkOut: todayRecord.last_check_out },

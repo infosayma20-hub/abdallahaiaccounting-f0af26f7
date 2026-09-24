@@ -106,6 +106,13 @@
       "when": 1790248062064,
       "tag": "0014_guard_duplicate_employee_sub_accounts",
       "breakpoints": true
+    },
+    {
+      "idx": 15,
+      "version": "7",
+      "when": 1790257421985,
+      "tag": "0015_attendance_partial_manual_checkin",
+      "breakpoints": true
     }
   ]
 }

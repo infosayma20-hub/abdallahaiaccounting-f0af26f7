@@ -2040,6 +2040,7 @@ export type Database = {
           id: string
           is_manually_adjusted: boolean | null
           last_check_out: string | null
+          manual_check_out_set: boolean
           net_work_minutes: number | null
           notes: string | null
           overtime_hours: number | null
@@ -2058,6 +2059,7 @@ export type Database = {
           id?: string
           is_manually_adjusted?: boolean | null
           last_check_out?: string | null
+          manual_check_out_set?: boolean
           net_work_minutes?: number | null
           notes?: string | null
           overtime_hours?: number | null
@@ -2076,6 +2078,7 @@ export type Database = {
           id?: string
           is_manually_adjusted?: boolean | null
           last_check_out?: string | null
+          manual_check_out_set?: boolean
           net_work_minutes?: number | null
           notes?: string | null
           overtime_hours?: number | null
