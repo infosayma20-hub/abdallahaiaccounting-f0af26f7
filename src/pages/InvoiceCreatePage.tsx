@@ -1919,9 +1919,8 @@ const InvoiceCreatePage = () => {
             const newQty = entry ? entry.qty + entry.bonus : 0;
             const delta = form.type === "sales" ? -(newQty - oldQty) : (newQty - oldQty);
             const productUpdate: Record<string, any> = {};
-            if (delta !== 0) {
-              productUpdate.quantity = Number(prod.quantity || 0) + delta;
-            }
+            // products.quantity is derived from stock_movements (DB trigger
+            // sync_invoice_item_stock → trg_sync_product_qty). Never write it here.
             if (form.type === "purchase" && entry) {
               if (entry.price > 0 && form.currency === "شيكل") {
                 productUpdate.buy_price = entry.price;
@@ -2036,7 +2035,7 @@ const InvoiceCreatePage = () => {
           //   We update it only when the line carries a meaningful price.
           // - default_supplier_id is filled when the product was not yet
           //   linked to any supplier, so future purchase invoices prioritise it.
-          const productUpdate: Record<string, any> = { quantity: newQty };
+          const productUpdate: Record<string, any> = {}; // quantity comes from stock_movements
           if (form.type === "purchase") {
             const linePrice = Number(item.unitPrice || 0);
             if (linePrice > 0 && form.currency === "شيكل") {
@@ -2046,7 +2045,9 @@ const InvoiceCreatePage = () => {
               productUpdate.default_supplier_id = contactId;
             }
           }
-          await supabase.from("products").update(productUpdate as any).eq("id", item.productId);
+          if (Object.keys(productUpdate).length > 0) {
+            await supabase.from("products").update(productUpdate as any).eq("id", item.productId);
+          }
           // stock_movements are written by the DB trigger
           // `sync_invoice_item_stock` (WB-1) on invoice_items INSERT.
         }

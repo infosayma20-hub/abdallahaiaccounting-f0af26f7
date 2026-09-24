@@ -578,6 +578,8 @@ if (warehouseFilter === "all") return products.map(p => withWh(p));
       warranty_notes: form.has_warranty ? (form.warranty_notes.trim() || null) : null,
     };
     if (editMode && selectedProduct) {
+      // quantity is derived from stock_movements — edits go through سند إدخال/إخراج
+      delete payload.quantity;
       const { error } = await supabase.from("products").update(payload).eq("id", selectedProduct.id);
       if (error) toast({ title: "خطأ في تحديث المنتج", variant: "destructive" });
       else toast({ title: "تم تحديث المنتج" });
