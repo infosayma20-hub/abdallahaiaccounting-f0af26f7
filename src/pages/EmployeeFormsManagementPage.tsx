@@ -2193,7 +2193,7 @@ export default function EmployeeFormsManagementPage() {
                                   {sorted.reduce((sum, f) => sum + (Number(getFormAmount(f)) || 0), 0).toLocaleString()} ₪
                                 </TableCell>
                               )}
-                              <TableCell colSpan={4}></TableCell>
+                              <TableCell colSpan={4 + (filterCategory === "advances" ? 2 : 0)}></TableCell>
                             </>
                           );
                         })()}
