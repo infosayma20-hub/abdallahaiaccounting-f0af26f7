@@ -1685,7 +1685,7 @@ const negStock = displayProducts.filter(p => Number(p.quantity) < 0).length;
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="text-xs text-muted-foreground mb-1 block">الكمية الحالية</label>
-                <Input type="number" placeholder="0" value={form.quantity} onChange={e => setForm(p => ({ ...p, quantity: e.target.value }))} className="rounded-xl" dir="ltr" />
+                <Input type="number" placeholder="0" value={form.quantity} onChange={e => setForm(p => ({ ...p, quantity: e.target.value }))} disabled={editMode} title={editMode ? "الكمية تتغير فقط عبر سند إدخال/إخراج أو الفواتير" : undefined} className="rounded-xl" dir="ltr" />
               </div>
               <div>
                 <label className="text-xs text-muted-foreground mb-1 block">الحد الأدنى (للتنبيه)</label>
