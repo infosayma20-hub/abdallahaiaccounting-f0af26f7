@@ -99,6 +99,13 @@
       "when": 1790240966118,
       "tag": "0013_guard_products_quantity_client_writes",
       "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1790248062064,
+      "tag": "0014_guard_duplicate_employee_sub_accounts",
+      "breakpoints": true
     }
   ]
 }
