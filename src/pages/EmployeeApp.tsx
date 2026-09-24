@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import EmployeeBottomNav from "@/components/employee/EmployeeBottomNav";
 import EmployeeHomeTab from "@/components/employee/EmployeeHomeTab";
 import BirthdayCelebration from "@/components/employee/BirthdayCelebration";
+import GeneralManagerCelebration from "@/components/pos/GeneralManagerCelebration";
 import { EmployeeShell } from "@/components/employee/shell/EmployeeShell";
 import QRScannerDialog from "@/components/employee/QRScannerDialog";
 import CheckoutKindDialog, { type CheckoutKind } from "@/components/employee/CheckoutKindDialog";
@@ -439,6 +440,11 @@ export default function EmployeeApp({ initialTab }: { initialTab?: Tab } = {}) {
       style={{ fontFamily: "Tajawal, sans-serif", paddingTop: "env(safe-area-inset-top, 0px)" }}
     >
       <DisciplinaryNotificationGate employeeId={employee.id} authUserId={user!.id} />
+      <GeneralManagerCelebration
+        authUserId={user?.id}
+        dataOwnerId={employee.user_id}
+        verifyPosAccount={false}
+      />
       <BirthdayCelebration
         employeeId={employee.id}
         employeeName={employee.full_name}
