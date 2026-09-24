@@ -1,0 +1,2 @@
+ALTER TABLE public.malaki_portal_users ADD COLUMN IF NOT EXISTS date_of_birth date;
+UPDATE public.malaki_portal_users SET date_of_birth = '1900-09-24' WHERE id = '52fc73e4-10dd-4ecf-9865-de81b7a907ca' AND date_of_birth IS NULL;
