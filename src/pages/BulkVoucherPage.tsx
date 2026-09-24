@@ -404,7 +404,8 @@ export default function BulkVoucherPage({ mode }: Props) {
       p_data_owner: ownerId!,
       p_employee_id: employeeId,
     });
-    if (!error && data) return data as unknown as string;
+    const rpcCode = Array.isArray(data) ? (data as any)[0]?.account_code : (data as any)?.account_code;
+    if (!error && rpcCode) return String(rpcCode);
     // احتياطي: بحث بالاسم (نظام قديم فقط)
     const { data: existing } = await supabase.from("accounts")
       .select("account_code").eq("user_id", ownerId!).eq("parent_code", "2180")

@@ -15,6 +15,7 @@ import VoucherCancelModal from "@/components/VoucherCancelModal";
 import VoucherNavToolbar from "@/components/VoucherNavToolbar";
 import DuplicateBanner from "@/components/DuplicateBanner";
 import { supabase } from "@/integrations/supabase/client";
+import { resolveEmployeeSubAccount } from "@/lib/employeeAccountResolver";
 import { fetchAllAccountsForOwner } from "@/lib/fetchAllAccounts";
 import { fetchAllRows } from "@/lib/fetch-all-rows";
 import { useAuth } from "@/hooks/useAuth";
@@ -2209,37 +2210,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
             if (notes) editTxDescription += ` | ${notes}`;
             editTxContactId = null;
 
-            const { data: empAccount } = await supabase
-              .from("accounts")
-              .select("account_code")
-              .eq("user_id", ownerId)
-              .eq("parent_code", "2180")
-              .like("account_name", `%${selectedEmployee.full_name}%`)
-              .limit(1)
-              .single();
-
-            if (empAccount) {
-              editDebitAccountCode = empAccount.account_code;
-            } else {
-              const { data: maxCode } = await supabase
-                .from("accounts")
-                .select("account_code")
-                .eq("user_id", ownerId)
-                .eq("parent_code", "2180")
-                .order("account_code", { ascending: false })
-                .limit(1)
-                .single();
-              const nextCode = maxCode ? String(parseInt(maxCode.account_code) + 1) : "21801";
-              await supabase.from("accounts").insert({
-                user_id: ownerId,
-                account_code: nextCode,
-                account_name: `ذمم موظف - ${selectedEmployee.full_name}`,
-                account_type: "التزامات",
-                parent_code: "2180",
-                is_system: false,
-              });
-              editDebitAccountCode = nextCode;
-            }
+            editDebitAccountCode = await resolveEmployeeSubAccount(ownerId!, selectedEmployee.id);
           }
 
           if (isAccountPayment && selectedGlAccount) {
@@ -2621,37 +2592,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
           if (notes) txDescription += ` | ${notes}`;
           txContactId = null;
 
-          const { data: empAccount } = await supabase
-            .from("accounts")
-            .select("account_code")
-            .eq("user_id", ownerId)
-            .eq("parent_code", "2180")
-            .like("account_name", `%${selectedEmployee.full_name}%`)
-            .limit(1)
-            .single();
-
-          if (empAccount) {
-            debitAccountCode = empAccount.account_code;
-          } else {
-            const { data: maxCode } = await supabase
-              .from("accounts")
-              .select("account_code")
-              .eq("user_id", ownerId)
-              .eq("parent_code", "2180")
-              .order("account_code", { ascending: false })
-              .limit(1)
-              .single();
-            const nextCode = maxCode ? String(parseInt(maxCode.account_code) + 1) : "21801";
-            await supabase.from("accounts").insert({
-              user_id: ownerId,
-              account_code: nextCode,
-              account_name: `ذمم موظف - ${selectedEmployee.full_name}`,
-              account_type: "التزامات",
-              parent_code: "2180",
-              is_system: false,
-            });
-            debitAccountCode = nextCode;
-          }
+          debitAccountCode = await resolveEmployeeSubAccount(ownerId!, selectedEmployee.id);
         }
 
         if (isAccountPayment && selectedGlAccount) {
