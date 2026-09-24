@@ -18,3 +18,6 @@
 - [x] Branch opening balances posted (OBFIX-2026-09-23, 17 entries vs 3300)
 - [ ] POS cashier boxes (Plaza 1/2 etc.) — deferred to next meeting
 - [ ] Phase 1 (currency guard, monitor mode + POS change-out native amount) and Phase 2 (native balance function + UI) — next
+
+## Malaky celebrations (2026-09-24)
+- [x] Replace the general-manager appreciation message with Mosab Al-Qatlouni's birthday greeting on Malaky POS and employee screens, excluding Dial.
