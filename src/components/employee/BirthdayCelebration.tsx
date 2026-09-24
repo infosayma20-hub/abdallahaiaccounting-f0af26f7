@@ -106,23 +106,44 @@ export default function BirthdayCelebration({
         ))}
       </div>
 
-      <div className="relative w-full max-w-sm rounded-3xl border border-border bg-card p-6 text-center shadow-2xl">
-        <button onClick={dismissTemporarily} className="absolute top-3 left-3 text-muted-foreground hover:text-foreground" aria-label="إغلاق">
-          <X className="h-4 w-4" />
-        </button>
-        <div className="mx-auto mb-3 flex h-16 w-16 items-center justify-center rounded-full bg-pink-500/10">
-          <Cake className="h-8 w-8 text-pink-500" />
+      <style>{`
+        @keyframes bday-pop { 0% { transform: scale(.85) translateY(20px); opacity: 0 } 100% { transform: scale(1) translateY(0); opacity: 1 } }
+        @keyframes bday-float { 0%,100% { transform: translateY(0) } 50% { transform: translateY(-6px) } }
+      `}</style>
+      <div
+        className="relative w-full max-w-sm overflow-hidden rounded-[28px] border border-border bg-card text-center shadow-2xl"
+        style={{ animation: "bday-pop .6s cubic-bezier(.2,.9,.3,1.2) both" }}
+      >
+        <div className="relative bg-gradient-to-br from-primary via-primary to-accent px-6 pb-12 pt-8 text-primary-foreground">
+          <button onClick={dismissTemporarily} className="absolute top-3 left-3 opacity-70 hover:opacity-100" aria-label="إغلاق">
+            <X className="h-4 w-4" />
+          </button>
+          <p className="text-[11px] tracking-[0.3em] opacity-80">✦ مناسبة خاصة ✦</p>
+          <h2 className="mt-2 text-2xl font-extrabold leading-tight">عيد ميلاد سعيد</h2>
+          <p className="mt-1 text-lg font-semibold opacity-95">{employeeName}</p>
         </div>
-        <h2 className="text-xl font-bold">كل عام وأنت بخير 🎉</h2>
-        <p className="mt-2 text-sm text-muted-foreground leading-relaxed">
-          عيد ميلاد سعيد يا <span className="font-semibold text-foreground">{employeeName}</span>
-          {age ? <> — تتم اليوم <span className="font-semibold text-foreground">{age}</span> عاماً</> : null}!
-          <br />
-          نتمنى لك سنة مليئة بالصحة والنجاح، مع تحيات {(companyName || "").trim() || "إدارة الشركة"}.
-        </p>
-        <Button onClick={acknowledge} className="mt-5 w-full rounded-xl">
-          <PartyPopper className="ml-2 h-4 w-4" /> شكراً 🎂
-        </Button>
+        <div
+          className="relative -mt-10 mx-auto flex h-20 w-20 items-center justify-center rounded-full border-4 border-card bg-background shadow-lg"
+          style={{ animation: "bday-float 2.6s ease-in-out infinite" }}
+        >
+          <Cake className="h-9 w-9 text-accent" />
+        </div>
+        <div className="px-6 pb-6 pt-3">
+          {age ? (
+            <p className="text-xs text-muted-foreground">تتم اليوم <span className="font-bold text-foreground">{age}</span> عاماً 🎈</p>
+          ) : null}
+          <p className="mt-3 text-sm leading-7 text-foreground/90">
+            كل عام وأنت بألف خير 🌹
+            <br />
+            في يومك المميز، نشكرك على كل جهد وعطاء، ونتمنى لك سنة مليئة بالصحة والسعادة والنجاح.
+          </p>
+          <p className="mt-3 text-xs font-semibold text-muted-foreground">
+            مع خالص المحبة — عائلة {(companyName || "").trim() || "الشركة"} 💛
+          </p>
+          <Button onClick={acknowledge} className="mt-5 w-full rounded-2xl h-11 text-base">
+            <PartyPopper className="ml-2 h-4 w-4" /> شكراً إلكم 🎂
+          </Button>
+        </div>
       </div>
     </div>
   );
