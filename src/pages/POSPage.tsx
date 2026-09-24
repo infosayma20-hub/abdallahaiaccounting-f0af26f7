@@ -7230,7 +7230,7 @@ const POSPage = () => {
 
   return (
     <div className="h-screen flex flex-col overflow-hidden pos-container pos-page-root" dir="rtl" data-pos-layout>
-      <GeneralManagerCelebration authUserId={userId} />
+      <GeneralManagerCelebration authUserId={userId} dataOwnerId={dataOwnerId} />
       {/* ⛔ Device-level guard — blocks selling when branch/terminal/bridge are missing or in conflict */}
       <POSDeviceGuard
         config={deviceConfig}
