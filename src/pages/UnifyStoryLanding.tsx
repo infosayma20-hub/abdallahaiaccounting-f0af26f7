@@ -133,7 +133,7 @@ const Thumb = ({ id }: { id: string }) =>
   id === "studio" ? (
     <img src={scarf} alt="" className="absolute inset-0 w-full h-full object-cover" />
   ) : id === "erp" ? (
-    <div className="absolute inset-0 bg-[#111d40] p-3 flex flex-col justify-end"><div className="flex items-end gap-1 h-2/3">{[30, 45, 52, 64, 78, 96].map((h, i) => <div key={i} className="flex-1 rounded-t" style={{ height: `${h}%`, background: i === 5 ? C.erp : "rgba(77,141,255,.4)" }} /></div></div>
+    <div className="absolute inset-0 bg-[#111d40] p-3 flex flex-col justify-end"><div className="flex items-end gap-1 h-2/3">{[30, 45, 52, 64, 78, 96].map((h, i) => <div key={i} className="flex-1 rounded-t" style={{ height: `${h}%`, background: i === 5 ? C.erp : "rgba(77,141,255,.4)" }} />)}</div></div>
   ) : (
     <div className="absolute inset-0 bg-[#1d1640] flex items-center gap-[2px] px-3">{Array.from({ length: 20 }).map((_, i) => <span key={i} className="wave flex-1 rounded" style={{ background: C.elite, animationDelay: `${i * 70}ms` }} />)}</div>
   );
