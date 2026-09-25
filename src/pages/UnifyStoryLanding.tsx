@@ -306,8 +306,8 @@ export default function UnifyStoryLanding() {
             <StudioLayer /><ErpLayer /><EliteLayer />
           </div>
 
-          <div className="bridge absolute z-30 top-1/2 -translate-y-1/2 inset-x-0 text-center px-6 opacity-0 invisible" data-b="erp"><p className="text-2xl md:text-4xl font-black drop-shadow-lg">ووراء كل واجهة مميزة… إدارة تمسك التفاصيل.</p></div>
-          <div className="bridge absolute z-30 top-1/2 -translate-y-1/2 inset-x-0 text-center px-6 opacity-0 invisible" data-b="elite"><p className="text-2xl md:text-4xl font-black drop-shadow-lg">ولما تكبر الفكرة… بتحتاج ناس تكبر معها.</p></div>
+          <div className="bridge absolute z-30 top-1/2 -translate-y-1/2 inset-x-0 text-center px-6 opacity-0 invisible" data-b="erp"><p className="inline-block px-6 py-4 rounded-2xl bg-[#0A1026]/85 backdrop-blur text-2xl md:text-4xl font-black">ووراء كل واجهة مميزة… إدارة تمسك التفاصيل.</p></div>
+          <div className="bridge absolute z-30 top-1/2 -translate-y-1/2 inset-x-0 text-center px-6 opacity-0 invisible" data-b="elite"><p className="inline-block px-6 py-4 rounded-2xl bg-[#0A1026]/85 backdrop-blur text-2xl md:text-4xl font-black">ولما تكبر الفكرة… بتحتاج ناس تكبر معها.</p></div>
 
           <Copy id="studio" eyebrow="Unify Studio" accent={C.studio} title="خلّي أول زيارة إلها أثر." body="مواقع تحكي قصة منتجك، بحركة مدروسة وتجربة سهلة.">
             <button onClick={() => goContact("Unify Studio")} className="px-6 py-3 rounded-xl font-extrabold text-sm" style={{ background: C.studio, color: C.navy }}>بدي موقع بهالمستوى</button>
