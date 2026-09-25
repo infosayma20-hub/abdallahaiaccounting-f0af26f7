@@ -58,9 +58,10 @@ const StudioScene = () => (
   </div>
 );
 
+// Outer wrapper owns the centering transform; GSAP animates the inner card only.
 const Card = ({ k, v, children, className = "" }: { k: string; v: string; children: React.ReactNode; className?: string }) => (
-  <div {...{ [`data-${k}`]: v }} className={`absolute left-1/2 top-[44%] -translate-x-1/2 -translate-y-1/2 w-[88vw] max-w-[560px] rounded-3xl border p-6 md:p-8 shadow-2xl ${className}`}>
-    {children}
+  <div className="absolute left-1/2 top-[44%] -translate-x-1/2 -translate-y-1/2 w-[88vw] max-w-[560px]">
+    <div {...{ [`data-${k}`]: v }} className={`rounded-3xl border p-6 md:p-8 shadow-2xl ${className}`}>{children}</div>
   </div>
 );
 
