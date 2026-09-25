@@ -173,12 +173,10 @@ export default function UnifyStoryLanding() {
             pin: true,
             scrub: 0.8,
             onUpdate: (st) => {
-              const l = st.labels ?? {};
               const t = st.progress * tl.duration();
               const order = ["intro", "studio", "erp", "elite", "all"];
               let cur = "intro";
               order.forEach((k) => { if (tl.labels[k] !== undefined && t >= tl.labels[k] - 0.3) cur = k; });
-              void l;
               setActive(cur);
             },
           },
