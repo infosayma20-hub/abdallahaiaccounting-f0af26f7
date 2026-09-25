@@ -50,6 +50,7 @@ const KioskSettingsPage = lazy(() => import("./pages/pos/KioskSettingsPage"));
 // Lazy-loaded pages for code splitting
 const HomeDashboard = lazy(() => import("./pages/HomeDashboard"));
 const LandingPage = lazy(() => import("./pages/LandingPage"));
+const UnifyStoryLanding = lazy(() => import("./pages/UnifyStoryLanding"));
 const FeaturesPage = lazy(() => import("./pages/marketing/FeaturesPage"));
 const BlogIndexPage = lazy(() => import("./pages/marketing/BlogIndexPage"));
 const BlogPostPage = lazy(() => import("./pages/marketing/BlogPostPage"));
@@ -642,7 +643,8 @@ const App = () => (
               <Route path="/features" element={<FeaturesPage />} />
               <Route path="/blog" element={<BlogIndexPage />} />
               <Route path="/blog/:slug" element={<BlogPostPage />} />
-              <Route path="/landing" element={<LandingPage />} />
+              <Route path="/landing" element={<UnifyStoryLanding />} />
+              <Route path="/solutions/erp" element={<LandingPage />} />
               <Route path="/share" element={<ShareQRPage />} />
               <Route path="/join/:slug" element={<LoyaltyJoinPage />} />
               <Route path="/jobs/:slug" element={<JobApplicationPage />} />
