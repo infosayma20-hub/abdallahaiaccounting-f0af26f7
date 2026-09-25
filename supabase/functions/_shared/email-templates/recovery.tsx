@@ -4,60 +4,43 @@ import * as React from 'npm:react@18.3.1'
 
 import {
   Body,
+  Button,
   Container,
   Head,
   Heading,
-  Img,
   Html,
   Preview,
-  Section,
   Text,
 } from 'npm:@react-email/components@0.0.22'
 
 interface RecoveryEmailProps {
   siteName: string
   confirmationUrl: string
-  token?: string
 }
 
 export const RecoveryEmail = ({
   siteName,
-  token,
+  confirmationUrl,
 }: RecoveryEmailProps) => (
-  <Html lang="ar" dir="rtl">
-    <Head />
-    <Preview>إعادة تعيين كلمة المرور لحسابك في يونيفاي</Preview>
+  <Html lang="en" dir="ltr">
+    <Head>
+      <style>{darkModeCss}</style>
+    </Head>
+    <Preview>Reset your password for {siteName}</Preview>
     <Body style={main}>
       <Container style={container}>
-        <Section style={header}>
-          <Img src="https://unifyerp.app/logos/unify-mark-white.png" alt="Unify ERP" width="56" style={logoImg} />
-          <Text style={tagline}>Unify ERP — نظام إدارة الأعمال المتكامل</Text>
-        </Section>
-
-        <Section style={body}>
-          <Heading style={h1}>إعادة تعيين كلمة المرور</Heading>
-          <Text style={text}>
-            مرحباً،<br />
-            تلقّينا طلباً لإعادة تعيين كلمة المرور لحسابك في {siteName}.<br />
-            أدخل رمز التحقق التالي في صفحة إعادة التعيين لإنشاء كلمة مرور جديدة:
-          </Text>
-
-          <Section style={codeWrap}>
-            <Text style={codeStyle}>{token || '------'}</Text>
-            <Text style={codeHint}>صالح لمدة ساعة واحدة فقط</Text>
-          </Section>
-
-          <Text style={footerNote}>
-            إذا لم تطلب إعادة التعيين، تجاهل هذا الإيميل — حسابك بأمان.<br />
-            لا تشارك هذا الرمز مع أحد — فريق يونيفاي لن يطلبه منك أبداً.
-          </Text>
-        </Section>
-
-        <Section style={footer}>
-          <Text style={footerText}>
-            © 2026 يونيفاي · Unify ERP — جميع الحقوق محفوظة
-          </Text>
-        </Section>
+        <Heading style={h1}>Reset your password</Heading>
+        <Text style={text}>
+          We received a request to reset your password for {siteName}. Click
+          the button below to choose a new password.
+        </Text>
+        <Button className="dm-btn" style={button} href={confirmationUrl}>
+          Reset Password
+        </Button>
+        <Text style={footer}>
+          If you didn't request a password reset, you can safely ignore this
+          email. Your password will not be changed.
+        </Text>
       </Container>
     </Body>
   </Html>
@@ -65,89 +48,35 @@ export const RecoveryEmail = ({
 
 export default RecoveryEmail
 
-const main = {
-  direction: 'rtl' as const,
-  backgroundColor: '#f4f6fa',
-  fontFamily: 'Tahoma, Arial, sans-serif',
-  margin: 0,
-  padding: '20px 0',
-}
-const container = {
-  maxWidth: '600px',
-  margin: '0 auto',
-  backgroundColor: '#ffffff',
-  borderRadius: '12px',
-  overflow: 'hidden' as const,
-  border: '1px solid #e5e7eb',
-}
-const header = {
-  backgroundColor: '#0D1B2E',
-  padding: '28px 24px',
-  textAlign: 'center' as const,
-}
-const brand = {
-  color: '#ffffff',
-  margin: 0,
-  fontSize: '26px',
-  fontWeight: 'bold' as const,
-  letterSpacing: '1px',
-}
-const tagline = {
-  color: '#a0b0d0',
-  margin: '6px 0 0',
-  fontSize: '13px',
-}
-const body = {
-  padding: '32px 28px',
-  backgroundColor: '#ffffff',
-}
+const main = { backgroundColor: '#ffffff', fontFamily: 'Arial, sans-serif' }
+const container = { padding: '20px 25px' }
 const h1 = {
-  color: '#0D1B2E',
-  fontSize: '20px',
+  fontSize: '22px',
   fontWeight: 'bold' as const,
-  margin: '0 0 16px',
+  color: '#000000',
+  margin: '0 0 20px',
 }
 const text = {
-  color: '#374151',
-  fontSize: '15px',
-  lineHeight: '1.8',
-  margin: '0 0 24px',
+  fontSize: '14px',
+  color: '#55575d',
+  lineHeight: '1.5',
+  margin: '0 0 25px',
 }
-const codeWrap = {
-  textAlign: 'center' as const,
-  margin: '24px 0 8px',
-  padding: '20px',
-  backgroundColor: '#F7F8FA',
-  borderRadius: '12px',
-  border: '1px dashed #0D1B2E',
+const button = {
+  backgroundColor: '#000000',
+  color: '#ffffff',
+  fontSize: '14px',
+  border: '1px solid #000000',
+  borderRadius: '8px',
+  padding: '12px 20px',
+  textDecoration: 'none',
 }
-const codeStyle = {
-  color: '#0D1B2E',
-  fontSize: '32px',
-  fontWeight: 'bold' as const,
-  letterSpacing: '8px',
-  margin: 0,
-  fontFamily: 'Consolas, Menlo, monospace',
-}
-const codeHint = {
-  color: '#6b7280',
-  fontSize: '12px',
-  margin: '8px 0 0',
-}
-const footerNote = {
-  color: '#6b7280',
-  fontSize: '13px',
-  lineHeight: '1.8',
-  margin: '24px 0 0',
-}
-const footer = {
-  backgroundColor: '#0D1B2E',
-  padding: '16px 24px',
-  textAlign: 'center' as const,
-}
-const footerText = {
-  color: '#a0b0d0',
-  margin: 0,
-  fontSize: '12px',
-}
-const logoImg = { display: 'block', margin: '0 auto', height: 'auto' }
+const footer = { fontSize: '12px', color: '#999999', margin: '30px 0 0' }
+// Rendered as a text child, which React may HTML-escape: keep this CSS free of >, &, and quotes.
+const darkModeCss = `
+  @media (prefers-color-scheme: dark) {
+    .dm-btn { background-color: #ffffff !important; color: #000000 !important; }
+  }
+  [data-ogsc] .dm-btn { background-color: #ffffff !important; color: #000000 !important; }
+  [data-ogsb] .dm-btn { background-color: #ffffff !important; color: #000000 !important; }
+`
