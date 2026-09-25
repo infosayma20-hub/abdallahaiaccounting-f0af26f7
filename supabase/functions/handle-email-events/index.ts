@@ -39,7 +39,7 @@ const handler = createEmailWebhookHandler({
   on: {
     'email.bounced': async (event) => {
       await record(event.event_id, event.data.recipient, event.data.message_id, 'bounce', 'bounced',
-        'Permanent bounce — email address is invalid or does not exist')
+        'Permanent bounce — email address is invalid or rejected')
     },
     'email.complaint': async (event) => {
       await record(event.event_id, event.data.recipient, event.data.message_id, 'complaint', 'complained',
