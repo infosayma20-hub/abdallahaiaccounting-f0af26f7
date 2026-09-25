@@ -19,6 +19,7 @@ interface EmailChangeEmailProps {
   siteName: string
   email: string
   newEmail: string
+  oldEmail?: string
   confirmationUrl: string
 }
 
@@ -26,6 +27,7 @@ export const EmailChangeEmail = ({
   siteName,
   email,
   newEmail,
+  oldEmail,
   confirmationUrl,
 }: EmailChangeEmailProps) => (
   <Html lang="ar" dir="rtl">
@@ -42,7 +44,7 @@ export const EmailChangeEmail = ({
           <Heading style={h1}>تأكيد تغيير البريد الإلكتروني</Heading>
           <Text style={text}>
             طلبت تغيير بريدك الإلكتروني في {siteName}:<br /><br />
-            <strong>من:</strong> {email}<br />
+            <strong>من:</strong> {oldEmail || email}<br />
             <strong>إلى:</strong> {newEmail}
           </Text>
 

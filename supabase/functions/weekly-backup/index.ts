@@ -1,3 +1,4 @@
+import { sendTemplateEmailLogged } from '../_shared/transactional-email-templates/send-and-log.ts'
 import { createClient } from 'npm:@supabase/supabase-js@2.45.0'
 
 const corsHeaders = {
@@ -139,10 +140,9 @@ Deno.serve(async (req) => {
     const sizeMb = (totalBytes / 1024 / 1024).toFixed(2)
 
     // Send email
-    const { error: mailErr } = await supabase.functions.invoke('send-transactional-email', {
-      body: {
-        templateName: 'weekly-backup-ready',
-        recipientEmail: RECIPIENT,
+    let mailErr: { message: string } | null = null
+    try {
+      await sendTemplateEmailLogged('weekly-backup-ready', RECIPIENT, {
         idempotencyKey: `weekly-backup-${timestamp}`,
         templateData: {
           downloadUrl: manifestSigned?.signedUrl || '',
@@ -152,8 +152,10 @@ Deno.serve(async (req) => {
           generatedAt,
           expiresInDays: 7,
         },
-      },
-    })
+      })
+    } catch (e) {
+      mailErr = { message: e instanceof Error ? e.message : String(e) }
+    }
     if (mailErr) console.error('[weekly-backup] email error:', mailErr)
 
     return new Response(

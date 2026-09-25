@@ -1,3 +1,4 @@
+import { sendTemplateEmailLogged } from '../_shared/transactional-email-templates/send-and-log.ts'
 import { createClient } from 'npm:@supabase/supabase-js@2'
 
 const corsHeaders = {
@@ -113,20 +114,21 @@ Deno.serve(async (req) => {
         })
       }
     } else if (channel === 'email') {
-      const { error: emailErr } = await admin.functions.invoke('send-transactional-email', {
-        body: {
-          templateName: 'employee-form-shared',
-          recipientEmail: recipient,
-          idempotencyKey: `form-share-${formId}-${Date.now()}`,
-          templateData: {
+      let emailErr: { message: string } | null = null
+    try {
+      await sendTemplateEmailLogged('employee-form-shared', recipient, {
+        idempotencyKey: `form-share-${formId}-${Date.now()}`,
+        templateData: {
             recipientName: recipientName || '',
             senderName: senderEmployee?.full_name || 'موظف',
             formTitle: form.title || 'نموذج',
             pdfUrl,
             message: message || '',
           },
-        },
       })
+    } catch (e) {
+      emailErr = { message: e instanceof Error ? e.message : String(e) }
+    }
       if (emailErr) {
         shareStatus = 'failed'
         errorMsg = emailErr.message
