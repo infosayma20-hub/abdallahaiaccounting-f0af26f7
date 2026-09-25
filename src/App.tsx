@@ -254,7 +254,6 @@ const SpartaFiscalYearsPage = lazy(() => import("./pages/sparta/accounting/Spart
 const SpartaBudgetPage = lazy(() => import("./pages/sparta/accounting/SpartaBudgetPage"));
 const SpartaCashFlowPage = lazy(() => import("./pages/sparta/accounting/SpartaCashFlowPage"));
 const SpartaAdminPage = lazy(() => import("./pages/sparta/SpartaAdminPage"));
-const UnsubscribePage = lazy(() => import("./pages/UnsubscribePage"));
 const FloorPlanPage = lazy(() => import("./pages/FloorPlanPage"));
 const FloorPlanEditorPage = lazy(() => import("./pages/FloorPlanEditorPage"));
 const DigitalReceiptPage = lazy(() => import("./pages/DigitalReceiptPage"));
@@ -726,7 +725,6 @@ const App = () => (
                 <Route path="m/van/collect" element={<SpartaVanCollect />} />
                 <Route path="m/van/close" element={<SpartaVanClose />} />
               </Route>
-              <Route path="/unsubscribe" element={<UnsubscribePage />} />
               <Route path="/choose-workspace" element={<ProtectedRoute><ChooseWorkspacePage /></ProtectedRoute>} />
               <Route path="/employee" element={<ProtectedRoute><RoleGuard allowedRoles={["employee"]} fallback="/auth"><EmployeeApp /></RoleGuard></ProtectedRoute>} />
               <Route path="/employee/attendance" element={<ProtectedRoute><RoleGuard allowedRoles={["employee"]} fallback="/auth"><EmployeeApp initialTab="attendance" /></RoleGuard></ProtectedRoute>} />
