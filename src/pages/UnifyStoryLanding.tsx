@@ -44,10 +44,10 @@ const StudioLayer = () => (
       <span className="latin tracking-[0.3em]">ATELIER · DEMO</span><span className="opacity-60">المجموعة · القصة · السلة (1)</span>
     </div>
     <img data-s="img" src={fabric} alt="قماش — صورة منتج توضيحية" className="absolute object-cover" style={{ inset: 0, width: "100%", height: "100%" }} />
-    <div data-s="info" className="absolute top-20 bottom-8 right-8 w-[38%] flex flex-col justify-center gap-3">
+    <div data-s="info" className="absolute inset-x-5 bottom-4 md:inset-x-auto md:top-20 md:bottom-8 md:right-8 md:w-[38%] flex flex-col justify-center gap-1.5 md:gap-3">
       <span className="text-[11px] tracking-widest opacity-60 latin">SS / 26</span>
       <h4 className="text-2xl md:text-3xl font-black leading-tight">وشاح كتّان منسوج يدوياً</h4>
-      <p className="text-sm opacity-70">خيوط طبيعية، ألوان ترابية، وقصة كل قطعة مكتوبة على بطاقتها.</p>
+      <p className="hidden md:block text-sm opacity-70">خيوط طبيعية، ألوان ترابية، وقصة كل قطعة مكتوبة على بطاقتها.</p>
       <div className="flex gap-2 mt-1">{["#c9a27a", "#6b7d5c", "#2f3a4a"].map((c) => <span key={c} className="w-5 h-5 rounded-full border border-black/20" style={{ background: c }} />)}</div>
       <span className="font-black text-lg latin">₪ 240</span>
       <span className="self-start px-5 py-2 rounded-full text-xs font-bold bg-[#1b1b1b] text-[#f5f1ea]">أضف للسلة</span>
