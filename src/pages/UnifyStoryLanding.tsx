@@ -2,7 +2,7 @@ import { useEffect, useLayoutEffect, useRef, useState, FormEvent } from "react";
 import { Link } from "react-router-dom";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
-import fabric from "@/assets/studio/fabric.jpg";
+import accountingPapers from "@/assets/studio/accounting-papers.jpg";
 import studioWhite from "@/assets/studio/studio-white-green.png.asset.json";
 import unifyLogo from "@/assets/unify-logo-vertical-official.png.asset.json";
 
@@ -43,7 +43,7 @@ const StudioLayer = () => (
     <div data-s="nav" className="absolute top-0 inset-x-0 h-12 flex items-center justify-between px-6 text-xs font-bold border-b border-black/10 bg-[#f5f1ea]">
       <span className="latin tracking-[0.3em]">ATELIER · DEMO</span><span className="opacity-60">المجموعة · القصة · السلة (1)</span>
     </div>
-    <img data-s="img" src={fabric} alt="قماش — صورة منتج توضيحية" className="absolute object-cover" style={{ left: 0, top: 0, width: "100%", height: "100%" }} />
+    <img data-s="img" src={accountingPapers} alt="إدارة محاسبة وأوراق موظفين — صورة توضيحية" className="absolute object-cover" style={{ left: 0, top: 0, width: "100%", height: "100%" }} />
     <div data-s="info" className="absolute inset-x-5 bottom-4 md:inset-x-auto md:top-20 md:bottom-8 md:right-8 md:w-[38%] flex flex-col justify-center gap-1.5 md:gap-3">
       <span className="text-[11px] tracking-widest opacity-60 latin">SS / 26</span>
       <h4 className="text-2xl md:text-3xl font-black leading-tight">وشاح كتّان منسوج يدوياً</h4>
