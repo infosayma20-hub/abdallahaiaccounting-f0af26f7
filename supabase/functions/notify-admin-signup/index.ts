@@ -1,3 +1,4 @@
+import { sendTemplateEmailLogged } from '../_shared/transactional-email-templates/send-and-log.ts'
 import { createClient } from 'npm:@supabase/supabase-js@2'
 
 const corsHeaders = {
@@ -20,10 +21,9 @@ Deno.serve(async (req) => {
     const supabase = createClient(supabaseUrl, supabaseServiceKey)
 
     // Send email via internal transactional sender
-    const { error: sendError } = await supabase.functions.invoke('send-transactional-email', {
-      body: {
-        templateName: 'admin-user-event',
-        recipientEmail: ADMIN_EMAIL,
+    let sendError: { message: string } | null = null
+    try {
+      await sendTemplateEmailLogged('admin-user-event', ADMIN_EMAIL, {
         idempotencyKey: `admin-event-${notification_id}`,
         templateData: {
           eventType: event_type,
@@ -31,8 +31,10 @@ Deno.serve(async (req) => {
           userName: user_name || user_email.split('@')[0],
           eventTime: new Date().toLocaleString('ar-EG', { timeZone: 'Asia/Jerusalem' }),
         },
-      },
-    })
+      })
+    } catch (e) {
+      sendError = { message: e instanceof Error ? e.message : String(e) }
+    }
 
     if (sendError) {
       console.error('Failed to send admin email', sendError)
