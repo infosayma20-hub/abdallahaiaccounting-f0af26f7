@@ -4,13 +4,13 @@ import * as React from 'npm:react@18.3.1'
 
 import {
   Body,
-  Button,
   Container,
   Head,
   Heading,
+  Img,
   Html,
-  Link,
   Preview,
+  Section,
   Text,
 } from 'npm:@react-email/components@0.0.22'
 
@@ -19,42 +19,47 @@ interface SignupEmailProps {
   siteUrl: string
   recipient: string
   confirmationUrl: string
+  token?: string
 }
 
 export const SignupEmail = ({
   siteName,
-  siteUrl,
   recipient,
-  confirmationUrl,
+  token,
 }: SignupEmailProps) => (
-  <Html lang="en" dir="ltr">
-    <Head>
-      <style>{darkModeCss}</style>
-    </Head>
-    <Preview>Confirm your email for {siteName}</Preview>
+  <Html lang="ar" dir="rtl">
+    <Head />
+    <Preview>أكّد بريدك الإلكتروني للانضمام إلى يونيفاي</Preview>
     <Body style={main}>
       <Container style={container}>
-        <Heading style={h1}>Confirm your email</Heading>
-        <Text style={text}>
-          Thanks for signing up for{' '}
-          <Link href={siteUrl} style={link}>
-            <strong>{siteName}</strong>
-          </Link>
-          !
-        </Text>
-        <Text style={text}>
-          Please confirm your email address (
-          <Link href={`mailto:${recipient}`} style={link}>
-            {recipient}
-          </Link>
-          ) by clicking the button below:
-        </Text>
-        <Button className="dm-btn" style={button} href={confirmationUrl}>
-          Verify Email
-        </Button>
-        <Text style={footer}>
-          If you didn't create an account, you can safely ignore this email.
-        </Text>
+        <Section style={header}>
+          <Img src="https://unifyerp.app/logos/unify-mark-white.png" alt="Unify ERP" width="56" style={logoImg} />
+          <Text style={tagline}>Unify ERP — نظام إدارة الأعمال المتكامل</Text>
+        </Section>
+
+        <Section style={body}>
+          <Heading style={h1}>أهلاً بك في {siteName}!</Heading>
+          <Text style={text}>
+            شكراً لتسجيلك في يونيفاي.<br />
+            لإكمال إنشاء حسابك ({recipient})، أدخل رمز التحقق التالي كاملاً في صفحة التأكيد:
+          </Text>
+
+          <Section style={codeWrap}>
+            <Text style={codeStyle}>{token || '------'}</Text>
+            <Text style={codeHint}>صالح لمدة ساعة واحدة فقط</Text>
+          </Section>
+
+          <Text style={footerNote}>
+            إذا لم تنشئ هذا الحساب، يمكنك تجاهل هذا الإيميل بأمان.<br />
+            لا تشارك هذا الرمز مع أي شخص — فريق يونيفاي لن يطلبه منك أبداً.
+          </Text>
+        </Section>
+
+        <Section style={footer}>
+          <Text style={footerText}>
+            © 2026 يونيفاي · Unify ERP — جميع الحقوق محفوظة
+          </Text>
+        </Section>
       </Container>
     </Body>
   </Html>
@@ -62,36 +67,18 @@ export const SignupEmail = ({
 
 export default SignupEmail
 
-const main = { backgroundColor: '#ffffff', fontFamily: 'Arial, sans-serif' }
-const container = { padding: '20px 25px' }
-const h1 = {
-  fontSize: '22px',
-  fontWeight: 'bold' as const,
-  color: '#000000',
-  margin: '0 0 20px',
-}
-const text = {
-  fontSize: '14px',
-  color: '#55575d',
-  lineHeight: '1.5',
-  margin: '0 0 25px',
-}
-const link = { color: 'inherit', textDecoration: 'underline' }
-const button = {
-  backgroundColor: '#000000',
-  color: '#ffffff',
-  fontSize: '14px',
-  border: '1px solid #000000',
-  borderRadius: '8px',
-  padding: '12px 20px',
-  textDecoration: 'none',
-}
-const footer = { fontSize: '12px', color: '#999999', margin: '30px 0 0' }
-// Rendered as a text child, which React may HTML-escape: keep this CSS free of >, &, and quotes.
-const darkModeCss = `
-  @media (prefers-color-scheme: dark) {
-    .dm-btn { background-color: #ffffff !important; color: #000000 !important; }
-  }
-  [data-ogsc] .dm-btn { background-color: #ffffff !important; color: #000000 !important; }
-  [data-ogsb] .dm-btn { background-color: #ffffff !important; color: #000000 !important; }
-`
+const main = { direction: 'rtl' as const, backgroundColor: '#f4f6fa', fontFamily: 'Tahoma, Arial, sans-serif', margin: 0, padding: '20px 0' }
+const container = { maxWidth: '600px', margin: '0 auto', backgroundColor: '#ffffff', borderRadius: '12px', overflow: 'hidden' as const, border: '1px solid #e5e7eb' }
+const header = { backgroundColor: '#0D1B2E', padding: '28px 24px', textAlign: 'center' as const }
+const brand = { color: '#ffffff', margin: 0, fontSize: '26px', fontWeight: 'bold' as const, letterSpacing: '1px' }
+const tagline = { color: '#a0b0d0', margin: '6px 0 0', fontSize: '13px' }
+const body = { padding: '32px 28px', backgroundColor: '#ffffff' }
+const h1 = { color: '#0D1B2E', fontSize: '20px', fontWeight: 'bold' as const, margin: '0 0 16px' }
+const text = { color: '#374151', fontSize: '15px', lineHeight: '1.8', margin: '0 0 24px' }
+const codeWrap = { textAlign: 'center' as const, margin: '24px 0 8px', padding: '20px', backgroundColor: '#F7F8FA', borderRadius: '12px', border: '1px dashed #0D1B2E' }
+const codeStyle = { color: '#0D1B2E', fontSize: '32px', fontWeight: 'bold' as const, letterSpacing: '8px', margin: 0, fontFamily: 'Consolas, Menlo, monospace' }
+const codeHint = { color: '#6b7280', fontSize: '12px', margin: '8px 0 0' }
+const footerNote = { color: '#6b7280', fontSize: '13px', lineHeight: '1.8', margin: '24px 0 0' }
+const footer = { backgroundColor: '#0D1B2E', padding: '16px 24px', textAlign: 'center' as const }
+const footerText = { color: '#a0b0d0', margin: 0, fontSize: '12px' }
+const logoImg = { display: 'block', margin: '0 auto', height: 'auto' }
