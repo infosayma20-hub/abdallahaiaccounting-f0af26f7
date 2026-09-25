@@ -1365,11 +1365,11 @@ const AccountStatementV2Page = () => {
         ]));
         const [{ data: cashBoxesData }, { data: bankAccountsData }] = await Promise.all([
           cashBoxIds.length ? supabase.from("cash_boxes").select("id, name").eq("user_id", dataOwnerId).in("id", cashBoxIds) : Promise.resolve({ data: [] as any[] }),
-          bankAccountIds.length ? supabase.from("bank_accounts").select("id, account_name, bank_name").eq("user_id", dataOwnerId).in("id", bankAccountIds) : Promise.resolve({ data: [] as any[] }),
+          bankAccountIds.length ? supabase.from("bank_accounts").select("id, name, bank_name").eq("user_id", dataOwnerId).in("id", bankAccountIds) : Promise.resolve({ data: [] as any[] }),
         ]);
         const cashBoxMap: Record<string, string> = {}; (cashBoxesData || []).forEach((b: any) => { cashBoxMap[b.id] = b.name; });
         const bankAccountMap: Record<string, { name: string; bank: string }> = {};
-        (bankAccountsData || []).forEach((b: any) => { bankAccountMap[b.id] = { name: b.account_name, bank: b.bank_name }; });
+        (bankAccountsData || []).forEach((b: any) => { bankAccountMap[b.id] = { name: b.name, bank: b.bank_name }; });
         // Cheque status lookup (already loaded into `cheques` state)
         const chequeStatusByNumber: Record<string, string> = {};
         cheques.forEach(c => { if (c.cheque_number) chequeStatusByNumber[c.cheque_number] = c.status; });

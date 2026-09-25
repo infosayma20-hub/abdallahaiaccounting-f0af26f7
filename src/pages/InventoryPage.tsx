@@ -655,8 +655,25 @@ if (warehouseFilter === "all") return products.map(p => withWh(p));
       });
     });
 
-    // pos_inventory_movements (manual input / purchases)
+    // pos_inventory_movements (manual input / purchases).
+    // Newer POS entries also write a mirrored stock_movements row
+    // (reference_type pos_production_in / pos_purchase_in) — skip those POS rows
+    // to avoid listing the same event twice.
+    const mirrored = (stockRes.data || []).filter((m: any) =>
+      m.reference_type === "pos_production_in" || m.reference_type === "pos_purchase_in");
+    const used = new Set<string>();
+    const isMirrored = (m: any) => {
+      const refType = m.type === "production_in" ? "pos_production_in" : m.type === "purchase_in" ? "pos_purchase_in" : null;
+      if (!refType) return false;
+      const t = new Date(m.created_at).getTime();
+      const hit = mirrored.find((s: any) => !used.has(s.id) && s.reference_type === refType
+        && Number(s.quantity) === Number(m.quantity)
+        && Math.abs(new Date(s.created_at).getTime() - t) < 120000);
+      if (hit) { used.add(hit.id); return true; }
+      return false;
+    };
     (posInvRes.data || []).forEach((m: any) => {
+      if (isMirrored(m)) return;
       const typeMap: Record<string, string> = {
         production_in: "إدخال بضاعة",
         purchase_in: "مشتريات",
