@@ -27,6 +27,7 @@ export const EmailChangeEmail = ({
   siteName,
   email,
   newEmail,
+  oldEmail,
   confirmationUrl,
 }: EmailChangeEmailProps) => (
   <Html lang="ar" dir="rtl">
