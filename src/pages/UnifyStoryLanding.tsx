@@ -161,7 +161,7 @@ export default function UnifyStoryLanding() {
         gsap.set(q(".mini"), { autoAlpha: 0, y: 60 });
 
         const frameStart = desk ? { width: "46vw", height: "56vh", top: "30vh" } : { width: "84vw", height: "34vh", top: "48vh" };
-        const frameStage = desk ? { width: "58vw", height: "76vh", top: "12vh" } : { width: "92vw", height: "52vh", top: "8vh" };
+        const frameStage = desk ? { width: "56vw", height: "76vh", top: "12vh", left: "36%" } : { width: "92vw", height: "52vh", top: "8vh" };
         gsap.set(q(".frame"), { ...frameStart, xPercent: -50, left: "50%", borderColor: C.studio });
 
         const tl = gsap.timeline({
@@ -189,7 +189,7 @@ export default function UnifyStoryLanding() {
           .to(q(".frame"), { ...frameStage, borderRadius: "28px", duration: 1.2 }, "<")
           .addLabel("studio")
           .to(q(".copy[data-c=studio]"), { autoAlpha: 1, duration: 0.4 }, "<0.6")
-          .to(q("[data-s=img]"), desk ? { scale: 1, width: "56%", height: "80%", top: "15%", left: "4%", duration: 1.4 } : { scale: 1, height: "55%", top: "12%", duration: 1.4 })
+          .to(q("[data-s=img]"), desk ? { scale: 1, width: "48%", height: "80%", top: "15%", left: "4%", duration: 1.4 } : { scale: 1, height: "55%", top: "12%", duration: 1.4 })
           .to(q("[data-s=nav]"), { autoAlpha: 1, y: 0, duration: 0.5 }, "<0.5")
           .to(q("[data-s=info]"), { autoAlpha: 1, y: 0, duration: 0.7 }, "<0.2")
           .to(q(".frame"), { scale: desk ? 0.88 : 0.94, duration: 0.8 })
@@ -197,7 +197,7 @@ export default function UnifyStoryLanding() {
           // bridge → ERP
           .to(q(".copy[data-c=studio]"), { autoAlpha: 0, duration: 0.3 })
           .to(q(".bridge[data-b=erp]"), { autoAlpha: 1, duration: 0.3 }, "<")
-          .to(q(".frame"), { scale: 1, width: desk ? "64vw" : "92vw", height: desk ? "66vh" : "56vh", borderRadius: "14px", borderColor: C.erp, duration: 1 })
+          .to(q(".frame"), { scale: 1, width: desk ? "60vw" : "92vw", height: desk ? "66vh" : "56vh", borderRadius: "14px", borderColor: C.erp, duration: 1 })
           .to(q(".glow"), { background: `radial-gradient(circle at 50% 50%, ${C.erp}33, transparent 60%)`, duration: 1 }, "<")
           .to(q("[data-l=studio]"), { autoAlpha: 0, scale: 0.9, duration: 0.8 }, "<0.2")
           .to(q("[data-l=erp]"), { autoAlpha: 1, duration: 0.8 }, "<")
@@ -215,7 +215,7 @@ export default function UnifyStoryLanding() {
           // bridge → Elite
           .to(q(".copy[data-c=erp]"), { autoAlpha: 0, duration: 0.3 })
           .to(q(".bridge[data-b=elite]"), { autoAlpha: 1, duration: 0.3 }, "<")
-          .to(q(".frame"), { width: desk ? "52vw" : "88vw", height: desk ? "70vh" : "56vh", borderRadius: "40px 40px 50% 50% / 40px 40px 22% 22%", borderColor: C.elite, duration: 1 })
+          .to(q(".frame"), { width: desk ? "54vw" : "88vw", height: desk ? "70vh" : "56vh", borderRadius: "40px 40px 50% 50% / 40px 40px 22% 22%", borderColor: C.elite, duration: 1 })
           .to(q(".glow"), { background: `radial-gradient(circle at 50% 50%, ${C.elite}33, transparent 60%)`, duration: 1 }, "<")
           .to(q("[data-l=erp]"), { autoAlpha: 0, duration: 0.7 }, "<0.2")
           .to(q("[data-l=elite]"), { autoAlpha: 1, duration: 0.7 }, "<")
