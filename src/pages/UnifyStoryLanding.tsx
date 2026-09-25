@@ -196,7 +196,7 @@ export default function UnifyStoryLanding() {
             ))}
           </div>
           <div className="flex gap-3">
-            <Link to="/features" className="px-6 py-3 rounded-xl font-extrabold" style={{ background: C.erp }}>استكشف Unify ERP</Link>
+            <Link to="/solutions/erp" className="px-6 py-3 rounded-xl font-extrabold" style={{ background: C.erp }}>استكشف Unify ERP</Link>
             <Link to="/auth" className="px-6 py-3 rounded-xl font-extrabold border border-white/20">دخول النظام</Link>
           </div>
         </Reveal>
@@ -251,7 +251,7 @@ export default function UnifyStoryLanding() {
                 <p className="font-extrabold mt-2" style={{ color: p.accent }}>{p.tagline}</p>
                 <p className="text-sm text-white/65 mt-3 leading-relaxed flex-1">{p.summary}</p>
                 {p.id === "erp" ? (
-                  <Link to="/features" className="mt-6 text-sm font-extrabold" style={{ color: p.accent }}>{p.action} ←</Link>
+                  <Link to="/solutions/erp" className="mt-6 text-sm font-extrabold" style={{ color: p.accent }}>{p.action} ←</Link>
                 ) : (
                   <button onClick={() => goContact(p.name)} className="mt-6 text-sm font-extrabold text-right" style={{ color: p.accent }}>{p.action} ←</button>
                 )}
