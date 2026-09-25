@@ -31112,10 +31112,6 @@ export type Database = {
         }
         Returns: Json
       }
-      delete_email: {
-        Args: { message_id: number; queue_name: string }
-        Returns: boolean
-      }
       delete_voucher_transactions: {
         Args: { p_owner_id: string; p_voucher_id: string }
         Returns: number
@@ -31151,7 +31147,6 @@ export type Database = {
         Returns: Json
       }
       dispatch_internal_message_reminders: { Args: never; Returns: number }
-      email_queue_dispatch: { Args: never; Returns: undefined }
       emit_domain_event_v1: {
         Args: {
           p_actor_id: string
@@ -31174,10 +31169,6 @@ export type Database = {
       employee_form_privacy_allows: {
         Args: { _employee_id: string; _owner: string; _viewer: string }
         Returns: boolean
-      }
-      enqueue_email: {
-        Args: { payload: Json; queue_name: string }
-        Returns: number
       }
       enqueue_notification: {
         Args: {
@@ -32431,15 +32422,6 @@ export type Database = {
         }
         Returns: Json
       }
-      move_to_dlq: {
-        Args: {
-          dlq_name: string
-          message_id: number
-          payload: Json
-          source_queue: string
-        }
-        Returns: number
-      }
       my_org_employee_ids: { Args: never; Returns: string[] }
       my_visible_employee_ids: { Args: never; Returns: string[] }
       next_amwali_quote_number: { Args: never; Returns: string }
@@ -32736,14 +32718,6 @@ export type Database = {
           require_phone: boolean
           user_id: string
           welcome_message: string
-        }[]
-      }
-      read_email_batch: {
-        Args: { batch_size: number; queue_name: string; vt: number }
-        Returns: {
-          message: Json
-          msg_id: number
-          read_ct: number
         }[]
       }
       rebuild_product_warehouse_balances: { Args: never; Returns: number }
