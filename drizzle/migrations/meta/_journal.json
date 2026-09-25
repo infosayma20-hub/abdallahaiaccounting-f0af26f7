@@ -120,6 +120,13 @@
       "when": 1790270481299,
       "tag": "0016_portal_users_date_of_birth",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1790332619711,
+      "tag": "0017_pos_shift_audits_cashier_write",
+      "breakpoints": true
     }
   ]
 }
