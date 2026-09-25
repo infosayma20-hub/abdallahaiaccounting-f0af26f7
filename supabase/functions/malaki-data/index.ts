@@ -1238,7 +1238,7 @@ Deno.serve(async (req) => {
           .order("created_at", { ascending: false }).limit(10),
         supabase.from("malaki_portal_settings")
           .select("exchange_rate_jod, exchange_rate_usd")
-          .eq("user_id", linkedUserId).maybeSingle(),
+          .eq("linked_user_id", linkedUserId).maybeSingle(),
         supabase.from("currencies")
           .select("id, code")
           .eq("user_id", linkedUserId)
@@ -1461,11 +1461,11 @@ Deno.serve(async (req) => {
         if (branchIdsLive.length > 0) {
           const { data: brs } = await supabase
             .from("branches")
-            .select("id, name, location")
+            .select("id, name, address")
             .in("id", branchIdsLive);
           (brs || []).forEach((b: any) => {
             branchNameMapLive[b.id] = b.name;
-            (branchNameMapLive as any)[b.id + "__loc"] = b.location || "";
+            (branchNameMapLive as any)[b.id + "__loc"] = b.address || "";
           });
         }
 
