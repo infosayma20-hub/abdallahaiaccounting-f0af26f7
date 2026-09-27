@@ -182,7 +182,7 @@ const NoorSupportWidget = () => {
         >
           <button
             onClick={() => setOpen(true)}
-            className="relative flex items-center justify-end pr-1 text-white transition-transform duration-300 ease-out -translate-x-1/2 group-hover:translate-x-0 active:scale-95"
+            className="relative flex items-center justify-start pl-1 text-white transition-transform duration-300 ease-out -translate-x-1/2 group-hover:translate-x-0 active:scale-95"
             style={{
               width: "2.75rem",
               height: "3.25rem",
