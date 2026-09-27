@@ -491,10 +491,24 @@ export default function BulkVoucherPage({ mode }: Props) {
 
       /* --- EDIT: delete existing lines + soft-delete existing transactions --- */
       if (isEdit && voucherId) {
-        // Soft-delete old transactions by reference
-        await supabase.from("transactions").update({ is_deleted: true, idempotency_key: null } as any)
-          .eq("user_id", ownerId)
-          .or(`reference.eq.${finalRef},idempotency_key.like.BULK-${finalRef}-%`);
+        // Soft-delete old transactions (by reference, then by idempotency key).
+        // كل خطوة تُفحص — فشل صامت هنا كان يترك القيود القديمة فعّالة
+        // ويسبب "duplicate key idx_transactions_user_idempotency_key".
+        const { error: sd1 } = await supabase.from("transactions")
+          .update({ is_deleted: true, idempotency_key: null } as any)
+          .eq("user_id", ownerId).eq("reference", finalRef).eq("is_deleted", false);
+        if (sd1) throw sd1;
+        const { error: sd2 } = await supabase.from("transactions")
+          .update({ is_deleted: true, idempotency_key: null } as any)
+          .eq("user_id", ownerId).like("idempotency_key", `BULK-${finalRef}-%`);
+        if (sd2) throw sd2;
+        const { count: stillActive, error: chkErr } = await supabase.from("transactions")
+          .select("id", { count: "exact", head: true })
+          .eq("user_id", ownerId).like("idempotency_key", `BULK-${finalRef}-%`);
+        if (chkErr) throw chkErr;
+        if ((stillActive ?? 0) > 0) {
+          throw new Error("تعذّر إلغاء القيود القديمة للسند — لم يُحفظ أي تعديل على القيود. تأكد من صلاحية التعديل أو أن الفترة المحاسبية مفتوحة.");
+        }
         await supabase.from("voucher_lines").delete().eq("voucher_id", voucherId);
         // حركات الموظفين مرآة للسند — تُحذف وتُعاد (سياسة delete & recreate)
         const { data: oldMovs } = await supabase.from("employee_financial_movements")
