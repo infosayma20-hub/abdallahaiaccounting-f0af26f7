@@ -14,6 +14,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useDataOwnerId } from "@/hooks/useDataOwnerId";
+import { SupplierPicker } from "@/components/procurement/SupplierPicker";
 import { multiWordMatchAny } from "@/lib/utils";
 
 const iconMap: Record<string, any> = {
@@ -306,10 +307,7 @@ const PurchaseOrderCreatePage = () => {
           <div className="px-4 py-2 flex items-center gap-4 flex-wrap border-b border-border/50">
             <div className="flex items-center gap-1.5">
               <Label className="text-xs text-muted-foreground whitespace-nowrap">المورد:</Label>
-              <Select value={supplierId} onValueChange={setSupplierId}>
-                <SelectTrigger className="h-8 w-[160px] text-xs"><SelectValue placeholder="اختر المورد" /></SelectTrigger>
-                <SelectContent>{allSuppliers.filter((s: any) => s.is_active !== false).map((s: any) => <SelectItem key={s.id} value={s.id} className="text-xs">{s.name}</SelectItem>)}</SelectContent>
-              </Select>
+              <SupplierPicker suppliers={allSuppliers as any} value={supplierId} onChange={setSupplierId} ownerId={ownerId} />
               <Tooltip><TooltipTrigger asChild>
                 <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0 text-muted-foreground hover:text-primary" onClick={() => setSupplierOpen(true)}>
                   <UserPlus className="h-3.5 w-3.5" />
