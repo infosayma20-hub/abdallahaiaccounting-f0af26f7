@@ -99,6 +99,7 @@ const PurchaseOrderCreatePage = () => {
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
   const [cardSize, setCardSize] = useState<CardSize>((prefs.cardSize as CardSize) || "small");
   const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
+  const [mobileCartOpen, setMobileCartOpen] = useState(false);
 
   // Dialog states
   const [manualOpen, setManualOpen] = useState(false);
@@ -479,18 +480,23 @@ const PurchaseOrderCreatePage = () => {
           </div>
 
           {/* LEFT: Order Lines Panel */}
-          <div className="w-[300px] shrink-0 border-r border-border bg-card flex flex-col overflow-hidden">
+          <div className={`${mobileCartOpen ? "fixed inset-0 z-50 flex" : "hidden"} md:static md:flex w-full md:w-[300px] shrink-0 border-r border-border bg-card flex-col overflow-hidden`}>
             <div className="shrink-0 px-3 py-2.5 border-b border-border flex items-center justify-between">
               <span className="text-sm font-bold flex items-center gap-1.5">
                 بنود الطلبية
                 {lines.length > 0 && <Badge variant="secondary" className="text-[10px] h-5 px-1.5">{lines.length}</Badge>}
               </span>
-              {lines.length > 0 && (
-                <button onClick={clearAll} className="text-xs text-destructive hover:underline flex items-center gap-1">
-                  <Trash2 className="h-3.5 w-3.5" />
-                  مسح الكل
+              <div className="flex items-center gap-2">
+                {lines.length > 0 && (
+                  <button onClick={clearAll} className="text-xs text-destructive hover:underline flex items-center gap-1">
+                    <Trash2 className="h-3.5 w-3.5" />
+                    مسح الكل
+                  </button>
+                )}
+                <button onClick={() => setMobileCartOpen(false)} className="md:hidden p-1 text-muted-foreground hover:text-foreground" aria-label="إغلاق السلة">
+                  <X className="h-5 w-5" />
                 </button>
-              )}
+              </div>
             </div>
 
             <div className="flex-1 overflow-y-auto">
