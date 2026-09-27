@@ -566,19 +566,11 @@ const PurchaseOrderCreatePage = () => {
               )}
             </div>
 
-            <div className="shrink-0 border-t border-border p-3 space-y-2.5 bg-muted/20">
+            <div className="shrink-0 border-t border-border px-3 py-2 bg-muted/20">
               <div className="flex justify-between text-sm">
                 <span className="text-muted-foreground">المجموع التقديري</span>
                 <span className="font-bold text-base">{totalAmount.toLocaleString("en", { minimumFractionDigits: 2 })} ₪</span>
               </div>
-              <Button variant="outline" size="sm" className="w-full h-9 text-xs gap-1.5" onClick={() => handleSave(false)} disabled={saving}>
-                <Save className="h-4 w-4" />
-                حفظ مسودة
-              </Button>
-              <Button size="sm" className="w-full h-9 text-xs gap-1.5 text-white" style={{ background: "#1B3A5C" }} onClick={() => handleSave(true)} disabled={saving || !supplierId || lines.length === 0}>
-                <Send className="h-4 w-4" />
-                إرسال الطلبية
-              </Button>
             </div>
           </div>
         </div>
