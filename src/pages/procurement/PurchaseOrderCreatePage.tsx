@@ -245,14 +245,7 @@ const PurchaseOrderCreatePage = () => {
       unit: newItem.unit, default_price: newItem.default_price || 0,
       notes: newItem.notes || null, is_active: true, sort_order: 0,
     });
-    if (ok && user) {
-      const catName = categories.find((c: any) => c.id === newItem.category_id)?.name || "بضاعة عامة";
-      await supabase.from("products").insert({
-        user_id: ownerId, name: newItem.name, unit: newItem.unit,
-        buy_price: newItem.default_price || 0, sell_price: 0, quantity: 0, min_quantity: 0, category: catName,
-        is_pos_available: false,
-      } as any);
-    }
+    // الربط بالمخزون يتم تلقائياً في قاعدة البيانات (نفس المنتج، نفس التصنيف)
     setSavingDialog(false);
     if (ok) { setItemOpen(false); setNewItem({ name: "", category_id: "", unit: "كيلو", default_price: 0, notes: "" }); }
   };
