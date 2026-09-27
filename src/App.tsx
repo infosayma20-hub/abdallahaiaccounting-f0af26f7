@@ -72,6 +72,7 @@ const SmartReportPage = lazy(() => import("./pages/SmartReportPage"));
 const JournalEntriesPage = lazy(() => import("./pages/JournalEntriesPage"));
 const TrialBalancePage = lazy(() => import("./pages/TrialBalancePage"));
 const AuthVerifyPage = lazy(() => import("./pages/AuthVerifyPage"));
+const ApiTestPage = lazy(() => import("./pages/ApiTestPage"));
 const ResetPasswordPage = lazy(() => import("./pages/ResetPasswordPage"));
 const PricingPage = lazy(() => import("./pages/PricingPage"));
 const PublicSupportPage = lazy(() => import("./pages/PublicSupportPage"));
@@ -632,7 +633,8 @@ const App = () => (
             <Routes>
               <Route path="/auth" element={<AuthRoute><AuthPage /></AuthRoute>} />
               <Route path="/__birthday-preview" element={<BirthdayPreview />} />
-              <Route path="/auth/verify" element={<AuthVerifyPage />} />
+<Route path="/auth/verify" element={<AuthVerifyPage />} />
+              <Route path="/api-test" element={<ApiTestPage />} />
               <Route path="/reset-password" element={<ResetPasswordPage />} />
               <Route path="/terms" element={<TermsPage />} />
               <Route path="/privacy" element={<PrivacyPage />} />
