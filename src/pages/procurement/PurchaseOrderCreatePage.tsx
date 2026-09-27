@@ -576,6 +576,17 @@ const PurchaseOrderCreatePage = () => {
           </div>
         </div>
 
+        {/* ═══ MOBILE CART BAR ═══ */}
+        <div className="md:hidden shrink-0 border-t border-border bg-card">
+          <button onClick={() => setMobileCartOpen(true)} className="w-full px-4 py-3 flex items-center justify-between gap-2">
+            <span className="text-sm font-bold flex items-center gap-1.5">
+              بنود الطلبية
+              {lines.length > 0 && <Badge variant="secondary" className="text-[10px] h-5 px-1.5">{lines.length}</Badge>}
+            </span>
+            <span className="text-sm font-bold">{totalAmount.toLocaleString("en", { minimumFractionDigits: 2 })} ₪</span>
+          </button>
+        </div>
+
         {/* ═══ DIALOGS ═══ */}
 
         {/* Manual Item */}

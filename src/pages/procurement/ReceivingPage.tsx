@@ -312,7 +312,7 @@ function ReceivingSession({ sessionId }: { sessionId: string }) {
             const cls = state === "done" ? "border-primary bg-primary/5" : state === "over" ? "border-destructive bg-destructive/5" : state === "partial" ? "border-accent" : "";
             return (
               <div key={l.id} className={`rounded-xl border bg-card p-3 ${cls} ${lastLineId === l.id ? "ring-2 ring-primary" : ""}`}>
-                <div className="flex items-center gap-3">
+                <div className="flex flex-wrap items-center gap-3">
                   <div className="min-w-0 flex-1">
                     <div className="truncate text-base font-bold text-foreground">{l.item_name}</div>
                     <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
@@ -357,7 +357,7 @@ function ReceivingSession({ sessionId }: { sessionId: string }) {
                     {editable ? (
                       <Input type="date" min={today} value={l.expiry_date || ""} onChange={e => setExpiry(l, e.target.value)}
                         onBlur={focus}
-                        className={`h-11 w-48 ${l.expiry_date ? "" : "border-destructive"}`} />
+                        className={`h-11 flex-1 sm:flex-none sm:w-48 ${l.expiry_date ? "" : "border-destructive"}`} />
                     ) : <span className="text-sm">{l.expiry_date || "—"}</span>}
                   </div>
                 )}
