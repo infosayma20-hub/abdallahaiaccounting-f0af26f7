@@ -287,6 +287,7 @@ export default function JournalEntityCombobox({
         <div
           ref={listRef}
           dir="rtl"
+          data-ignore-dialog-outside
           style={popoverStyle}
           className="bg-popover border border-border rounded-md shadow-lg overflow-hidden"
         >
