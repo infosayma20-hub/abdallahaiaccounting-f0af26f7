@@ -110,7 +110,7 @@ const SecurityPage = () => {
               <li>Served exclusively over HTTPS with a valid SSL certificate</li>
               <li>No adult, gambling, malware, phishing or illegal content</li>
               <li>Application access requires authenticated business user accounts</li>
-              <li>Related domains: unifyerp.app, amwali.app and their subdomains</li>
+              <li>Related domains: unifyerp.app and its subdomains</li>
               <li>
                 Security contact:{" "}
                 <a href="mailto:security@unifyerp.app" className="text-primary hover:underline">

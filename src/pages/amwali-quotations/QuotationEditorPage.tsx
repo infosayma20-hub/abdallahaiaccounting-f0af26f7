@@ -561,7 +561,7 @@ const QuotationEditorPage = () => {
           intro={settings?.intro_text || ""}
           terms={settings?.terms_text || ""}
           supportPolicy={settings?.support_policy_text || ""}
-          footer={settings?.footer_text || "أموالي — حلول محاسبية وإدارية ذكية · www.amwali.app"}
+          footer={settings?.footer_text || "يونيفاي — حلول محاسبية وإدارية ذكية · www.unifyerp.app"}
           colors={colors}
           totals={totals}
           taxRate={state.tax_rate}
