@@ -85,11 +85,10 @@ const PurchaseOrderCreatePage = () => {
 
   const prefs = loadPrefs();
   const [supplierId, setSupplierId] = useState("");
-  const [defaultBranchId, setDefaultBranchId] = useState("");
+  const [defaultBranchId, setDefaultBranchId] = useState(prefs.branchId || "");
   const UNIT_OPTIONS = useMemo(() => [...new Set([...DEFAULT_UNITS, ...loadCustomUnits()])], []);
   const [unitOptions, setUnitOptions] = useState(UNIT_OPTIONS);
   const [customUnitInput, setCustomUnitInput] = useState("");
-  const [branchId, setBranchId] = useState(prefs.branchId || "");
   const [orderDate, setOrderDate] = useState(new Date().toISOString().split("T")[0]);
   const [expectedDate, setExpectedDate] = useState("");
   const [notes, setNotes] = useState("");
@@ -367,7 +366,14 @@ const PurchaseOrderCreatePage = () => {
             </div>
             <div className="flex items-center gap-1.5">
               <Label className="text-xs text-muted-foreground whitespace-nowrap">الفرع:</Label>
-              <Select value={defaultBranchId} onValueChange={setDefaultBranchId}>
+              <Select value={defaultBranchId} onValueChange={v => {
+                setDefaultBranchId(v);
+                setLines(prev => {
+                  if (prev.length === 0) return prev;
+                  toast({ title: "تم تطبيق الفرع على جميع الأصناف" });
+                  return prev.map(l => ({ ...l, branch_id: v }));
+                });
+              }}>
                 <SelectTrigger className="h-8 w-[140px] text-xs"><SelectValue placeholder="اختر الفرع" /></SelectTrigger>
                 <SelectContent>{branches.map((b: any) => <SelectItem key={b.id} value={b.id} className="text-xs">{b.name}</SelectItem>)}</SelectContent>
               </Select>
