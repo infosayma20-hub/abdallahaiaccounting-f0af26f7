@@ -327,15 +327,21 @@ export default function EmployeeFormsManagementPage() {
     }
   }, [user, dataOwnerId]);
 
+  // Spinner only on the first load; later refreshes (after any action)
+  // update the list silently so the screen never blanks out.
+  const formsLoadedRef = useRef(false);
   const fetchForms = async () => {
     if (!user) return;
-    setLoading(true);
-    const { data } = await supabase
+    if (!formsLoadedRef.current) setLoading(true);
+    const { data, error } = await supabase
       .from("employee_forms")
       .select("*")
       .is("hr_hidden_at", null)
       .order("created_at", { ascending: false });
-    setForms(data || []);
+    if (!error) {
+      setForms(data || []);
+      formsLoadedRef.current = true;
+    }
     setLoading(false);
   };
 
@@ -808,7 +814,13 @@ export default function EmployeeFormsManagementPage() {
     setProcessing(null);
     if (error) { toast.error("تعذّر التحديث: " + error.message); return; }
     toast.success("تم وضع الطلب كـ (تمت الرؤية) 👁️");
-    if (table === "correction_requests") fetchCorrections(); else fetchForms();
+    // Update the row in place — no full-list reload.
+    const seenAt = new Date().toISOString();
+    if (table === "correction_requests") {
+      fetchCorrections();
+    } else {
+      setForms((prev: any[]) => prev.map((f) => f.id === form.id ? { ...f, management_seen_at: seenAt, management_seen_by: user.id } : f));
+    }
   };
 
   // Bulk approve/reject for selected pending employee_forms rows.
