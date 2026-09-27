@@ -65,21 +65,23 @@ export function useSuppliersCrud() {
 // ── Categories CRUD ──
 export function useCategoriesCrud() {
   const { user } = useAuth();
+  const { dataOwnerId } = useDataOwnerId();
   const [categories, setCategories] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   const fetch = useCallback(async () => {
+    if (!dataOwnerId) return;
     setLoading(true);
-    const { data } = await supabase.from("item_categories").select("*").order("sort_order");
+    const { data } = await supabase.from("item_categories").select("*").eq("user_id", dataOwnerId).order("sort_order");
     setCategories((data as any) || []);
     setLoading(false);
-  }, []);
+  }, [dataOwnerId]);
 
   useEffect(() => { fetch(); }, [fetch]);
 
   const create = async (cat: any) => {
     const maxSort = categories.length > 0 ? Math.max(...categories.map(c => c.sort_order || 0)) + 1 : 1;
-    const { error } = await supabase.from("item_categories").insert({ ...cat, sort_order: cat.sort_order || maxSort, user_id: user?.id } as any);
+    const { error } = await supabase.from("item_categories").insert({ ...cat, sort_order: cat.sort_order || maxSort, user_id: dataOwnerId || user?.id } as any);
     if (error) { toast({ title: "❌ خطأ", description: error.message, variant: "destructive" }); return false; }
     toast({ title: "✅ تم حفظ التصنيف" });
     fetch();
@@ -124,20 +126,22 @@ export function useCategoriesCrud() {
 // ── Items CRUD ──
 export function useItemsCrud() {
   const { user } = useAuth();
+  const { dataOwnerId } = useDataOwnerId();
   const [items, setItems] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   const fetch = useCallback(async () => {
+    if (!dataOwnerId) return;
     setLoading(true);
-    const { data } = await supabase.from("procurement_items").select("*, item_categories(name, color, icon)").order("sort_order");
+    const { data } = await supabase.from("procurement_items").select("*, item_categories(name, color, icon)").eq("user_id", dataOwnerId).order("sort_order");
     setItems((data as any) || []);
     setLoading(false);
-  }, []);
+  }, [dataOwnerId]);
 
   useEffect(() => { fetch(); }, [fetch]);
 
   const create = async (item: any) => {
-    const { error } = await supabase.from("procurement_items").insert({ ...item, user_id: user?.id } as any);
+    const { error } = await supabase.from("procurement_items").insert({ ...item, user_id: dataOwnerId || user?.id } as any);
     if (error) { toast({ title: "❌ خطأ", description: error.message, variant: "destructive" }); return false; }
     toast({ title: "✅ تم حفظ الصنف" });
     fetch();
