@@ -518,7 +518,7 @@ const PrintTemplatePreview = ({ open, onOpenChange, document: doc, embedded = fa
           }}>
             <div style={{ textAlign: "right" }}>
               <div style={{ fontFamily: "'Amiri', 'Cairo', serif", fontSize: 26, fontWeight: 700, lineHeight: 1.2 }}>{title}</div>
-              <div style={{ fontSize: 13, fontWeight: 600, marginTop: 2 }}>{companyName || "AMWALI"}</div>
+              <div style={{ fontSize: 13, fontWeight: 600, marginTop: 2 }}>{companyName || "UNIFY"}</div>
               {theme.tagline && <div style={{ fontSize: 10, opacity: 0.8 }}>{theme.tagline}</div>}
             </div>
             <div style={{ textAlign: "left" }}>
@@ -558,7 +558,7 @@ const PrintTemplatePreview = ({ open, onOpenChange, document: doc, embedded = fa
       <>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
           <div>
-            <div style={{ fontSize: 16, fontWeight: 700 }}>{companyName || "AMWALI"}</div>
+            <div style={{ fontSize: 16, fontWeight: 700 }}>{companyName || "UNIFY"}</div>
             <div style={{ fontSize: 9, color: "#6B7280" }}>{[companyPhone, companyEmail].filter(Boolean).join(" | ")}</div>
             {companyAddress && <div style={{ fontSize: 9, color: "#6B7280" }}>{companyAddress}</div>}
             {taxNumber && <div style={{ fontSize: 9, color: "#6B7280" }}>الرقم الضريبي: {taxNumber}</div>}

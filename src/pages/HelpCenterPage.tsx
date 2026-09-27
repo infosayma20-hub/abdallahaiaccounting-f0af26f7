@@ -254,7 +254,7 @@ export default function HelpCenterPage() {
                 <MessageCircle className="h-4 w-4" /> واتساب
               </Button>
             </a>
-            <a href="mailto:support@amwali.app">
+            <a href="mailto:support@unifyerp.app">
               <Button size="sm" variant="outline" className="gap-2 px-5">
                 <Mail className="h-4 w-4" /> البريد الإلكتروني
               </Button>

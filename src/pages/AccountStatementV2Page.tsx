@@ -1600,7 +1600,7 @@ const AccountStatementV2Page = () => {
   // ─── PDF PREVIEW ───
   const buildCurrentStatementPrintHTML = useCallback(() => buildAccountStatementPrintHTML({
     company: {
-      name: companyInfo.name || "AMWALI",
+      name: companyInfo.name || "UNIFY",
       logo_url: companyInfo.logo_url,
       address: companyInfo.address,
       phone: companyInfo.phone,

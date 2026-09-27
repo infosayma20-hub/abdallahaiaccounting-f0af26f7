@@ -204,7 +204,7 @@ const KdsDisplaySection = ({ settings, onChange, ownerId }: Props) => {
         <div className="space-y-2">
           <Label>رابط التطبيق الرسمي للأجهزة</Label>
           <Input
-            placeholder="https://app.amwali.ps"
+            placeholder="https://unifyerp.app"
             value={settings.kds_public_base_url || ""}
             onChange={e => onChange({ kds_public_base_url: e.target.value })}
           />

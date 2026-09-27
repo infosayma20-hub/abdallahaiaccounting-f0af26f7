@@ -15,7 +15,7 @@ const AR = `
 
 وبين
 
-مستخدم البرنامج و/أو من ينوب عنه و/أو المعرّف لدى الفريق الأول من خلال نموذج تسجيل حساب جديد على موقع www.amwali.app والذي تمت تعبئته من قبل الفريق الثاني، ويعرف فيما بعد بالفريق الثاني.
+مستخدم البرنامج و/أو من ينوب عنه و/أو المعرّف لدى الفريق الأول من خلال نموذج تسجيل حساب جديد على موقع www.unifyerp.app والذي تمت تعبئته من قبل الفريق الثاني، ويعرف فيما بعد بالفريق الثاني.
 
 حيث أن الفريق الأول شركة تعمل في مجال البرمجيات المحاسبية والمالية والإدارية وتطبيقات برمجية أخرى تعمل على شبكة الإنترنت وعلى أجهزة الكمبيوتر الشخصية وأخرى (ويُشار لجميع ما ذكر بتقديم "خدمات")، حيث تشمل هذه الخدمات تشغيلها على جهاز الكمبيوتر الخاص بالفريق الثاني وتقديمها له ضمن شروط محددة، ومن أهمها الحفاظ على بيانات الفريق الثاني وسريتها.
 
@@ -80,12 +80,12 @@ const EN = `
 Unify ERP Software License Agreement
 
 This Agreement is entered into between Unify ERP Software Solutions, or its authorized representative (the "First Party"),
-and the user of the software, or whomever represents them, or whomever is identified to the First Party through a new account registration form on www.amwali.app completed by the user (the "Second Party").
+and the user of the software, or whomever represents them, or whomever is identified to the First Party through a new account registration form on www.unifyerp.app completed by the user (the "Second Party").
 
 Whereas the First Party is a company that develops accounting, financial, administrative, and other software applications running on the internet and on personal computers and other devices (collectively referred to as "Services"); these Services include operating the software on the Second Party's computer and providing it under specific terms, the most important of which is preserving the confidentiality of the Second Party's data.
 
 Whereas the Second Party has obtained a license to use the Unify ERP software provided by the First Party under the terms set out in this Agreement.
-And whereas the First Party agrees to grant a license to use Amwali.
+And whereas the First Party agrees to grant a license to use Unify ERP.
 And whereas the Second Party fully, absolutely, and finally agrees to the terms and conditions of this Agreement.
 
 The two parties have therefore agreed to the following terms and conditions:

@@ -555,7 +555,7 @@ Deno.serve(async (req) => {
       return respond({
         success: true,
         needsSetup: true,
-        message: "يجب ربط البوابة بحساب أموالي أولاً",
+        message: "يجب ربط البوابة بحساب يونيفاي أولاً",
         sales: null,
         liquidity: null,
       });

@@ -90,7 +90,7 @@ export function buildInvoiceListPrintHTML(opts: InvoiceListPrintOpts): string {
   const headerHTML = `
     <header class="doc-head">
       <div class="doc-head__right">
-        <div class="doc-company">${esc(companyName || "AMWALI")}</div>
+        <div class="doc-company">${esc(companyName || "UNIFY")}</div>
         ${companyAddress ? `<div class="doc-meta-line">${esc(companyAddress)}</div>` : ""}
         ${companyPhone ? `<div class="doc-meta-line">${esc(companyPhone)}</div>` : ""}
         ${companyTaxNumber ? `<div class="doc-meta-line">الرقم الضريبي: ${esc(companyTaxNumber)}</div>` : ""}
@@ -184,7 +184,7 @@ export function buildInvoiceListPrintHTML(opts: InvoiceListPrintOpts): string {
 
   const footerHTML = `
     <footer class="doc-foot">
-      <span>${esc(companyName || "AMWALI")}</span>
+      <span>${esc(companyName || "UNIFY")}</span>
       <span>طُبع في ${esc(fmtToday())}</span>
     </footer>
   `;

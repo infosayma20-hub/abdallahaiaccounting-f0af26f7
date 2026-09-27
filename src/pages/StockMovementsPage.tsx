@@ -328,7 +328,7 @@ const StockMovementsPage = () => {
   const handlePrint = useCallback(async () => {
     if (filtered.length === 0) return;
     // Load company info for header (align with account statement print)
-    let company = { name: "AMWALI", logo_url: "", address: "", phone: "", email: "", tax_number: "" };
+    let company = { name: "UNIFY", logo_url: "", address: "", phone: "", email: "", tax_number: "" };
     try {
       const [csRes, compRes] = await Promise.all([
         supabase.from("company_settings").select("company_name, logo_url, address, phone, email, tax_number").eq("user_id", dataOwnerId).maybeSingle(),
@@ -337,7 +337,7 @@ const StockMovementsPage = () => {
       const cs: any = csRes.data;
       const comp: any = compRes.data;
       company = {
-        name: cs?.company_name || comp?.name || "AMWALI",
+        name: cs?.company_name || comp?.name || "UNIFY",
         logo_url: cs?.logo_url || comp?.logo_url || "",
         address: cs?.address || comp?.address || "",
         phone: cs?.phone || comp?.phone || "",
