@@ -179,7 +179,7 @@ export function buildAccountStatementPrintHTML(opts: BuildPrintOpts): string {
   const headerHTML = `
     <header class="doc-head">
       <div class="doc-head__right">
-        <div class="doc-company">${esc(company.name || "AMWALI")}</div>
+        <div class="doc-company">${esc(company.name || "UNIFY")}</div>
         ${company.address ? `<div class="doc-meta-line">${esc(company.address)}</div>` : ""}
         ${(company.phone || company.email)
           ? `<div class="doc-meta-line">${esc([company.phone, company.email].filter(Boolean).join(" · "))}</div>`
@@ -342,7 +342,7 @@ export function buildAccountStatementPrintHTML(opts: BuildPrintOpts): string {
   // ─── FOOTER ───
   const footerHTML = `
     <footer class="doc-foot">
-      <span>${esc(company.name || "AMWALI")}</span>
+      <span>${esc(company.name || "UNIFY")}</span>
       <span>طُبع في ${esc(fmtToday())}</span>
     </footer>
   `;

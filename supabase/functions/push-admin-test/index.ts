@@ -62,7 +62,7 @@ Deno.serve(async (req) => {
 
     const payload = {
       user_id,
-      title: title ?? "اختبار من أموالي 🎉",
+      title: title ?? "اختبار من يونيفاي 🎉",
       body: messageBody ?? "إذا وصلك هذا الإشعار، يعني كل شي تمام يا بطل! ✅",
       path: path ?? "/",
     };

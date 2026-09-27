@@ -1447,7 +1447,7 @@ const InvoicesPage = () => {
     if (amountMax) filtersInfo.push({ label: tt("إلى مبلغ"), value: amountMax });
 
     const html = buildInvoiceListPrintHTML({
-      companyName: (companySettings as any)?.company_name || "AMWALI",
+      companyName: (companySettings as any)?.company_name || "UNIFY",
       companyAddress: (companySettings as any)?.address,
       companyPhone: (companySettings as any)?.phone,
       companyTaxNumber: (companySettings as any)?.tax_number,

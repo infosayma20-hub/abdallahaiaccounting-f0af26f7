@@ -215,7 +215,7 @@ export function PasswordResetRequestsPanel() {
                 dir="ltr"
                 value={newPwd}
                 onChange={(e) => setNewPwd(e.target.value)}
-                placeholder="Amwali@2026"
+                placeholder="Unify@2026"
               />
             </div>
             <div>

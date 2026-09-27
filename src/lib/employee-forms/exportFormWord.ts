@@ -233,7 +233,7 @@ function buildDoc(opts: {
   // flags (bidirectional, rightToLeft, visuallyRightToLeft) the file
   // opens identically on phones and desktops.
   return new Document({
-    creator: "Amwali",
+    creator: "Unify",
     title: opts.title,
     styles: {
       default: {

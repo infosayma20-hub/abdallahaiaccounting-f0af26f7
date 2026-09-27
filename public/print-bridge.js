@@ -219,7 +219,7 @@ app.post('/test', async (req, res) => {
     // Build SVG test page
     const svg = `<svg width="${w}" height="${h}" xmlns="http://www.w3.org/2000/svg">
       <rect width="${w}" height="${h}" fill="white"/>
-      <text x="${w/2}" y="40" text-anchor="middle" font-size="28" font-weight="bold" fill="black">★ AMWALI ★</text>
+      <text x="${w/2}" y="40" text-anchor="middle" font-size="28" font-weight="bold" fill="black">★ UNIFY ★</text>
       <text x="${w/2}" y="75" text-anchor="middle" font-size="18" fill="black">Test Print / طباعة تجريبية</text>
       <line x1="20" y1="95" x2="${w-20}" y2="95" stroke="black" stroke-width="2" stroke-dasharray="6,4"/>
       <text x="${w/2}" y="130" text-anchor="middle" font-size="16" fill="black">Printer: ${printer.name}</text>
@@ -272,7 +272,7 @@ app.get('/config', (req, res) => {
 });
 
 app.listen(PORT, '0.0.0.0', () => {
-  console.log('\n  AMWALI Print Bridge v5.1 — IMAGE MODE (chunked)');
+  console.log('\n  UNIFY Print Bridge v5.1 — IMAGE MODE (chunked)');
   console.log('  Port: ' + PORT);
   Object.entries(PRINTERS).forEach(([key, p]) => {
     console.log(`  [${key}] ${p.name} @ ${p.ip}:${p.port}  ${p.width}px  ${p.stationId || ''}`);

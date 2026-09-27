@@ -187,7 +187,7 @@ const StatementPrintViewClean = ({
       <div style={S.headerWrap}>
         {/* RIGHT (RTL first column): Company details */}
         <div style={{ textAlign: "right" }}>
-          <p style={S.companyName}>{company.name || "AMWALI"}</p>
+          <p style={S.companyName}>{company.name || "UNIFY"}</p>
           {showContactInfo && (company.phone || company.email) && (
             <p style={S.companySub}>{[company.phone, company.email].filter(Boolean).join(" | ")}</p>
           )}
@@ -529,7 +529,7 @@ const StatementPrintViewClean = ({
       {/* ═══ FOOTER ═══ */}
       <div style={S.footer}>
         <span>طُبع بتاريخ: {fmtToday()}</span>
-        <span style={{ color: "#374151", fontWeight: 500 }}>{company.name || "AMWALI"}</span>
+        <span style={{ color: "#374151", fontWeight: 500 }}>{company.name || "UNIFY"}</span>
         <span>صفحة 1 من 1</span>
       </div>
     </div>

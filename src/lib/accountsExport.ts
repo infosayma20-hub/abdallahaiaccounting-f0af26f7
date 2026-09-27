@@ -44,7 +44,7 @@ export const exportAccountsToExcel = (accounts: Account[], tenantName?: string) 
   wsInstructions["!cols"] = [{ wch: 60 }];
   XLSX.utils.book_append_sheet(wb, wsInstructions, "تعليمات");
 
-  const fileName = `شجرة-الحسابات-${tenantName || "AMWALI"}-${new Date().toISOString().slice(0, 10)}.xlsx`;
+  const fileName = `شجرة-الحسابات-${tenantName || "UNIFY"}-${new Date().toISOString().slice(0, 10)}.xlsx`;
   setNextExportBranding({ title: "شجرة الحسابات" });
   XLSX.writeFile(wb, fileName);
 };

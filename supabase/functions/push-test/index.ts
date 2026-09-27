@@ -125,7 +125,7 @@ Deno.serve(async (req) => {
     const accessToken = await getAccessToken(sa);
     const url = `https://fcm.googleapis.com/v1/projects/${sa.project_id}/messages:send`;
 
-    const title = "اختبار من أموالي 🎉";
+    const title = "اختبار من يونيفاي 🎉";
     const body = "إذا وصلك هذا الإشعار يعني كل شي تمام!";
 
     const results: Array<{ token: string; ok: boolean; error?: string }> = [];

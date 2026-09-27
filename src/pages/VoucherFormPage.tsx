@@ -3183,7 +3183,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
       refNumber: savedReceiptNumber || refNumber || "",
       date: dateFormatted,
       company: {
-        name: settings.company_name || "AMWALI",
+        name: settings.company_name || "UNIFY",
         logoUrl: settings.logo_url || undefined,
         address: settings.address || undefined,
         phone: settings.phone || undefined,
