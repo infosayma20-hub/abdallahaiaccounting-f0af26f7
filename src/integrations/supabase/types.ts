@@ -18633,6 +18633,7 @@ export type Database = {
           company_id: string | null
           default_price: number | null
           id: string
+          inventory_product_id: string | null
           is_active: boolean | null
           name: string
           notes: string | null
@@ -18645,6 +18646,7 @@ export type Database = {
           company_id?: string | null
           default_price?: number | null
           id?: string
+          inventory_product_id?: string | null
           is_active?: boolean | null
           name: string
           notes?: string | null
@@ -18657,6 +18659,7 @@ export type Database = {
           company_id?: string | null
           default_price?: number | null
           id?: string
+          inventory_product_id?: string | null
           is_active?: boolean | null
           name?: string
           notes?: string | null
@@ -18677,6 +18680,13 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "procurement_items_inventory_product_id_fkey"
+            columns: ["inventory_product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
             referencedColumns: ["id"]
           },
         ]
@@ -20545,6 +20555,7 @@ export type Database = {
           notes: string | null
           previous_price: number | null
           price_change_pct: number | null
+          procurement_order_item_id: string | null
           product_id: string | null
           product_name: string
           production_date: string | null
@@ -20565,6 +20576,7 @@ export type Database = {
           notes?: string | null
           previous_price?: number | null
           price_change_pct?: number | null
+          procurement_order_item_id?: string | null
           product_id?: string | null
           product_name: string
           production_date?: string | null
@@ -20585,6 +20597,7 @@ export type Database = {
           notes?: string | null
           previous_price?: number | null
           price_change_pct?: number | null
+          procurement_order_item_id?: string | null
           product_id?: string | null
           product_name?: string
           production_date?: string | null
@@ -20601,6 +20614,13 @@ export type Database = {
             columns: ["invoice_id"]
             isOneToOne: false
             referencedRelation: "purchase_invoices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchase_invoice_items_procurement_order_item_id_fkey"
+            columns: ["procurement_order_item_id"]
+            isOneToOne: false
+            referencedRelation: "procurement_order_items"
             referencedColumns: ["id"]
           },
           {
@@ -31381,6 +31401,10 @@ export type Database = {
         Args: { p_user_id: string }
         Returns: undefined
       }
+      ensure_procurement_item_product: {
+        Args: { p_item_id: string }
+        Returns: string
+      }
       ensure_return_accounts: {
         Args: { p_user_id: string }
         Returns: undefined
@@ -32058,6 +32082,10 @@ export type Database = {
           total_debit: number
           total_vat: number
         }[]
+      }
+      get_procurement_order_receipt_lines: {
+        Args: { p_order_id: string }
+        Returns: Json
       }
       get_product_profitability: {
         Args: { p_from: string; p_to: string }

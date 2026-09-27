@@ -162,6 +162,13 @@
       "when": 1790526000654,
       "tag": "0022_discard_empty_purchase_invoice",
       "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "7",
+      "when": 1790526120305,
+      "tag": "0023_link_procurement_items_to_inventory",
+      "breakpoints": true
     }
   ]
 }
