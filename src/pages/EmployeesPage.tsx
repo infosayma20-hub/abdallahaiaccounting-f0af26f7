@@ -335,7 +335,7 @@ const EmployeesPage = () => {
       const [posRes, repRes, fbRes] = await Promise.all([
         (supabase as any).from("pos_users").select("auth_user_id, employee_id, is_active, is_call_center, is_waiter").eq("user_id", dataOwnerId),
         (supabase as any).from("sales_representatives").select("employee_id, auth_user_id, is_active").eq("user_id", dataOwnerId),
-        (supabase as any).from("user_feature_permissions").select("target_user_id, access_state").eq("owner_id", dataOwnerId).eq("app_key", "call_center_feedback").eq("access_state", "allow"),
+        (supabase as any).from("user_feature_permissions").select("target_user_id, feature_key, permission_key, access_state").eq("owner_id", dataOwnerId).eq("app_key", "call_center_feedback").eq("access_state", "allow"),
       ]);
       const byAuth: Record<string, string> = {};
       emps.forEach((e) => { if (e.auth_user_id) byAuth[e.auth_user_id] = e.id; });
@@ -348,6 +348,7 @@ const EmployeesPage = () => {
       emps.forEach((e) => {
         if (e.is_manager) push(e.id, "branch_manager");
         if (e.is_hr_manager) push(e.id, "hr_manager");
+        if (e.is_receiver) push(e.id, "receiver");
       });
       ((posRes?.data as any[]) || []).forEach((p) => {
         if (!p.is_active) return;
@@ -359,7 +360,10 @@ const EmployeesPage = () => {
         push(r.employee_id || byAuth[r.auth_user_id], "sales_rep");
       });
       ((fbRes?.data as any[]) || []).forEach((f) => {
-        push(byAuth[f.target_user_id], "feedback");
+        const empId = byAuth[f.target_user_id];
+        if (f.feature_key === "complaints") push(empId, "complaints");
+        else if (f.feature_key === "compensations") push(empId, "compensations");
+        else if (f.feature_key === "customers" || f.feature_key === "calls") push(empId, "feedback");
       });
       setCapsMap(map);
     } catch (e) { console.error("capabilities bulk load failed", e); }
@@ -767,6 +771,9 @@ const EmployeesPage = () => {
     call_center: { label: "كول سنتر", cls: "bg-purple-100 text-purple-700 border-purple-200 dark:bg-purple-900/30 dark:text-purple-300" },
     sales_rep: { label: "مندوب مبيعات", cls: "bg-emerald-100 text-emerald-700 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-300" },
     feedback: { label: "متابعة الزبائن", cls: "bg-teal-100 text-teal-700 border-teal-200 dark:bg-teal-900/30 dark:text-teal-300" },
+    complaints: { label: "شكاوى الزبائن", cls: "bg-rose-100 text-rose-700 border-rose-200 dark:bg-rose-900/30 dark:text-rose-300" },
+    compensations: { label: "التعويضات", cls: "bg-orange-100 text-orange-700 border-orange-200 dark:bg-orange-900/30 dark:text-orange-300" },
+    receiver: { label: "موظف مستودع", cls: "bg-cyan-100 text-cyan-700 border-cyan-200 dark:bg-cyan-900/30 dark:text-cyan-300" },
   };
 
   // تطبيع عربي: توحيد الألف/الياء/التاء المربوطة وإزالة التشكيل
