@@ -301,7 +301,7 @@ const PurchaseOrderCreatePage = () => {
 
             <div className="flex items-center gap-0.5 border-s border-border ps-2 overflow-x-auto">
               <Button size="sm" className="h-8 text-xs gap-1.5 bg-primary text-primary-foreground hover:bg-primary/90" onClick={() => handleSave(true)} disabled={saving || !supplierId || lines.length === 0}>
-                <Send className="h-3.5 w-3.5" />إرسال للمورد
+                <Send className="h-3.5 w-3.5" />حفظ وترحيل
               </Button>
               <Button variant="ghost" size="sm" className="h-8 text-xs gap-1.5" onClick={() => handleSave(false)} disabled={saving}>
                 <Save className="h-3.5 w-3.5" />حفظ مسودة
