@@ -881,7 +881,7 @@ export default function JobApplicationsPage() {
               <Rows title="الخبرات السابقة" rows={detail.experience}
                 cols={[["workplace", "مكان العمل"], ["position", "الوظيفة"], ["from", "من"], ["to", "إلى"]]} />
               <Rows title="المعرفون" rows={detail.referees}
-                cols={[["name", "الاسم"], ["phone", "هاتف"], ["mobile", "محمول"], ["email", "بريد"]]} />
+                cols={[["name", "الاسم"], ["relation", "الوظيفة / العلاقة"], ["phone", "هاتف"], ["mobile", "محمول"], ["email", "بريد"]]} />
 
               {parseCustomAnswers(detail.custom_answers).length > 0 && (
                 <div>
