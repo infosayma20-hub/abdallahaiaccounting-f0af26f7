@@ -575,8 +575,20 @@ const AmwaliQuotePage = () => {
           <textarea
             value={data.terms}
             onChange={(e) => update("terms", e.target.value)}
-            rows={5}
-            className="w-full rounded border border-dashed border-slate-400 bg-transparent p-2 text-[12.5px] leading-6 outline-none focus:border-solid focus:border-primary print:border-transparent"
+            rows={Math.max(3, (data.terms || "").split("\n").length)}
+            className="w-full resize-none overflow-hidden rounded border border-dashed border-slate-400 bg-transparent p-2 text-[12.5px] leading-6 outline-none focus:border-solid focus:border-primary print:border-transparent"
+            style={{ height: "auto", minHeight: "6rem" }}
+            onInput={(e) => {
+              const el = e.currentTarget;
+              el.style.height = "auto";
+              el.style.height = `${el.scrollHeight}px`;
+            }}
+            ref={(el) => {
+              if (el) {
+                el.style.height = "auto";
+                el.style.height = `${el.scrollHeight}px`;
+              }
+            }}
           />
         </div>
 
