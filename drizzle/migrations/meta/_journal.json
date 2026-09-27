@@ -134,6 +134,13 @@
       "when": 1790512125792,
       "tag": "0018_pos_resolve_cash_gl_paired_box",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1790522896417,
+      "tag": "0019_rename_user_facing_amwali_brand_to_unify",
+      "breakpoints": true
     }
   ]
 }
