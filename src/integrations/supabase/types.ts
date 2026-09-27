@@ -18829,6 +18829,127 @@ export type Database = {
           },
         ]
       }
+      procurement_receiving_lines: {
+        Row: {
+          barcodes: string[]
+          id: string
+          note: string | null
+          order_item_id: string
+          product_id: string | null
+          scanned_qty: number
+          session_id: string
+          updated_at: string
+        }
+        Insert: {
+          barcodes?: string[]
+          id?: string
+          note?: string | null
+          order_item_id: string
+          product_id?: string | null
+          scanned_qty?: number
+          session_id: string
+          updated_at?: string
+        }
+        Update: {
+          barcodes?: string[]
+          id?: string
+          note?: string | null
+          order_item_id?: string
+          product_id?: string | null
+          scanned_qty?: number
+          session_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "procurement_receiving_lines_order_item_id_fkey"
+            columns: ["order_item_id"]
+            isOneToOne: false
+            referencedRelation: "procurement_order_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "procurement_receiving_lines_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "procurement_receiving_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      procurement_receiving_sessions: {
+        Row: {
+          approved_at: string | null
+          assigned_auth_user_id: string
+          assigned_employee_id: string | null
+          created_at: string
+          created_by: string | null
+          expected_date: string | null
+          id: string
+          notes: string | null
+          order_id: string
+          owner_id: string
+          started_at: string | null
+          status: string
+          submitted_at: string | null
+          updated_at: string
+        }
+        Insert: {
+          approved_at?: string | null
+          assigned_auth_user_id: string
+          assigned_employee_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          expected_date?: string | null
+          id?: string
+          notes?: string | null
+          order_id: string
+          owner_id: string
+          started_at?: string | null
+          status?: string
+          submitted_at?: string | null
+          updated_at?: string
+        }
+        Update: {
+          approved_at?: string | null
+          assigned_auth_user_id?: string
+          assigned_employee_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          expected_date?: string | null
+          id?: string
+          notes?: string | null
+          order_id?: string
+          owner_id?: string
+          started_at?: string | null
+          status?: string
+          submitted_at?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "procurement_receiving_sessions_assigned_employee_id_fkey"
+            columns: ["assigned_employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "procurement_receiving_sessions_assigned_employee_id_fkey"
+            columns: ["assigned_employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees_safe"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "procurement_receiving_sessions_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "procurement_orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       procurement_request_items: {
         Row: {
           category: string | null
@@ -30163,6 +30284,37 @@ export type Database = {
         Returns: boolean
       }
       _pos_vat_output_account: { Args: { p_user_id: string }; Returns: string }
+      _receiving_assert_editable: {
+        Args: {
+          s: Database["public"]["Tables"]["procurement_receiving_sessions"]["Row"]
+        }
+        Returns: undefined
+      }
+      _receiving_can_access: {
+        Args: { _manage?: boolean; _session_id: string }
+        Returns: {
+          approved_at: string | null
+          assigned_auth_user_id: string
+          assigned_employee_id: string | null
+          created_at: string
+          created_by: string | null
+          expected_date: string | null
+          id: string
+          notes: string | null
+          order_id: string
+          owner_id: string
+          started_at: string | null
+          status: string
+          submitted_at: string | null
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "procurement_receiving_sessions"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       _resolve_customer_ar_code_v1: {
         Args: { p_contact_id: string; p_owner: string }
         Returns: string
@@ -30277,6 +30429,14 @@ export type Database = {
         Returns: Json
       }
       assert_owner_scope: { Args: { p_owner: string }; Returns: undefined }
+      assign_receiving_session: {
+        Args: {
+          p_employee_id: string
+          p_expected_date?: string
+          p_order_id: string
+        }
+        Returns: string
+      }
       assign_system_account_role_v1: {
         Args: { p_account_id: string; p_notes?: string; p_role: string }
         Returns: string
@@ -30425,6 +30585,10 @@ export type Database = {
       cancel_production_order: {
         Args: { _order_id: string; _reason?: string }
         Returns: Json
+      }
+      cancel_receiving_session: {
+        Args: { p_session_id: string }
+        Returns: undefined
       }
       cancel_stale_pending_call_center_orders: { Args: never; Returns: number }
       cancel_stock_document: {
@@ -31745,6 +31909,7 @@ export type Database = {
           total: number
         }[]
       }
+      get_my_receiving_sessions: { Args: never; Returns: Json }
       get_my_team_employee_ids: { Args: never; Returns: string[] }
       get_owner_sales_fast: {
         Args: {
@@ -31887,6 +32052,7 @@ export type Database = {
         Args: { p_from: string; p_to: string }
         Returns: Json
       }
+      get_receiving_session: { Args: { p_session_id: string }; Returns: Json }
       get_rep_customers_with_balances: {
         Args: { p_sales_rep_id: string; p_user_id: string }
         Returns: {
@@ -32729,6 +32895,26 @@ export type Database = {
         Args: { _product_id: string }
         Returns: number
       }
+      receiving_generate_barcode: {
+        Args: { p_line_id: string }
+        Returns: string
+      }
+      receiving_link_barcode: {
+        Args: { p_barcode: string; p_line_id: string }
+        Returns: Json
+      }
+      receiving_scan: {
+        Args: { p_barcode: string; p_session_id: string }
+        Returns: Json
+      }
+      receiving_set_line: {
+        Args: { p_line_id: string; p_note?: string; p_qty: number }
+        Returns: undefined
+      }
+      receiving_submit: {
+        Args: { p_notes?: string; p_session_id: string }
+        Returns: undefined
+      }
       recompute_attendance_day: {
         Args: { p_date: string; p_employee_id: string }
         Returns: undefined
@@ -32801,6 +32987,10 @@ export type Database = {
       }
       release_due_scheduled_orders: { Args: never; Returns: number }
       release_production_order: { Args: { _order_id: string }; Returns: Json }
+      reopen_receiving_session: {
+        Args: { p_session_id: string }
+        Returns: undefined
+      }
       reorder_pos_products: {
         Args: { p_product_ids: string[] }
         Returns: undefined

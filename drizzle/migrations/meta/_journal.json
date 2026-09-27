@@ -141,6 +141,13 @@
       "when": 1790522896417,
       "tag": "0019_rename_user_facing_amwali_brand_to_unify",
       "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1790525297993,
+      "tag": "0020_procurement_receiving_barcode",
+      "breakpoints": true
     }
   ]
 }
