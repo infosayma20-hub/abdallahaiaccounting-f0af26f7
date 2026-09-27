@@ -2385,6 +2385,7 @@ const InvoiceCreatePage = () => {
       discount: i.discountType === "percent" ? i.quantity * i.unitPrice * (i.discount / 100) : i.discount,
       taxRate: i.taxRate,
       taxCategory: i.taxCategory,
+      unitOfMeasure: i.unitOfMeasure || "قطعة",
       subtotal: calcItemSubtotal(i),
     })),
     notes: form.notes,
