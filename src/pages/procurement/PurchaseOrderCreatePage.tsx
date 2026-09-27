@@ -480,7 +480,7 @@ const PurchaseOrderCreatePage = () => {
           </div>
 
           {/* LEFT: Order Lines Panel */}
-          <div className={`${mobileCartOpen ? "fixed inset-0 z-50 flex" : "hidden"} md:static md:flex w-full md:w-[300px] shrink-0 border-r border-border bg-card flex-col overflow-hidden`}>
+          <div className={`${mobileCartOpen ? "fixed inset-0 z-50 flex" : "hidden"} md:static md:flex w-full md:w-[440px] xl:w-[520px] shrink-0 border-r border-border bg-card flex-col overflow-hidden`}>
             <div className="shrink-0 px-3 py-2.5 border-b border-border flex items-center justify-between">
               <span className="text-sm font-bold flex items-center gap-1.5">
                 بنود الطلبية
