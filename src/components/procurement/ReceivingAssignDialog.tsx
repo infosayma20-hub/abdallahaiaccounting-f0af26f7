@@ -46,10 +46,11 @@ export default function ReceivingAssignDialog({ order, current, onClose, onDone 
     (async () => {
       const { data } = await supabase
         .from("employees")
-        .select("id, full_name")
+        .select("id, full_name, is_receiver")
         .eq("user_id", dataOwnerId)
         .eq("is_active", true)
         .not("auth_user_id", "is", null)
+        .order("is_receiver", { ascending: false })
         .order("full_name");
       setEmployees((data as any) || []);
     })();
