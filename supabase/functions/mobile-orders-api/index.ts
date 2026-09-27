@@ -881,6 +881,21 @@ Deno.serve(async (req: Request) => {
       if (rl) return rl;
       return await handleListBranches(keyCtx.ownerId);
     }
+    if (segments[0] === "delivery-zones" && req.method === "GET" && segments.length === 1) {
+      const rl = await enforceRateLimit(keyCtx.keyId, "read");
+      if (rl) return rl;
+      return await handleDeliveryZones(req, keyCtx.ownerId);
+    }
+    if (segments[0] === "delivery-quote" && req.method === "POST" && segments.length === 1) {
+      const rl = await enforceRateLimit(keyCtx.keyId, "read");
+      if (rl) return rl;
+      return await handleDeliveryQuote(req, keyCtx.ownerId);
+    }
+    if (segments[0] === "customers" && segments[1] === "lookup-or-create" && req.method === "POST" && segments.length === 2) {
+      const rl = await enforceRateLimit(keyCtx.keyId, "write");
+      if (rl) return rl;
+      return await handleCustomerLookup(req, keyCtx.ownerId, keyCtx.environment);
+    }
 
     return json({ ok: false, error: "not_found", message: "المسار غير موجود" }, 404);
   } catch (e) {
