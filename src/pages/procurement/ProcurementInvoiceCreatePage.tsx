@@ -140,26 +140,37 @@ const ReceivePOInvoicePage = ({ orderId }: { orderId: string }) => {
         // إذا الموظف استلم الطلبية بالباركود وأرسلها، نعبّي الكميات المعدودة فعلياً
         const { data: recv } = await supabase
           .from("procurement_receiving_sessions")
-          .select("id, procurement_receiving_lines(order_item_id, scanned_qty, note)")
+          .select("id, procurement_receiving_lines(order_item_id, scanned_qty, note, expiry_date)")
           .eq("order_id", orderId)
           .eq("status", "submitted")
           .order("submitted_at", { ascending: false })
           .limit(1)
           .maybeSingle();
-        const counted: Record<string, { qty: number; note: string | null }> = {};
+        const counted: Record<string, { qty: number; note: string | null; expiry: string | null }> = {};
         ((recv as any)?.procurement_receiving_lines || []).forEach((l: any) => {
-          counted[l.order_item_id] = { qty: Number(l.scanned_qty), note: l.note };
+          counted[l.order_item_id] = { qty: Number(l.scanned_qty), note: l.note, expiry: l.expiry_date };
         });
-        const loadedLines = ((items as any) || []).map((i: any) => ({
-          product_id: i.product_id || null,
-          item_name: i.item_name,
-          unit: i.unit,
-          ordered_quantity: Number(i.quantity),
-          received_quantity: counted[i.id] ? counted[i.id].qty : Number(i.quantity),
-          unit_price: Number(i.unit_price),
-          notes: counted[i.id]?.note || "",
-          expiry_date: "",
+        // الكمية المستلمة سابقاً لكل بند (استلام جزئي سابق) — نعرض المتبقي فقط
+        const prev: Record<string, number> = {};
+        await Promise.all(((items as any[]) || []).map(async (i: any) => {
+          const { data: q } = await supabase.rpc("_procurement_item_received_qty", { _order_item_id: i.id });
+          prev[i.id] = Number(q || 0);
         }));
+        const loadedLines = ((items as any) || [])
+          .map((i: any) => {
+            const remaining = Math.max(0, Number(i.quantity) - (prev[i.id] || 0));
+            return {
+              product_id: i.product_id || null,
+              item_name: i.item_name,
+              unit: i.unit,
+              ordered_quantity: remaining,
+              received_quantity: recv ? (counted[i.id]?.qty ?? 0) : remaining,
+              unit_price: Number(i.unit_price),
+              notes: counted[i.id]?.note || "",
+              expiry_date: counted[i.id]?.expiry || "",
+            };
+          })
+          .filter((l: any) => l.ordered_quantity > 0 || l.received_quantity > 0);
         if (recv) toast.success("تم تعبئة الكميات من استلام الموظف بالباركود");
         setLines(loadedLines);
         
@@ -266,6 +277,14 @@ const ReceivePOInvoicePage = ({ orderId }: { orderId: string }) => {
   const handleSave = async () => {
     if (!supplierId || lines.length === 0) {
       toast.error("اختر المورد وأضف بنوداً");
+      return;
+    }
+    const received = lines.filter(l => Number(l.received_quantity) > 0);
+    if (received.length === 0) { toast.error("لا توجد كميات مستلمة"); return; }
+    if (lines.some(l => Number(l.received_quantity) < 0)) { toast.error("الكمية لا يمكن أن تكون سالبة"); return; }
+    const noExpiry = received.filter(l => !l.expiry_date);
+    if (noExpiry.length) {
+      toast.error(`تاريخ الانتهاء إجباري: ${noExpiry.map(l => l.item_name).join("، ")}`);
       return;
     }
     setSaving(true);
@@ -474,11 +493,11 @@ const ReceivePOInvoicePage = ({ orderId }: { orderId: string }) => {
                   <TableRow>
                     <TableHead className="w-[320px] text-right">الصنف</TableHead>
                     <TableHead className="w-[90px]">الوحدة</TableHead>
-                    <TableHead className="w-[110px]">الكمية المطلوبة</TableHead>
+                    <TableHead className="w-[110px]">{orderId ? "المتبقي من الطلبية" : "الكمية المطلوبة"}</TableHead>
                     <TableHead className="w-[120px] bg-muted/40">الكمية المستلمة</TableHead>
                     <TableHead className="w-[130px] bg-muted/40">السعر الفعلي</TableHead>
                     <TableHead className="w-[130px] bg-muted/40">الإجمالي</TableHead>
-                    <TableHead className="w-[160px] bg-amber-50 dark:bg-amber-950/20">الصلاحية</TableHead>
+                    <TableHead className="w-[160px] bg-amber-50 dark:bg-amber-950/20">تاريخ الانتهاء *</TableHead>
                     <TableHead className="w-[170px] text-right">ملاحظة</TableHead>
                   </TableRow>
                 </TableHeader>
