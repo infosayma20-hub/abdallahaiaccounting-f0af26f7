@@ -33,7 +33,7 @@ interface Props {
 
 export default function ReceivingAssignDialog({ order, current, onClose, onDone }: Props) {
   const { dataOwnerId } = useDataOwnerId();
-  const [employees, setEmployees] = useState<{ id: string; full_name: string }[]>([]);
+  const [employees, setEmployees] = useState<{ id: string; full_name: string; is_receiver?: boolean | null }[]>([]);
   const [search, setSearch] = useState("");
   const [employeeId, setEmployeeId] = useState<string>("");
   const [expected, setExpected] = useState("");
