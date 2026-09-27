@@ -644,6 +644,184 @@ async function handleListBranches(ownerId: string) {
   return json({ ok: true, branches: data || [] });
 }
 
+// ---------- delivery zones / quote / customers ----------
+
+const round2 = (n: number) => Math.round(n * 100) / 100;
+
+/** GET /delivery-zones?branch_id= → active zones with server-side fees. */
+async function handleDeliveryZones(req: Request, ownerId: string) {
+  const branchId = new URL(req.url).searchParams.get("branch_id");
+  if (branchId && !z.string().uuid().safeParse(branchId).success) {
+    return json({ ok: false, error: "validation_failed", fields: { branch_id: ["uuid غير صالح"] } }, 400);
+  }
+  let q = admin
+    .from("delivery_zones")
+    .select("id, city, area_name, branch_id, branch_name, price, is_active")
+    .eq("user_id", ownerId)
+    .eq("is_active", true)
+    .order("city")
+    .order("area_name");
+  if (branchId) q = q.eq("branch_id", branchId);
+  const { data, error } = await q;
+  if (error) return json({ ok: false, error: "zones_failed", message: "تعذر جلب مناطق التوصيل" }, 500);
+  const zones = (data || []).map((zn) => ({
+    id: zn.id,
+    name: zn.area_name,
+    city: zn.city,
+    branch_id: zn.branch_id,
+    branch_name: zn.branch_name,
+    fee: Number(zn.price || 0),
+    min_order: null,
+    is_active: zn.is_active,
+  }));
+  return json({ ok: true, count: zones.length, data: zones });
+}
+
+const QuoteSchema = z.object({
+  branch_id: z.string().uuid(),
+  delivery_zone_id: z.string().uuid(),
+  items: z.array(z.object({
+    item_id: z.string().uuid(),
+    quantity: z.number().int().min(1).max(50),
+    modifier_option_ids: z.array(z.string().uuid()).max(40).optional(),
+  })).min(1).max(100),
+});
+
+/** POST /delivery-quote → prices basket + delivery purely from server data. */
+async function handleDeliveryQuote(req: Request, ownerId: string) {
+  let payload: unknown;
+  try { payload = await req.json(); } catch {
+    return json({ ok: false, error: "invalid_json", message: "جسم الطلب ليس JSON صالحاً" }, 400);
+  }
+  const parsed = QuoteSchema.safeParse(payload);
+  if (!parsed.success) return json({ ok: false, error: "validation_failed", fields: parsed.error.flatten().fieldErrors }, 400);
+  const body = parsed.data;
+
+  const { data: branch } = await admin
+    .from("branches").select("id, name")
+    .eq("user_id", ownerId).eq("id", body.branch_id).eq("is_active", true).maybeSingle();
+  if (!branch) return json({ ok: false, error: "branch_not_found", message: "الفرع غير موجود أو غير فعّال لهذه الشركة" }, 400);
+
+  const { data: zone } = await admin
+    .from("delivery_zones").select("id, branch_id, price, is_active")
+    .eq("user_id", ownerId).eq("id", body.delivery_zone_id).maybeSingle();
+  const unavailable = (reason: string, message: string) =>
+    json({ ok: true, delivery_available: false, reason, message, branch_id: branch.id, zone_id: body.delivery_zone_id });
+  if (!zone) return unavailable("zone_not_found", "منطقة التوصيل غير موجودة");
+  if (!zone.is_active) return unavailable("zone_inactive", "التوصيل لهذه المنطقة متوقف حالياً");
+  if (zone.branch_id && zone.branch_id !== branch.id) return unavailable("zone_not_served_by_branch", "هذه المنطقة لا يخدمها الفرع المحدد");
+
+  const productIds = [...new Set(body.items.map((i) => i.item_id))];
+  const { data: products } = await admin
+    .from("products").select("id, name, sell_price")
+    .eq("user_id", ownerId).in("id", productIds);
+  const prodById = new Map((products || []).map((p) => [p.id, p]));
+  const missingItems = productIds.filter((id) => !prodById.has(id));
+  if (missingItems.length) return json({ ok: false, error: "item_not_found", message: "بعض الأصناف غير موجودة", details: { item_ids: missingItems } }, 422);
+
+  // Options must be active, belong to this tenant, and be linked to the product.
+  const optionIds = [...new Set(body.items.flatMap((i) => i.modifier_option_ids || []))];
+  const optById = new Map<string, { id: string; name: string; extra_price: number; group_id: string }>();
+  const allowedGroups = new Map<string, Set<string>>();
+  if (optionIds.length) {
+    const { data: opts } = await admin
+      .from("modifier_options")
+      .select("id, name, extra_price, group_id, is_active, modifier_groups!inner(user_id, is_active)")
+      .in("id", optionIds);
+    for (const o of (opts || []) as any[]) {
+      if (o.is_active && o.modifier_groups?.user_id === ownerId && o.modifier_groups?.is_active !== false) {
+        optById.set(o.id, { id: o.id, name: o.name, extra_price: Number(o.extra_price || 0), group_id: o.group_id });
+      }
+    }
+    const { data: links } = await admin
+      .from("product_modifier_groups").select("product_id, group_id").in("product_id", productIds);
+    for (const l of links || []) {
+      if (!allowedGroups.has(l.product_id)) allowedGroups.set(l.product_id, new Set());
+      allowedGroups.get(l.product_id)!.add(l.group_id);
+    }
+  }
+
+  const invalidOptions: Array<{ index: number; modifier_option_id: string }> = [];
+  const lines = body.items.map((it, index) => {
+    const p = prodById.get(it.item_id)!;
+    const mods = (it.modifier_option_ids || []).map((oid) => {
+      const o = optById.get(oid);
+      if (!o || !allowedGroups.get(it.item_id)?.has(o.group_id)) {
+        invalidOptions.push({ index, modifier_option_id: oid });
+        return null;
+      }
+      return o;
+    }).filter(Boolean) as Array<{ id: string; name: string; extra_price: number }>;
+    const unit = round2(Number(p.sell_price || 0) + mods.reduce((s, m) => s + m.extra_price, 0));
+    return {
+      item_id: p.id, name: p.name, quantity: it.quantity, unit_price: unit,
+      line_total: round2(unit * it.quantity),
+      modifiers: mods.map((m) => ({ id: m.id, name: m.name, extra_price: m.extra_price })),
+    };
+  });
+  if (invalidOptions.length) {
+    return json({ ok: false, error: "modifier_option_invalid", message: "بعض الخيارات غير صالحة لهذا الصنف", details: { options: invalidOptions } }, 422);
+  }
+
+  const itemsTotal = round2(lines.reduce((s, l) => s + l.line_total, 0));
+  const fee = round2(Number(zone.price || 0));
+  return json({
+    ok: true, delivery_available: true, branch_id: branch.id, zone_id: zone.id,
+    delivery_fee: fee, min_order: null, min_order_met: true,
+    items: lines, items_total: itemsTotal, total: round2(itemsTotal + fee), currency: "ILS",
+    quote_id: crypto.randomUUID(),
+    expires_at: new Date(Date.now() + 15 * 60 * 1000).toISOString(),
+  });
+}
+
+const CustomerLookupSchema = z.object({
+  phone: z.string().min(7).max(20).regex(/^\+?[0-9\s\-()]+$/, "رقم هاتف غير صالح"),
+  name: z.string().trim().min(1).max(200),
+  address: z.string().max(500).optional(),
+  delivery_zone_id: z.string().uuid().optional(),
+});
+
+/** POST /customers/lookup-or-create → find by phone or create. Never exposes financial fields. */
+async function handleCustomerLookup(req: Request, ownerId: string, environment: "live" | "test") {
+  let payload: unknown;
+  try { payload = await req.json(); } catch {
+    return json({ ok: false, error: "invalid_json", message: "جسم الطلب ليس JSON صالحاً" }, 400);
+  }
+  const parsed = CustomerLookupSchema.safeParse(payload);
+  if (!parsed.success) return json({ ok: false, error: "validation_failed", fields: parsed.error.flatten().fieldErrors }, 400);
+  const body = parsed.data;
+
+  const digits = body.phone.replace(/\D/g, "");
+  if (digits.length < 7) return json({ ok: false, error: "validation_failed", fields: { phone: ["رقم هاتف غير صالح"] } }, 400);
+  // Match international (970/972…) and local (0…) forms of the same number.
+  const last9 = digits.slice(-9);
+  const candidates = [...new Set([digits, `0${last9}`, `970${last9}`, `972${last9}`])];
+
+  const { data: found } = await admin
+    .from("pos_customers").select("id, name, whatsapp, address")
+    .eq("user_id", ownerId).in("whatsapp", candidates)
+    .order("created_at", { ascending: true }).limit(1).maybeSingle();
+  if (found) {
+    return json({ ok: true, created: false, customer_id: found.id, name: found.name, phone: found.whatsapp, address: found.address ?? null });
+  }
+
+  if (environment === "test") {
+    return json({ ok: true, created: false, would_create: true, test_mode: true, customer_id: null, message: "مفتاح تجريبي: العميل غير موجود وسيُنشأ مع مفتاح الإنتاج — لم يتم الحفظ" });
+  }
+
+  let address = body.address ?? null;
+  if (!address && body.delivery_zone_id) {
+    const { data: zn } = await admin.from("delivery_zones").select("city, area_name").eq("user_id", ownerId).eq("id", body.delivery_zone_id).maybeSingle();
+    if (zn) address = [zn.city, zn.area_name].filter(Boolean).join("، ");
+  }
+  const { data: created, error } = await admin
+    .from("pos_customers")
+    .insert({ user_id: ownerId, name: body.name, whatsapp: digits, address, total_visits: 0, total_spent: 0 } as any)
+    .select("id, name, whatsapp, address").single();
+  if (error) return json({ ok: false, error: "customer_create_failed", message: "تعذر إنشاء العميل" }, 500);
+  return json({ ok: true, created: true, customer_id: created.id, name: created.name, phone: created.whatsapp, address: created.address ?? null }, 201);
+}
+
 async function handleCancelOrder(req: Request, ownerId: string, reference: string) {
   const started = Date.now();
   let reason = "أُلغيت من التطبيق";
