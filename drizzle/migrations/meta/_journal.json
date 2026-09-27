@@ -218,6 +218,13 @@
       "when": 1790533635334,
       "tag": "0030_receiving_session_notes",
       "breakpoints": true
+    },
+    {
+      "idx": 31,
+      "version": "7",
+      "when": 1790534221669,
+      "tag": "0031_fix_procurement_product_sync_loop",
+      "breakpoints": true
     }
   ]
 }
