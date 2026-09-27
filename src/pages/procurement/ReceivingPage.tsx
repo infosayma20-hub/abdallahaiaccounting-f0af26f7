@@ -127,7 +127,15 @@ function ReceivingSession({ sessionId }: { sessionId: string }) {
 
   useEffect(() => { load(); }, [load]);
 
-  const focus = useCallback(() => { if (!dialogOpen) setTimeout(() => inputRef.current?.focus(), 30); }, [dialogOpen]);
+  // يرجّع المؤشر لمربع المسح — إلا إذا الموظف بيكتب بحقل ثاني (تاريخ الانتهاء مثلاً)
+  const focus = useCallback(() => {
+    if (dialogOpen) return;
+    setTimeout(() => {
+      const a = document.activeElement as HTMLElement | null;
+      if (a && a !== inputRef.current && (a.tagName === "INPUT" || a.tagName === "TEXTAREA" || a.tagName === "SELECT")) return;
+      inputRef.current?.focus();
+    }, 30);
+  }, [dialogOpen]);
   useEffect(() => { focus(); }, [focus, session]);
 
   const showFlash = (ok: boolean, text: string) => {
@@ -345,7 +353,7 @@ function ReceivingSession({ sessionId }: { sessionId: string }) {
                     <span className={`text-sm font-bold ${l.expiry_date ? "text-foreground" : "text-destructive"}`}>تاريخ الانتهاء *</span>
                     {editable ? (
                       <Input type="date" min={today} value={l.expiry_date || ""} onChange={e => setExpiry(l, e.target.value)}
-                        onBlur={() => { /* keep scanner focus logic from stealing */ }}
+                        onBlur={focus}
                         className={`h-11 w-48 ${l.expiry_date ? "" : "border-destructive"}`} />
                     ) : <span className="text-sm">{l.expiry_date || "—"}</span>}
                   </div>
