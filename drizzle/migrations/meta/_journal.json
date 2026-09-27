@@ -183,6 +183,13 @@
       "when": 1790526314203,
       "tag": "0025_fix_default_supplier_from_purchase",
       "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "7",
+      "when": 1790526365780,
+      "tag": "0026_purchase_invoice_void_statuses",
+      "breakpoints": true
     }
   ]
 }
