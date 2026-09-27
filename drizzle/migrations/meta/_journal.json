@@ -169,6 +169,13 @@
       "when": 1790526120305,
       "tag": "0023_link_procurement_items_to_inventory",
       "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1790526272859,
+      "tag": "0024_fix_purchase_invoice_stock_triggers",
+      "breakpoints": true
     }
   ]
 }
