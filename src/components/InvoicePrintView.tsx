@@ -6,6 +6,7 @@ interface InvoiceItem {
   productCode?: string;
   quantity: number;
   bonusQuantity?: number;
+  unitOfMeasure?: string;
   unitPrice: number;
   discount: number;
   discountType?: "amount" | "percent";
@@ -511,13 +512,14 @@ const InvoicePrintView = ({
             <col style={{ width: "4%" }} />
             {/* Description column flexes; remaining columns get fixed comfortable widths so big numbers never overlap. */}
             <col style={{ width: "auto" }} />
-            <col style={{ width: hasAnyBonus ? "9%" : "11%" }} />
+            <col style={{ width: hasAnyBonus ? "8%" : "9%" }} />
+            <col style={{ width: "8%" }} />
+            {hasAnyBonus && <col style={{ width: "8%" }} />}
             {hasAnyBonus && <col style={{ width: "9%" }} />}
-            {hasAnyBonus && <col style={{ width: "10%" }} />}
-            <col style={{ width: hasAnyBonus ? "13%" : "15%" }} />
-            <col style={{ width: hasAnyBonus ? "10%" : "12%" }} />
-            {taxEnabled && <col style={{ width: hasAnyBonus ? "11%" : "12%" }} />}
-            <col style={{ width: hasAnyBonus ? (taxEnabled ? "16%" : "18%") : (taxEnabled ? "16%" : "20%") }} />
+            <col style={{ width: hasAnyBonus ? "12%" : "14%" }} />
+            <col style={{ width: hasAnyBonus ? "9%" : "11%" }} />
+            {taxEnabled && <col style={{ width: hasAnyBonus ? "10%" : "11%" }} />}
+            <col style={{ width: hasAnyBonus ? (taxEnabled ? "15%" : "17%") : (taxEnabled ? "15%" : "18%") }} />
           </colgroup>
           )}
           <thead>
@@ -526,7 +528,7 @@ const InvoicePrintView = ({
                 if (!showPrices) {
                   return ["#", "الصنف / الوصف", "الكمية", "الوحدة"];
                 }
-                const headers: string[] = ["#", "الصنف / الوصف", "الكمية"];
+                const headers: string[] = ["#", "الصنف / الوصف", "الكمية", "الوحدة"];
                 if (hasAnyBonus) { headers.push("بونص"); headers.push("المسلم"); }
                 headers.push("سعر الوحدة", "الخصم");
                 if (taxEnabled) headers.push("الضريبة");
@@ -577,7 +579,7 @@ const InvoicePrintView = ({
                     </td>
                     <td style={{ padding: "12px 6px", textAlign: "center", fontFeatureSettings: "'tnum'", fontWeight: 800, fontSize: numFontSize(item.quantity, 15), whiteSpace: "nowrap", direction: "ltr", borderRight: "1px solid #F1F5F9", background: "#EEF4FB", color: "#1B3A5C" }}>{fmtNum(item.quantity)}</td>
                     <td style={{ padding: "12px 6px", textAlign: "center", fontWeight: 600, color: "#4B5563", fontSize: "12px" }}>
-                      {(item as any).unit || "—"}
+                      {item.unitOfMeasure || (item as any).unit || "—"}
                     </td>
                   </tr>
                 );
@@ -601,6 +603,9 @@ const InvoicePrintView = ({
                     )}
                   </td>
                   <td style={{ padding: "12px 6px", textAlign: "center", fontFeatureSettings: "'tnum'", fontWeight: 700, fontSize: numFontSize(item.quantity), whiteSpace: "nowrap", direction: "ltr", borderRight: "1px solid #F1F5F9" }}>{fmtNum(item.quantity)}</td>
+                  <td style={{ padding: "12px 6px", textAlign: "center", fontWeight: 600, color: "#4B5563", fontSize: "12px", whiteSpace: "nowrap", borderRight: "1px solid #F1F5F9" }}>
+                    {item.unitOfMeasure || (item as any).unit || "قطعة"}
+                  </td>
                   {hasAnyBonus && (
                     <td style={{ padding: "12px 6px", textAlign: "center", color: bonusQty > 0 ? "#1B3A5C" : "#9CA3AF", fontFeatureSettings: "'tnum'", fontWeight: 700, fontSize: numFontSize(bonusQty), whiteSpace: "nowrap", direction: "ltr", borderRight: "1px solid #F1F5F9" }}>
                       {bonusQty > 0 ? fmtNum(bonusQty) : "—"}
