@@ -67,6 +67,10 @@ const WebLayoutContent = ({ children }: WebLayoutProps) => {
     /^\/finance\/(receipt|payment|journal)\/(new|[^/]+\/edit)$/.test(pathname) ||
     /^\/invoices\/(new|[^/]+\/edit)$/.test(pathname);
 
+  // Full-height workspace routes: the page owns the whole viewport, no outer
+  // scroll/footer, so the entire screen fits without scrolling.
+  const isFullHeightRoute = /^\/procurement\/orders\/new$/.test(pathname);
+
   // Show only ONE banner: TrialBanner for trial users, SubscriptionExpiryBanner for paid users
   const isTrial = subscription?.isTrial ?? false;
 
@@ -121,7 +125,9 @@ const WebLayoutContent = ({ children }: WebLayoutProps) => {
         <main
           ref={mainRef}
           className={
-            isHRRoute || isCompactRoute
+            isFullHeightRoute
+              ? "flex-1 min-h-0 overflow-hidden flex flex-col"
+              : isHRRoute || isCompactRoute
               ? "flex-1 overflow-y-auto"
               : "flex-1 overflow-y-auto p-5 lg:p-8"
           }
@@ -129,7 +135,7 @@ const WebLayoutContent = ({ children }: WebLayoutProps) => {
           <TrialExpiredGate>
             {children}
           </TrialExpiredGate>
-          <AppFooter />
+          {!isFullHeightRoute && <AppFooter />}
         </main>
       </div>
 

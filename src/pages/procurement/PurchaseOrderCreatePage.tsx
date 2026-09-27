@@ -289,42 +289,88 @@ const PurchaseOrderCreatePage = () => {
 
   return (
     <TooltipProvider>
-      <div className="h-[100vh] flex flex-col overflow-hidden" dir="rtl">
-        {/* ═══ HEADER ═══ */}
+      <div className="flex-1 min-h-0 h-full flex flex-col overflow-hidden" dir="rtl">
+        {/* ═══ HEADER (D365 FinanceShell style) ═══ */}
         <div className="shrink-0 border-b border-border bg-card">
-          {/* Row 1: Title */}
-          <div className="px-4 py-2.5 flex items-center gap-3 border-b border-border/50">
-            <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0" onClick={() => navigate(-1)}>
+          {/* Row 1: Title + command strip + totals */}
+          <div className="px-3 h-11 flex items-center gap-1 border-b border-border/50">
+            <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0" onClick={() => navigate(-1)} aria-label="رجوع">
               <ArrowRight className="h-4 w-4" />
             </Button>
-            <span className="font-bold text-sm text-foreground">طلب مشتريات جديد</span>
-            <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={() => navigate("/procurement/settings")}>
-              <Settings className="h-3.5 w-3.5" />
-            </Button>
+            <span className="font-bold text-sm text-foreground whitespace-nowrap ms-1 me-3">طلب مشتريات جديد</span>
+
+            <div className="flex items-center gap-0.5 border-s border-border ps-2 overflow-x-auto">
+              <Button size="sm" className="h-8 text-xs gap-1.5 bg-primary text-primary-foreground hover:bg-primary/90" onClick={() => handleSave(true)} disabled={saving || !supplierId || lines.length === 0}>
+                <Send className="h-3.5 w-3.5" />إرسال للمورد
+              </Button>
+              <Button variant="ghost" size="sm" className="h-8 text-xs gap-1.5" onClick={() => handleSave(false)} disabled={saving}>
+                <Save className="h-3.5 w-3.5" />حفظ مسودة
+              </Button>
+              <span className="w-px h-5 bg-border mx-1" />
+              <Button variant="ghost" size="sm" className="h-8 text-xs gap-1.5" onClick={() => setItemOpen(true)}>
+                <Plus className="h-3.5 w-3.5" />صنف جديد
+              </Button>
+              <Button variant="ghost" size="sm" className="h-8 text-xs gap-1.5" onClick={() => setCategoryOpen(true)}>
+                <FolderPlus className="h-3.5 w-3.5" />تصنيف
+              </Button>
+              {lines.length > 0 && (
+                <Button variant="ghost" size="sm" className="h-8 text-xs gap-1.5 text-destructive hover:text-destructive" onClick={clearAll}>
+                  <Trash2 className="h-3.5 w-3.5" />مسح البنود
+                </Button>
+              )}
+              <span className="w-px h-5 bg-border mx-1" />
+              <div className="flex items-center gap-0.5">
+                {(["large", "medium", "small"] as CardSize[]).map(size => {
+                  const Icon = size === "large" ? Grid2X2 : size === "medium" ? LayoutGrid : Grid3X3;
+                  const label = size === "large" ? "بطاقات كبيرة" : size === "medium" ? "بطاقات متوسطة" : "بطاقات صغيرة";
+                  return (
+                    <Tooltip key={size}><TooltipTrigger asChild>
+                      <button onClick={() => { setCardSize(size); savePrefs({ ...loadPrefs(), cardSize: size }); }} aria-label={label}
+                        className={`p-1.5 rounded ${cardSize === size ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground hover:bg-muted"}`}>
+                        <Icon className="h-3.5 w-3.5" />
+                      </button>
+                    </TooltipTrigger><TooltipContent>{label}</TooltipContent></Tooltip>
+                  );
+                })}
+              </div>
+              <Tooltip><TooltipTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => navigate("/procurement/settings")} aria-label="إعدادات المشتريات">
+                  <Settings className="h-3.5 w-3.5" />
+                </Button>
+              </TooltipTrigger><TooltipContent>إعدادات المشتريات</TooltipContent></Tooltip>
+            </div>
+
+            <div className="flex items-center gap-4 text-xs ms-auto ps-3 whitespace-nowrap">
+              <span className="text-muted-foreground">الأصناف: <b className="text-foreground">{lines.length}</b></span>
+              <span className="text-muted-foreground">الكمية: <b className="text-foreground">{totalQty}</b></span>
+              <span className="text-muted-foreground">الإجمالي: <b className="text-foreground">{totalAmount.toLocaleString("en", { minimumFractionDigits: 2 })} ₪</b></span>
+            </div>
           </div>
 
-          {/* Row 2: Supplier, Dates, Branch */}
-          <div className="px-4 py-2 flex items-center gap-4 flex-wrap border-b border-border/50">
+          {/* Row 2: Search + Supplier, Dates, Branch */}
+          <div className="px-3 py-1.5 flex items-center gap-3 flex-wrap">
+            <div className="relative w-[220px]">
+              <Search className="absolute right-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+              <Input ref={searchRef} placeholder="ابحث عن صنف..." value={searchQuery}
+                onChange={e => setSearchQuery(e.target.value)} className="h-8 pr-8 text-xs" />
+            </div>
             <div className="flex items-center gap-1.5">
               <Label className="text-xs text-muted-foreground whitespace-nowrap">المورد:</Label>
               <SupplierPicker suppliers={allSuppliers as any} value={supplierId} onChange={setSupplierId} ownerId={ownerId} onSuppliersChanged={() => { refetchSuppliers(); suppliersCrud.refetch(); }} />
               <Tooltip><TooltipTrigger asChild>
-                <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0 text-muted-foreground hover:text-primary" onClick={() => setSupplierOpen(true)}>
+                <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0 text-muted-foreground hover:text-primary" onClick={() => setSupplierOpen(true)} aria-label="إضافة مورد جديد">
                   <UserPlus className="h-3.5 w-3.5" />
                 </Button>
               </TooltipTrigger><TooltipContent>إضافة مورد جديد</TooltipContent></Tooltip>
             </div>
-
             <div className="flex items-center gap-1.5">
               <Label className="text-xs text-muted-foreground whitespace-nowrap">تاريخ الطلب:</Label>
-              <Input type="date" value={orderDate} onChange={e => setOrderDate(e.target.value)} className="h-8 w-[140px] text-xs" />
+              <Input type="date" value={orderDate} onChange={e => setOrderDate(e.target.value)} className="h-8 w-[135px] text-xs" />
             </div>
-
             <div className="flex items-center gap-1.5">
               <Label className="text-xs text-muted-foreground whitespace-nowrap">التسليم المتوقع:</Label>
-              <Input type="date" value={expectedDate} onChange={e => setExpectedDate(e.target.value)} className="h-8 w-[140px] text-xs" />
+              <Input type="date" value={expectedDate} onChange={e => setExpectedDate(e.target.value)} className="h-8 w-[135px] text-xs" />
             </div>
-
             <div className="flex items-center gap-1.5">
               <Label className="text-xs text-muted-foreground whitespace-nowrap">الفرع:</Label>
               <Select value={defaultBranchId} onValueChange={setDefaultBranchId}>
@@ -333,65 +379,23 @@ const PurchaseOrderCreatePage = () => {
               </Select>
             </div>
           </div>
-
-          {/* Row 3: Stats */}
-          <div className="px-4 py-1.5 flex items-center gap-6 border-b border-border/50 bg-muted/30">
-            <div className="flex items-center gap-1.5 text-xs">
-              <Package className="h-3.5 w-3.5 text-muted-foreground" />
-              <span className="text-muted-foreground">الأصناف:</span>
-              <span className="font-bold text-foreground">{lines.length}</span>
-            </div>
-            <div className="flex items-center gap-1.5 text-xs">
-              <span className="text-muted-foreground">الكمية:</span>
-              <span className="font-bold text-foreground">{totalQty}</span>
-            </div>
-            <div className="flex items-center gap-1.5 text-xs">
-              <span className="text-muted-foreground">الإجمالي:</span>
-              <span className="font-bold text-foreground">{totalAmount.toLocaleString("en", { minimumFractionDigits: 2 })} ₪</span>
-            </div>
-          </div>
-
-          {/* Row 4: Action buttons */}
-          <div className="px-4 py-2 flex items-center gap-2">
-            <Button variant="outline" size="sm" className="h-8 text-xs gap-1.5" onClick={() => handleSave(false)} disabled={saving}>
-              <Save className="h-3.5 w-3.5" />
-              حفظ مسودة
-            </Button>
-            <Button size="sm" className="h-8 text-xs gap-1.5 text-white" style={{ background: "#1B3A5C" }} onClick={() => handleSave(true)} disabled={saving || !supplierId || lines.length === 0}>
-              <Send className="h-3.5 w-3.5" />
-              إرسال للمورد
-            </Button>
-            {lines.length > 0 && (
-              <Button variant="ghost" size="sm" className="h-8 text-xs gap-1.5 text-destructive hover:text-destructive" onClick={clearAll}>
-                <Trash2 className="h-3.5 w-3.5" />
-                مسح الكل
-              </Button>
-            )}
-          </div>
         </div>
 
         {/* ═══ MAIN 2-COLUMN ═══ */}
         <div className="flex-1 flex min-h-0">
           {/* CENTER: Categories + Items Grid */}
           <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-            {/* Category Tabs */}
-            <div className="shrink-0 border-b border-border bg-muted/20 px-3 py-2.5">
-              <div className="flex flex-wrap items-center gap-2">
-                {/* All button */}
+            {/* Category chips — single scrollable row */}
+            <div className="shrink-0 border-b border-border bg-muted/20 px-3 py-1.5">
+              <div className="flex items-center gap-1.5 overflow-x-auto">
                 <button
                   onClick={() => setActiveCategory(null)}
-                  className={`flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs font-bold transition-all ${
-                    !activeCategory
-                      ? "text-white shadow-md"
-                      : "bg-muted/60 text-muted-foreground hover:bg-muted hover:text-foreground border border-border"
+                  className={`shrink-0 flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-semibold transition-colors ${
+                    !activeCategory ? "bg-primary text-primary-foreground" : "bg-background text-muted-foreground hover:text-foreground border border-border"
                   }`}
-                  style={!activeCategory ? { backgroundColor: "#1B3A5C" } : undefined}
                 >
-                  <LayoutGrid className="h-3.5 w-3.5" />
-                  <span>الكل</span>
-                  <span className="text-[10px] opacity-80">({allItems.length})</span>
+                  الكل <span className="text-[10px] opacity-80">({allItems.length})</span>
                 </button>
-
                 {categories.map((cat: any) => {
                   const isActive = activeCategory === cat.id;
                   const Icon = iconMap[cat.icon || ""] || Package;
@@ -400,51 +404,14 @@ const PurchaseOrderCreatePage = () => {
                     <button
                       key={cat.id}
                       onClick={() => setActiveCategory(isActive ? null : cat.id)}
-                      className={`flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs font-bold transition-all ${
-                        isActive
-                          ? "text-white shadow-md"
-                          : "bg-muted/60 text-muted-foreground hover:bg-muted hover:text-foreground border border-border"
+                      className={`shrink-0 flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-semibold transition-colors ${
+                        isActive ? "bg-primary text-primary-foreground" : "bg-background text-muted-foreground hover:text-foreground border border-border"
                       }`}
-                      style={isActive ? { backgroundColor: "#1B3A5C" } : undefined}
                     >
                       <Icon className="h-3.5 w-3.5" />
                       <span>{cat.name}</span>
                       <span className="text-[10px] opacity-80">({count})</span>
                     </button>
-                  );
-                })}
-
-                <button onClick={() => setCategoryOpen(true)}
-                  className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs text-muted-foreground hover:bg-muted/60 hover:text-primary transition-all border border-dashed border-border/60">
-                  <Plus className="h-3 w-3" />
-                  <span>تصنيف</span>
-                </button>
-              </div>
-            </div>
-
-            {/* Search + controls */}
-            <div className="shrink-0 px-3 py-1.5 border-b border-border flex items-center gap-2 bg-background">
-              <div className="relative flex-1 max-w-xs">
-                <Search className="absolute right-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
-                <Input ref={searchRef} placeholder="ابحث عن صنف..." value={searchQuery}
-                  onChange={e => setSearchQuery(e.target.value)} className="h-8 pr-8 text-xs" />
-              </div>
-              <Button variant="outline" size="sm" className="h-8 text-xs gap-1.5" onClick={() => setItemOpen(true)}>
-                <Plus className="h-3.5 w-3.5" />
-                إضافة صنف جديد
-              </Button>
-              <div className="flex-1" />
-              <div className="flex items-center gap-0.5 border rounded-md p-0.5">
-                {(["large", "medium", "small"] as CardSize[]).map(size => {
-                  const Icon = size === "large" ? Grid2X2 : size === "medium" ? LayoutGrid : Grid3X3;
-                  const label = size === "large" ? "جدول" : size === "medium" ? "بطاقات صغيرة" : "بطاقات كبيرة";
-                  return (
-                    <Tooltip key={size}><TooltipTrigger asChild>
-                      <button onClick={() => { setCardSize(size); savePrefs({ ...loadPrefs(), cardSize: size }); }}
-                        className={`p-1.5 rounded ${cardSize === size ? "bg-[#1B3A5C] text-white" : "text-muted-foreground hover:text-foreground"}`}>
-                        <Icon className="h-4 w-4" />
-                      </button>
-                    </TooltipTrigger><TooltipContent>{label}</TooltipContent></Tooltip>
                   );
                 })}
               </div>
