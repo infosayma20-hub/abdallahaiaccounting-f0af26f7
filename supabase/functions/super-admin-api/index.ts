@@ -154,6 +154,7 @@ Deno.serve(async (req) => {
           email: authUser?.email,
           phone: authUser?.phone,
           last_sign_in: authUser?.last_sign_in_at,
+          email_confirmed: !!authUser?.email_confirmed_at,
           is_banned: authUser?.banned_until ? new Date(authUser.banned_until) > new Date() : false,
           roles: userRoles,
           license_number: company?.license_number || null,
@@ -237,6 +238,32 @@ Deno.serve(async (req) => {
       }
 
       await logAction("reset_password", "user", targetUserId);
+      return new Response(JSON.stringify({ success: true }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    if (action === "confirm_email") {
+      const body = await req.json();
+      const targetUserId = body.user_id;
+
+      if (!targetUserId) {
+        return new Response(JSON.stringify({ error: "user_id مطلوب" }), {
+          status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const { data: target, error } = await admin.auth.admin.updateUserById(targetUserId, {
+        email_confirm: true,
+      });
+
+      if (error) {
+        return new Response(JSON.stringify({ error: error.message }), {
+          status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      await logAction("confirm_email", "user", targetUserId, { email: target?.user?.email });
       return new Response(JSON.stringify({ success: true }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
