@@ -174,32 +174,26 @@ const NoorSupportWidget = () => {
 
   return (
     <>
-      {/* Floating 3D button */}
+      {/* Edge-docked button — half-tucked into the screen edge, slides out on hover */}
       {!open && (
-        <div className="fixed bottom-6 left-4 z-[60] group" style={{ perspective: "600px" }}>
-          {/* Pulse rings */}
-          <span className="absolute inset-0 rounded-full animate-ping" style={{ animationDuration: "2.5s", background: "rgba(30,58,95,0.25)" }} />
-          <span className="absolute inset-[-4px] rounded-full animate-ping" style={{ animationDuration: "3.5s", animationDelay: "0.5s", background: "rgba(30,58,95,0.15)" }} />
+        <div
+          className="fixed z-[60] group"
+          style={{ bottom: "5.5rem", left: 0 }}
+        >
           <button
             onClick={() => setOpen(true)}
-            className="relative w-14 h-14 rounded-full flex items-center justify-center text-white transition-all duration-500 group-hover:scale-110 active:scale-95"
+            className="relative flex items-center justify-start pl-1 text-white transition-transform duration-300 ease-out -translate-x-1/2 group-hover:translate-x-0 active:scale-95"
             style={{
+              width: "2.75rem",
+              height: "3.25rem",
+              borderRadius: "0 1rem 1rem 0",
               background: "linear-gradient(135deg, #0D1B2E, #1E3A5F)",
-              boxShadow: "0 6px 24px rgba(13,27,46,0.5), 0 2px 8px rgba(0,0,0,0.15), inset 0 1px 0 rgba(255,255,255,0.15)",
-              transform: "rotateY(0deg) rotateX(0deg)",
-              transition: "transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.4s ease",
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.transform = "rotateY(-12deg) rotateX(8deg) scale(1.1)";
-              e.currentTarget.style.boxShadow = "8px 8px 30px rgba(13,27,46,0.6), 0 4px 12px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.2)";
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.transform = "rotateY(0deg) rotateX(0deg) scale(1)";
-              e.currentTarget.style.boxShadow = "0 6px 24px rgba(13,27,46,0.5), 0 2px 8px rgba(0,0,0,0.15), inset 0 1px 0 rgba(255,255,255,0.15)";
+              boxShadow: "2px 2px 14px rgba(13,27,46,0.4)",
             }}
             title="نور — الدعم الفني"
+            aria-label="نور — الدعم الفني"
           >
-            <Headset className="h-6 w-6 drop-shadow-sm" />
+            <Headset className="h-5 w-5 drop-shadow-sm ltr:ml-1 rtl:mr-1" />
           </button>
         </div>
       )}
