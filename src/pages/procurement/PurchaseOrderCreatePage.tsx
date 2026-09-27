@@ -561,7 +561,11 @@ const PurchaseOrderCreatePage = () => {
               )}
             </div>
 
-            <div className="shrink-0 border-t border-border px-3 py-2 bg-muted/20">
+            <div className="shrink-0 border-t border-border px-3 py-2 bg-muted/20 space-y-2">
+              <div className="flex items-center gap-1.5">
+                <StickyNote className={`h-4 w-4 shrink-0 ${notes ? "text-[#D97706]" : "text-muted-foreground"}`} />
+                <Input value={notes} onChange={e => setNotes(e.target.value)} placeholder="ملاحظة على الطلبية كاملة..." className="h-8 text-xs" />
+              </div>
               <div className="flex justify-between text-sm">
                 <span className="text-muted-foreground">المجموع التقديري</span>
                 <span className="font-bold text-base">{totalAmount.toLocaleString("en", { minimumFractionDigits: 2 })} ₪</span>
