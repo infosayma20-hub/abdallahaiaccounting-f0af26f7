@@ -15,7 +15,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Plus, Search, Users, DollarSign, FileText, Trash2, UserPlus, Loader2, Upload, CalendarDays, LogOut as LogOutIcon, Download, FileBarChart, ArrowUpDown, Filter, Layers, Pencil, ChevronLeft, ChevronRight, X, Edit, Building2, Shield, Ban, CheckCircle2, Fingerprint } from "lucide-react";
-import { RefreshCw } from "lucide-react";
+import { RefreshCw, ScanLine } from "lucide-react";
 import { FinanceShell, type ActionTab } from "@/components/finance/shell";
 import { FileSignature, ReceiptText } from "lucide-react";
 import EmploymentLetterDialog, { type EmploymentLetterTarget } from "@/components/hr/EmploymentLetterDialog";
