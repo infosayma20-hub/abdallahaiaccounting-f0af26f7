@@ -197,6 +197,13 @@
       "when": 1790526426863,
       "tag": "0027_receiving_manager_guard",
       "breakpoints": true
+    },
+    {
+      "idx": 28,
+      "version": "7",
+      "when": 1790532169114,
+      "tag": "0028_link_procurement_items_inventory",
+      "breakpoints": true
     }
   ]
 }
