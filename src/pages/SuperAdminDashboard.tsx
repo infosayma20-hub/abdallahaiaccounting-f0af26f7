@@ -9,7 +9,7 @@ import {
   ChevronLeft, ChevronRight, Search, X, LogOut, Database, FileText, ChevronDown,
   TrendingUp, Wifi, Download, Table2, Play, Pause, Settings, Package,
   Zap, Server, Bell, HardDrive, CreditCard, BarChart3, PieChart, ArrowUpRight, ArrowDownRight, CalendarDays,
-  Sun, Moon, LayoutDashboard, UserPlus, ArrowUp, ArrowDown, ArrowUpDown,
+  Sun, Moon, LayoutDashboard, UserPlus, ArrowUp, ArrowDown, ArrowUpDown, MailCheck, MailWarning,
 } from "lucide-react";
 import SamiLeadsPanel from "@/components/superadmin/SamiLeadsPanel";
 import { SignupNotificationsBell } from "@/components/super-admin/SignupNotificationsBell";
@@ -125,6 +125,7 @@ type UserRecord = {
   email?: string;
   phone?: string;
   last_sign_in?: string;
+  email_confirmed?: boolean;
   is_banned?: boolean;
   roles: string[];
   created_at: string;
@@ -1955,6 +1956,19 @@ export default function SuperAdminDashboard() {
     });
   };
 
+  const handleConfirmEmail = (userId: string, name: string) => {
+    setPwDialog({
+      open: true, title: `تأكيد بريد ${name}`,
+      onConfirmed: async () => {
+        try {
+          await apiCall("confirm_email", undefined, { user_id: userId });
+          toast.success(`تم تفعيل بريد ${name}`);
+          loadUsers();
+        } catch (e: any) { toast.error(e.message); }
+      },
+    });
+  };
+
   const handleDeleteUser = async () => {
     if (deleteConfirmText !== "DELETE") { toast.error("اكتب DELETE للتأكيد"); return; }
     try {
@@ -2071,7 +2085,7 @@ export default function SuperAdminDashboard() {
   const actionLabel: Record<string, string> = {
     view_dashboard: "عرض لوحة التحكم", view_users: "عرض المستخدمين",
     suspend_user: "تعليق مستخدم", unsuspend_user: "إلغاء التعليق",
-    reset_password: "إعادة تعيين كلمة المرور", delete_user: "حذف مستخدم",
+    reset_password: "إعادة تعيين كلمة المرور", confirm_email: "تأكيد بريد مستخدم", delete_user: "حذف مستخدم",
     verify_password: "تأكيد الهوية", view_table: "تصفح جدول",
     view_subscriptions: "عرض الاشتراكات", update_subscription: "تحديث اشتراك",
     assign_subscription: "تعيين اشتراك", view_revenue_stats: "عرض إحصائيات الإيرادات",
