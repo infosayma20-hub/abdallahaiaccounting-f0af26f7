@@ -2,26 +2,28 @@ import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "@/hooks/use-toast";
+import { useDataOwnerId } from "@/hooks/useDataOwnerId";
 
 // ── Suppliers CRUD ──
 export function useSuppliersCrud() {
   const { user } = useAuth();
+  const { dataOwnerId } = useDataOwnerId();
   const [suppliers, setSuppliers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   const fetch = useCallback(async () => {
-    if (!user) return;
+    if (!user || !dataOwnerId) return;
     setLoading(true);
-    const { data } = await supabase.from("pos_suppliers").select("*").order("name");
+    const { data } = await supabase.from("pos_suppliers").select("*").eq("user_id", dataOwnerId).order("name");
     setSuppliers((data as any) || []);
     setLoading(false);
-  }, [user]);
+  }, [user, dataOwnerId]);
 
   useEffect(() => { fetch(); }, [fetch]);
 
   const create = async (supplier: any) => {
     const { error } = await supabase.from("pos_suppliers").insert({
-      ...supplier, user_id: user?.id,
+      ...supplier, user_id: dataOwnerId || user?.id,
     } as any);
     if (error) { toast({ title: "❌ خطأ", description: error.message, variant: "destructive" }); return false; }
     toast({ title: "✅ تم حفظ المورد بنجاح" });

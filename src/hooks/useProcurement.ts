@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "@/hooks/use-toast";
+import { useDataOwnerId } from "@/hooks/useDataOwnerId";
 
 // Types
 export interface PosSupplier {
@@ -69,19 +70,24 @@ function getOwnerId(user: any) {
 // Fetch suppliers from pos_suppliers
 export function useSuppliers() {
   const { user } = useAuth();
+  const { dataOwnerId } = useDataOwnerId();
+  const ownerId = dataOwnerId || null;
   const [suppliers, setSuppliers] = useState<PosSupplier[]>([]);
   const [loading, setLoading] = useState(true);
 
+  // Scope strictly to the active company owner — never rely on RLS alone
+  // (super-admin / multi-company users can read other tenants' rows).
   const fetch = useCallback(async () => {
-    if (!user) return;
+    if (!user || !ownerId) return;
     setLoading(true);
     const { data } = await supabase
       .from("pos_suppliers")
       .select("*")
+      .eq("user_id", ownerId)
       .order("name");
     setSuppliers((data as any) || []);
     setLoading(false);
-  }, [user]);
+  }, [user, ownerId]);
 
   useEffect(() => { fetch(); }, [fetch]);
   return { suppliers, loading, refetch: fetch };
@@ -407,12 +413,16 @@ export function usePurchaseInvoices() {
 }
 
 export function useBranches() {
+  const { dataOwnerId } = useDataOwnerId();
   const [branches, setBranches] = useState<{ id: string; name: string }[]>([]);
   const fetchBranches = useCallback(() => {
-    supabase.from("branches").select("id, name").eq("is_active", true).then(({ data }) => {
-      setBranches((data as any) || []);
-    });
-  }, []);
+    if (!dataOwnerId) { setBranches([]); return; }
+    supabase.from("branches").select("id, name")
+      .eq("user_id", dataOwnerId)
+      .eq("is_active", true)
+      .order("name")
+      .then(({ data }) => { setBranches((data as any) || []); });
+  }, [dataOwnerId]);
   useEffect(() => { fetchBranches(); }, [fetchBranches]);
   return { branches, refetchBranches: fetchBranches };
 }
