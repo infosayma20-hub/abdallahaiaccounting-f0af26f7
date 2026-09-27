@@ -441,6 +441,9 @@ const PurchaseOrdersPage = () => {
         </>
       )}
       {(o.status === "sent" || o.status === "partially_received") && (
+        <Button size="sm" variant="ghost" className="h-7 w-7 p-0" title="إسناد للاستلام بالباركود" onClick={() => setAssignOrder(o)}><ScanLine className="h-3.5 w-3.5" /></Button>
+      )}
+      {(o.status === "sent" || o.status === "partially_received") && (
         <Button size="sm" variant="ghost" className="h-7 text-[11px]" onClick={() => navigate(`/procurement/invoices/new?orderId=${o.id}`)}>
           {o.status === "sent" ? "📥 استلام" : "📥 استلام باقي"}
         </Button>
@@ -622,7 +625,11 @@ const PurchaseOrdersPage = () => {
                             <td style={{ padding: "8px 12px", fontWeight: "600", color: NAVY, fontSize: "13px", fontFamily: F, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: "200px" }}>{o.supplier?.name || "—"}</td>
                             <td style={{ padding: "8px 12px", fontSize: "12px", color: "#64748B", fontFamily: F, whiteSpace: "nowrap" }}>{o.branch?.name || "—"}</td>
                             <td style={{ padding: "8px 12px", fontWeight: "700", color: NAVY, fontSize: "14px", fontFamily: F, direction: "ltr", textAlign: "left", whiteSpace: "nowrap" }}>{Number(o.total_amount).toLocaleString()} ₪</td>
-                            <td style={{ padding: "8px 12px" }}>{statusPill(o.status)}</td>
+                            <td style={{ padding: "8px 12px" }}>{statusPill(o.status)}{receivingByOrder[o.id] && (
+                              <div className="mt-1"><Badge variant={receivingByOrder[o.id].status === "submitted" ? "default" : "outline"} className="text-[10px] cursor-pointer" onClick={e => { e.stopPropagation(); setAssignOrder(o); }}>
+                                {receivingStatusLabel[receivingByOrder[o.id].status]}{receivingByOrder[o.id].employee_name ? ` · ${receivingByOrder[o.id].employee_name}` : ""}
+                              </Badge></div>
+                            )}</td>
                             <td style={{ padding: "8px 12px" }} onClick={e => e.stopPropagation()}>
                               {o.linked_invoice ? (
                                 <Badge variant="outline" className="font-mono text-[10px] cursor-pointer hover:bg-accent/10"
@@ -813,6 +820,12 @@ const PurchaseOrdersPage = () => {
           )}
         </SheetContent>
       </Sheet>
+      <ReceivingAssignDialog
+        order={assignOrder}
+        current={assignOrder ? receivingByOrder[assignOrder.id] : null}
+        onClose={() => setAssignOrder(null)}
+        onDone={loadReceiving}
+      />
     </>
   );
 };
