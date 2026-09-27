@@ -48,7 +48,7 @@ export function SupplierPicker({ suppliers, value, onChange, ownerId, onSupplier
     supabase.from("contacts")
       .select("id, contact_name, contact_type, phone")
       .eq("user_id", ownerId)
-      .neq("is_deleted", true)
+      .or("is_active.is.null,is_active.eq.true")
       .order("contact_name")
       .limit(5000)
       .then(({ data }) => { setContacts((data as any) || []); setLoading(false); });
