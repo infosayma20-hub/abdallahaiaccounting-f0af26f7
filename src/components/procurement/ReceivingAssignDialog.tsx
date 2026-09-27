@@ -117,6 +117,9 @@ export default function ReceivingAssignDialog({ order, current, onClose, onDone 
                     className={`block w-full px-3 py-2 text-right text-sm hover:bg-accent ${employeeId === e.id ? "bg-primary/10 font-bold" : ""}`}
                   >
                     {e.full_name}
+                    {e.is_receiver && (
+                      <span className="ms-2 rounded bg-teal-100 px-1.5 py-0.5 text-[10px] text-teal-700">موظف مستودع</span>
+                    )}
                   </button>
                 ))}
               </div>
