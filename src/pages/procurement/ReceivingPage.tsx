@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { Navigate, useNavigate, useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -8,8 +8,10 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
-import { ArrowRight, ScanLine, Minus, Plus, CheckCircle2, Package, RefreshCw, Barcode, Printer, StickyNote } from "lucide-react";
+import { ArrowRight, ScanLine, Minus, Plus, CheckCircle2, Package, RefreshCw, Barcode, Printer, StickyNote, ClipboardList } from "lucide-react";
 import { receivingStatusLabel } from "@/components/procurement/ReceivingAssignDialog";
+import { useAuth } from "@/hooks/useAuth";
+import { BRAND } from "@/constants/brand";
 
 type Line = {
   id: string; order_item_id: string; product_id: string | null; item_name: string; unit: string | null;
@@ -41,26 +43,39 @@ const writeQueue = (sid: string, q: string[]) => localStorage.setItem(QKEY(sid),
 /* ───────── Dynamics-style finance shell ───────── */
 function DShell({ title, crumb, actions, children, onClick }: { title: string; crumb: string; actions: ReactNode; children: ReactNode; onClick?: () => void }) {
   return (
-    <div dir="rtl" className="flex min-h-[100dvh] flex-col bg-muted/40" onClick={onClick}>
-      <div className="flex h-12 items-center gap-3 bg-primary px-4 text-primary-foreground">
-        <span className="text-sm font-bold tracking-wide">UNIFY</span>
-        <span className="h-5 w-px bg-primary-foreground/30" />
-        <span className="text-sm opacity-90">المستودع</span>
-        <span className="text-sm opacity-60">›</span>
-        <span className="truncate text-sm font-semibold">{crumb}</span>
+    <div dir="rtl" className="flex min-h-[100dvh] flex-col bg-muted/30" onClick={onClick}>
+      <header className="flex h-16 shrink-0 items-center gap-3 bg-primary px-3 text-primary-foreground shadow-md sm:px-5">
+        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-md bg-card p-1.5 shadow-sm">
+          <img src={BRAND.logos.icon} alt="يونيفاي" className="h-full w-full object-contain" />
+        </div>
+        <div className="min-w-0">
+          <div className="flex items-center gap-2">
+            <span className="text-base font-bold">يونيفاي</span>
+            <span className="hidden h-4 w-px bg-primary-foreground/30 sm:block" />
+            <span className="hidden text-xs text-primary-foreground/75 sm:block">إدارة المستودع</span>
+          </div>
+          <div className="flex items-center gap-1 text-xs text-primary-foreground/65">
+            <span>استلام البضاعة</span><span>‹</span><span className="truncate font-semibold text-primary-foreground">{crumb}</span>
+          </div>
+        </div>
+        <div className="mr-auto hidden items-center gap-2 text-xs text-primary-foreground/70 sm:flex">
+          <Package className="h-4 w-4" /> مساحة موظف المستودع
+        </div>
+      </header>
+      <div className="sticky top-0 z-10 flex min-h-14 items-stretch gap-1 overflow-x-auto border-b bg-card px-2 shadow-sm sm:px-4">{actions}</div>
+      <div className="border-b bg-background px-4 py-3 sm:px-6">
+        <h1 className="text-xl font-bold text-foreground">{title}</h1>
       </div>
-      <div className="sticky top-0 z-10 flex items-stretch gap-0.5 overflow-x-auto border-b bg-card px-2 shadow-sm">{actions}</div>
-      <div className="border-b bg-card px-4 py-2 md:px-6"><h1 className="text-xl font-semibold text-foreground">{title}</h1></div>
       <div className="flex-1">{children}</div>
     </div>
   );
 }
 function PaneBtn({ icon: Icon, label, onClick, primary, disabled }: { icon: any; label: string; onClick: () => void; primary?: boolean; disabled?: boolean }) {
   return (
-    <button type="button" disabled={disabled} onClick={e => { e.stopPropagation(); onClick(); }}
-      className={`flex min-w-[76px] flex-col items-center justify-center gap-1 px-3 py-2 text-xs font-medium transition-colors disabled:opacity-40 ${primary ? "text-primary hover:bg-primary/10" : "text-foreground hover:bg-muted"}`}>
+    <Button type="button" variant="ghost" disabled={disabled} onClick={e => { e.stopPropagation(); onClick(); }}
+      className={`h-auto min-w-[84px] rounded-none flex-col gap-1 px-3 py-2 text-xs font-semibold ${primary ? "text-primary hover:bg-primary/10 hover:text-primary" : "text-foreground"}`}>
       <Icon className="h-5 w-5" />{label}
-    </button>
+    </Button>
   );
 }
 
@@ -80,22 +95,27 @@ function MyReceivingList() {
 
   return (
     <DShell title="استلام البضاعة" crumb="طلبيات الاستلام"
-      actions={<><PaneBtn icon={ArrowRight} label="رجوع" onClick={() => navigate(-1)} /><PaneBtn icon={RefreshCw} label="تحديث" onClick={load} /></>}>
-      <div className="p-3 md:p-6">
+      actions={<><PaneBtn icon={ArrowRight} label="مساحات العمل" onClick={() => navigate("/choose-workspace", { replace: true })} /><PaneBtn icon={RefreshCw} label="تحديث" onClick={load} /></>}>
+      <main className="mx-auto w-full max-w-[1500px] p-3 sm:p-5 lg:p-7">
         {loading ? <div className="p-10 text-center text-muted-foreground">جارِ التحميل…</div> : rows.length === 0 ? (
-          <div className="border bg-card p-10 text-center text-muted-foreground">
-            <Package className="mx-auto mb-3 h-12 w-12 opacity-40" />ما في طلبيات مسندة إلك حالياً
+          <div className="flex min-h-[45vh] flex-col items-center justify-center border border-dashed bg-card px-5 py-12 text-center">
+            <div className="mb-5 flex h-20 w-20 items-center justify-center rounded-full bg-primary/10">
+              <ClipboardList className="h-10 w-10 text-primary" />
+            </div>
+            <h2 className="text-xl font-bold text-foreground">لا توجد طلبيات للاستلام</h2>
+            <p className="mt-2 max-w-md text-sm text-muted-foreground">ستظهر هنا طلبيات الشراء المسندة إليك فور إرسالها من المسؤول.</p>
+            <Button variant="outline" className="mt-6 gap-2" onClick={load}><RefreshCw className="h-4 w-4" />تحديث الطلبيات</Button>
           </div>
         ) : (
-          <div className="overflow-hidden border bg-card">
+          <div className="overflow-hidden rounded-md border bg-card shadow-sm">
             <div className="hidden grid-cols-[1.2fr_1.5fr_0.7fr_1.2fr_0.9fr] gap-3 border-b bg-muted/60 px-4 py-2 text-xs font-semibold text-muted-foreground md:grid">
               <span>رقم الطلبية</span><span>المورد</span><span>الأصناف</span><span>التقدم</span><span>الحالة</span>
             </div>
             {rows.map(r => {
               const pct = r.ordered_total > 0 ? Math.min(100, Math.round((r.scanned_total / r.ordered_total) * 100)) : 0;
               return (
-                <button key={r.id} onClick={() => navigate(`/worker/receiving/${r.id}`)}
-                  className="grid w-full grid-cols-2 items-center gap-3 border-b px-4 py-4 text-right transition-colors last:border-b-0 hover:bg-primary/5 md:grid-cols-[1.2fr_1.5fr_0.7fr_1.2fr_0.9fr]">
+                <Button key={r.id} variant="ghost" onClick={() => navigate(`/worker/receiving/${r.id}`)}
+                  className="grid h-auto w-full grid-cols-2 items-center gap-3 rounded-none border-b px-4 py-4 text-right font-normal last:border-b-0 hover:bg-primary/5 md:grid-cols-[1.2fr_1.5fr_0.7fr_1.2fr_0.9fr]">
                   <span className="text-base font-semibold text-primary underline-offset-2 hover:underline">{r.order_number}</span>
                   <span className="text-sm text-foreground">{r.supplier_name || "—"}{r.expected_date && <span className="block text-xs text-muted-foreground">متوقع: {r.expected_date}</span>}</span>
                   <span className="text-sm">{r.items_count}</span>
@@ -104,12 +124,12 @@ function MyReceivingList() {
                     {Number(r.scanned_total)}/{Number(r.ordered_total)}
                   </span>
                   <span><Badge variant={r.status === "submitted" ? "default" : "outline"}>{receivingStatusLabel[r.status]}</Badge></span>
-                </button>
+                </Button>
               );
             })}
           </div>
         )}
-      </div>
+      </main>
     </DShell>
   );
 }
@@ -459,6 +479,36 @@ function printLabel(name: string, barcode: string) {
 }
 
 export default function ReceivingPage() {
+  const { user, loading: authLoading } = useAuth();
   const { sessionId } = useParams();
+  const [access, setAccess] = useState<"checking" | "allowed" | "denied">("checking");
+
+  useEffect(() => {
+    if (authLoading) return;
+    if (!user?.id) {
+      setAccess("denied");
+      return;
+    }
+    let active = true;
+    void Promise.all([
+      supabase.from("employees").select("is_receiver, is_active, is_terminated").eq("auth_user_id", user.id).maybeSingle(),
+      supabase.rpc("get_my_receiving_sessions"),
+    ]).then(([employeeResult, sessionsResult]) => {
+      if (!active) return;
+      const employee = employeeResult.data as { is_receiver?: boolean | null; is_active?: boolean | null; is_terminated?: boolean | null } | null;
+      const sessions = (sessionsResult.data as Array<{ id?: string }> | null) || [];
+      const isWarehouseEmployee = employee?.is_receiver === true && employee.is_active === true && employee.is_terminated !== true;
+      setAccess(isWarehouseEmployee || sessions.length > 0 ? "allowed" : "denied");
+    }).catch(() => {
+      if (active) setAccess("denied");
+    });
+    return () => { active = false; };
+  }, [authLoading, user?.id]);
+
+  if (authLoading || access === "checking") {
+    return <div dir="rtl" className="flex min-h-[100dvh] items-center justify-center bg-background text-muted-foreground">جارِ التحقق من صلاحية موظف المستودع…</div>;
+  }
+  if (!user) return <Navigate to="/auth" replace />;
+  if (access === "denied") return <Navigate to="/choose-workspace" replace />;
   return sessionId ? <ReceivingSession sessionId={sessionId} /> : <MyReceivingList />;
 }
