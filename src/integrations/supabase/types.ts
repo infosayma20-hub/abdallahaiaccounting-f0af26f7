@@ -31313,6 +31313,10 @@ export type Database = {
           session_id: string
         }[]
       }
+      discard_empty_purchase_invoice: {
+        Args: { p_invoice_id: string }
+        Returns: undefined
+      }
       dispatch_domain_events_v1: {
         Args: { p_dry_run?: boolean; p_limit?: number }
         Returns: Json

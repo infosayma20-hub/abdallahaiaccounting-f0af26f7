@@ -155,6 +155,13 @@
       "when": 1790525868322,
       "tag": "0021_receiving_expiry_and_remaining",
       "breakpoints": true
+    },
+    {
+      "idx": 22,
+      "version": "7",
+      "when": 1790526000654,
+      "tag": "0022_discard_empty_purchase_invoice",
+      "breakpoints": true
     }
   ]
 }
