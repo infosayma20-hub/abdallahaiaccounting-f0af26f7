@@ -3705,6 +3705,7 @@ const InvoiceCreatePage = () => {
                   <th className="py-3 px-3 text-center w-[42px]">#</th>
                   <th className="py-3 px-3 text-right min-w-[260px]">{tt("المنتج / الخدمة")}</th>
                   <th className="py-3 px-3 text-center min-w-[100px] w-[100px]">{tt("الكمية")}</th>
+                  <th className="py-3 px-3 text-center min-w-[90px] w-[100px]">{tt("الوحدة")}</th>
                   <th className="py-3 px-3 text-center min-w-[100px] w-[100px]" title={tt("كمية بونص / مجاني")}>{tt("بونص")}</th>
                   <th className="py-3 px-3 text-center min-w-[120px] w-[130px]">{tt("السعر")}</th>
                   <th className="py-3 px-3 text-center min-w-[120px] w-[130px]">{tt("الخصم")}</th>
@@ -3832,6 +3833,23 @@ const InvoiceCreatePage = () => {
                           maxWidthPx={140}
                           className="font-semibold"
                         />
+                      </td>
+
+                      {/* Unit of measure */}
+                      <td className="py-1.5 px-2 align-middle min-w-[90px]">
+                        <Select
+                          value={item.unitOfMeasure || "قطعة"}
+                          onValueChange={(v) => updateItem(item.id, "unitOfMeasure", v)}
+                        >
+                          <SelectTrigger className="h-9 text-[11px] rounded-md px-2">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {["قطعة", "كغ", "طن", "متر", "لتر", "علبة", "كرتون", "حبة"].map(u => (
+                              <SelectItem key={u} value={u}>{u}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
                       </td>
 
                       {/* Bonus quantity (free units) */}
@@ -4047,10 +4065,21 @@ const InvoiceCreatePage = () => {
                     "data-row-id": item.id,
                   }}
                 />
-                <div className="grid grid-cols-3 gap-2">
+                <div className="grid grid-cols-2 gap-2">
                   <div>
                     <Label className="text-[9px] text-muted-foreground">{tt("الكمية")}</Label>
                     <Input type="number" min={0} step="any" data-invoice-qty={item.id} data-no-enter-nav="true" value={item.quantity} onChange={e => { const n = e.target.value === "" ? 0 : Number(e.target.value); updateItem(item.id, "quantity", Number.isFinite(n) && n >= 0 ? n : 0); }} onKeyDown={handleCellEnter("qty", item.id)} className="h-8 text-[11px] text-center" dir="ltr" />
+                  </div>
+                  <div>
+                    <Label className="text-[9px] text-muted-foreground">{tt("الوحدة")}</Label>
+                    <Select value={item.unitOfMeasure || "قطعة"} onValueChange={(v) => updateItem(item.id, "unitOfMeasure", v)}>
+                      <SelectTrigger className="h-8 text-[11px] px-2"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        {["قطعة", "كغ", "طن", "متر", "لتر", "علبة", "كرتون", "حبة"].map(u => (
+                          <SelectItem key={u} value={u}>{u}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
                   <div>
                     <Label className="text-[9px] text-muted-foreground">{tt("السعر")}</Label>
