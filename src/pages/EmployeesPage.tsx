@@ -1456,6 +1456,20 @@ const EmployeesPage = () => {
                     <Shield className="h-3.5 w-3.5 text-amber-500" /> مدير HR
                   </label>
                 </div>
+                <div className="flex items-center gap-2">
+                  <Switch
+                    checked={!!(selectedEmployee as any).is_receiver}
+                    onCheckedChange={async (checked) => {
+                      await supabase.from("employees").update({ is_receiver: checked } as any).eq("id", selectedEmployee.id);
+                      setSelectedEmployee({ ...selectedEmployee, is_receiver: checked } as any);
+                      fetchEmployees();
+                      toast.success(checked ? "تم تفعيل استلام البضاعة" : "تم إيقاف صلاحية استلام البضاعة");
+                    }}
+                  />
+                  <label className="text-xs font-medium flex items-center gap-1">
+                    <ScanLine className="h-3.5 w-3.5 text-teal-600" /> موظف مستودع
+                  </label>
+                </div>
                 <SalesRepToggleSection
                   employeeId={selectedEmployee.id}
                   employeeName={selectedEmployee.full_name}
