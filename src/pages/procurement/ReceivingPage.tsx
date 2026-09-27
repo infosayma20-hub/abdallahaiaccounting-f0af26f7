@@ -59,7 +59,10 @@ function MyReceivingList() {
             <h1 className="text-2xl font-bold text-foreground">استلام البضاعة</h1>
             <p className="text-sm text-muted-foreground">الطلبيات المسندة إلك للاستلام بالباركود</p>
           </div>
-          <Button variant="outline" size="lg" onClick={load}><RefreshCw className="ml-2 h-5 w-5" />تحديث</Button>
+          <div className="flex gap-2">
+            <Button variant="ghost" size="lg" onClick={() => navigate(-1)}><ArrowRight className="ml-2 h-5 w-5" />رجوع</Button>
+            <Button variant="outline" size="lg" onClick={load}><RefreshCw className="ml-2 h-5 w-5" />تحديث</Button>
+          </div>
         </div>
         {loading ? <div className="p-10 text-center text-muted-foreground">جارِ التحميل…</div> : rows.length === 0 ? (
           <div className="rounded-xl border bg-card p-10 text-center text-muted-foreground">
