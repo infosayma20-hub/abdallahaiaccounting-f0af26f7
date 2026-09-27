@@ -307,7 +307,7 @@ const PurchaseOrderCreatePage = () => {
           <div className="px-4 py-2 flex items-center gap-4 flex-wrap border-b border-border/50">
             <div className="flex items-center gap-1.5">
               <Label className="text-xs text-muted-foreground whitespace-nowrap">المورد:</Label>
-              <SupplierPicker suppliers={allSuppliers as any} value={supplierId} onChange={setSupplierId} ownerId={ownerId} />
+              <SupplierPicker suppliers={allSuppliers as any} value={supplierId} onChange={setSupplierId} ownerId={ownerId} onSuppliersChanged={() => { refetchSuppliers(); suppliersCrud.refetch(); }} />
               <Tooltip><TooltipTrigger asChild>
                 <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0 text-muted-foreground hover:text-primary" onClick={() => setSupplierOpen(true)}>
                   <UserPlus className="h-3.5 w-3.5" />
