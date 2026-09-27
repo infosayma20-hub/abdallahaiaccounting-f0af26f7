@@ -425,7 +425,7 @@ const PurchaseOrderCreatePage = () => {
                         ? "border-[#2D7A4F] bg-[#F0FDF4] shadow-sm"
                         : "border-[#E2E8F0] bg-white hover:border-gray-300 hover:shadow-sm"
                     }`}
-                    onClick={() => !isInOrder && addOrUpdateItem(item, 1)}
+                    onClick={() => addOrUpdateItem(item, 1)}
                     onContextMenu={e => { e.preventDefault(); openEditItem(item); }}
                   >
                     {/* Quantity badge */}
@@ -502,56 +502,58 @@ const PurchaseOrderCreatePage = () => {
               ) : (
                 <div className="divide-y divide-border/50">
                   {lines.map(line => (
-                    <div key={line.id} className="px-3 py-3">
-                      <div className="flex items-start justify-between mb-1.5">
-                        <span className="text-sm font-semibold leading-tight">{line.item_name}</span>
-                        <button onClick={() => removeLine(line.id)} className="text-muted-foreground hover:text-destructive p-0.5 shrink-0">
-                          <X className="h-3.5 w-3.5" />
-                        </button>
+                    <div key={line.id} className="px-2 py-1.5">
+                      {/* Row 1: name + total + delete */}
+                      <div className="flex items-center justify-between gap-1">
+                        <span className="text-xs font-semibold leading-tight truncate">{line.item_name}</span>
+                        <div className="flex items-center gap-1 shrink-0">
+                          <span className="text-xs font-bold">{(line.quantity * line.unit_price).toFixed(2)} ₪</span>
+                          <button onClick={() => removeLine(line.id)} className="text-muted-foreground hover:text-destructive p-0.5">
+                            <X className="h-3 w-3" />
+                          </button>
+                        </div>
                       </div>
 
-                      {/* Branch per line */}
-                      <div className="flex items-center gap-1 mb-2">
-                        <MapPin className="h-3 w-3 text-muted-foreground shrink-0" />
-                        <Select value={line.branch_id || ""} onValueChange={v => updateLine(line.id, "branch_id", v)}>
-                          <SelectTrigger className={`h-6 text-[11px] w-full ${!line.branch_id ? "border-[#D97706] bg-[#D97706]/5" : ""}`}>
-                            <SelectValue placeholder="حدد الفرع" />
-                          </SelectTrigger>
-                          <SelectContent>{branches.map((b: any) => <SelectItem key={b.id} value={b.id} className="text-xs">{b.name}</SelectItem>)}</SelectContent>
-                        </Select>
-                      </div>
-
-                      {/* Price calculation */}
-                      <p className="text-xs text-muted-foreground mb-2">
-                        {line.quantity} {line.unit} × {line.unit_price.toFixed(2)} ₪ = <span className="text-foreground font-semibold">{(line.quantity * line.unit_price).toFixed(2)} ₪</span>
-                      </p>
-
-                      {/* Quantity + Price controls */}
-                      <div className="flex items-center gap-1.5">
-                        <button className="h-7 w-7 rounded border border-border flex items-center justify-center hover:bg-muted transition-colors"
+                      {/* Row 2: qty controls + price + unit + note */}
+                      <div className="flex items-center gap-1 mt-1">
+                        <button className="h-6 w-6 rounded border border-border flex items-center justify-center hover:bg-muted transition-colors shrink-0"
                           onClick={() => { if (line.quantity > 1) updateLine(line.id, "quantity", line.quantity - 1); else removeLine(line.id); }}>
-                          <Minus className="h-3.5 w-3.5" />
+                          <Minus className="h-3 w-3" />
                         </button>
                         <Input type="number" value={line.quantity} min={0.001} step="any"
                           onChange={e => updateLine(line.id, "quantity", Number(e.target.value))}
-                          className="h-7 w-14 text-center text-sm font-bold px-0" />
-                        <button className="h-7 w-7 rounded border border-border flex items-center justify-center hover:bg-muted transition-colors"
+                          className="h-6 w-12 text-center text-xs font-bold px-0" />
+                        <button className="h-6 w-6 rounded border border-border flex items-center justify-center hover:bg-muted transition-colors shrink-0"
                           onClick={() => updateLine(line.id, "quantity", line.quantity + 1)}>
-                          <Plus className="h-3.5 w-3.5" />
+                          <Plus className="h-3 w-3" />
                         </button>
+                        <span className="text-[10px] text-muted-foreground shrink-0">{line.unit} ×</span>
                         <Input type="number" value={line.unit_price} min={0} step="any"
                           onChange={e => updateLine(line.id, "unit_price", Number(e.target.value))}
-                          className={`h-7 w-20 text-center text-sm px-0 ${line.unit_price === 0 ? "border-[#D97706] bg-[#D97706]/10" : ""}`}
+                          className={`h-6 w-16 text-center text-xs px-0 ${line.unit_price === 0 ? "border-[#D97706] bg-[#D97706]/10" : ""}`}
                           placeholder="سعر" />
                         <button onClick={() => setEditingNoteId(editingNoteId === line.id ? null : line.id)}
-                          className={`p-1 rounded ${line.notes ? "text-[#D97706]" : "text-muted-foreground"} hover:text-foreground`}>
-                          <StickyNote className="h-3.5 w-3.5" />
+                          className={`p-0.5 rounded shrink-0 ${line.notes ? "text-[#D97706]" : "text-muted-foreground"} hover:text-foreground`}>
+                          <StickyNote className="h-3 w-3" />
                         </button>
                       </div>
+
+                      {/* Row 3 (only when branch missing): branch select */}
+                      {!line.branch_id && (
+                        <div className="flex items-center gap-1 mt-1">
+                          <MapPin className="h-3 w-3 text-[#D97706] shrink-0" />
+                          <Select value={line.branch_id || ""} onValueChange={v => updateLine(line.id, "branch_id", v)}>
+                            <SelectTrigger className="h-6 text-[11px] w-full border-[#D97706] bg-[#D97706]/5">
+                              <SelectValue placeholder="حدد الفرع" />
+                            </SelectTrigger>
+                            <SelectContent>{branches.map((b: any) => <SelectItem key={b.id} value={b.id} className="text-xs">{b.name}</SelectItem>)}</SelectContent>
+                          </Select>
+                        </div>
+                      )}
                       {editingNoteId === line.id && (
                         <Input value={line.notes} placeholder="ملاحظة..."
                           onChange={e => updateLine(line.id, "notes", e.target.value)}
-                          className="h-7 text-xs mt-2" autoFocus />
+                          className="h-6 text-xs mt-1" autoFocus />
                       )}
                     </div>
                   ))}
