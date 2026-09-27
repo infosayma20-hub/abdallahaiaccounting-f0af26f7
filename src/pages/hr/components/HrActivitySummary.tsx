@@ -116,6 +116,8 @@ export function HrActivitySummary() {
         const meta = AUDIT_ACTION[r.action];
         if (!meta) continue;
         const form = (r as any).employee_forms;
+        // Confidential forms (privacy rules) are hidden from this viewer — don't show a blank "—" row.
+        if (!form) continue;
         const isCustom =
           form?.form_type === "dynamic_template" || form?.form_type === "custom_form";
         const formLabel = isCustom && form?.title ? form.title : tFormType(form?.form_type);
