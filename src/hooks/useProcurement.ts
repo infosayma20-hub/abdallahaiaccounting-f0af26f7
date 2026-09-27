@@ -98,16 +98,19 @@ export function useItemCategories() {
   const [categories, setCategories] = useState<ItemCategory[]>([]);
   const [loading, setLoading] = useState(true);
 
+  const { dataOwnerId } = useDataOwnerId();
   useEffect(() => {
+    if (!dataOwnerId) return;
     supabase
       .from("item_categories")
       .select("*")
+      .eq("user_id", dataOwnerId)
       .order("sort_order")
       .then(({ data }) => {
         setCategories((data as any) || []);
         setLoading(false);
       });
-  }, []);
+  }, [dataOwnerId]);
 
   return { categories, loading };
 }
@@ -117,17 +120,20 @@ export function useProcurementItems() {
   const [items, setItems] = useState<ProcurementItem[]>([]);
   const [loading, setLoading] = useState(true);
 
+  const { dataOwnerId } = useDataOwnerId();
   useEffect(() => {
+    if (!dataOwnerId) return;
     supabase
       .from("procurement_items")
       .select("*")
+      .eq("user_id", dataOwnerId)
       .eq("is_active", true)
       .order("sort_order")
       .then(({ data }) => {
         setItems((data as any) || []);
         setLoading(false);
       });
-  }, []);
+  }, [dataOwnerId]);
 
   return { items, loading };
 }
