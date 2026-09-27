@@ -184,7 +184,7 @@ const PurchaseOrderCreatePage = () => {
     const firstBranch = lines[0]?.branch_id || defaultBranchId || null;
     const result = await createOrder(
       { supplier_id: supplierId, branch_id: firstBranch, order_date: orderDate, expected_delivery_date: expectedDate, notes },
-      lines.map(l => ({ product_id: l.product_id, item_name: l.item_name, unit: l.unit, quantity: l.quantity, unit_price: l.unit_price, branch_id: l.branch_id }))
+      lines.map(l => ({ product_id: l.product_id, item_name: l.item_name, unit: l.unit, quantity: l.quantity, unit_price: l.unit_price, branch_id: l.branch_id, notes: l.notes }))
     );
     if (result && send) await updateStatus((result as any).id, "sent");
     setSaving(false);
@@ -511,7 +511,7 @@ const PurchaseOrderCreatePage = () => {
                     <div key={line.id} className="px-2 py-1.5">
                       {/* Row 1: name + total + delete */}
                       <div className="flex items-center justify-between gap-1">
-                        <span className="text-xs font-semibold leading-tight truncate">{line.item_name}</span>
+                        <button type="button" onClick={() => setEditingNoteId(editingNoteId === line.id ? null : line.id)} className="text-xs font-semibold leading-tight truncate text-start hover:underline" title="اضغط لإضافة ملاحظة">{line.item_name}{line.notes && <span className="block text-[10px] font-normal text-[#D97706] truncate">📝 {line.notes}</span>}</button>
                         <div className="flex items-center gap-1 shrink-0">
                           <span className="text-xs font-bold">{(line.quantity * line.unit_price).toFixed(2)} ₪</span>
                           <button onClick={() => removeLine(line.id)} className="text-muted-foreground hover:text-destructive p-0.5">
@@ -542,20 +542,14 @@ const PurchaseOrderCreatePage = () => {
                           className={`p-0.5 rounded shrink-0 ${line.notes ? "text-[#D97706]" : "text-muted-foreground"} hover:text-foreground`}>
                           <StickyNote className="h-3 w-3" />
                         </button>
+                        <Select value={line.branch_id || ""} onValueChange={v => updateLine(line.id, "branch_id", v)}>
+                          <SelectTrigger title={branches.find((b: any) => b.id === line.branch_id)?.name || "حدد الفرع"} className={`h-6 w-6 p-0 justify-center shrink-0 [&>svg:last-child]:hidden ${line.branch_id ? "text-primary" : "border-[#D97706] bg-[#D97706]/10 text-[#D97706] animate-pulse"}`}>
+                            <MapPin className="h-3.5 w-3.5" />
+                          </SelectTrigger>
+                          <SelectContent>{branches.map((b: any) => <SelectItem key={b.id} value={b.id} className="text-xs">{b.name}</SelectItem>)}</SelectContent>
+                        </Select>
                       </div>
 
-                      {/* Row 3 (only when branch missing): branch select */}
-                      {!line.branch_id && (
-                        <div className="flex items-center gap-1 mt-1">
-                          <MapPin className="h-3 w-3 text-[#D97706] shrink-0" />
-                          <Select value={line.branch_id || ""} onValueChange={v => updateLine(line.id, "branch_id", v)}>
-                            <SelectTrigger className="h-6 text-[11px] w-full border-[#D97706] bg-[#D97706]/5">
-                              <SelectValue placeholder="حدد الفرع" />
-                            </SelectTrigger>
-                            <SelectContent>{branches.map((b: any) => <SelectItem key={b.id} value={b.id} className="text-xs">{b.name}</SelectItem>)}</SelectContent>
-                          </Select>
-                        </div>
-                      )}
                       {editingNoteId === line.id && (
                         <Input value={line.notes} placeholder="ملاحظة..."
                           onChange={e => updateLine(line.id, "notes", e.target.value)}
@@ -567,7 +561,11 @@ const PurchaseOrderCreatePage = () => {
               )}
             </div>
 
-            <div className="shrink-0 border-t border-border px-3 py-2 bg-muted/20">
+            <div className="shrink-0 border-t border-border px-3 py-2 bg-muted/20 space-y-2">
+              <div className="flex items-center gap-1.5">
+                <StickyNote className={`h-4 w-4 shrink-0 ${notes ? "text-[#D97706]" : "text-muted-foreground"}`} />
+                <Input value={notes} onChange={e => setNotes(e.target.value)} placeholder="ملاحظة على الطلبية كاملة..." className="h-8 text-xs" />
+              </div>
               <div className="flex justify-between text-sm">
                 <span className="text-muted-foreground">المجموع التقديري</span>
                 <span className="font-bold text-base">{totalAmount.toLocaleString("en", { minimumFractionDigits: 2 })} ₪</span>

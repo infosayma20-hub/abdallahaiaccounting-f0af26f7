@@ -221,6 +221,7 @@ export function useProcurementOrders() {
       unit_price: i.unit_price,
       total_price: i.quantity * i.unit_price,
       branch_id: i.branch_id || null,
+      notes: i.notes || null,
     }));
     const { error: itemsError } = await supabase.from("procurement_order_items" as any).insert(orderItems as any);
     if (itemsError) { console.error("Failed to insert order items:", itemsError); toast({ title: "تحذير", description: "تم إنشاء الطلبية لكن فشل حفظ البنود: " + itemsError.message, variant: "destructive" }); }

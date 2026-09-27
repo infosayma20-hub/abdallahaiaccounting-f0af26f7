@@ -12,11 +12,11 @@ import { receivingStatusLabel } from "@/components/procurement/ReceivingAssignDi
 
 type Line = {
   id: string; order_item_id: string; product_id: string | null; item_name: string; unit: string | null;
-  ordered_qty: number; received_before: number; target_qty: number; scanned_qty: number; note: string | null;
+  ordered_qty: number; received_before: number; target_qty: number; scanned_qty: number; note: string | null; item_notes?: string | null; branch_name?: string | null;
   expiry_date: string | null; barcode: string | null; extra_barcodes: string[];
 };
 type Session = {
-  id: string; status: string; order_number: string; supplier_name: string | null; expected_date: string | null; lines: Line[];
+  id: string; status: string; order_number: string; supplier_name: string | null; expected_date: string | null; order_notes?: string | null; lines: Line[];
 };
 
 /* ───────── Feedback sounds (no external assets) ───────── */
@@ -269,6 +269,7 @@ function ReceivingSession({ sessionId }: { sessionId: string }) {
           <div className="flex-1">
             <div className="text-lg font-bold text-foreground">{session.order_number}</div>
             <div className="text-sm text-muted-foreground">{session.supplier_name || "—"}</div>
+            {session.order_notes && <div className="mt-1 rounded-md bg-accent/40 px-2 py-1 text-sm font-medium text-foreground">📝 {session.order_notes}</div>}
           </div>
           <Badge variant={session.status === "submitted" ? "default" : "outline"} className="text-sm">{receivingStatusLabel[session.status]}</Badge>
         </div>
@@ -318,9 +319,11 @@ function ReceivingSession({ sessionId }: { sessionId: string }) {
                     <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
                       <span className="font-mono">{l.barcode || (l.extra_barcodes?.[0]) || "بدون باركود"}</span>
                       {l.unit && <span>· {l.unit}</span>}
+                      {l.branch_name && <span>· 📍 {l.branch_name}</span>}
                       {l.note && <span className="text-destructive">· {l.note}</span>}
                       {Number(l.received_before) > 0 && <span>· مستلم سابقاً {Number(l.received_before)} من {Number(l.ordered_qty)}</span>}
                     </div>
+                    {l.item_notes && <div className="mt-1 text-sm font-medium text-accent-foreground bg-accent/40 rounded px-2 py-0.5">📝 {l.item_notes}</div>}
                   </div>
                   <div className="text-center">
                     <div className="text-2xl font-bold">{Number(l.scanned_qty)}<span className="text-base text-muted-foreground"> / {Number(l.target_qty)}</span></div>
