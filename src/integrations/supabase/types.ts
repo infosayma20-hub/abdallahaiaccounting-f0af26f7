@@ -30259,6 +30259,10 @@ export type Database = {
         Returns: undefined
       }
       _infer_bulk_emp_category: { Args: { _desc: string }; Returns: string }
+      _is_procurement_manager: {
+        Args: { _owner: string; _uid: string }
+        Returns: boolean
+      }
       _norm_currency_code: { Args: { _c: string }; Returns: string }
       _payroll_post_payment:
         | {
