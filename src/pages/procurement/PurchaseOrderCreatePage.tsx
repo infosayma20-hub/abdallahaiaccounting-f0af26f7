@@ -216,7 +216,7 @@ const PurchaseOrderCreatePage = () => {
       }
     }
     setSavingDialog(false);
-    if (ok) { setSupplierOpen(false); setNewSupplier({ name: "", phone: "" }); refetchSuppliers(); }
+    if (ok) { setSupplierOpen(false); setNewSupplier({ name: "", phone: "" }); refetchSuppliers(); suppliersCrud.refetch(); }
   };
 
   const handleAddBranch = async () => {
@@ -225,7 +225,7 @@ const PurchaseOrderCreatePage = () => {
     const { error } = await supabase.from("branches").insert({
       name: newBranch.name, address: newBranch.address || null,
       latitude: newBranch.latitude, longitude: newBranch.longitude,
-      user_id: user?.id, is_active: true, radius_meters: 500,
+      user_id: ownerId, is_active: true, radius_meters: 500,
     } as any);
     setSavingDialog(false);
     if (error) { toast({ title: "خطأ", description: error.message, variant: "destructive" }); return; }
