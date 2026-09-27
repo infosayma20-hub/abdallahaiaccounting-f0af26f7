@@ -28,6 +28,7 @@ import AccountingShell from "@/components/layout/AccountingShell";
 
 interface InvoiceLine {
   product_id: string | null;
+  order_item_id?: string | null;
   item_name: string;
   unit: string;
   ordered_quantity: number;
@@ -132,11 +133,10 @@ const ReceivePOInvoicePage = ({ orderId }: { orderId: string }) => {
         setSupplierName(o.pos_suppliers?.name || "");
         setBranchId(o.branch_id || "");
         setOrderNumber(o.order_number || "");
-        const { data: items } = await supabase
-          .from("procurement_order_items" as any)
-          .select("*")
-          .eq("order_id", orderId);
-        
+        // بنود الطلبية: المتبقي بعد الاستلامات السابقة + صنف المخزون المرتبط (يُنشأ مرة واحدة إذا ناقص)
+        const { data: items, error: itemsErr } = await supabase.rpc("get_procurement_order_receipt_lines", { p_order_id: orderId });
+        if (itemsErr) toast.error(itemsErr.message);
+
         // إذا الموظف استلم الطلبية بالباركود وأرسلها، نعبّي الكميات المعدودة فعلياً
         const { data: recv } = await supabase
           .from("procurement_receiving_sessions")
@@ -150,27 +150,23 @@ const ReceivePOInvoicePage = ({ orderId }: { orderId: string }) => {
         ((recv as any)?.procurement_receiving_lines || []).forEach((l: any) => {
           counted[l.order_item_id] = { qty: Number(l.scanned_qty), note: l.note, expiry: l.expiry_date };
         });
-        // الكمية المستلمة سابقاً لكل بند (استلام جزئي سابق) — نعرض المتبقي فقط
-        const prev: Record<string, number> = {};
-        await Promise.all(((items as any[]) || []).map(async (i: any) => {
-          const { data: q } = await supabase.rpc("_procurement_item_received_qty", { _order_item_id: i.id });
-          prev[i.id] = Number(q || 0);
-        }));
-        const loadedLines = ((items as any) || [])
+        const loadedLines: InvoiceLine[] = ((items as any[]) || [])
           .map((i: any) => {
-            const remaining = Math.max(0, Number(i.quantity) - (prev[i.id] || 0));
+            const remaining = Number(i.remaining);
+            const c = counted[i.order_item_id];
             return {
-              product_id: i.product_id || null,
+              product_id: i.inventory_product_id || null,
+              order_item_id: i.order_item_id,
               item_name: i.item_name,
               unit: i.unit,
               ordered_quantity: remaining,
-              received_quantity: recv ? (counted[i.id]?.qty ?? 0) : remaining,
+              received_quantity: recv ? (c?.qty ?? 0) : remaining,
               unit_price: Number(i.unit_price),
-              notes: counted[i.id]?.note || "",
-              expiry_date: counted[i.id]?.expiry || "",
+              notes: c?.note || "",
+              expiry_date: c?.expiry || "",
             };
           })
-          .filter((l: any) => l.ordered_quantity > 0 || l.received_quantity > 0);
+          .filter(l => l.ordered_quantity > 0 || l.received_quantity > 0);
         if (recv) toast.success("تم تعبئة الكميات من استلام الموظف بالباركود");
         setLines(loadedLines);
         

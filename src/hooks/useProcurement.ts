@@ -312,6 +312,7 @@ export function usePurchaseInvoices() {
       unit_price: i.unit_price,
       total_amount: i.received_quantity * i.unit_price,
       expiry_date: i.expiry_date || null,
+      procurement_order_item_id: i.order_item_id || null,
     }));
     const { error: itemsError } = await supabase.from("purchase_invoice_items").insert(invItems as any);
     if (itemsError) {
