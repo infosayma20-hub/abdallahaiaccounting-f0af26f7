@@ -225,6 +225,13 @@
       "when": 1790534221669,
       "tag": "0031_fix_procurement_product_sync_loop",
       "breakpoints": true
+    },
+    {
+      "idx": 32,
+      "version": "7",
+      "when": 1790534351562,
+      "tag": "0032_add_employee_is_receiver",
+      "breakpoints": true
     }
   ]
 }

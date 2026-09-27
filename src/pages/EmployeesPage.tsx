@@ -15,7 +15,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Plus, Search, Users, DollarSign, FileText, Trash2, UserPlus, Loader2, Upload, CalendarDays, LogOut as LogOutIcon, Download, FileBarChart, ArrowUpDown, Filter, Layers, Pencil, ChevronLeft, ChevronRight, X, Edit, Building2, Shield, Ban, CheckCircle2, Fingerprint } from "lucide-react";
-import { RefreshCw } from "lucide-react";
+import { RefreshCw, ScanLine } from "lucide-react";
 import { FinanceShell, type ActionTab } from "@/components/finance/shell";
 import { FileSignature, ReceiptText } from "lucide-react";
 import EmploymentLetterDialog, { type EmploymentLetterTarget } from "@/components/hr/EmploymentLetterDialog";
@@ -1454,6 +1454,20 @@ const EmployeesPage = () => {
                   />
                   <label className="text-xs font-medium flex items-center gap-1">
                     <Shield className="h-3.5 w-3.5 text-amber-500" /> مدير HR
+                  </label>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Switch
+                    checked={!!(selectedEmployee as any).is_receiver}
+                    onCheckedChange={async (checked) => {
+                      await supabase.from("employees").update({ is_receiver: checked } as any).eq("id", selectedEmployee.id);
+                      setSelectedEmployee({ ...selectedEmployee, is_receiver: checked } as any);
+                      fetchEmployees();
+                      toast.success(checked ? "تم تفعيل استلام البضاعة" : "تم إيقاف صلاحية استلام البضاعة");
+                    }}
+                  />
+                  <label className="text-xs font-medium flex items-center gap-1">
+                    <ScanLine className="h-3.5 w-3.5 text-teal-600" /> موظف مستودع
                   </label>
                 </div>
                 <SalesRepToggleSection

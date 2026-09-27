@@ -33,7 +33,7 @@ interface Props {
 
 export default function ReceivingAssignDialog({ order, current, onClose, onDone }: Props) {
   const { dataOwnerId } = useDataOwnerId();
-  const [employees, setEmployees] = useState<{ id: string; full_name: string }[]>([]);
+  const [employees, setEmployees] = useState<{ id: string; full_name: string; is_receiver?: boolean | null }[]>([]);
   const [search, setSearch] = useState("");
   const [employeeId, setEmployeeId] = useState<string>("");
   const [expected, setExpected] = useState("");
@@ -46,10 +46,11 @@ export default function ReceivingAssignDialog({ order, current, onClose, onDone 
     (async () => {
       const { data } = await supabase
         .from("employees")
-        .select("id, full_name")
+        .select("id, full_name, is_receiver")
         .eq("user_id", dataOwnerId)
         .eq("is_active", true)
         .not("auth_user_id", "is", null)
+        .order("is_receiver", { ascending: false })
         .order("full_name");
       setEmployees((data as any) || []);
     })();
@@ -116,6 +117,9 @@ export default function ReceivingAssignDialog({ order, current, onClose, onDone 
                     className={`block w-full px-3 py-2 text-right text-sm hover:bg-accent ${employeeId === e.id ? "bg-primary/10 font-bold" : ""}`}
                   >
                     {e.full_name}
+                    {e.is_receiver && (
+                      <span className="ms-2 rounded bg-teal-100 px-1.5 py-0.5 text-[10px] text-teal-700">موظف مستودع</span>
+                    )}
                   </button>
                 ))}
               </div>
