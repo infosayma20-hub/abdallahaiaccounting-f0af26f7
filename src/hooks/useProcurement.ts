@@ -316,7 +316,7 @@ export function usePurchaseInvoices() {
     const { error: itemsError } = await supabase.from("purchase_invoice_items").insert(invItems as any);
     if (itemsError) {
       // لم يدخل أي بند (الإدخال دفعة واحدة) ولا يوجد قيد بعد — نلغي رأس الفاتورة حتى لا تبقى فاتورة فارغة
-      await supabase.from("purchase_invoices").delete().eq("id", invoiceId);
+      await supabase.rpc("discard_empty_purchase_invoice", { p_invoice_id: invoiceId });
       toast({ title: "تعذر حفظ بنود الفاتورة", description: itemsError.message, variant: "destructive" });
       return null;
     }
