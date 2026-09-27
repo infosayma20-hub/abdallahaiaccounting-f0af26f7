@@ -126,6 +126,9 @@ const AmwaliQuotePage = () => {
       if (saved) {
         const parsed = { ...DEFAULTS, ...JSON.parse(saved) };
         if (!parsed.items?.length) parsed.items = DEFAULT_ITEMS;
+        // ترقية الشروط الافتراضية القديمة (غير المعدّلة يدوياً) لتشمل بند طريقة الدفع
+        const OLD_DEFAULT_TERMS = "• الأسعار المذكورة أعلاه لا تشمل ضريبة القيمة المضافة إن وُجدت.\n• السعر «لمرة واحدة» يُدفع عند التفعيل، والاشتراك السنوي يُسدَّد مقدماً في بداية كل سنة اشتراك.\n• عرض السعر ساري لمدة 15 يوماً من تاريخه ما لم يُذكر خلاف ذلك.\n• أي مستخدم أو نقطة بيع إضافية تُحتسب وفق نفس التسعير.";
+        if (parsed.terms === OLD_DEFAULT_TERMS) parsed.terms = DEFAULTS.terms;
         if (!parsed.quote_number || /-$/.test(parsed.quote_number)) {
           parsed.quote_number = getNextQuoteNumber().number;
         }
