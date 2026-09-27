@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -38,7 +39,7 @@ const readQueue = (sid: string): string[] => { try { return JSON.parse(localStor
 const writeQueue = (sid: string, q: string[]) => localStorage.setItem(QKEY(sid), JSON.stringify(q));
 
 /* ───────── Dynamics-style finance shell ───────── */
-function DShell({ title, crumb, actions, children, onClick }: { title: string; crumb: string; actions: React.ReactNode; children: React.ReactNode; onClick?: () => void }) {
+function DShell({ title, crumb, actions, children, onClick }: { title: string; crumb: string; actions: ReactNode; children: ReactNode; onClick?: () => void }) {
   return (
     <div dir="rtl" className="flex min-h-[100dvh] flex-col bg-muted/40" onClick={onClick}>
       <div className="flex h-12 items-center gap-3 bg-primary px-4 text-primary-foreground">
