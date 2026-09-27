@@ -211,6 +211,13 @@
       "when": 1790532907132,
       "tag": "0029_sync_purchasable_products_to_procurement_items",
       "breakpoints": true
+    },
+    {
+      "idx": 30,
+      "version": "7",
+      "when": 1790533635334,
+      "tag": "0030_receiving_session_notes",
+      "breakpoints": true
     }
   ]
 }
