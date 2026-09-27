@@ -12,7 +12,8 @@ import { receivingStatusLabel } from "@/components/procurement/ReceivingAssignDi
 
 type Line = {
   id: string; order_item_id: string; product_id: string | null; item_name: string; unit: string | null;
-  ordered_qty: number; scanned_qty: number; note: string | null; barcode: string | null; extra_barcodes: string[];
+  ordered_qty: number; received_before: number; target_qty: number; scanned_qty: number; note: string | null;
+  expiry_date: string | null; barcode: string | null; extra_barcodes: string[];
 };
 type Session = {
   id: string; status: string; order_number: string; supplier_name: string | null; expected_date: string | null; lines: Line[];
@@ -58,7 +59,10 @@ function MyReceivingList() {
             <h1 className="text-2xl font-bold text-foreground">استلام البضاعة</h1>
             <p className="text-sm text-muted-foreground">الطلبيات المسندة إلك للاستلام بالباركود</p>
           </div>
-          <Button variant="outline" size="lg" onClick={load}><RefreshCw className="ml-2 h-5 w-5" />تحديث</Button>
+          <div className="flex gap-2">
+            <Button variant="ghost" size="lg" onClick={() => navigate(-1)}><ArrowRight className="ml-2 h-5 w-5" />رجوع</Button>
+            <Button variant="outline" size="lg" onClick={load}><RefreshCw className="ml-2 h-5 w-5" />تحديث</Button>
+          </div>
         </div>
         {loading ? <div className="p-10 text-center text-muted-foreground">جارِ التحميل…</div> : rows.length === 0 ? (
           <div className="rounded-xl border bg-card p-10 text-center text-muted-foreground">
@@ -107,12 +111,14 @@ function ReceivingSession({ sessionId }: { sessionId: string }) {
   const [editLine, setEditLine] = useState<Line | null>(null);
   const [editQty, setEditQty] = useState("0");
   const [editNote, setEditNote] = useState("");
+  const [editExpiry, setEditExpiry] = useState("");
   const [confirmSubmit, setConfirmSubmit] = useState(false);
   const [submitNotes, setSubmitNotes] = useState("");
   const [pending, setPending] = useState<number>(readQueue(sessionId).length);
   const inputRef = useRef<HTMLInputElement>(null);
   const busy = useRef(false);
 
+  const today = new Date().toISOString().slice(0, 10);
   const editable = session?.status === "assigned" || session?.status === "in_progress";
   const dialogOpen = !!unknown || !!editLine || confirmSubmit;
 
@@ -124,7 +130,15 @@ function ReceivingSession({ sessionId }: { sessionId: string }) {
 
   useEffect(() => { load(); }, [load]);
 
-  const focus = useCallback(() => { if (!dialogOpen) setTimeout(() => inputRef.current?.focus(), 30); }, [dialogOpen]);
+  // يرجّع المؤشر لمربع المسح — إلا إذا الموظف بيكتب بحقل ثاني (تاريخ الانتهاء مثلاً)
+  const focus = useCallback(() => {
+    if (dialogOpen) return;
+    setTimeout(() => {
+      const a = document.activeElement as HTMLElement | null;
+      if (a && a !== inputRef.current && (a.tagName === "INPUT" || a.tagName === "TEXTAREA" || a.tagName === "SELECT")) return;
+      inputRef.current?.focus();
+    }, 30);
+  }, [dialogOpen]);
   useEffect(() => { focus(); }, [focus, session]);
 
   const showFlash = (ok: boolean, text: string) => {
@@ -206,7 +220,7 @@ function ReceivingSession({ sessionId }: { sessionId: string }) {
     if (!editLine) return;
     const qty = Number(editQty);
     if (!Number.isFinite(qty) || qty < 0) { toast.error("كمية غير صحيحة"); return; }
-    const { error } = await supabase.rpc("receiving_set_line", { p_line_id: editLine.id, p_qty: qty, p_note: editNote || null } as any);
+    const { error } = await supabase.rpc("receiving_set_line", { p_line_id: editLine.id, p_qty: qty, p_note: editNote || null, p_expiry: editExpiry || null } as any);
     if (error) { toast.error(error.message); return; }
     setEditLine(null); load();
   };
@@ -214,13 +228,14 @@ function ReceivingSession({ sessionId }: { sessionId: string }) {
   const bump = async (line: Line, delta: number) => {
     const qty = Math.max(0, Number(line.scanned_qty) + delta);
     setSession(s => s ? { ...s, lines: s.lines.map(l => l.id === line.id ? { ...l, scanned_qty: qty } : l) } : s);
-    const { error } = await supabase.rpc("receiving_set_line", { p_line_id: line.id, p_qty: qty, p_note: line.note } as any);
+    const { error } = await supabase.rpc("receiving_set_line", { p_line_id: line.id, p_qty: qty, p_note: line.note, p_expiry: line.expiry_date } as any);
     if (error) { toast.error(error.message); load(); }
     focus();
   };
 
   const submit = async () => {
     if (pending > 0) { toast.error("في مسحات محفوظة بدون نت — استنى لحد ما تنرفع"); return; }
+    if (missingExpiry.length) { toast.error(`تاريخ الانتهاء إجباري: ${missingExpiry.map(l => l.item_name).join("، ")}`); return; }
     const { error } = await supabase.rpc("receiving_submit", { p_session_id: sessionId, p_notes: submitNotes || null } as any);
     if (error) { toast.error(error.message); return; }
     toast.success("تم إرسال الاستلام للمحاسب");
@@ -229,11 +244,19 @@ function ReceivingSession({ sessionId }: { sessionId: string }) {
 
   const totals = useMemo(() => {
     const lines = session?.lines || [];
-    const ordered = lines.reduce((s, l) => s + Number(l.ordered_qty), 0);
+    const ordered = lines.reduce((s, l) => s + Number(l.target_qty), 0);
     const scanned = lines.reduce((s, l) => s + Number(l.scanned_qty), 0);
-    const done = lines.filter(l => Number(l.scanned_qty) === Number(l.ordered_qty)).length;
+    const done = lines.filter(l => Number(l.scanned_qty) === Number(l.target_qty)).length;
     return { ordered, scanned, done, count: lines.length };
   }, [session]);
+
+  const missingExpiry = (session?.lines || []).filter(l => Number(l.scanned_qty) > 0 && !l.expiry_date);
+
+  const setExpiry = async (line: Line, value: string) => {
+    setSession(s => s ? { ...s, lines: s.lines.map(l => l.id === line.id ? { ...l, expiry_date: value || null } : l) } : s);
+    const { error } = await supabase.rpc("receiving_set_line", { p_line_id: line.id, p_qty: Number(line.scanned_qty), p_note: line.note, p_expiry: value || null } as any);
+    if (error) { toast.error(error.message); load(); }
+  };
 
   if (!session) return <div dir="rtl" className="p-10 text-center text-muted-foreground">جارِ التحميل…</div>;
 
@@ -284,7 +307,7 @@ function ReceivingSession({ sessionId }: { sessionId: string }) {
         {/* Lines */}
         <div className="space-y-2">
           {session.lines.map(l => {
-            const diff = Number(l.scanned_qty) - Number(l.ordered_qty);
+            const diff = Number(l.scanned_qty) - Number(l.target_qty);
             const state = diff === 0 ? "done" : diff > 0 ? "over" : Number(l.scanned_qty) > 0 ? "partial" : "none";
             const cls = state === "done" ? "border-primary bg-primary/5" : state === "over" ? "border-destructive bg-destructive/5" : state === "partial" ? "border-accent" : "";
             return (
@@ -296,10 +319,11 @@ function ReceivingSession({ sessionId }: { sessionId: string }) {
                       <span className="font-mono">{l.barcode || (l.extra_barcodes?.[0]) || "بدون باركود"}</span>
                       {l.unit && <span>· {l.unit}</span>}
                       {l.note && <span className="text-destructive">· {l.note}</span>}
+                      {Number(l.received_before) > 0 && <span>· مستلم سابقاً {Number(l.received_before)} من {Number(l.ordered_qty)}</span>}
                     </div>
                   </div>
                   <div className="text-center">
-                    <div className="text-2xl font-bold">{Number(l.scanned_qty)}<span className="text-base text-muted-foreground"> / {Number(l.ordered_qty)}</span></div>
+                    <div className="text-2xl font-bold">{Number(l.scanned_qty)}<span className="text-base text-muted-foreground"> / {Number(l.target_qty)}</span></div>
                     <div className={`text-xs font-bold ${state === "done" ? "text-primary" : state === "over" ? "text-destructive" : "text-muted-foreground"}`}>
                       {state === "done" ? "مكتمل" : state === "over" ? `زايد ${diff}` : `ناقص ${-diff}`}
                     </div>
@@ -309,7 +333,7 @@ function ReceivingSession({ sessionId }: { sessionId: string }) {
                       <Button variant="outline" size="icon" className="h-11 w-11" onClick={e => { e.stopPropagation(); bump(l, -1); }}><Minus className="h-5 w-5" /></Button>
                       <Button variant="outline" size="icon" className="h-11 w-11" onClick={e => { e.stopPropagation(); bump(l, 1); }}><Plus className="h-5 w-5" /></Button>
                       <Button variant="ghost" size="icon" className="h-11 w-11" title="كمية وملاحظة"
-                        onClick={e => { e.stopPropagation(); setEditLine(l); setEditQty(String(l.scanned_qty)); setEditNote(l.note || ""); }}>
+                        onClick={e => { e.stopPropagation(); setEditLine(l); setEditQty(String(l.scanned_qty)); setEditNote(l.note || ""); setEditExpiry(l.expiry_date || ""); }}>
                         <StickyNote className="h-5 w-5" />
                       </Button>
                       {!l.barcode && l.product_id && (
@@ -327,6 +351,16 @@ function ReceivingSession({ sessionId }: { sessionId: string }) {
                     </div>
                   )}
                 </div>
+                {Number(l.scanned_qty) > 0 && (
+                  <div className="mt-2 flex items-center gap-2 border-t pt-2" onClick={e => e.stopPropagation()}>
+                    <span className={`text-sm font-bold ${l.expiry_date ? "text-foreground" : "text-destructive"}`}>تاريخ الانتهاء *</span>
+                    {editable ? (
+                      <Input type="date" min={today} value={l.expiry_date || ""} onChange={e => setExpiry(l, e.target.value)}
+                        onBlur={focus}
+                        className={`h-11 w-48 ${l.expiry_date ? "" : "border-destructive"}`} />
+                    ) : <span className="text-sm">{l.expiry_date || "—"}</span>}
+                  </div>
+                )}
               </div>
             );
           })}
@@ -353,7 +387,7 @@ function ReceivingSession({ sessionId }: { sessionId: string }) {
               <button key={l.id} onClick={() => linkBarcode(l)}
                 className="flex w-full items-center justify-between rounded-lg border p-3 text-right hover:border-primary hover:bg-primary/5">
                 <span className="font-bold">{l.item_name}</span>
-                <span className="text-xs text-muted-foreground">{l.barcode ? "له باركود" : "بدون باركود"} · {Number(l.scanned_qty)}/{Number(l.ordered_qty)}</span>
+                <span className="text-xs text-muted-foreground">{l.barcode ? "له باركود" : "بدون باركود"} · {Number(l.scanned_qty)}/{Number(l.target_qty)}</span>
               </button>
             ))}
           </div>
@@ -369,6 +403,10 @@ function ReceivingSession({ sessionId }: { sessionId: string }) {
             <div>
               <div className="mb-1 text-sm">الكمية المستلمة</div>
               <Input type="number" inputMode="decimal" min={0} value={editQty} onChange={e => setEditQty(e.target.value)} className="h-12 text-lg" />
+            </div>
+            <div>
+              <div className="mb-1 text-sm">تاريخ الانتهاء *</div>
+              <Input type="date" min={today} value={editExpiry} onChange={e => setEditExpiry(e.target.value)} className="h-12 text-lg" />
             </div>
             <div>
               <div className="mb-1 text-sm">ملاحظة (تالف، ناقص…)</div>

@@ -28,6 +28,7 @@ import AccountingShell from "@/components/layout/AccountingShell";
 
 interface InvoiceLine {
   product_id: string | null;
+  order_item_id?: string | null;
   item_name: string;
   unit: string;
   ordered_quantity: number;
@@ -132,34 +133,40 @@ const ReceivePOInvoicePage = ({ orderId }: { orderId: string }) => {
         setSupplierName(o.pos_suppliers?.name || "");
         setBranchId(o.branch_id || "");
         setOrderNumber(o.order_number || "");
-        const { data: items } = await supabase
-          .from("procurement_order_items" as any)
-          .select("*")
-          .eq("order_id", orderId);
-        
+        // بنود الطلبية: المتبقي بعد الاستلامات السابقة + صنف المخزون المرتبط (يُنشأ مرة واحدة إذا ناقص)
+        const { data: items, error: itemsErr } = await supabase.rpc("get_procurement_order_receipt_lines", { p_order_id: orderId });
+        if (itemsErr) toast.error(itemsErr.message);
+
         // إذا الموظف استلم الطلبية بالباركود وأرسلها، نعبّي الكميات المعدودة فعلياً
         const { data: recv } = await supabase
           .from("procurement_receiving_sessions")
-          .select("id, procurement_receiving_lines(order_item_id, scanned_qty, note)")
+          .select("id, procurement_receiving_lines(order_item_id, scanned_qty, note, expiry_date)")
           .eq("order_id", orderId)
           .eq("status", "submitted")
           .order("submitted_at", { ascending: false })
           .limit(1)
           .maybeSingle();
-        const counted: Record<string, { qty: number; note: string | null }> = {};
+        const counted: Record<string, { qty: number; note: string | null; expiry: string | null }> = {};
         ((recv as any)?.procurement_receiving_lines || []).forEach((l: any) => {
-          counted[l.order_item_id] = { qty: Number(l.scanned_qty), note: l.note };
+          counted[l.order_item_id] = { qty: Number(l.scanned_qty), note: l.note, expiry: l.expiry_date };
         });
-        const loadedLines = ((items as any) || []).map((i: any) => ({
-          product_id: i.product_id || null,
-          item_name: i.item_name,
-          unit: i.unit,
-          ordered_quantity: Number(i.quantity),
-          received_quantity: counted[i.id] ? counted[i.id].qty : Number(i.quantity),
-          unit_price: Number(i.unit_price),
-          notes: counted[i.id]?.note || "",
-          expiry_date: "",
-        }));
+        const loadedLines: InvoiceLine[] = ((items as any[]) || [])
+          .map((i: any) => {
+            const remaining = Number(i.remaining);
+            const c = counted[i.order_item_id];
+            return {
+              product_id: i.inventory_product_id || null,
+              order_item_id: i.order_item_id,
+              item_name: i.item_name,
+              unit: i.unit,
+              ordered_quantity: remaining,
+              received_quantity: recv ? (c?.qty ?? 0) : remaining,
+              unit_price: Number(i.unit_price),
+              notes: c?.note || "",
+              expiry_date: c?.expiry || "",
+            };
+          })
+          .filter(l => l.ordered_quantity > 0 || l.received_quantity > 0);
         if (recv) toast.success("تم تعبئة الكميات من استلام الموظف بالباركود");
         setLines(loadedLines);
         
@@ -266,6 +273,14 @@ const ReceivePOInvoicePage = ({ orderId }: { orderId: string }) => {
   const handleSave = async () => {
     if (!supplierId || lines.length === 0) {
       toast.error("اختر المورد وأضف بنوداً");
+      return;
+    }
+    const received = lines.filter(l => Number(l.received_quantity) > 0);
+    if (received.length === 0) { toast.error("لا توجد كميات مستلمة"); return; }
+    if (lines.some(l => Number(l.received_quantity) < 0)) { toast.error("الكمية لا يمكن أن تكون سالبة"); return; }
+    const noExpiry = received.filter(l => !l.expiry_date);
+    if (noExpiry.length) {
+      toast.error(`تاريخ الانتهاء إجباري: ${noExpiry.map(l => l.item_name).join("، ")}`);
       return;
     }
     setSaving(true);
@@ -474,11 +489,11 @@ const ReceivePOInvoicePage = ({ orderId }: { orderId: string }) => {
                   <TableRow>
                     <TableHead className="w-[320px] text-right">الصنف</TableHead>
                     <TableHead className="w-[90px]">الوحدة</TableHead>
-                    <TableHead className="w-[110px]">الكمية المطلوبة</TableHead>
+                    <TableHead className="w-[110px]">{orderId ? "المتبقي من الطلبية" : "الكمية المطلوبة"}</TableHead>
                     <TableHead className="w-[120px] bg-muted/40">الكمية المستلمة</TableHead>
                     <TableHead className="w-[130px] bg-muted/40">السعر الفعلي</TableHead>
                     <TableHead className="w-[130px] bg-muted/40">الإجمالي</TableHead>
-                    <TableHead className="w-[160px] bg-amber-50 dark:bg-amber-950/20">الصلاحية</TableHead>
+                    <TableHead className="w-[160px] bg-amber-50 dark:bg-amber-950/20">تاريخ الانتهاء *</TableHead>
                     <TableHead className="w-[170px] text-right">ملاحظة</TableHead>
                   </TableRow>
                 </TableHeader>

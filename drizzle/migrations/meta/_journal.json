@@ -148,6 +148,55 @@
       "when": 1790525297993,
       "tag": "0020_procurement_receiving_barcode",
       "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1790525868322,
+      "tag": "0021_receiving_expiry_and_remaining",
+      "breakpoints": true
+    },
+    {
+      "idx": 22,
+      "version": "7",
+      "when": 1790526000654,
+      "tag": "0022_discard_empty_purchase_invoice",
+      "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "7",
+      "when": 1790526120305,
+      "tag": "0023_link_procurement_items_to_inventory",
+      "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1790526272859,
+      "tag": "0024_fix_purchase_invoice_stock_triggers",
+      "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "7",
+      "when": 1790526314203,
+      "tag": "0025_fix_default_supplier_from_purchase",
+      "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "7",
+      "when": 1790526365780,
+      "tag": "0026_purchase_invoice_void_statuses",
+      "breakpoints": true
+    },
+    {
+      "idx": 27,
+      "version": "7",
+      "when": 1790526426863,
+      "tag": "0027_receiving_manager_guard",
+      "breakpoints": true
     }
   ]
 }

@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from "react";
+import ReceivingPortalCard from "@/components/procurement/ReceivingPortalCard";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useUserRoles } from "@/hooks/useUserRoles";
@@ -456,6 +457,7 @@ export default function EmployeeApp({ initialTab }: { initialTab?: Tab } = {}) {
         }
       />
       <div className="max-w-lg mx-auto">
+        {activeTab === "home" && <ReceivingPortalCard />}
         {activeTab === "home" && (
           <EmployeeHomeTab
             employeeId={employee.id}

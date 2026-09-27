@@ -263,8 +263,11 @@ export function usePurchaseInvoices() {
 
   useEffect(() => { fetch(); }, [fetch]);
 
-  const createInvoice = async (invoice: any, items: any[], orderId?: string) => {
+  const createInvoice = async (invoice: any, allItems: any[], orderId?: string) => {
     const ownerId = getOwnerId(user);
+    // بنود بكمية صفر (ما وصلت) لا تدخل الفاتورة ولا المخزون
+    const items = allItems.filter((i: any) => Number(i.received_quantity) > 0);
+    if (items.length === 0) { toast({ title: "لا توجد كميات مستلمة", variant: "destructive" }); return null; }
     const subtotal = items.reduce((s: number, i: any) => s + (i.received_quantity * i.unit_price), 0);
     const total = subtotal - (invoice.discount || 0) + (invoice.tax || 0);
 
@@ -309,21 +312,20 @@ export function usePurchaseInvoices() {
       unit_price: i.unit_price,
       total_amount: i.received_quantity * i.unit_price,
       expiry_date: i.expiry_date || null,
+      procurement_order_item_id: i.order_item_id || null,
     }));
-    await supabase.from("purchase_invoice_items").insert(invItems as any);
+    const { error: itemsError } = await supabase.from("purchase_invoice_items").insert(invItems as any);
+    if (itemsError) {
+      // لم يدخل أي بند (الإدخال دفعة واحدة) ولا يوجد قيد بعد — نلغي رأس الفاتورة حتى لا تبقى فاتورة فارغة
+      await supabase.rpc("discard_empty_purchase_invoice", { p_invoice_id: invoiceId });
+      toast({ title: "تعذر حفظ بنود الفاتورة", description: itemsError.message, variant: "destructive" });
+      return null;
+    }
 
     if (orderId) {
-      const { data: orderItems } = await supabase
-        .from("procurement_order_items" as any)
-        .select("quantity")
-        .eq("order_id", orderId);
-      const totalOrdered = ((orderItems as any) || []).reduce((s: number, i: any) => s + Number(i.quantity), 0);
-      const totalReceived = items.reduce((s: number, i: any) => s + Number(i.received_quantity), 0);
-      const newStatus = totalReceived >= totalOrdered ? "received" : "partially_received";
-      await supabase
-        .from("procurement_orders" as any)
-        .update({ status: newStatus, updated_at: new Date().toISOString() } as any)
-        .eq("id", orderId);
+      // الحالة من مجموع كل الاستلامات السابقة لكل بند (مش هاي الفاتورة لحالها)
+      const { error: stErr } = await supabase.rpc("refresh_procurement_order_receipt_status", { p_order_id: orderId });
+      if (stErr) console.error("refresh order status failed:", stErr);
     }
 
     // Ensure supplier exists in contacts table for account statement linking

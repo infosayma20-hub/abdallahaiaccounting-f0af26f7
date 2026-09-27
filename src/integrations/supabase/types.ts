@@ -18633,6 +18633,7 @@ export type Database = {
           company_id: string | null
           default_price: number | null
           id: string
+          inventory_product_id: string | null
           is_active: boolean | null
           name: string
           notes: string | null
@@ -18645,6 +18646,7 @@ export type Database = {
           company_id?: string | null
           default_price?: number | null
           id?: string
+          inventory_product_id?: string | null
           is_active?: boolean | null
           name: string
           notes?: string | null
@@ -18657,6 +18659,7 @@ export type Database = {
           company_id?: string | null
           default_price?: number | null
           id?: string
+          inventory_product_id?: string | null
           is_active?: boolean | null
           name?: string
           notes?: string | null
@@ -18677,6 +18680,13 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "procurement_items_inventory_product_id_fkey"
+            columns: ["inventory_product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
             referencedColumns: ["id"]
           },
         ]
@@ -18832,6 +18842,7 @@ export type Database = {
       procurement_receiving_lines: {
         Row: {
           barcodes: string[]
+          expiry_date: string | null
           id: string
           note: string | null
           order_item_id: string
@@ -18842,6 +18853,7 @@ export type Database = {
         }
         Insert: {
           barcodes?: string[]
+          expiry_date?: string | null
           id?: string
           note?: string | null
           order_item_id: string
@@ -18852,6 +18864,7 @@ export type Database = {
         }
         Update: {
           barcodes?: string[]
+          expiry_date?: string | null
           id?: string
           note?: string | null
           order_item_id?: string
@@ -20542,6 +20555,7 @@ export type Database = {
           notes: string | null
           previous_price: number | null
           price_change_pct: number | null
+          procurement_order_item_id: string | null
           product_id: string | null
           product_name: string
           production_date: string | null
@@ -20562,6 +20576,7 @@ export type Database = {
           notes?: string | null
           previous_price?: number | null
           price_change_pct?: number | null
+          procurement_order_item_id?: string | null
           product_id?: string | null
           product_name: string
           production_date?: string | null
@@ -20582,6 +20597,7 @@ export type Database = {
           notes?: string | null
           previous_price?: number | null
           price_change_pct?: number | null
+          procurement_order_item_id?: string | null
           product_id?: string | null
           product_name?: string
           production_date?: string | null
@@ -20598,6 +20614,13 @@ export type Database = {
             columns: ["invoice_id"]
             isOneToOne: false
             referencedRelation: "purchase_invoices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchase_invoice_items_procurement_order_item_id_fkey"
+            columns: ["procurement_order_item_id"]
+            isOneToOne: false
+            referencedRelation: "procurement_order_items"
             referencedColumns: ["id"]
           },
           {
@@ -30236,6 +30259,10 @@ export type Database = {
         Returns: undefined
       }
       _infer_bulk_emp_category: { Args: { _desc: string }; Returns: string }
+      _is_procurement_manager: {
+        Args: { _owner: string; _uid: string }
+        Returns: boolean
+      }
       _norm_currency_code: { Args: { _c: string }; Returns: string }
       _payroll_post_payment:
         | {
@@ -30284,6 +30311,10 @@ export type Database = {
         Returns: boolean
       }
       _pos_vat_output_account: { Args: { p_user_id: string }; Returns: string }
+      _procurement_item_received_qty: {
+        Args: { _order_item_id: string }
+        Returns: number
+      }
       _receiving_assert_editable: {
         Args: {
           s: Database["public"]["Tables"]["procurement_receiving_sessions"]["Row"]
@@ -31306,6 +31337,10 @@ export type Database = {
           session_id: string
         }[]
       }
+      discard_empty_purchase_invoice: {
+        Args: { p_invoice_id: string }
+        Returns: undefined
+      }
       dispatch_domain_events_v1: {
         Args: { p_dry_run?: boolean; p_limit?: number }
         Returns: Json
@@ -31369,6 +31404,10 @@ export type Database = {
       ensure_party_transfer_clearing_account: {
         Args: { p_user_id: string }
         Returns: undefined
+      }
+      ensure_procurement_item_product: {
+        Args: { p_item_id: string }
+        Returns: string
       }
       ensure_return_accounts: {
         Args: { p_user_id: string }
@@ -32047,6 +32086,10 @@ export type Database = {
           total_debit: number
           total_vat: number
         }[]
+      }
+      get_procurement_order_receipt_lines: {
+        Args: { p_order_id: string }
+        Returns: Json
       }
       get_product_profitability: {
         Args: { p_from: string; p_to: string }
@@ -32908,7 +32951,12 @@ export type Database = {
         Returns: Json
       }
       receiving_set_line: {
-        Args: { p_line_id: string; p_note?: string; p_qty: number }
+        Args: {
+          p_expiry?: string
+          p_line_id: string
+          p_note?: string
+          p_qty: number
+        }
         Returns: undefined
       }
       receiving_submit: {
@@ -32971,6 +33019,10 @@ export type Database = {
       }
       recreate_invoice_transaction: {
         Args: { p_invoice_id: string }
+        Returns: string
+      }
+      refresh_procurement_order_receipt_status: {
+        Args: { p_order_id: string }
         Returns: string
       }
       reject_order_edit: {
