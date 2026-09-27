@@ -9089,6 +9089,7 @@ export type Database = {
           is_active: boolean
           is_hr_manager: boolean
           is_manager: boolean
+          is_receiver: boolean
           is_terminated: boolean | null
           job_title: string | null
           job_title_id: string | null
@@ -9166,6 +9167,7 @@ export type Database = {
           is_active?: boolean
           is_hr_manager?: boolean
           is_manager?: boolean
+          is_receiver?: boolean
           is_terminated?: boolean | null
           job_title?: string | null
           job_title_id?: string | null
@@ -9243,6 +9245,7 @@ export type Database = {
           is_active?: boolean
           is_hr_manager?: boolean
           is_manager?: boolean
+          is_receiver?: boolean
           is_terminated?: boolean | null
           job_title?: string | null
           job_title_id?: string | null
