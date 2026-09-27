@@ -26,6 +26,7 @@ export const SignupEmail = ({
   siteName,
   recipient,
   token,
+  confirmationUrl,
 }: SignupEmailProps) => (
   <Html lang="ar" dir="rtl">
     <Head />
@@ -45,9 +46,22 @@ export const SignupEmail = ({
           </Text>
 
           <Section style={codeWrap}>
-            <Text style={codeStyle}>{token || '------'}</Text>
+            {token ? (
+              <Text style={codeStyle}>{token}</Text>
+            ) : null}
             <Text style={codeHint}>صالح لمدة ساعة واحدة فقط</Text>
           </Section>
+
+          {confirmationUrl ? (
+            <Section style={{ textAlign: 'center' as const, margin: '8px 0 24px' }}>
+              <Text style={{ ...codeHint, margin: '0 0 12px' }}>
+                {token ? 'أو اضغط الزر مباشرة:' : 'اضغط الزر التالي للمتابعة:'}
+              </Text>
+              <a href={confirmationUrl} style={{ backgroundColor: '#0D1B2E', color: '#ffffff', padding: '12px 28px', borderRadius: '8px', textDecoration: 'none', fontWeight: 'bold', fontSize: '15px', display: 'inline-block' }}>
+                تأكيد الحساب
+              </a>
+            </Section>
+          ) : null}
 
           <Text style={footerNote}>
             إذا لم تنشئ هذا الحساب، يمكنك تجاهل هذا الإيميل بأمان.<br />
