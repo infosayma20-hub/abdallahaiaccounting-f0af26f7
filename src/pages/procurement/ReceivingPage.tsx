@@ -1,0 +1,417 @@
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useNavigate, useParams } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import { Textarea } from "@/components/ui/textarea";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
+import { ArrowRight, ScanLine, Minus, Plus, CheckCircle2, Package, RefreshCw, Barcode, Printer, StickyNote } from "lucide-react";
+import { receivingStatusLabel } from "@/components/procurement/ReceivingAssignDialog";
+
+type Line = {
+  id: string; order_item_id: string; product_id: string | null; item_name: string; unit: string | null;
+  ordered_qty: number; scanned_qty: number; note: string | null; barcode: string | null; extra_barcodes: string[];
+};
+type Session = {
+  id: string; status: string; order_number: string; supplier_name: string | null; expected_date: string | null; lines: Line[];
+};
+
+/* ───────── Feedback sounds (no external assets) ───────── */
+let audioCtx: AudioContext | null = null;
+function beep(ok: boolean) {
+  try {
+    audioCtx = audioCtx || new (window.AudioContext || (window as any).webkitAudioContext)();
+    const o = audioCtx.createOscillator(); const g = audioCtx.createGain();
+    o.frequency.value = ok ? 1200 : 220; o.type = ok ? "sine" : "square";
+    g.gain.value = 0.15; o.connect(g); g.connect(audioCtx.destination);
+    o.start(); o.stop(audioCtx.currentTime + (ok ? 0.08 : 0.35));
+    if (!ok && navigator.vibrate) navigator.vibrate(200);
+  } catch { /* ignore */ }
+}
+
+/* ───────── Offline scan queue (survives reload / network loss) ───────── */
+const QKEY = (sid: string) => `receiving:queue:${sid}`;
+const readQueue = (sid: string): string[] => { try { return JSON.parse(localStorage.getItem(QKEY(sid)) || "[]"); } catch { return []; } };
+const writeQueue = (sid: string, q: string[]) => localStorage.setItem(QKEY(sid), JSON.stringify(q));
+
+/* ───────── List of my assigned orders ───────── */
+function MyReceivingList() {
+  const navigate = useNavigate();
+  const [rows, setRows] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const load = useCallback(async () => {
+    setLoading(true);
+    const { data, error } = await supabase.rpc("get_my_receiving_sessions");
+    if (error) toast.error(error.message);
+    setRows((data as any[]) || []);
+    setLoading(false);
+  }, []);
+  useEffect(() => { load(); }, [load]);
+
+  return (
+    <div dir="rtl" className="min-h-[100dvh] bg-muted/30 p-4 md:p-8">
+      <div className="mx-auto max-w-4xl">
+        <div className="mb-6 flex items-center justify-between gap-3">
+          <div>
+            <h1 className="text-2xl font-bold text-foreground">استلام البضاعة</h1>
+            <p className="text-sm text-muted-foreground">الطلبيات المسندة إلك للاستلام بالباركود</p>
+          </div>
+          <Button variant="outline" size="lg" onClick={load}><RefreshCw className="ml-2 h-5 w-5" />تحديث</Button>
+        </div>
+        {loading ? <div className="p-10 text-center text-muted-foreground">جارِ التحميل…</div> : rows.length === 0 ? (
+          <div className="rounded-xl border bg-card p-10 text-center text-muted-foreground">
+            <Package className="mx-auto mb-3 h-12 w-12 opacity-40" />ما في طلبيات مسندة إلك حالياً
+          </div>
+        ) : (
+          <div className="grid gap-4 md:grid-cols-2">
+            {rows.map(r => {
+              const pct = r.ordered_total > 0 ? Math.min(100, Math.round((r.scanned_total / r.ordered_total) * 100)) : 0;
+              return (
+                <button key={r.id} onClick={() => navigate(`/worker/receiving/${r.id}`)}
+                  className="rounded-xl border bg-card p-5 text-right shadow-sm transition hover:border-primary hover:shadow-md">
+                  <div className="flex items-start justify-between gap-2">
+                    <div>
+                      <div className="text-lg font-bold text-foreground">{r.order_number}</div>
+                      <div className="text-sm text-muted-foreground">{r.supplier_name || "—"}</div>
+                    </div>
+                    <Badge variant={r.status === "submitted" ? "default" : "outline"}>{receivingStatusLabel[r.status]}</Badge>
+                  </div>
+                  <div className="mt-4 flex justify-between text-sm text-muted-foreground">
+                    <span>{r.items_count} أصناف</span>
+                    <span>{Number(r.scanned_total)} / {Number(r.ordered_total)}</span>
+                  </div>
+                  <div className="mt-2 h-2 overflow-hidden rounded-full bg-muted">
+                    <div className="h-full bg-primary" style={{ width: `${pct}%` }} />
+                  </div>
+                  {r.expected_date && <div className="mt-2 text-xs text-muted-foreground">متوقع: {r.expected_date}</div>}
+                </button>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/* ───────── Scanning screen ───────── */
+function ReceivingSession({ sessionId }: { sessionId: string }) {
+  const navigate = useNavigate();
+  const [session, setSession] = useState<Session | null>(null);
+  const [code, setCode] = useState("");
+  const [flash, setFlash] = useState<{ ok: boolean; text: string } | null>(null);
+  const [lastLineId, setLastLineId] = useState<string | null>(null);
+  const [unknown, setUnknown] = useState<string | null>(null);
+  const [editLine, setEditLine] = useState<Line | null>(null);
+  const [editQty, setEditQty] = useState("0");
+  const [editNote, setEditNote] = useState("");
+  const [confirmSubmit, setConfirmSubmit] = useState(false);
+  const [submitNotes, setSubmitNotes] = useState("");
+  const [pending, setPending] = useState<number>(readQueue(sessionId).length);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const busy = useRef(false);
+
+  const editable = session?.status === "assigned" || session?.status === "in_progress";
+  const dialogOpen = !!unknown || !!editLine || confirmSubmit;
+
+  const load = useCallback(async () => {
+    const { data, error } = await supabase.rpc("get_receiving_session", { p_session_id: sessionId } as any);
+    if (error) { toast.error(error.message); return; }
+    setSession(data as any);
+  }, [sessionId]);
+
+  useEffect(() => { load(); }, [load]);
+
+  const focus = useCallback(() => { if (!dialogOpen) setTimeout(() => inputRef.current?.focus(), 30); }, [dialogOpen]);
+  useEffect(() => { focus(); }, [focus, session]);
+
+  const showFlash = (ok: boolean, text: string) => {
+    beep(ok); setFlash({ ok, text });
+    window.setTimeout(() => setFlash(f => (f && f.text === text ? null : f)), 1800);
+  };
+
+  const sendScan = useCallback(async (barcode: string): Promise<"ok" | "unknown" | "network" | "error"> => {
+    const { data, error } = await supabase.rpc("receiving_scan", { p_session_id: sessionId, p_barcode: barcode } as any);
+    if (error) {
+      const msg = (error.message || "").toLowerCase();
+      if (msg.includes("fetch") || msg.includes("network")) return "network";
+      showFlash(false, error.message); return "error";
+    }
+    const r = data as any;
+    if (!r?.ok) return "unknown";
+    setLastLineId(r.line_id);
+    setSession(s => s ? { ...s, status: "in_progress", lines: s.lines.map(l => l.id === r.line_id ? { ...l, scanned_qty: Number(r.scanned_qty) } : l) } : s);
+    showFlash(true, `${r.item_name} — ${Number(r.scanned_qty)}`);
+    return "ok";
+  }, [sessionId]);
+
+  // Flush offline queue
+  const flush = useCallback(async () => {
+    const q = readQueue(sessionId);
+    if (!q.length || !navigator.onLine) return;
+    const rest: string[] = [];
+    for (const b of q) {
+      const res = await sendScan(b);
+      if (res === "network") rest.push(b);
+    }
+    writeQueue(sessionId, rest); setPending(rest.length);
+    if (rest.length === 0) load();
+  }, [sessionId, sendScan, load]);
+
+  useEffect(() => {
+    flush();
+    const on = () => flush();
+    window.addEventListener("online", on);
+    return () => window.removeEventListener("online", on);
+  }, [flush]);
+
+  const handleScan = async (raw: string) => {
+    const barcode = raw.trim();
+    if (!barcode || !editable || busy.current) return;
+    busy.current = true;
+    try {
+      if (!navigator.onLine) {
+        const q = [...readQueue(sessionId), barcode]; writeQueue(sessionId, q); setPending(q.length);
+        showFlash(true, `محفوظ بدون نت (${q.length})`); return;
+      }
+      const res = await sendScan(barcode);
+      if (res === "network") {
+        const q = [...readQueue(sessionId), barcode]; writeQueue(sessionId, q); setPending(q.length);
+        showFlash(true, `محفوظ بدون نت (${q.length})`);
+      } else if (res === "unknown") {
+        beep(false); setUnknown(barcode);
+      }
+    } finally { busy.current = false; }
+  };
+
+  const linkBarcode = async (line: Line) => {
+    if (!unknown) return;
+    const { data, error } = await supabase.rpc("receiving_link_barcode", { p_line_id: line.id, p_barcode: unknown } as any);
+    if (error) { showFlash(false, error.message); return; }
+    showFlash(true, (data as any)?.saved_to_product ? `تم ربط الباركود بالصنف ${line.item_name}` : `تم ربط الباركود بالبند ${line.item_name}`);
+    setUnknown(null); setLastLineId(line.id); load();
+  };
+
+  const generateBarcode = async (line: Line) => {
+    const { data, error } = await supabase.rpc("receiving_generate_barcode", { p_line_id: line.id } as any);
+    if (error) { toast.error(error.message); return; }
+    toast.success(`باركود الصنف: ${data}`);
+    printLabel(line.item_name, String(data));
+    load();
+  };
+
+  const saveEdit = async () => {
+    if (!editLine) return;
+    const qty = Number(editQty);
+    if (!Number.isFinite(qty) || qty < 0) { toast.error("كمية غير صحيحة"); return; }
+    const { error } = await supabase.rpc("receiving_set_line", { p_line_id: editLine.id, p_qty: qty, p_note: editNote || null } as any);
+    if (error) { toast.error(error.message); return; }
+    setEditLine(null); load();
+  };
+
+  const bump = async (line: Line, delta: number) => {
+    const qty = Math.max(0, Number(line.scanned_qty) + delta);
+    setSession(s => s ? { ...s, lines: s.lines.map(l => l.id === line.id ? { ...l, scanned_qty: qty } : l) } : s);
+    const { error } = await supabase.rpc("receiving_set_line", { p_line_id: line.id, p_qty: qty, p_note: line.note } as any);
+    if (error) { toast.error(error.message); load(); }
+    focus();
+  };
+
+  const submit = async () => {
+    if (pending > 0) { toast.error("في مسحات محفوظة بدون نت — استنى لحد ما تنرفع"); return; }
+    const { error } = await supabase.rpc("receiving_submit", { p_session_id: sessionId, p_notes: submitNotes || null } as any);
+    if (error) { toast.error(error.message); return; }
+    toast.success("تم إرسال الاستلام للمحاسب");
+    setConfirmSubmit(false); load();
+  };
+
+  const totals = useMemo(() => {
+    const lines = session?.lines || [];
+    const ordered = lines.reduce((s, l) => s + Number(l.ordered_qty), 0);
+    const scanned = lines.reduce((s, l) => s + Number(l.scanned_qty), 0);
+    const done = lines.filter(l => Number(l.scanned_qty) === Number(l.ordered_qty)).length;
+    return { ordered, scanned, done, count: lines.length };
+  }, [session]);
+
+  if (!session) return <div dir="rtl" className="p-10 text-center text-muted-foreground">جارِ التحميل…</div>;
+
+  return (
+    <div dir="rtl" className="min-h-[100dvh] bg-muted/30" onClick={focus}>
+      {/* Header */}
+      <div className="sticky top-0 z-10 border-b bg-card px-4 py-3 shadow-sm">
+        <div className="mx-auto flex max-w-5xl items-center gap-3">
+          <Button variant="ghost" size="icon" onClick={() => navigate("/worker/receiving")}><ArrowRight className="h-6 w-6" /></Button>
+          <div className="flex-1">
+            <div className="text-lg font-bold text-foreground">{session.order_number}</div>
+            <div className="text-sm text-muted-foreground">{session.supplier_name || "—"}</div>
+          </div>
+          <Badge variant={session.status === "submitted" ? "default" : "outline"} className="text-sm">{receivingStatusLabel[session.status]}</Badge>
+        </div>
+      </div>
+
+      <div className="mx-auto max-w-5xl space-y-4 p-4">
+        {/* Scan box */}
+        {editable ? (
+          <form onSubmit={e => { e.preventDefault(); const v = code; setCode(""); handleScan(v); }}
+            className={`rounded-xl border-2 bg-card p-4 transition-colors ${flash ? (flash.ok ? "border-primary" : "border-destructive") : "border-dashed border-border"}`}>
+            <div className="flex items-center gap-3">
+              <ScanLine className="h-8 w-8 text-primary" />
+              <Input ref={inputRef} value={code} onChange={e => setCode(e.target.value)} onBlur={focus}
+                inputMode="none" autoComplete="off" placeholder="امسح الباركود…"
+                className="h-14 flex-1 text-xl font-mono" />
+              <Button type="submit" size="lg" className="h-14">إضافة</Button>
+            </div>
+            <div className={`mt-3 min-h-[1.75rem] text-center text-lg font-bold ${flash ? (flash.ok ? "text-primary" : "text-destructive") : "text-muted-foreground"}`}>
+              {flash ? flash.text : "الماسح جاهز"}
+            </div>
+            {pending > 0 && <div className="text-center text-sm text-destructive">{pending} مسحة محفوظة بانتظار النت</div>}
+          </form>
+        ) : (
+          <div className="rounded-xl border bg-card p-4 text-center text-muted-foreground">
+            {session.status === "submitted" ? "تم إرسال الاستلام — بانتظار اعتماد المحاسب" : "الاستلام مغلق"}
+          </div>
+        )}
+
+        {/* Progress */}
+        <div className="grid grid-cols-3 gap-3 text-center">
+          <div className="rounded-lg border bg-card p-3"><div className="text-2xl font-bold">{totals.scanned}</div><div className="text-xs text-muted-foreground">مستلم</div></div>
+          <div className="rounded-lg border bg-card p-3"><div className="text-2xl font-bold">{totals.ordered}</div><div className="text-xs text-muted-foreground">مطلوب</div></div>
+          <div className="rounded-lg border bg-card p-3"><div className="text-2xl font-bold">{totals.done}/{totals.count}</div><div className="text-xs text-muted-foreground">أصناف مكتملة</div></div>
+        </div>
+
+        {/* Lines */}
+        <div className="space-y-2">
+          {session.lines.map(l => {
+            const diff = Number(l.scanned_qty) - Number(l.ordered_qty);
+            const state = diff === 0 ? "done" : diff > 0 ? "over" : Number(l.scanned_qty) > 0 ? "partial" : "none";
+            const cls = state === "done" ? "border-primary bg-primary/5" : state === "over" ? "border-destructive bg-destructive/5" : state === "partial" ? "border-accent" : "";
+            return (
+              <div key={l.id} className={`rounded-xl border bg-card p-3 ${cls} ${lastLineId === l.id ? "ring-2 ring-primary" : ""}`}>
+                <div className="flex items-center gap-3">
+                  <div className="min-w-0 flex-1">
+                    <div className="truncate text-base font-bold text-foreground">{l.item_name}</div>
+                    <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                      <span className="font-mono">{l.barcode || (l.extra_barcodes?.[0]) || "بدون باركود"}</span>
+                      {l.unit && <span>· {l.unit}</span>}
+                      {l.note && <span className="text-destructive">· {l.note}</span>}
+                    </div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-2xl font-bold">{Number(l.scanned_qty)}<span className="text-base text-muted-foreground"> / {Number(l.ordered_qty)}</span></div>
+                    <div className={`text-xs font-bold ${state === "done" ? "text-primary" : state === "over" ? "text-destructive" : "text-muted-foreground"}`}>
+                      {state === "done" ? "مكتمل" : state === "over" ? `زايد ${diff}` : `ناقص ${-diff}`}
+                    </div>
+                  </div>
+                  {editable && (
+                    <div className="flex items-center gap-1">
+                      <Button variant="outline" size="icon" className="h-11 w-11" onClick={e => { e.stopPropagation(); bump(l, -1); }}><Minus className="h-5 w-5" /></Button>
+                      <Button variant="outline" size="icon" className="h-11 w-11" onClick={e => { e.stopPropagation(); bump(l, 1); }}><Plus className="h-5 w-5" /></Button>
+                      <Button variant="ghost" size="icon" className="h-11 w-11" title="كمية وملاحظة"
+                        onClick={e => { e.stopPropagation(); setEditLine(l); setEditQty(String(l.scanned_qty)); setEditNote(l.note || ""); }}>
+                        <StickyNote className="h-5 w-5" />
+                      </Button>
+                      {!l.barcode && l.product_id && (
+                        <Button variant="ghost" size="icon" className="h-11 w-11" title="توليد وطباعة باركود"
+                          onClick={e => { e.stopPropagation(); generateBarcode(l); }}>
+                          <Barcode className="h-5 w-5" />
+                        </Button>
+                      )}
+                      {l.barcode && (
+                        <Button variant="ghost" size="icon" className="h-11 w-11" title="طباعة ملصق"
+                          onClick={e => { e.stopPropagation(); printLabel(l.item_name, l.barcode!); }}>
+                          <Printer className="h-5 w-5" />
+                        </Button>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        {editable && (
+          <Button size="lg" className="h-14 w-full text-lg" onClick={() => setConfirmSubmit(true)}>
+            <CheckCircle2 className="ml-2 h-6 w-6" />إنهاء الاستلام وإرساله للمحاسب
+          </Button>
+        )}
+      </div>
+
+      {/* Unknown barcode */}
+      <Dialog open={!!unknown} onOpenChange={o => { if (!o) { setUnknown(null); focus(); } }}>
+        <DialogContent dir="rtl" className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>باركود غير معروف</DialogTitle>
+            <DialogDescription>
+              الباركود <span className="font-mono font-bold">{unknown}</span> مش مربوط بأي صنف بالطلبية. اختار الصنف لربطه — بينحفظ للمرات الجاية.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="max-h-80 space-y-2 overflow-auto">
+            {session.lines.map(l => (
+              <button key={l.id} onClick={() => linkBarcode(l)}
+                className="flex w-full items-center justify-between rounded-lg border p-3 text-right hover:border-primary hover:bg-primary/5">
+                <span className="font-bold">{l.item_name}</span>
+                <span className="text-xs text-muted-foreground">{l.barcode ? "له باركود" : "بدون باركود"} · {Number(l.scanned_qty)}/{Number(l.ordered_qty)}</span>
+              </button>
+            ))}
+          </div>
+          <DialogFooter><Button variant="outline" onClick={() => setUnknown(null)}>تجاهل</Button></DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit line */}
+      <Dialog open={!!editLine} onOpenChange={o => { if (!o) { setEditLine(null); focus(); } }}>
+        <DialogContent dir="rtl" className="max-w-md">
+          <DialogHeader><DialogTitle>{editLine?.item_name}</DialogTitle></DialogHeader>
+          <div className="space-y-3">
+            <div>
+              <div className="mb-1 text-sm">الكمية المستلمة</div>
+              <Input type="number" inputMode="decimal" min={0} value={editQty} onChange={e => setEditQty(e.target.value)} className="h-12 text-lg" />
+            </div>
+            <div>
+              <div className="mb-1 text-sm">ملاحظة (تالف، ناقص…)</div>
+              <Textarea value={editNote} onChange={e => setEditNote(e.target.value)} rows={3} />
+            </div>
+          </div>
+          <DialogFooter><Button onClick={saveEdit}>حفظ</Button></DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Submit */}
+      <Dialog open={confirmSubmit} onOpenChange={o => { if (!o) { setConfirmSubmit(false); focus(); } }}>
+        <DialogContent dir="rtl" className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>إنهاء الاستلام</DialogTitle>
+            <DialogDescription>
+              مستلم {totals.scanned} من {totals.ordered} — {totals.count - totals.done} أصناف فيها فرق. بعد الإرسال ما بتقدر تعدّل إلا إذا المحاسب رجّعها.
+            </DialogDescription>
+          </DialogHeader>
+          <Textarea placeholder="ملاحظات للمحاسب (اختياري)" value={submitNotes} onChange={e => setSubmitNotes(e.target.value)} rows={3} />
+          <DialogFooter><Button onClick={submit}>إرسال للمحاسب</Button></DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
+
+/* ───────── Label printing (Code128 via JsBarcode CDN-free SVG fallback: EAN text) ───────── */
+function printLabel(name: string, barcode: string) {
+  const w = window.open("", "_blank", "width=420,height=320");
+  if (!w) return;
+  const esc = (s: string) => s.replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]!));
+  w.document.write(`<html dir="rtl"><head><title>${esc(barcode)}</title>
+    <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.6/dist/JsBarcode.all.min.js"></script>
+    <style>@page{size:50mm 30mm;margin:2mm}body{margin:0;font-family:Cairo,Arial,sans-serif;text-align:center}
+    .n{font-size:11px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}svg{width:100%;height:18mm}</style></head>
+    <body><div class="n">${esc(name)}</div><svg id="b"></svg>
+    <script>window.onload=function(){try{JsBarcode("#b","${esc(barcode)}",{format:${/^\d{13}$/.test(barcode) ? '"EAN13"' : '"CODE128"'},height:50,fontSize:14,margin:0});}catch(e){JsBarcode("#b","${esc(barcode)}",{format:"CODE128"});}setTimeout(function(){window.print()},300)}</script>
+    </body></html>`);
+  w.document.close();
+}
+
+export default function ReceivingPage() {
+  const { sessionId } = useParams();
+  return sessionId ? <ReceivingSession sessionId={sessionId} /> : <MyReceivingList />;
+}

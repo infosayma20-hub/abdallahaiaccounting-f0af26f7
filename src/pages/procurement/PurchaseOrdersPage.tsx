@@ -1,4 +1,6 @@
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import ReceivingAssignDialog, { receivingStatusLabel, type ReceivingSessionSummary } from "@/components/procurement/ReceivingAssignDialog";
+import { ScanLine } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -64,6 +66,26 @@ const PurchaseOrdersPage = () => {
   const [detailOrder, setDetailOrder] = useState<any>(null);
   const [detailItems, setDetailItems] = useState<ProcurementOrderItem[]>([]);
   const [loadingDetail, setLoadingDetail] = useState(false);
+  const [receivingByOrder, setReceivingByOrder] = useState<Record<string, ReceivingSessionSummary>>({});
+  const [assignOrder, setAssignOrder] = useState<any>(null);
+
+  const loadReceiving = useCallback(async () => {
+    const ids = orders.map((o: any) => o.id);
+    if (ids.length === 0) { setReceivingByOrder({}); return; }
+    const { data } = await supabase
+      .from("procurement_receiving_sessions")
+      .select("id, order_id, status, assigned_employee_id, expected_date, created_at, employees:assigned_employee_id(full_name)")
+      .in("order_id", ids)
+      .in("status", ["assigned", "in_progress", "submitted"])
+      .order("created_at", { ascending: false });
+    const map: Record<string, ReceivingSessionSummary> = {};
+    ((data as any[]) || []).forEach(s => {
+      if (!map[s.order_id]) map[s.order_id] = { ...s, employee_name: s.employees?.full_name };
+    });
+    setReceivingByOrder(map);
+  }, [orders]);
+
+  useEffect(() => { loadReceiving(); }, [loadReceiving]);
 
   const filtered = useMemo(() => {
     const list = orders.filter(o => {
@@ -419,6 +441,9 @@ const PurchaseOrdersPage = () => {
         </>
       )}
       {(o.status === "sent" || o.status === "partially_received") && (
+        <Button size="sm" variant="ghost" className="h-7 w-7 p-0" title="إسناد للاستلام بالباركود" onClick={() => setAssignOrder(o)}><ScanLine className="h-3.5 w-3.5" /></Button>
+      )}
+      {(o.status === "sent" || o.status === "partially_received") && (
         <Button size="sm" variant="ghost" className="h-7 text-[11px]" onClick={() => navigate(`/procurement/invoices/new?orderId=${o.id}`)}>
           {o.status === "sent" ? "📥 استلام" : "📥 استلام باقي"}
         </Button>
@@ -600,7 +625,11 @@ const PurchaseOrdersPage = () => {
                             <td style={{ padding: "8px 12px", fontWeight: "600", color: NAVY, fontSize: "13px", fontFamily: F, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: "200px" }}>{o.supplier?.name || "—"}</td>
                             <td style={{ padding: "8px 12px", fontSize: "12px", color: "#64748B", fontFamily: F, whiteSpace: "nowrap" }}>{o.branch?.name || "—"}</td>
                             <td style={{ padding: "8px 12px", fontWeight: "700", color: NAVY, fontSize: "14px", fontFamily: F, direction: "ltr", textAlign: "left", whiteSpace: "nowrap" }}>{Number(o.total_amount).toLocaleString()} ₪</td>
-                            <td style={{ padding: "8px 12px" }}>{statusPill(o.status)}</td>
+                            <td style={{ padding: "8px 12px" }}>{statusPill(o.status)}{receivingByOrder[o.id] && (
+                              <div className="mt-1"><Badge variant={receivingByOrder[o.id].status === "submitted" ? "default" : "outline"} className="text-[10px] cursor-pointer" onClick={e => { e.stopPropagation(); setAssignOrder(o); }}>
+                                {receivingStatusLabel[receivingByOrder[o.id].status]}{receivingByOrder[o.id].employee_name ? ` · ${receivingByOrder[o.id].employee_name}` : ""}
+                              </Badge></div>
+                            )}</td>
                             <td style={{ padding: "8px 12px" }} onClick={e => e.stopPropagation()}>
                               {o.linked_invoice ? (
                                 <Badge variant="outline" className="font-mono text-[10px] cursor-pointer hover:bg-accent/10"
@@ -791,6 +820,12 @@ const PurchaseOrdersPage = () => {
           )}
         </SheetContent>
       </Sheet>
+      <ReceivingAssignDialog
+        order={assignOrder}
+        current={assignOrder ? receivingByOrder[assignOrder.id] : null}
+        onClose={() => setAssignOrder(null)}
+        onDone={loadReceiving}
+      />
     </>
   );
 };

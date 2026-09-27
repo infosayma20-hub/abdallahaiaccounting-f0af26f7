@@ -266,6 +266,7 @@ const ContractorApp = lazy(() => import("./pages/ContractorApp"));
 const WorkshopsPage = lazy(() => import("./pages/WorkshopsPage"));
 const WorkshopReportsPage = lazy(() => import("./pages/WorkshopReportsPage"));
 const WorkerProcurementPage = lazy(() => import("./pages/WorkerProcurementPage"));
+const ReceivingPage = lazy(() => import("./pages/procurement/ReceivingPage"));
 const ContractsListPage = lazy(() => import("./pages/ContractsListPage"));
 const ContractFormPage = lazy(() => import("./pages/ContractFormPage"));
 const ContractPreviewPage = lazy(() => import("./pages/ContractPreviewPage"));
@@ -804,6 +805,8 @@ const App = () => (
               )}
               <Route path="/purchase-point" element={<Navigate to="/procurement/orders/new" replace />} />
               <Route path="/worker/procurement" element={<ProtectedRoute><WorkerProcurementPage /></ProtectedRoute>} />
+              <Route path="/worker/receiving" element={<ProtectedRoute><ReceivingPage /></ProtectedRoute>} />
+              <Route path="/worker/receiving/:sessionId" element={<ProtectedRoute><ReceivingPage /></ProtectedRoute>} />
               {/* /store-tracker routes removed with Qamar integration */}
               {/* Feedback: standalone shell — no AppSidebar, no WebLayout, no tabs */}
               <Route

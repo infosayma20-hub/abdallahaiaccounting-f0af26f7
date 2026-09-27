@@ -137,16 +137,30 @@ const ReceivePOInvoicePage = ({ orderId }: { orderId: string }) => {
           .select("*")
           .eq("order_id", orderId);
         
+        // إذا الموظف استلم الطلبية بالباركود وأرسلها، نعبّي الكميات المعدودة فعلياً
+        const { data: recv } = await supabase
+          .from("procurement_receiving_sessions")
+          .select("id, procurement_receiving_lines(order_item_id, scanned_qty, note)")
+          .eq("order_id", orderId)
+          .eq("status", "submitted")
+          .order("submitted_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        const counted: Record<string, { qty: number; note: string | null }> = {};
+        ((recv as any)?.procurement_receiving_lines || []).forEach((l: any) => {
+          counted[l.order_item_id] = { qty: Number(l.scanned_qty), note: l.note };
+        });
         const loadedLines = ((items as any) || []).map((i: any) => ({
           product_id: i.product_id || null,
           item_name: i.item_name,
           unit: i.unit,
           ordered_quantity: Number(i.quantity),
-          received_quantity: Number(i.quantity),
+          received_quantity: counted[i.id] ? counted[i.id].qty : Number(i.quantity),
           unit_price: Number(i.unit_price),
-          notes: "",
+          notes: counted[i.id]?.note || "",
           expiry_date: "",
         }));
+        if (recv) toast.success("تم تعبئة الكميات من استلام الموظف بالباركود");
         setLines(loadedLines);
         
         if (loadedLines.length === 0) {
