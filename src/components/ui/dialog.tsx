@@ -27,14 +27,33 @@ const DialogOverlay = React.forwardRef<
 ));
 DialogOverlay.displayName = DialogPrimitive.Overlay.displayName;
 
+/**
+ * يتحقق أن التفاعل حصل داخل طبقة مستقلة معلَّمة بـ [data-ignore-dialog-outside]
+ * (مثل لوحة اختيار الموظف التي تُرسم عبر Portal خارج محتوى الحوار).
+ * بدون هذا الاستثناء يعتبر Radix أي ضغطة على تلك الطبقة «ضغطة خارج الحوار»
+ * فيغلق النموذج كله — وهو ما كان يرجع المدير لشاشة النماذج عند اختيار موظف.
+ */
+const isInsideIgnoredPortal = (event: { detail?: { originalEvent?: Event } }) => {
+  const target = event.detail?.originalEvent?.target;
+  return target instanceof Element && !!target.closest("[data-ignore-dialog-outside]");
+};
+
 const DialogContent = React.forwardRef<
   React.ElementRef<typeof DialogPrimitive.Content>,
   React.ComponentPropsWithoutRef<typeof DialogPrimitive.Content>
->(({ className, children, ...props }, ref) => (
+>(({ className, children, onPointerDownOutside, onInteractOutside, ...props }, ref) => (
   <DialogPortal>
     <DialogOverlay />
     <DialogPrimitive.Content
       ref={ref}
+      onPointerDownOutside={(e) => {
+        if (isInsideIgnoredPortal(e)) { e.preventDefault(); return; }
+        onPointerDownOutside?.(e);
+      }}
+      onInteractOutside={(e) => {
+        if (isInsideIgnoredPortal(e)) { e.preventDefault(); return; }
+        onInteractOutside?.(e);
+      }}
       className={cn(
         "fixed left-[50%] top-[50%] z-50 grid w-full max-w-lg translate-x-[-50%] translate-y-[-50%] gap-4 border bg-background p-6 shadow-lg duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[state=closed]:slide-out-to-left-1/2 data-[state=closed]:slide-out-to-top-[48%] data-[state=open]:slide-in-from-left-1/2 data-[state=open]:slide-in-from-top-[48%] sm:rounded-lg",
         className,
