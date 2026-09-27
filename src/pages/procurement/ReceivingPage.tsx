@@ -37,6 +37,32 @@ const QKEY = (sid: string) => `receiving:queue:${sid}`;
 const readQueue = (sid: string): string[] => { try { return JSON.parse(localStorage.getItem(QKEY(sid)) || "[]"); } catch { return []; } };
 const writeQueue = (sid: string, q: string[]) => localStorage.setItem(QKEY(sid), JSON.stringify(q));
 
+/* ───────── Dynamics-style finance shell ───────── */
+function DShell({ title, crumb, actions, children, onClick }: { title: string; crumb: string; actions: React.ReactNode; children: React.ReactNode; onClick?: () => void }) {
+  return (
+    <div dir="rtl" className="flex min-h-[100dvh] flex-col bg-muted/40" onClick={onClick}>
+      <div className="flex h-12 items-center gap-3 bg-primary px-4 text-primary-foreground">
+        <span className="text-sm font-bold tracking-wide">UNIFY</span>
+        <span className="h-5 w-px bg-primary-foreground/30" />
+        <span className="text-sm opacity-90">المستودع</span>
+        <span className="text-sm opacity-60">›</span>
+        <span className="truncate text-sm font-semibold">{crumb}</span>
+      </div>
+      <div className="sticky top-0 z-10 flex items-stretch gap-0.5 overflow-x-auto border-b bg-card px-2 shadow-sm">{actions}</div>
+      <div className="border-b bg-card px-4 py-2 md:px-6"><h1 className="text-xl font-semibold text-foreground">{title}</h1></div>
+      <div className="flex-1">{children}</div>
+    </div>
+  );
+}
+function PaneBtn({ icon: Icon, label, onClick, primary, disabled }: { icon: any; label: string; onClick: () => void; primary?: boolean; disabled?: boolean }) {
+  return (
+    <button type="button" disabled={disabled} onClick={e => { e.stopPropagation(); onClick(); }}
+      className={`flex min-w-[76px] flex-col items-center justify-center gap-1 px-3 py-2 text-xs font-medium transition-colors disabled:opacity-40 ${primary ? "text-primary hover:bg-primary/10" : "text-foreground hover:bg-muted"}`}>
+      <Icon className="h-5 w-5" />{label}
+    </button>
+  );
+}
+
 /* ───────── List of my assigned orders ───────── */
 function MyReceivingList() {
   const navigate = useNavigate();
@@ -52,51 +78,38 @@ function MyReceivingList() {
   useEffect(() => { load(); }, [load]);
 
   return (
-    <div dir="rtl" className="min-h-[100dvh] bg-muted/30 p-4 md:p-8">
-      <div className="mx-auto max-w-4xl">
-        <div className="mb-6 flex items-center justify-between gap-3">
-          <div>
-            <h1 className="text-2xl font-bold text-foreground">استلام البضاعة</h1>
-            <p className="text-sm text-muted-foreground">الطلبيات المسندة إلك للاستلام بالباركود</p>
-          </div>
-          <div className="flex gap-2">
-            <Button variant="ghost" size="lg" onClick={() => navigate(-1)}><ArrowRight className="ml-2 h-5 w-5" />رجوع</Button>
-            <Button variant="outline" size="lg" onClick={load}><RefreshCw className="ml-2 h-5 w-5" />تحديث</Button>
-          </div>
-        </div>
+    <DShell title="استلام البضاعة" crumb="طلبيات الاستلام"
+      actions={<><PaneBtn icon={ArrowRight} label="رجوع" onClick={() => navigate(-1)} /><PaneBtn icon={RefreshCw} label="تحديث" onClick={load} /></>}>
+      <div className="p-3 md:p-6">
         {loading ? <div className="p-10 text-center text-muted-foreground">جارِ التحميل…</div> : rows.length === 0 ? (
-          <div className="rounded-xl border bg-card p-10 text-center text-muted-foreground">
+          <div className="border bg-card p-10 text-center text-muted-foreground">
             <Package className="mx-auto mb-3 h-12 w-12 opacity-40" />ما في طلبيات مسندة إلك حالياً
           </div>
         ) : (
-          <div className="grid gap-4 md:grid-cols-2">
+          <div className="overflow-hidden border bg-card">
+            <div className="hidden grid-cols-[1.2fr_1.5fr_0.7fr_1.2fr_0.9fr] gap-3 border-b bg-muted/60 px-4 py-2 text-xs font-semibold text-muted-foreground md:grid">
+              <span>رقم الطلبية</span><span>المورد</span><span>الأصناف</span><span>التقدم</span><span>الحالة</span>
+            </div>
             {rows.map(r => {
               const pct = r.ordered_total > 0 ? Math.min(100, Math.round((r.scanned_total / r.ordered_total) * 100)) : 0;
               return (
                 <button key={r.id} onClick={() => navigate(`/worker/receiving/${r.id}`)}
-                  className="rounded-xl border bg-card p-5 text-right shadow-sm transition hover:border-primary hover:shadow-md">
-                  <div className="flex items-start justify-between gap-2">
-                    <div>
-                      <div className="text-lg font-bold text-foreground">{r.order_number}</div>
-                      <div className="text-sm text-muted-foreground">{r.supplier_name || "—"}</div>
-                    </div>
-                    <Badge variant={r.status === "submitted" ? "default" : "outline"}>{receivingStatusLabel[r.status]}</Badge>
-                  </div>
-                  <div className="mt-4 flex justify-between text-sm text-muted-foreground">
-                    <span>{r.items_count} أصناف</span>
-                    <span>{Number(r.scanned_total)} / {Number(r.ordered_total)}</span>
-                  </div>
-                  <div className="mt-2 h-2 overflow-hidden rounded-full bg-muted">
-                    <div className="h-full bg-primary" style={{ width: `${pct}%` }} />
-                  </div>
-                  {r.expected_date && <div className="mt-2 text-xs text-muted-foreground">متوقع: {r.expected_date}</div>}
+                  className="grid w-full grid-cols-2 items-center gap-3 border-b px-4 py-4 text-right transition-colors last:border-b-0 hover:bg-primary/5 md:grid-cols-[1.2fr_1.5fr_0.7fr_1.2fr_0.9fr]">
+                  <span className="text-base font-semibold text-primary underline-offset-2 hover:underline">{r.order_number}</span>
+                  <span className="text-sm text-foreground">{r.supplier_name || "—"}{r.expected_date && <span className="block text-xs text-muted-foreground">متوقع: {r.expected_date}</span>}</span>
+                  <span className="text-sm">{r.items_count}</span>
+                  <span className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <span className="h-2 flex-1 overflow-hidden bg-muted"><span className="block h-full bg-primary" style={{ width: `${pct}%` }} /></span>
+                    {Number(r.scanned_total)}/{Number(r.ordered_total)}
+                  </span>
+                  <span><Badge variant={r.status === "submitted" ? "default" : "outline"}>{receivingStatusLabel[r.status]}</Badge></span>
                 </button>
               );
             })}
           </div>
         )}
       </div>
-    </div>
+    </DShell>
   );
 }
 
@@ -261,25 +274,24 @@ function ReceivingSession({ sessionId }: { sessionId: string }) {
   if (!session) return <div dir="rtl" className="p-10 text-center text-muted-foreground">جارِ التحميل…</div>;
 
   return (
-    <div dir="rtl" className="min-h-[100dvh] bg-muted/30" onClick={focus}>
-      {/* Header */}
-      <div className="sticky top-0 z-10 border-b bg-card px-4 py-3 shadow-sm">
-        <div className="mx-auto flex max-w-5xl items-center gap-3">
-          <Button variant="ghost" size="icon" onClick={() => navigate("/worker/receiving")}><ArrowRight className="h-6 w-6" /></Button>
-          <div className="flex-1">
-            <div className="text-lg font-bold text-foreground">{session.order_number}</div>
-            <div className="text-sm text-muted-foreground">{session.supplier_name || "—"}</div>
-            {session.order_notes && <div className="mt-1 rounded-md bg-accent/40 px-2 py-1 text-sm font-medium text-foreground">📝 {session.order_notes}</div>}
-          </div>
-          <Badge variant={session.status === "submitted" ? "default" : "outline"} className="text-sm">{receivingStatusLabel[session.status]}</Badge>
+    <DShell title={`${session.order_number} — ${session.supplier_name || "—"}`} crumb="استلام طلبية" onClick={focus}
+      actions={<>
+        <PaneBtn icon={ArrowRight} label="رجوع" onClick={() => navigate("/worker/receiving")} />
+        <PaneBtn icon={RefreshCw} label="تحديث" onClick={load} />
+        {editable && <PaneBtn icon={CheckCircle2} label="إنهاء وإرسال" primary onClick={() => setConfirmSubmit(true)} />}
+        <div className="flex flex-1 items-center justify-end gap-4 px-3 text-xs text-muted-foreground">
+          <span>مستلم <b className="text-base text-foreground">{totals.scanned}</b></span>
+          <span>مطلوب <b className="text-base text-foreground">{totals.ordered}</b></span>
+          <span>مكتمل <b className="text-base text-foreground">{totals.done}/{totals.count}</b></span>
+          <Badge variant={session.status === "submitted" ? "default" : "outline"}>{receivingStatusLabel[session.status]}</Badge>
         </div>
-      </div>
-
-      <div className="mx-auto max-w-5xl space-y-4 p-4">
+      </>}>
+      <div className="space-y-3 p-3 md:p-6">
+        {session.order_notes && <div className="border-r-4 border-primary bg-card px-3 py-2 text-sm font-medium text-foreground">📝 {session.order_notes}</div>}
         {/* Scan box */}
         {editable ? (
           <form onSubmit={e => { e.preventDefault(); const v = code; setCode(""); handleScan(v); }}
-            className={`rounded-xl border-2 bg-card p-4 transition-colors ${flash ? (flash.ok ? "border-primary" : "border-destructive") : "border-dashed border-border"}`}>
+            className={`border-2 bg-card p-4 transition-colors ${flash ? (flash.ok ? "border-primary" : "border-destructive") : "border-dashed border-border"}`}>
             <div className="flex items-center gap-3">
               <ScanLine className="h-8 w-8 text-primary" />
               <Input ref={inputRef} value={code} onChange={e => setCode(e.target.value)} onBlur={focus}
@@ -298,21 +310,15 @@ function ReceivingSession({ sessionId }: { sessionId: string }) {
           </div>
         )}
 
-        {/* Progress */}
-        <div className="grid grid-cols-3 gap-3 text-center">
-          <div className="rounded-lg border bg-card p-3"><div className="text-2xl font-bold">{totals.scanned}</div><div className="text-xs text-muted-foreground">مستلم</div></div>
-          <div className="rounded-lg border bg-card p-3"><div className="text-2xl font-bold">{totals.ordered}</div><div className="text-xs text-muted-foreground">مطلوب</div></div>
-          <div className="rounded-lg border bg-card p-3"><div className="text-2xl font-bold">{totals.done}/{totals.count}</div><div className="text-xs text-muted-foreground">أصناف مكتملة</div></div>
-        </div>
-
         {/* Lines */}
-        <div className="space-y-2">
+        <div className="overflow-hidden border bg-card">
+          <div className="border-b bg-muted/60 px-4 py-2 text-xs font-semibold text-muted-foreground">بنود الطلبية ({totals.count})</div>
           {session.lines.map(l => {
             const diff = Number(l.scanned_qty) - Number(l.target_qty);
             const state = diff === 0 ? "done" : diff > 0 ? "over" : Number(l.scanned_qty) > 0 ? "partial" : "none";
-            const cls = state === "done" ? "border-primary bg-primary/5" : state === "over" ? "border-destructive bg-destructive/5" : state === "partial" ? "border-accent" : "";
+            const cls = state === "done" ? "bg-primary/5" : state === "over" ? "bg-destructive/5" : state === "partial" ? "bg-accent/20" : "";
             return (
-              <div key={l.id} className={`rounded-xl border bg-card p-3 ${cls} ${lastLineId === l.id ? "ring-2 ring-primary" : ""}`}>
+              <div key={l.id} className={`border-b p-3 last:border-b-0 ${cls} ${lastLineId === l.id ? "ring-2 ring-inset ring-primary" : ""}`}>
                 <div className="flex flex-wrap items-center gap-3">
                   <div className="min-w-0 flex-1">
                     <div className="truncate text-base font-bold text-foreground">{l.item_name}</div>
@@ -370,12 +376,11 @@ function ReceivingSession({ sessionId }: { sessionId: string }) {
         </div>
 
         {editable && (
-          <Button size="lg" className="h-14 w-full text-lg" onClick={() => setConfirmSubmit(true)}>
+          <Button size="lg" className="h-14 w-full text-lg md:hidden" onClick={() => setConfirmSubmit(true)}>
             <CheckCircle2 className="ml-2 h-6 w-6" />إنهاء الاستلام وإرساله للمحاسب
           </Button>
         )}
       </div>
-
       {/* Unknown barcode */}
       <Dialog open={!!unknown} onOpenChange={o => { if (!o) { setUnknown(null); focus(); } }}>
         <DialogContent dir="rtl" className="max-w-lg">
@@ -433,7 +438,7 @@ function ReceivingSession({ sessionId }: { sessionId: string }) {
           <DialogFooter><Button onClick={submit}>إرسال للمحاسب</Button></DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
+    </DShell>
   );
 }
 
