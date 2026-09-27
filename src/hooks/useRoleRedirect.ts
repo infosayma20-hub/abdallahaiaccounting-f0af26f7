@@ -37,6 +37,7 @@ const POS_WORKSPACE_PATHS = new Set([
   "/complaints-view",
   "/compensations",
   "/compensations-view",
+  "/worker/receiving",
 ]);
 
 const resolvePosWorkspaceChoice = (chosen: string | null): string =>
