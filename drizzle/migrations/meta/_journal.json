@@ -204,6 +204,13 @@
       "when": 1790532169114,
       "tag": "0028_link_procurement_items_inventory",
       "breakpoints": true
+    },
+    {
+      "idx": 29,
+      "version": "7",
+      "when": 1790532907132,
+      "tag": "0029_sync_purchasable_products_to_procurement_items",
+      "breakpoints": true
     }
   ]
 }
