@@ -2147,6 +2147,9 @@ export default function SuperAdminDashboard() {
               ) : (
                 <Badge className="bg-emerald-500/10 text-emerald-400 border-emerald-500/20 text-[9px]">نشط</Badge>
               )}
+              {u.email && !u.email_confirmed && (
+                <Badge className="bg-amber-500/10 text-amber-400 border-amber-500/20 text-[9px]">بريد غير مؤكد</Badge>
+              )}
               {renderSubBadge(u, true)}
             </div>
             <p className="text-[11px] font-mono truncate" style={{ color: "var(--sa-text-muted)" }}>{u.email || "—"}</p>
@@ -2162,6 +2165,9 @@ export default function SuperAdminDashboard() {
             <Button size="icon" variant="ghost" onClick={() => handleSuspendUser(u.user_id, u.display_name)} className="h-7 w-7 text-amber-400"><Lock className="h-3.5 w-3.5" /></Button>
           )}
           <Button size="icon" variant="ghost" onClick={() => handleResetPassword(u.user_id, u.display_name)} className="h-7 w-7 text-blue-400"><KeyRound className="h-3.5 w-3.5" /></Button>
+          {u.email && !u.email_confirmed && (
+            <Button size="icon" variant="ghost" onClick={() => handleConfirmEmail(u.user_id, u.display_name)} className="h-7 w-7 text-teal-400" title="تأكيد البريد يدوياً"><MailCheck className="h-3.5 w-3.5" /></Button>
+          )}
           <Button size="icon" variant="ghost" onClick={() => setDeleteDialog({ open: true, userId: u.user_id, name: u.display_name })}
             className="h-7 w-7 text-red-400" disabled={u.roles.includes("super_admin")}><Trash2 className="h-3.5 w-3.5" /></Button>
         </div>
@@ -2275,6 +2281,11 @@ export default function SuperAdminDashboard() {
         ) : (
           <Badge className={`bg-emerald-500/10 text-emerald-400 border-emerald-500/20 text-[${isSub ? 9 : 10}px]`}>نشط</Badge>
         )}
+        {u.email && !u.email_confirmed && (
+          <Badge className={`bg-amber-500/10 text-amber-400 border-amber-500/20 text-[${isSub ? 9 : 10}px] mt-1 flex items-center gap-1 w-fit`}>
+            <MailWarning className="h-3 w-3" /> بريد غير مؤكد
+          </Badge>
+        )}
       </td>
       <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-center gap-1">
@@ -2290,6 +2301,11 @@ export default function SuperAdminDashboard() {
           <Button size="icon" variant="ghost" onClick={() => handleResetPassword(u.user_id, u.display_name)} className={`${isSub ? "h-6 w-6" : "h-7 w-7"} text-blue-400 hover:bg-blue-500/10`} title="إعادة تعيين كلمة المرور">
             <KeyRound className={`${isSub ? "h-3 w-3" : "h-3.5 w-3.5"}`} />
           </Button>
+          {u.email && !u.email_confirmed && (
+            <Button size="icon" variant="ghost" onClick={() => handleConfirmEmail(u.user_id, u.display_name)} className={`${isSub ? "h-6 w-6" : "h-7 w-7"} text-teal-400 hover:bg-teal-500/10`} title="تأكيد البريد يدوياً">
+              <MailCheck className={`${isSub ? "h-3 w-3" : "h-3.5 w-3.5"}`} />
+            </Button>
+          )}
           <Button size="icon" variant="ghost" onClick={() => setDeleteDialog({ open: true, userId: u.user_id, name: u.display_name })}
             className={`${isSub ? "h-6 w-6" : "h-7 w-7"} text-red-400 hover:bg-red-500/10`} title="حذف" disabled={u.roles.includes("super_admin")}>
             <Trash2 className={`${isSub ? "h-3 w-3" : "h-3.5 w-3.5"}`} />
