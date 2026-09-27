@@ -278,7 +278,7 @@ const PurchaseOrderCreatePage = () => {
 
   const getCategoryColor = (catId: string | null) => categories.find((c: any) => c.id === catId)?.color || "#6b7280";
 
-  const gridCols = cardSize === "small" ? "grid-cols-4 sm:grid-cols-5 xl:grid-cols-6" : cardSize === "medium" ? "grid-cols-3 sm:grid-cols-4 xl:grid-cols-5" : "grid-cols-2 xl:grid-cols-3";
+  const gridCols = cardSize === "small" ? "grid-cols-2 sm:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6" : cardSize === "medium" ? "grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5" : "grid-cols-1 sm:grid-cols-2 xl:grid-cols-3";
 
   return (
     <TooltipProvider>
@@ -333,7 +333,7 @@ const PurchaseOrderCreatePage = () => {
               </TooltipTrigger><TooltipContent>إعدادات المشتريات</TooltipContent></Tooltip>
             </div>
 
-            <div className="flex items-center gap-4 text-xs ms-auto ps-3 whitespace-nowrap">
+            <div className="hidden sm:flex items-center gap-4 text-xs ms-auto ps-3 whitespace-nowrap">
               <span className="text-muted-foreground">الأصناف: <b className="text-foreground">{lines.length}</b></span>
               <span className="text-muted-foreground">الكمية: <b className="text-foreground">{totalQty}</b></span>
               <span className="text-muted-foreground">الإجمالي: <b className="text-foreground">{totalAmount.toLocaleString("en", { minimumFractionDigits: 2 })} ₪</b></span>
@@ -342,7 +342,7 @@ const PurchaseOrderCreatePage = () => {
 
           {/* Row 2: Search + Supplier, Dates, Branch */}
           <div className="px-3 py-1.5 flex items-center gap-3 flex-wrap">
-            <div className="relative w-[220px]">
+            <div className="relative w-full sm:w-[220px]">
               <Search className="absolute right-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
               <Input ref={searchRef} placeholder="ابحث عن صنف..." value={searchQuery}
                 onChange={e => setSearchQuery(e.target.value)} className="h-8 pr-8 text-xs" />
