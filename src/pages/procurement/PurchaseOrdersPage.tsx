@@ -1,4 +1,6 @@
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import ReceivingAssignDialog, { receivingStatusLabel, type ReceivingSessionSummary } from "@/components/procurement/ReceivingAssignDialog";
+import { ScanLine } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -64,6 +66,26 @@ const PurchaseOrdersPage = () => {
   const [detailOrder, setDetailOrder] = useState<any>(null);
   const [detailItems, setDetailItems] = useState<ProcurementOrderItem[]>([]);
   const [loadingDetail, setLoadingDetail] = useState(false);
+  const [receivingByOrder, setReceivingByOrder] = useState<Record<string, ReceivingSessionSummary>>({});
+  const [assignOrder, setAssignOrder] = useState<any>(null);
+
+  const loadReceiving = useCallback(async () => {
+    const ids = orders.map((o: any) => o.id);
+    if (ids.length === 0) { setReceivingByOrder({}); return; }
+    const { data } = await supabase
+      .from("procurement_receiving_sessions")
+      .select("id, order_id, status, assigned_employee_id, expected_date, created_at, employees:assigned_employee_id(full_name)")
+      .in("order_id", ids)
+      .in("status", ["assigned", "in_progress", "submitted"])
+      .order("created_at", { ascending: false });
+    const map: Record<string, ReceivingSessionSummary> = {};
+    ((data as any[]) || []).forEach(s => {
+      if (!map[s.order_id]) map[s.order_id] = { ...s, employee_name: s.employees?.full_name };
+    });
+    setReceivingByOrder(map);
+  }, [orders]);
+
+  useEffect(() => { loadReceiving(); }, [loadReceiving]);
 
   const filtered = useMemo(() => {
     const list = orders.filter(o => {
