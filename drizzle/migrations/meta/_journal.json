@@ -148,6 +148,13 @@
       "when": 1790525297993,
       "tag": "0020_procurement_receiving_barcode",
       "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1790525868322,
+      "tag": "0021_receiving_expiry_and_remaining",
+      "breakpoints": true
     }
   ]
 }

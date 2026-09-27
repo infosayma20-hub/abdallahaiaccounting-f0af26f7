@@ -18832,6 +18832,7 @@ export type Database = {
       procurement_receiving_lines: {
         Row: {
           barcodes: string[]
+          expiry_date: string | null
           id: string
           note: string | null
           order_item_id: string
@@ -18842,6 +18843,7 @@ export type Database = {
         }
         Insert: {
           barcodes?: string[]
+          expiry_date?: string | null
           id?: string
           note?: string | null
           order_item_id: string
@@ -18852,6 +18854,7 @@ export type Database = {
         }
         Update: {
           barcodes?: string[]
+          expiry_date?: string | null
           id?: string
           note?: string | null
           order_item_id?: string
@@ -30284,6 +30287,10 @@ export type Database = {
         Returns: boolean
       }
       _pos_vat_output_account: { Args: { p_user_id: string }; Returns: string }
+      _procurement_item_received_qty: {
+        Args: { _order_item_id: string }
+        Returns: number
+      }
       _receiving_assert_editable: {
         Args: {
           s: Database["public"]["Tables"]["procurement_receiving_sessions"]["Row"]
@@ -32908,7 +32915,12 @@ export type Database = {
         Returns: Json
       }
       receiving_set_line: {
-        Args: { p_line_id: string; p_note?: string; p_qty: number }
+        Args: {
+          p_expiry?: string
+          p_line_id: string
+          p_note?: string
+          p_qty: number
+        }
         Returns: undefined
       }
       receiving_submit: {
@@ -32971,6 +32983,10 @@ export type Database = {
       }
       recreate_invoice_transaction: {
         Args: { p_invoice_id: string }
+        Returns: string
+      }
+      refresh_procurement_order_receipt_status: {
+        Args: { p_order_id: string }
         Returns: string
       }
       reject_order_edit: {
