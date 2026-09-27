@@ -9,7 +9,7 @@ import {
   ChevronLeft, ChevronRight, Search, X, LogOut, Database, FileText, ChevronDown,
   TrendingUp, Wifi, Download, Table2, Play, Pause, Settings, Package,
   Zap, Server, Bell, HardDrive, CreditCard, BarChart3, PieChart, ArrowUpRight, ArrowDownRight, CalendarDays,
-  Sun, Moon, LayoutDashboard, UserPlus, ArrowUp, ArrowDown, ArrowUpDown,
+  Sun, Moon, LayoutDashboard, UserPlus, ArrowUp, ArrowDown, ArrowUpDown, MailCheck, MailWarning,
 } from "lucide-react";
 import SamiLeadsPanel from "@/components/superadmin/SamiLeadsPanel";
 import { SignupNotificationsBell } from "@/components/super-admin/SignupNotificationsBell";
@@ -125,6 +125,7 @@ type UserRecord = {
   email?: string;
   phone?: string;
   last_sign_in?: string;
+  email_confirmed?: boolean;
   is_banned?: boolean;
   roles: string[];
   created_at: string;
@@ -1955,6 +1956,19 @@ export default function SuperAdminDashboard() {
     });
   };
 
+  const handleConfirmEmail = (userId: string, name: string) => {
+    setPwDialog({
+      open: true, title: `تأكيد بريد ${name}`,
+      onConfirmed: async () => {
+        try {
+          await apiCall("confirm_email", undefined, { user_id: userId });
+          toast.success(`تم تفعيل بريد ${name}`);
+          loadUsers();
+        } catch (e: any) { toast.error(e.message); }
+      },
+    });
+  };
+
   const handleDeleteUser = async () => {
     if (deleteConfirmText !== "DELETE") { toast.error("اكتب DELETE للتأكيد"); return; }
     try {
@@ -2071,7 +2085,7 @@ export default function SuperAdminDashboard() {
   const actionLabel: Record<string, string> = {
     view_dashboard: "عرض لوحة التحكم", view_users: "عرض المستخدمين",
     suspend_user: "تعليق مستخدم", unsuspend_user: "إلغاء التعليق",
-    reset_password: "إعادة تعيين كلمة المرور", delete_user: "حذف مستخدم",
+    reset_password: "إعادة تعيين كلمة المرور", confirm_email: "تأكيد بريد مستخدم", delete_user: "حذف مستخدم",
     verify_password: "تأكيد الهوية", view_table: "تصفح جدول",
     view_subscriptions: "عرض الاشتراكات", update_subscription: "تحديث اشتراك",
     assign_subscription: "تعيين اشتراك", view_revenue_stats: "عرض إحصائيات الإيرادات",
@@ -2133,6 +2147,9 @@ export default function SuperAdminDashboard() {
               ) : (
                 <Badge className="bg-emerald-500/10 text-emerald-400 border-emerald-500/20 text-[9px]">نشط</Badge>
               )}
+              {u.email && !u.email_confirmed && (
+                <Badge className="bg-amber-500/10 text-amber-400 border-amber-500/20 text-[9px]">بريد غير مؤكد</Badge>
+              )}
               {renderSubBadge(u, true)}
             </div>
             <p className="text-[11px] font-mono truncate" style={{ color: "var(--sa-text-muted)" }}>{u.email || "—"}</p>
@@ -2148,6 +2165,9 @@ export default function SuperAdminDashboard() {
             <Button size="icon" variant="ghost" onClick={() => handleSuspendUser(u.user_id, u.display_name)} className="h-7 w-7 text-amber-400"><Lock className="h-3.5 w-3.5" /></Button>
           )}
           <Button size="icon" variant="ghost" onClick={() => handleResetPassword(u.user_id, u.display_name)} className="h-7 w-7 text-blue-400"><KeyRound className="h-3.5 w-3.5" /></Button>
+          {u.email && !u.email_confirmed && (
+            <Button size="icon" variant="ghost" onClick={() => handleConfirmEmail(u.user_id, u.display_name)} className="h-7 w-7 text-teal-400" title="تأكيد البريد يدوياً"><MailCheck className="h-3.5 w-3.5" /></Button>
+          )}
           <Button size="icon" variant="ghost" onClick={() => setDeleteDialog({ open: true, userId: u.user_id, name: u.display_name })}
             className="h-7 w-7 text-red-400" disabled={u.roles.includes("super_admin")}><Trash2 className="h-3.5 w-3.5" /></Button>
         </div>
@@ -2261,6 +2281,11 @@ export default function SuperAdminDashboard() {
         ) : (
           <Badge className={`bg-emerald-500/10 text-emerald-400 border-emerald-500/20 text-[${isSub ? 9 : 10}px]`}>نشط</Badge>
         )}
+        {u.email && !u.email_confirmed && (
+          <Badge className={`bg-amber-500/10 text-amber-400 border-amber-500/20 text-[${isSub ? 9 : 10}px] mt-1 flex items-center gap-1 w-fit`}>
+            <MailWarning className="h-3 w-3" /> بريد غير مؤكد
+          </Badge>
+        )}
       </td>
       <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-center gap-1">
@@ -2276,6 +2301,11 @@ export default function SuperAdminDashboard() {
           <Button size="icon" variant="ghost" onClick={() => handleResetPassword(u.user_id, u.display_name)} className={`${isSub ? "h-6 w-6" : "h-7 w-7"} text-blue-400 hover:bg-blue-500/10`} title="إعادة تعيين كلمة المرور">
             <KeyRound className={`${isSub ? "h-3 w-3" : "h-3.5 w-3.5"}`} />
           </Button>
+          {u.email && !u.email_confirmed && (
+            <Button size="icon" variant="ghost" onClick={() => handleConfirmEmail(u.user_id, u.display_name)} className={`${isSub ? "h-6 w-6" : "h-7 w-7"} text-teal-400 hover:bg-teal-500/10`} title="تأكيد البريد يدوياً">
+              <MailCheck className={`${isSub ? "h-3 w-3" : "h-3.5 w-3.5"}`} />
+            </Button>
+          )}
           <Button size="icon" variant="ghost" onClick={() => setDeleteDialog({ open: true, userId: u.user_id, name: u.display_name })}
             className={`${isSub ? "h-6 w-6" : "h-7 w-7"} text-red-400 hover:bg-red-500/10`} title="حذف" disabled={u.roles.includes("super_admin")}>
             <Trash2 className={`${isSub ? "h-3 w-3" : "h-3.5 w-3.5"}`} />
