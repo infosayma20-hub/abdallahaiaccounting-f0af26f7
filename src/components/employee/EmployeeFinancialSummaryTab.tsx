@@ -71,9 +71,14 @@ const CHIPS: { key: ChipKey; label: string; icon: typeof Utensils }[] = [
 function isSalaryPayoutRow(description: string = "", reference: string = "", category?: string | null): boolean {
   if (isSalaryReturnEntry(description)) return true;
   if (category !== "loan_installment" && isLoanDisbursement(description)) return true;
-  if (isStructuredDeductionCategory(category)) return false;
   const d = String(description || "").trim();
   const ref = String(reference || "").trim();
+  // صرف راتب/رواتب صريح = دفعة راتب وليست خصماً مهما كان التصنيف (مطابق لشاشة الخصومات)
+  if (
+    /(صرف\s*رواتب|صرف\s*رات[بة]\s*شهر|رواتب\s*شهر\s*\d+)/.test(d) &&
+    !/(خصم|المخصوم|تخصم|خصمها)/.test(d)
+  ) return true;
+  if (isStructuredDeductionCategory(category)) return false;
   if (/^BPV-2026-(0011|0013)$/.test(ref)) return true;
   const isRealDeduction = /(خصم|المخصوم|تخصم|خصمها|سلف|قسط|أقساط|اقساط)/.test(d);
   if (!isRealDeduction && /(رات[بة]|رواتب)/.test(d)) return true;
