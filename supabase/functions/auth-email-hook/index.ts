@@ -136,6 +136,7 @@ const handler = createAuthEmailHandler({
           siteUrl: SITE_URL,
           recipient: data.email,
           confirmationUrl: data.url,
+          token: data.token ?? '',
         }),
     },
     invite: {
@@ -161,6 +162,7 @@ const handler = createAuthEmailHandler({
         React.createElement(RecoveryEmail, {
           siteName: SITE_NAME,
           confirmationUrl: data.url,
+          token: data.token ?? '',
         }),
     },
     email_change: {
