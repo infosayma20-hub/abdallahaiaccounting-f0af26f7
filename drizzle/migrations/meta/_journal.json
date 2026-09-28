@@ -232,6 +232,13 @@
       "when": 1790534351562,
       "tag": "0032_add_employee_is_receiver",
       "breakpoints": true
+    },
+    {
+      "idx": 33,
+      "version": "7",
+      "when": 1790620418873,
+      "tag": "0033_receiving_unassigned_pool_claim",
+      "breakpoints": true
     }
   ]
 }
