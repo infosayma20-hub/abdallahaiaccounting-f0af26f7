@@ -30700,6 +30700,7 @@ export type Database = {
         }
         Returns: Json
       }
+      claim_receiving_order: { Args: { p_order_id: string }; Returns: string }
       cleanup_expired_webauthn_challenges: { Args: never; Returns: undefined }
       cleanup_stale_device_tokens: { Args: never; Returns: Json }
       clear_must_change_password: { Args: never; Returns: boolean }

@@ -26,7 +26,7 @@ export default function ReceivingPortalCard() {
       ]);
       if (!alive) return;
       const rows = (sessions as any[]) || [];
-      setCount(rows.filter(r => r.status === "assigned" || r.status === "in_progress").length);
+      setCount(rows.filter(r => r.status === "assigned" || r.status === "in_progress" || r.status === "available").length);
       setIsReceiver(!!(empRes as any)?.data?.is_receiver);
     })();
     return () => { alive = false; };
