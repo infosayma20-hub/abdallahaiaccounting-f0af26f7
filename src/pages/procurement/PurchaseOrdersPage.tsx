@@ -35,6 +35,7 @@ const statusConfig: Record<string, { label: string; bg: string; color: string; b
   draft:              { label: "مسودة",          bg: "#F3F2F1", color: "#605E5C", border: "#E1DFDD", dot: "#8A8886" },
   sent:               { label: "مُرسلة",          bg: "#EFF6FC", color: "#0078D4", border: "#B3D6F2", dot: "#0078D4" },
   partially_received: { label: "مستلمة جزئياً",   bg: "#FFF4CE", color: "#8A6D00", border: "#EDDC9B", dot: "#CA8A04" },
+  to_invoice:         { label: "مستلمة · للفوترة", bg: "#DFF6DD", color: "#107C10", border: "#A7E3A5", dot: "#CA8A04" },
   received:           { label: "مستلمة",          bg: "#DFF6DD", color: "#107C10", border: "#A7E3A5", dot: "#107C10" },
   cancelled:          { label: "ملغاة",           bg: "#FDE7E9", color: "#C50F1F", border: "#F1B6BB", dot: "#C50F1F" },
 };
@@ -410,6 +411,9 @@ const PurchaseOrdersPage = () => {
     </div>
   );
 
+  // الطلبية تبقى "sent" محاسبياً حتى الفوترة، لكن إذا الموظف أرسل الاستلام نعرضها "مستلمة · للفوترة"
+  const displayStatus = (o: any) =>
+    (o.status === "sent" || o.status === "partially_received") && receivingByOrder[o.id]?.status === "submitted" ? "to_invoice" : o.status;
   const statusPill = (status: string) => {
     const sc = statusConfig[status] || statusConfig.draft;
     return (
@@ -625,10 +629,10 @@ const PurchaseOrdersPage = () => {
                             <td style={{ padding: "8px 12px", fontWeight: "600", color: NAVY, fontSize: "13px", fontFamily: F, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: "200px" }}>{o.supplier?.name || "—"}</td>
                             <td style={{ padding: "8px 12px", fontSize: "12px", color: "#64748B", fontFamily: F, whiteSpace: "nowrap" }}>{o.branch?.name || "—"}</td>
                             <td style={{ padding: "8px 12px", fontWeight: "700", color: NAVY, fontSize: "14px", fontFamily: F, direction: "ltr", textAlign: "left", whiteSpace: "nowrap" }}>{Number(o.total_amount).toLocaleString()} ₪</td>
-                            <td style={{ padding: "8px 12px" }}>{statusPill(o.status)}{receivingByOrder[o.id] && (
-                              <div className="mt-1"><Badge variant={receivingByOrder[o.id].status === "submitted" ? "default" : "outline"} className="text-[10px] cursor-pointer" onClick={e => { e.stopPropagation(); setAssignOrder(o); }}>
+                            <td style={{ padding: "8px 12px" }}>{statusPill(displayStatus(o))}{receivingByOrder[o.id] && receivingByOrder[o.id].status !== "submitted" && (
+                              <div className="mt-0.5 text-[10px] text-muted-foreground cursor-pointer whitespace-nowrap" onClick={e => { e.stopPropagation(); setAssignOrder(o); }}>
                                 {receivingStatusLabel[receivingByOrder[o.id].status]}{receivingByOrder[o.id].employee_name ? ` · ${receivingByOrder[o.id].employee_name}` : ""}
-                              </Badge></div>
+                              </div>
                             )}</td>
                             <td style={{ padding: "8px 12px" }} onClick={e => e.stopPropagation()}>
                               {o.linked_invoice ? (
@@ -666,7 +670,7 @@ const PurchaseOrdersPage = () => {
               ) : (
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: "12px" }}>
                   {filtered.map((o: any) => {
-                    const sc = statusConfig[o.status] || statusConfig.draft;
+                    const sc = statusConfig[displayStatus(o)] || statusConfig.draft;
                     return (
                       <div
                         key={o.id}
@@ -686,7 +690,7 @@ const PurchaseOrdersPage = () => {
                               <div style={{ fontFamily: "monospace", fontSize: "10.5px", color: NAVY, fontWeight: 800, marginTop: "2px" }}>مبيعات: {o.sales_order_ref}</div>
                             )}
                           </div>
-                          {statusPill(o.status)}
+                          {statusPill(displayStatus(o))}
                         </div>
                         <div style={{ fontWeight: 700, color: NAVY, fontSize: "14px", fontFamily: F, marginBottom: "4px" }}>{o.supplier?.name || "—"}</div>
                         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: "12px", color: "#64748B", fontFamily: F }}>
