@@ -113,8 +113,14 @@ function MyReceivingList() {
             </div>
             {rows.map(r => {
               const pct = r.ordered_total > 0 ? Math.min(100, Math.round((r.scanned_total / r.ordered_total) * 100)) : 0;
+              const open = async () => {
+                if (r.id) return navigate(`/worker/receiving/${r.id}`);
+                const { data, error } = await supabase.rpc("claim_receiving_order", { p_order_id: r.order_id });
+                if (error) { toast.error(error.message); load(); return; }
+                navigate(`/worker/receiving/${data}`);
+              };
               return (
-                <Button key={r.id} variant="ghost" onClick={() => navigate(`/worker/receiving/${r.id}`)}
+                <Button key={r.id || r.order_id} variant="ghost" onClick={open}
                   className="grid h-auto w-full grid-cols-2 items-center gap-3 rounded-none border-b px-4 py-4 text-right font-normal last:border-b-0 hover:bg-primary/5 md:grid-cols-[1.2fr_1.5fr_0.7fr_1.2fr_0.9fr]">
                   <span className="text-base font-semibold text-primary underline-offset-2 hover:underline">{r.order_number}</span>
                   <span className="text-sm text-foreground">{r.supplier_name || "—"}{r.expected_date && <span className="block text-xs text-muted-foreground">متوقع: {r.expected_date}</span>}</span>
@@ -123,7 +129,7 @@ function MyReceivingList() {
                     <span className="h-2 flex-1 overflow-hidden bg-muted"><span className="block h-full bg-primary" style={{ width: `${pct}%` }} /></span>
                     {Number(r.scanned_total)}/{Number(r.ordered_total)}
                   </span>
-                  <span><Badge variant={r.status === "submitted" ? "default" : "outline"}>{receivingStatusLabel[r.status]}</Badge></span>
+                  <span><Badge variant={r.status === "submitted" ? "default" : "outline"}>{r.status === "available" ? "جديدة — اضغط للاستلام" : receivingStatusLabel[r.status]}</Badge></span>
                 </Button>
               );
             })}
