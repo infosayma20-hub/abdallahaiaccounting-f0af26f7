@@ -36,6 +36,7 @@ interface InvoiceLine {
   unit_price: number;
   notes: string;
   expiry_date: string;
+  barcode?: string;
 }
 
 const ProcurementInvoiceCreatePage = () => {
@@ -140,16 +141,23 @@ const ReceivePOInvoicePage = ({ orderId }: { orderId: string }) => {
         // إذا الموظف استلم الطلبية بالباركود وأرسلها، نعبّي الكميات المعدودة فعلياً
         const { data: recv } = await supabase
           .from("procurement_receiving_sessions")
-          .select("id, procurement_receiving_lines(order_item_id, scanned_qty, note, expiry_date)")
+          .select("id, procurement_receiving_lines(order_item_id, scanned_qty, note, expiry_date, barcodes)")
           .eq("order_id", orderId)
           .eq("status", "submitted")
           .order("submitted_at", { ascending: false })
           .limit(1)
           .maybeSingle();
-        const counted: Record<string, { qty: number; note: string | null; expiry: string | null }> = {};
+        const counted: Record<string, { qty: number; note: string | null; expiry: string | null; codes: string[] }> = {};
         ((recv as any)?.procurement_receiving_lines || []).forEach((l: any) => {
-          counted[l.order_item_id] = { qty: Number(l.scanned_qty), note: l.note, expiry: l.expiry_date };
+          counted[l.order_item_id] = { qty: Number(l.scanned_qty), note: l.note, expiry: l.expiry_date, codes: l.barcodes || [] };
         });
+        // باركود الصنف من المخزون (يُحفظ هناك عند الاستلام)
+        const pids = ((items as any[]) || []).map((i: any) => i.inventory_product_id).filter(Boolean);
+        const barcodeByProduct: Record<string, string> = {};
+        if (pids.length) {
+          const { data: prods } = await supabase.from("products").select("id, barcode").in("id", pids);
+          ((prods as any[]) || []).forEach(p => { if (p.barcode) barcodeByProduct[p.id] = p.barcode; });
+        }
         const loadedLines: InvoiceLine[] = ((items as any[]) || [])
           .map((i: any) => {
             const remaining = Number(i.remaining);
@@ -164,6 +172,7 @@ const ReceivePOInvoicePage = ({ orderId }: { orderId: string }) => {
               unit_price: Number(i.unit_price),
               notes: c?.note || "",
               expiry_date: c?.expiry || "",
+              barcode: [barcodeByProduct[i.inventory_product_id], ...(c?.codes || [])].filter(Boolean).filter((v, k, a) => a.indexOf(v) === k).join(" · "),
             };
           })
           .filter(l => l.ordered_quantity > 0 || l.received_quantity > 0);
@@ -502,7 +511,12 @@ const ReceivePOInvoicePage = ({ orderId }: { orderId: string }) => {
                     const variance = line.received_quantity < line.ordered_quantity;
                     return (
                       <TableRow key={idx} className={variance ? "bg-destructive/5" : ""}>
-                        <TableCell className="font-medium text-right">{line.item_name}</TableCell>
+                        <TableCell className="font-medium text-right">
+                          <div>{line.item_name}</div>
+                          <div className={`font-mono text-[11px] ${line.barcode ? "text-muted-foreground" : "text-destructive"}`} dir="ltr" style={{ textAlign: "right" }}>
+                            {line.barcode || "بدون باركود"}
+                          </div>
+                        </TableCell>
                         <TableCell className="text-center">{line.unit}</TableCell>
                         <TableCell className="text-center tabular-nums">{line.ordered_quantity}</TableCell>
                         <TableCell className="bg-muted/20">

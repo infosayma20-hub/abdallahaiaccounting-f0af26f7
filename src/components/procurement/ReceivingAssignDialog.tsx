@@ -17,10 +17,10 @@ export type ReceivingSessionSummary = {
 };
 
 export const receivingStatusLabel: Record<string, string> = {
-  assigned: "مسندة للاستلام",
+  assigned: "مسندة",
   in_progress: "قيد الاستلام",
-  submitted: "بانتظار اعتماد المحاسب",
-  approved: "استلام معتمد",
+  submitted: "مستلمة",
+  approved: "معتمدة",
   cancelled: "ملغاة",
 };
 
