@@ -62,7 +62,7 @@ const emptyProduct = (userId: string): ProductRow => ({
   name: "", sku: null, category: "بضاعة عامة", unit: "قطعة",
   buy_price: 0, sell_price: 0, quantity: 0, min_quantity: 0,
   barcode: null, tax_rate: 0, description: null,
-  is_sold: true, is_purchased: true, is_pos_product: false,
+  is_sold: true, is_purchased: true, is_pos_product: true,
   product_type: "finished", is_manufactured: false,
   lifecycle_status: "active", is_hazardous: false, is_serialized: false,
   requires_batch_tracking: false, has_expiry: false,
