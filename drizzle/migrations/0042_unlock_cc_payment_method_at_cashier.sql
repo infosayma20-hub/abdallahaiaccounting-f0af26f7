@@ -1,0 +1,2 @@
+DROP TRIGGER IF EXISTS trg_guard_pos_payment_matches_cc ON public.pos_payments;
+COMMENT ON FUNCTION public.guard_pos_payment_matches_call_center() IS 'DEPRECATED: cashier may change call-center payment method (user decision 2026-09-29)';

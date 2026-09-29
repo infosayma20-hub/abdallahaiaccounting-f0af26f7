@@ -295,6 +295,13 @@
       "when": 1790677362298,
       "tag": "0041_fix_returns_stock_double_and_movements",
       "breakpoints": true
+    },
+    {
+      "idx": 42,
+      "version": "7",
+      "when": 1790685542019,
+      "tag": "0042_unlock_cc_payment_method_at_cashier",
+      "breakpoints": true
     }
   ]
 }
