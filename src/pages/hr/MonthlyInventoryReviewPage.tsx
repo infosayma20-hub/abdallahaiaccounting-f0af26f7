@@ -162,7 +162,7 @@ export default function MonthlyInventoryReviewPage() {
   };
 
   const branches = useMemo(
-    () => Array.from(new Set(rows.map((r) => r.form_data?.branch_name).filter(Boolean))) as string[],
+    () => Array.from(new Set(rows.map((r) => normalizeBranchName(r.form_data?.branch_name)).filter(Boolean))) as string[],
     [rows]
   );
 
@@ -183,7 +183,7 @@ export default function MonthlyInventoryReviewPage() {
           const m = String(r.form_data?.month || "");
           return (
             r.countType === countType &&
-            (!branch || r.form_data?.branch_name === branch) &&
+            (!branch || normalizeBranchName(r.form_data?.branch_name) === branch) &&
             (!year || m.slice(0, 4) === year) &&
             (!month || m.slice(5, 7) === month)
           );
