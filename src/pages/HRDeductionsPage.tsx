@@ -346,26 +346,34 @@ export default function HRDeductionsPage() {
   });
 
   /**
-   * الأرصدة الافتتاحية من المصدر الرسمي: كشف رواتب 07/2026.
-   * كل صافي راتب سالب يُرحَّل كرصيد افتتاحي موجب لشهر 08/2026.
-   * (سابقاً كانت قائمة أسماء ثابتة انكسرت بعد توحيد الأسماء الرباعية)
+   * الأرصدة الافتتاحية من المصدر الرسمي: كشف رواتب الشهر السابق لبداية الفترة المعروضة.
+   * كل صافي راتب سالب بالشهر السابق يُرحَّل كرصيد افتتاحي موجب للشهر المعروض.
+   * (سابقاً كان مثبتاً على كشف 07/2026 فظل الرصيد يظهر بعد خصمه في راتب 08)
    */
+  const openingPeriod = useMemo(() => {
+    const base = dateFrom ? new Date(`${dateFrom}T00:00:00`) : new Date();
+    const d = new Date(base.getFullYear(), base.getMonth() - 1, 1);
+    return { year: d.getFullYear(), month: d.getMonth() + 1 };
+  }, [dateFrom]);
+
   const { data: openingPayroll = [] } = useQuery({
-    queryKey: ["hr-opening-payroll-072026", dataOwnerId],
+    queryKey: ["hr-opening-payroll", dataOwnerId, openingPeriod.year, openingPeriod.month],
     queryFn: async () => {
       return await fetchAllRows(() =>
         (supabase as any)
           .from("employee_payroll")
           .select("employee_id, net_salary, period_year, period_month")
           .eq("user_id", dataOwnerId!)
-          .eq("period_year", 2026)
-          .eq("period_month", 7)
+          .eq("period_year", openingPeriod.year)
+          .eq("period_month", openingPeriod.month)
           .lt("net_salary", 0)
           .order("employee_id")
       );
     },
     enabled: !!dataOwnerId,
   });
+  // القائمة اليدوية القديمة تخص رصيد افتتاح 08/2026 فقط (مصدرها كشف 07/2026)
+  const useLegacyOpeningOverrides = openingPeriod.year === 2026 && openingPeriod.month === 7;
 
 
   // Fetch branches for branch names
@@ -1596,10 +1604,12 @@ export default function HRDeductionsPage() {
         const override =
           openingLookup.get(openingKey(e.employeeName)) ??
           openingLookup.get(shortNameKey(e.employeeName)) ??
-          OPENING_OVERRIDES[normalizeArabicName(e.employeeName)] ??
-          OPENING_OVERRIDES_NORMALIZED[openingKey(e.employeeName)] ??
-          OPENING_OVERRIDES_NORMALIZED[shortNameKey(e.employeeName)];
-        // الرصيد الافتتاحي معتمد حصرياً من كشف 07/2026 — من ليس بالقائمة رصيده صفر
+          (useLegacyOpeningOverrides
+            ? OPENING_OVERRIDES[normalizeArabicName(e.employeeName)] ??
+              OPENING_OVERRIDES_NORMALIZED[openingKey(e.employeeName)] ??
+              OPENING_OVERRIDES_NORMALIZED[shortNameKey(e.employeeName)]
+            : undefined);
+        // الرصيد الافتتاحي = صافي راتب سالب بكشف الشهر السابق — غير ذلك صفر
         return { ...e, opening: override === undefined ? 0 : override };
       })
       // ملاحظة بند «أخرى»: ملاحظة الإدارة إن وُجدت وإلا بيان الحركة
