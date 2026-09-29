@@ -50,7 +50,7 @@ const fmtDateTime = (d: string) => {
   try {
     const date = new Date(d);
     return date.toLocaleDateString('ar-PS', { day: 'numeric', month: 'short', year: 'numeric' }) + ' ' +
-      date.toLocaleTimeString('ar-PS', { hour12: false, hour: '2-digit', minute: '2-digit'}));
+      date.toLocaleTimeString('ar-PS', { hour12: false, hour: '2-digit', minute: '2-digit'});
   } catch { return d; }
 };
 
