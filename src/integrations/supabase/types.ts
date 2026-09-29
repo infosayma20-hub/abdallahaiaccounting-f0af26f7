@@ -2942,6 +2942,7 @@ export type Database = {
           client_reference_id: string | null
           created_at: string | null
           created_channel: string
+          customer_contact_id: string | null
           customer_name: string | null
           customer_phone: string | null
           delivered_at: string | null
@@ -2991,6 +2992,7 @@ export type Database = {
           client_reference_id?: string | null
           created_at?: string | null
           created_channel?: string
+          customer_contact_id?: string | null
           customer_name?: string | null
           customer_phone?: string | null
           delivered_at?: string | null
@@ -3040,6 +3042,7 @@ export type Database = {
           client_reference_id?: string | null
           created_at?: string | null
           created_channel?: string
+          customer_contact_id?: string | null
           customer_name?: string | null
           customer_phone?: string | null
           delivered_at?: string | null
@@ -3080,6 +3083,13 @@ export type Database = {
           visa_gl_account_code?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "call_center_orders_customer_contact_id_fkey"
+            columns: ["customer_contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "call_center_orders_target_branch_id_fkey"
             columns: ["target_branch_id"]
