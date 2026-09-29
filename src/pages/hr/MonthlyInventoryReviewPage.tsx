@@ -196,7 +196,7 @@ export default function MonthlyInventoryReviewPage() {
     const aoa: (string | number)[][] = [
       ["الفرع", "الشهر", "المُقدِّم", "مجموع الكميات", "قيمة الجرد", "الحالة", "التاريخ"],
       ...filtered.map((r) => [
-        r.form_data?.branch_name || "—",
+        normalizeBranchName(r.form_data?.branch_name) || "—",
         r.form_data?.month || "—",
         r.employee_name,
         Number(r.form_data?.summary?.qty ?? 0),
@@ -331,7 +331,7 @@ export default function MonthlyInventoryReviewPage() {
               <tbody>
                 {filtered.map((r) => (
                   <tr key={r.id} className="border-t hover:bg-muted/30">
-                    <td className="p-2">{r.form_data?.branch_name || "—"}</td>
+                    <td className="p-2">{normalizeBranchName(r.form_data?.branch_name) || "—"}</td>
                     <td className="p-2">{r.form_data?.month || "—"}</td>
                     <td className="p-2">{r.employee_name}</td>
                     <td className="p-2">{r.form_data?.summary?.qty ?? "—"}</td>
