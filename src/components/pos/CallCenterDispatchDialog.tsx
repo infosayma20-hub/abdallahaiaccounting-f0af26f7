@@ -1108,6 +1108,87 @@ const CallCenterDispatchDialog = ({
             </div>
           </div>
 
+          {/* جهة الآجل — قائمة الجهات المسجلة (نفس أسلوب الكاشير) */}
+          {paymentMethod === "credit" && (
+            <div className={`space-y-2 p-3 rounded-xl border-2 border-orange-300 dark:border-orange-700 bg-orange-50/60 dark:bg-orange-950/20 ${errors.creditContact ? "ring-2 ring-destructive/50" : ""}`}>
+              <label className="text-sm font-bold flex items-center gap-1 text-orange-900 dark:text-orange-200">
+                <Receipt className="h-4 w-4" /> جهة الآجل (من الزبائن المسجلين) *
+              </label>
+              {selectedCreditContact ? (
+                <div className="flex items-center gap-2 rounded-lg border border-orange-300 bg-background px-3 py-2">
+                  <User className="h-4 w-4 shrink-0 text-orange-600" />
+                  <div className="flex-1 min-w-0">
+                    <div className="text-sm font-bold truncate">{selectedCreditContact.contact_name}</div>
+                    {selectedCreditContact.phone && (
+                      <div className="text-[11px] text-muted-foreground" dir="ltr">{selectedCreditContact.phone}</div>
+                    )}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setSelectedCreditContact(null)}
+                    className="text-[11px] font-bold text-primary hover:underline shrink-0"
+                  >
+                    تغيير
+                  </button>
+                </div>
+              ) : (
+                <>
+                  <div className="relative">
+                    <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+                    <Input
+                      value={creditContactSearch}
+                      onChange={e => { setCreditContactSearch(e.target.value); setErrors(p => ({ ...p, creditContact: false })); }}
+                      placeholder="ابحث بالاسم أو رقم الجوال..."
+                      className="h-11 pr-10"
+                    />
+                    {creditContactSearch && (
+                      <button
+                        type="button"
+                        onClick={() => setCreditContactSearch("")}
+                        className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                      >
+                        <X className="h-4 w-4" />
+                      </button>
+                    )}
+                  </div>
+                  <div className="rounded-lg border border-border bg-background overflow-hidden">
+                    <div className="max-h-44 overflow-y-auto overscroll-contain">
+                      {creditContactLoading ? (
+                        <div className="py-4 text-center text-xs text-muted-foreground">جارٍ البحث...</div>
+                      ) : creditContactResults.length > 0 ? (
+                        creditContactResults.map((c) => (
+                          <button
+                            key={c.id}
+                            type="button"
+                            onClick={() => {
+                              setSelectedCreditContact(c);
+                              setName(c.contact_name);
+                              if (c.phone) setPhone(c.phone);
+                              setErrors(p => ({ ...p, creditContact: false, name: false, phone: false }));
+                            }}
+                            className="w-full px-3 py-2.5 text-sm text-right flex items-center gap-2 border-b border-border/60 last:border-0 hover:bg-muted/50 transition"
+                          >
+                            <User className="h-4 w-4 shrink-0 text-muted-foreground" />
+                            <span className="flex-1 truncate font-medium">{c.contact_name}</span>
+                            {c.phone && <span className="text-[11px] text-muted-foreground shrink-0" dir="ltr">{c.phone}</span>}
+                            {c.contact_type && (
+                              <span className="text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground shrink-0">{c.contact_type}</span>
+                            )}
+                          </button>
+                        ))
+                      ) : (
+                        <div className="py-4 text-center text-xs text-muted-foreground">لا توجد نتائج — اكتب الاسم والجوال بالأعلى وسيُسجَّل كزبون جديد</div>
+                      )}
+                    </div>
+                  </div>
+                  <p className="text-[10px] text-orange-800 dark:text-orange-300">
+                    اختيار الجهة من القائمة يربط الطلبية بكشف حسابها مباشرة. إذا الزبون جديد، عبّي الاسم والجوال بالأعلى وسيُسجَّل تلقائياً.
+                  </p>
+                </>
+              )}
+            </div>
+          )}
+
           {/* Note — prominent, multi-line so agents see what they typed */}
           <div className="space-y-1.5 p-3 rounded-xl border-2 border-amber-300 dark:border-amber-700 bg-amber-50/60 dark:bg-amber-950/30">
             <label className="text-sm font-bold flex items-center gap-1 text-amber-900 dark:text-amber-200">
