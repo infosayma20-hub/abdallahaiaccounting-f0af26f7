@@ -31,6 +31,23 @@ const statusLabel = (s: string, fd?: any) =>
     : s === "approved" ? "معتمد" : s === "submitted" || s === "pending" ? "مرسل" : s === "rejected" ? "مرفوض" : "مسودة";
 
 
+/** Normalize messy free-text branch names (trailing spaces, spelling variants, Arabic/English) into canonical branch names. */
+function normalizeBranchName(raw: string): string {
+  let b = String(raw || "").trim().replace(/\s+/g, " ");
+  if (!b) return b;
+  b = b.replace(/[ـ…\.]+/g, " ").replace(/\s+/g, " ").trim();
+  const lower = b.toLowerCase();
+  if (/اختبار|اختبا|اختيار/.test(b)) return "اختبار";
+  if (/طيره|طيرة|الطيرة/.test(b)) return "الطيرة";
+  if (/بلاز|plaza/.test(lower)) return "بلازا";
+  if (b === "رام الله" || lower.includes("ramallah")) return "رام الله";
+  if (/المطبخ/.test(b)) return "المطبخ";
+  if (/المركزي/.test(b)) return "المركزي";
+  if (/فيصل/.test(b)) return "فيصل";
+  if (/سفيان/.test(b)) return "سفيان";
+  return b;
+}
+
 /** Convert legacy flat inventory forms (key: qty) into the standard lines shape. */
 function normalizeLegacy(fd: any, createdAt: string) {
   const skip = new Set(["branch", "branch_name", "employee_name", "month", "notes", "kind"]);
@@ -41,7 +58,7 @@ function normalizeLegacy(fd: any, createdAt: string) {
   return {
     ...fd,
     kind: "monthly_inventory",
-    branch_name: fd?.branch_name || fd?.branch || "—",
+    branch_name: normalizeBranchName(fd?.branch_name || fd?.branch || "—"),
     month: fd?.month || String(createdAt).slice(0, 7),
     lines,
     summary: fd?.summary || { qty, filled: lines.length, total: lines.length, byCategory: [] },
@@ -145,7 +162,7 @@ export default function MonthlyInventoryReviewPage() {
   };
 
   const branches = useMemo(
-    () => Array.from(new Set(rows.map((r) => r.form_data?.branch_name).filter(Boolean))) as string[],
+    () => Array.from(new Set(rows.map((r) => normalizeBranchName(r.form_data?.branch_name)).filter(Boolean))) as string[],
     [rows]
   );
 
@@ -166,7 +183,7 @@ export default function MonthlyInventoryReviewPage() {
           const m = String(r.form_data?.month || "");
           return (
             r.countType === countType &&
-            (!branch || r.form_data?.branch_name === branch) &&
+            (!branch || normalizeBranchName(r.form_data?.branch_name) === branch) &&
             (!year || m.slice(0, 4) === year) &&
             (!month || m.slice(5, 7) === month)
           );
@@ -179,7 +196,7 @@ export default function MonthlyInventoryReviewPage() {
     const aoa: (string | number)[][] = [
       ["الفرع", "الشهر", "المُقدِّم", "مجموع الكميات", "قيمة الجرد", "الحالة", "التاريخ"],
       ...filtered.map((r) => [
-        r.form_data?.branch_name || "—",
+        normalizeBranchName(r.form_data?.branch_name) || "—",
         r.form_data?.month || "—",
         r.employee_name,
         Number(r.form_data?.summary?.qty ?? 0),
@@ -314,7 +331,7 @@ export default function MonthlyInventoryReviewPage() {
               <tbody>
                 {filtered.map((r) => (
                   <tr key={r.id} className="border-t hover:bg-muted/30">
-                    <td className="p-2">{r.form_data?.branch_name || "—"}</td>
+                    <td className="p-2">{normalizeBranchName(r.form_data?.branch_name) || "—"}</td>
                     <td className="p-2">{r.form_data?.month || "—"}</td>
                     <td className="p-2">{r.employee_name}</td>
                     <td className="p-2">{r.form_data?.summary?.qty ?? "—"}</td>
