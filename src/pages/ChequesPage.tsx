@@ -1192,7 +1192,7 @@ const ChequesPage = () => {
       onFiltersChange={setShellFilters}
       storageKey="cheques-page"
       rightSlot={
-        <div className="flex items-center gap-1.5">
+        <div className="flex items-center gap-1.5 flex-wrap">
           <div className="relative">
             <Search className="absolute right-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground/60 pointer-events-none" />
             <Input
@@ -1202,6 +1202,52 @@ const ChequesPage = () => {
               className="h-8 w-56 pr-8 text-xs"
             />
           </div>
+          <Input
+            type="month"
+            value={filterMonth}
+            onChange={(e) => {
+              const m = e.target.value;
+              setFilterMonth(m);
+              if (m) {
+                const [y, mo] = m.split("-").map(Number);
+                const lastDay = new Date(y, mo, 0).getDate();
+                setDateFrom(`${m}-01`);
+                setDateTo(`${m}-${String(lastDay).padStart(2, "0")}`);
+              } else {
+                setDateFrom("");
+                setDateTo("");
+              }
+            }}
+            title="تصفية حسب الشهر"
+            className="h-8 w-36 text-xs"
+          />
+          <div className="flex items-center gap-1">
+            <Input
+              type="date"
+              value={dateFrom}
+              onChange={(e) => { setDateFrom(e.target.value); setFilterMonth(""); }}
+              title="من تاريخ"
+              className="h-8 w-32 text-xs"
+            />
+            <span className="text-[10px] text-muted-foreground">إلى</span>
+            <Input
+              type="date"
+              value={dateTo}
+              onChange={(e) => { setDateTo(e.target.value); setFilterMonth(""); }}
+              title="إلى تاريخ"
+              className="h-8 w-32 text-xs"
+            />
+          </div>
+          {(dateFrom || dateTo) && (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-8 px-2 text-xs"
+              onClick={() => { setDateFrom(""); setDateTo(""); setFilterMonth(""); }}
+            >
+              <X className="h-3.5 w-3.5" />
+            </Button>
+          )}
           <ColumnVisibilityMenu state={colState} />
         </div>
       }
