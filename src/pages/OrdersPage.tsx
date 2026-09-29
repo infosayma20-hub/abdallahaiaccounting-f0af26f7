@@ -139,7 +139,8 @@ const OrdersPage = () => {
 
   const fetchOrders = async () => {
     if (!user) return;
-    setLoading(true);
+    // Background refreshes (realtime/focus) must not blank the table.
+    setLoading(prev => prev || orders.length === 0);
 
     // Render the list as soon as the orders themselves arrive. Products and the
     // payment aggregations are secondary data and must never block first paint.
