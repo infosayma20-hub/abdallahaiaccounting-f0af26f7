@@ -302,6 +302,13 @@
       "when": 1790685542019,
       "tag": "0042_unlock_cc_payment_method_at_cashier",
       "breakpoints": true
+    },
+    {
+      "idx": 43,
+      "version": "7",
+      "when": 1790687639850,
+      "tag": "0043_account_merge_log",
+      "breakpoints": true
     }
   ]
 }
