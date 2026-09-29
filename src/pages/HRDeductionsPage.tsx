@@ -1604,10 +1604,12 @@ export default function HRDeductionsPage() {
         const override =
           openingLookup.get(openingKey(e.employeeName)) ??
           openingLookup.get(shortNameKey(e.employeeName)) ??
-          OPENING_OVERRIDES[normalizeArabicName(e.employeeName)] ??
-          OPENING_OVERRIDES_NORMALIZED[openingKey(e.employeeName)] ??
-          OPENING_OVERRIDES_NORMALIZED[shortNameKey(e.employeeName)];
-        // الرصيد الافتتاحي معتمد حصرياً من كشف 07/2026 — من ليس بالقائمة رصيده صفر
+          (useLegacyOpeningOverrides
+            ? OPENING_OVERRIDES[normalizeArabicName(e.employeeName)] ??
+              OPENING_OVERRIDES_NORMALIZED[openingKey(e.employeeName)] ??
+              OPENING_OVERRIDES_NORMALIZED[shortNameKey(e.employeeName)]
+            : undefined);
+        // الرصيد الافتتاحي = صافي راتب سالب بكشف الشهر السابق — غير ذلك صفر
         return { ...e, opening: override === undefined ? 0 : override };
       })
       // ملاحظة بند «أخرى»: ملاحظة الإدارة إن وُجدت وإلا بيان الحركة
