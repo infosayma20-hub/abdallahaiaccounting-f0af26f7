@@ -121,6 +121,10 @@ const PENDING_STATUSES = ['مسجل', 'آجل', 'مستحق', 'مودع'];
 // watch its due date because we are liable if the endorsee bounces it.
 const DUE_WATCH_STATUSES = [...PENDING_STATUSES, 'مظهر'];
 const PER_PAGE = 15;
+const ARABIC_MONTHS = [
+  'يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو',
+  'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر',
+];
 type SortKey = 'party_name' | 'cheque_type' | 'amount' | 'cheque_date' | 'status' | 'bank_name' | 'cheque_number' | 'created_at';
 type SortDir = 'asc' | 'desc';
 
@@ -1170,6 +1174,14 @@ const ChequesPage = () => {
   }, [cheques]);
   const statusOptions = (Object.keys(statusConfig) as ChequeStatus[])
     .map(s => ({ value: s, label: statusConfig[s].label }));
+  const monthOptions = useMemo(() => {
+    const currentYear = new Date().getFullYear();
+    return Array.from({ length: 5 }, (_, yearIndex) => currentYear + 2 - yearIndex)
+      .flatMap(year => ARABIC_MONTHS.map((month, monthIndex) => ({
+        value: `${year}-${String(monthIndex + 1).padStart(2, '0')}`,
+        label: `${month} ${year}`,
+      })));
+  }, []);
   const filterFields: FilterField[] = useMemo(() => ([
     { key: 'cheque_type', label: 'النوع', type: 'option', options: [
       { value: 'وارد', label: 'وارد' }, { value: 'صادر', label: 'صادر' },
@@ -1205,25 +1217,26 @@ const ChequesPage = () => {
           </div>
           <label className="grid gap-1">
             <span className="text-[11px] font-medium text-muted-foreground">الشهر</span>
-            <input
-              type="month"
-              value={filterMonth}
-              onChange={(e) => {
-                const m = e.target.value;
+            <Select
+              value={filterMonth || undefined}
+              onValueChange={(m) => {
                 setFilterMonth(m);
-                if (m) {
-                  const [y, mo] = m.split("-").map(Number);
-                  const lastDay = new Date(y, mo, 0).getDate();
-                  setDateFrom(`${m}-01`);
-                  setDateTo(`${m}-${String(lastDay).padStart(2, "0")}`);
-                } else {
-                  setDateFrom("");
-                  setDateTo("");
-                }
+                const [y, mo] = m.split("-").map(Number);
+                const lastDay = new Date(y, mo, 0).getDate();
+                setDateFrom(`${m}-01`);
+                setDateTo(`${m}-${String(lastDay).padStart(2, "0")}`);
               }}
-              aria-label="الشهر المطلوب"
-              className="h-10 w-36 rounded-xl border border-input bg-background px-3 text-sm tabular-nums outline-none shadow-sm transition-colors hover:border-foreground/30 focus:border-primary focus:ring-2 focus:ring-primary/15 [&::-webkit-calendar-picker-indicator]:hidden [&::-webkit-calendar-picker-indicator]:appearance-none"
-            />
+              dir="rtl"
+            >
+              <SelectTrigger className="h-10 w-40 rounded-xl text-sm" aria-label="الشهر المطلوب">
+                <SelectValue placeholder="اختر الشهر" />
+              </SelectTrigger>
+              <SelectContent className="max-h-72" dir="rtl">
+                {monthOptions.map(month => (
+                  <SelectItem key={month.value} value={month.value}>{month.label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </label>
           <div className="flex items-end gap-2">
             <label className="grid gap-1">
