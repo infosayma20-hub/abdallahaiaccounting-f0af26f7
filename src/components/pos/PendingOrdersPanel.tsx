@@ -680,6 +680,8 @@ const PendingOrdersPanel = ({ dataOwnerId, branchId, sessionId, enabled, onAccep
                         <Badge variant="outline" className={`text-[10px] px-1.5 py-0 h-5 ${order.payment_method.startsWith("visa") ? "border-purple-500/30 text-purple-600" : "border-green-500/30 text-green-600"}`}>
                           {order.payment_method === "cash" ? (
                             <><Banknote className="h-2.5 w-2.5 ml-0.5" /> نقدي</>
+                          ) : order.payment_method === "credit" ? (
+                            <><Banknote className="h-2.5 w-2.5 ml-0.5" /> آجل (ذمم)</>
                           ) : order.payment_method === "visa" ? (
                             <><CreditCard className="h-2.5 w-2.5 ml-0.5" /> فيزا</>
                           ) : (
