@@ -246,6 +246,13 @@
       "when": 1790660609433,
       "tag": "0034_link_receipts_to_orders_balona",
       "breakpoints": true
+    },
+    {
+      "idx": 35,
+      "version": "7",
+      "when": 1790661765256,
+      "tag": "0035_guard_cash_box_gl_integrity",
+      "breakpoints": true
     }
   ]
 }
