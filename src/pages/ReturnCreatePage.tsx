@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
+import { pickTenantAccountCode } from "@/lib/tenantAccountResolver";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Loader2, Save, Send, Plus, Trash2, AlertTriangle, Package, Search, ArrowRight, XCircle } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -470,11 +471,11 @@ const ReturnCreatePage = ({ returnType }: Props) => {
 
         let debitCode: string, creditCode: string;
         if (isSales) {
-          debitCode = "4150";
+          debitCode = await pickTenantAccountCode(ownerId, ["4150", "4400"], "sales_returns");
           creditCode = form.refundMethod === "cash" ? cashCode : form.refundMethod === "bank" ? bankCode : partyCode;
         } else {
           debitCode = form.refundMethod === "cash" ? cashCode : form.refundMethod === "bank" ? bankCode : partyCode;
-          creditCode = "5160";
+          creditCode = await pickTenantAccountCode(ownerId, ["5160", "5120"], "purchase_returns");
         }
 
         const txDescription = `${titleAr} ${returnNumber} - ${form.contactName}`;

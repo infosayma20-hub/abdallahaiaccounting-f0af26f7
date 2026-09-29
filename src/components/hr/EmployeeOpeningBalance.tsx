@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { pickTenantAccountCode, OPENING_BALANCE_CODES } from "@/lib/tenantAccountResolver";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
@@ -59,8 +60,9 @@ export default function EmployeeOpeningBalance({ employee, userId, onSaved }: Pr
 
       if (empAccountCode && amount > 0) {
         const obRef = `OB-EMP-${employee.id.slice(0, 8)}`;
-        const debitCode = balType === "debit" ? empAccountCode : "3110";
-        const creditCode = balType === "debit" ? "3110" : empAccountCode;
+        const obCode = await pickTenantAccountCode(userId, OPENING_BALANCE_CODES);
+        const debitCode = balType === "debit" ? empAccountCode : obCode;
+        const creditCode = balType === "debit" ? obCode : empAccountCode;
         const { data: rpcRes, error: txErr } = await supabase.rpc("create_opening_balance_entry", {
           p_user_id: userId,
           p_debit_account_code: debitCode,

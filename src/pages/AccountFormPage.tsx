@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
+import { pickTenantAccountCode, OPENING_BALANCE_CODES } from "@/lib/tenantAccountResolver";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { Save, RotateCcw, Lock, Sparkles, Wand2, ChevronLeft, FolderTree, X as XIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -453,11 +454,12 @@ const AccountFormPage = ({ mode }: AccountFormPageProps) => {
       }
 
       // ─── Opening Balance posting (idempotent via RPC) ───
-      if (savedAccountId && code !== "3110") {
+      if (savedAccountId && !OPENING_BALANCE_CODES.includes(code)) {
         const ref = `OB-ACC-${savedAccountId}`;
         if (obAmount > 0) {
-          const debitCode = obType === "debit" ? savedAccountCode : "3110";
-          const creditCode = obType === "debit" ? "3110" : savedAccountCode;
+          const obCode = await pickTenantAccountCode(dataOwnerId || user.id, OPENING_BALANCE_CODES);
+          const debitCode = obType === "debit" ? savedAccountCode : obCode;
+          const creditCode = obType === "debit" ? obCode : savedAccountCode;
           const isFX = currency !== "شيكل";
           const ilsAmount = isFX ? obAmount * obExchangeRate : obAmount;
           const { data: rpcRes, error: obErr } = await supabase.rpc("create_opening_balance_entry", {
