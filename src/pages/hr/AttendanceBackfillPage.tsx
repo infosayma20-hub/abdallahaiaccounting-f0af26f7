@@ -17,6 +17,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import BackButton from "@/components/BackButton";
+import { TimeTextInput } from "@/components/hr/TimeTextInput";
 import {
   ArrowLeft, Save, RefreshCw, Eye, Users, Calendar, Clock, FileText,
   CheckCircle2, XCircle, AlertTriangle, Loader2, ChevronDown, Fingerprint,
@@ -389,11 +390,11 @@ export default function AttendanceBackfillPage() {
             <div className="p-3 grid grid-cols-2 gap-3">
               <div>
                 <Label className="text-xs">وقت الدخول</Label>
-                <Input type="time" value={checkIn} onChange={e => setCheckIn(e.target.value)} className="h-8" />
+                <TimeTextInput value={checkIn} onChange={setCheckIn} />
               </div>
               <div>
                 <Label className="text-xs">وقت الخروج</Label>
-                <Input type="time" value={checkOut} onChange={e => setCheckOut(e.target.value)} className="h-8" />
+                <TimeTextInput value={checkOut} onChange={setCheckOut} />
               </div>
             </div>
           </Card>
