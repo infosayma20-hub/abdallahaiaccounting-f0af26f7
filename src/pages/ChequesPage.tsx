@@ -1353,7 +1353,7 @@ const ChequesPage = () => {
         <div className="text-center py-12 space-y-2">
           <Search className="h-10 w-10 mx-auto text-muted-foreground/50" />
           <p className="text-sm text-muted-foreground">لا توجد شيكات تطابق البحث</p>
-          <Button variant="ghost" size="sm" onClick={() => { setSearch(""); setFilterType("all"); setFilterStatus("الكل"); setDateFrom(''); setDateTo(''); setShellFilters([]); handleTab('all'); }}>مسح الفلاتر</Button>
+          <Button variant="ghost" size="sm" onClick={() => { setSearch(""); setFilterType("all"); setFilterStatus("الكل"); setDateFrom(''); setDateTo(''); setFilterMonth(''); setShellFilters([]); handleTab('all'); }}>مسح الفلاتر</Button>
         </div>
       )}
 
