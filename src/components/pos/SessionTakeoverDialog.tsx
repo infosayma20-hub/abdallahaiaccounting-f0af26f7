@@ -43,7 +43,7 @@ export function SessionTakeoverDialog({
           <DialogDescription className="text-right leading-relaxed pt-2 space-y-2">
             <div>
               نفس حساب الكاشير يعمل حالياً على جهاز آخر
-              {otherLastSeen ? ` (آخر نشاط: ${new Date(otherLastSeen).toLocaleTimeString("ar")})` : ""}.
+              {otherLastSeen ? ` (آخر نشاط: ${new Date(otherLastSeen).toLocaleTimeString("ar", { hour12: false })})` : ""}.
             </div>
             <div className="text-muted-foreground text-xs leading-relaxed">
               لحماية إجماليات الصندوق لا يُسمح بجهازين في نفس الوقت. إذا تابعت

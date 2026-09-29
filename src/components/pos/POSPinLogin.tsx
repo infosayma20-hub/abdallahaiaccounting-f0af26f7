@@ -26,7 +26,7 @@ export default function POSPinLogin({ companyName, onAccountLogin, onBack }: POS
 
   const now = new Date();
   const dateStr = now.toLocaleDateString("ar", { weekday: "long", year: "numeric", month: "long", day: "numeric" });
-  const timeStr = now.toLocaleTimeString("ar", { hour: "2-digit", minute: "2-digit" });
+  const timeStr = now.toLocaleTimeString("ar", { hour12: false, hour: "2-digit", minute: "2-digit"}));
 
   const handleAccountLogin = async () => {
     if (!accountEmail || !accountPassword) {

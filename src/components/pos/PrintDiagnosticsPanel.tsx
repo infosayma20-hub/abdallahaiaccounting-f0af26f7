@@ -51,7 +51,7 @@ export default function PrintDiagnosticsPanel() {
                   {e.itemsCount != null && <span className="text-xs text-muted-foreground">{e.itemsCount} صنف</span>}
                   <span className="text-xs text-muted-foreground">{fmtBytes(e.payloadBytes)}</span>
                   {e.durationMs != null && <span className="text-xs text-muted-foreground">{e.durationMs}ms</span>}
-                  <span className="text-xs text-muted-foreground mr-auto">{new Date(e.timestamp).toLocaleTimeString('ar-EG')}</span>
+                  <span className="text-xs text-muted-foreground mr-auto">{new Date(e.timestamp).toLocaleTimeString('ar-EG', { hour12: false })}</span>
                   {isOpen ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
                 </button>
                 {isOpen && (

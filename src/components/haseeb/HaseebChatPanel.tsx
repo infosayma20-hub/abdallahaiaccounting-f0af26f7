@@ -442,7 +442,7 @@ const ZidniChatPanel = ({ user, userName, data, cfoMode, onCheque, onJournal, on
                     <AIMessageRenderer content={msg.content} />
                   )}
                   <p className="text-[9px] mt-1.5" style={{ color: msg.role === "user" ? "rgba(255,255,255,0.5)" : "#8B9BB4" }}>
-                    {msg.timestamp.toLocaleTimeString("ar", { hour: "2-digit", minute: "2-digit" })}
+                    {msg.timestamp.toLocaleTimeString("ar", { hour12: false, hour: "2-digit", minute: "2-digit"}))}
                   </p>
                 </div>
                 {msg.role === "assistant" && (

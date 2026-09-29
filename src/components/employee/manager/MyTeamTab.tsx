@@ -155,7 +155,7 @@ export default function MyTeamTab({ branchId, branchName, onBack }: { branchId: 
     return { label: s, cls: "bg-secondary text-muted-foreground" };
   };
 
-  const fmt = (t: string | null) => t ? new Date(t).toLocaleTimeString("en", { hour: "2-digit", minute: "2-digit" }) : "—";
+  const fmt = (t: string | null) => t ? new Date(t).toLocaleTimeString("en", { hour12: false, hour: "2-digit", minute: "2-digit"})) : "—";
 
   return (
     <div dir="rtl" className="pb-24">

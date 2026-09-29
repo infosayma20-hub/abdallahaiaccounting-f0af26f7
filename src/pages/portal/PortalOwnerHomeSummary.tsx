@@ -125,7 +125,7 @@ export default function PortalOwnerHomeSummary({
             width: 8, height: 8, borderRadius: '50%', background: t.positive,
             boxShadow: `0 0 6px ${t.positive}80`, animation: 'pulse 2s infinite',
           }} />
-          مباشر · آخر تحديث {lastUpdate.toLocaleTimeString('ar-PS', { hour: '2-digit', minute: '2-digit' })}
+          مباشر · آخر تحديث {lastUpdate.toLocaleTimeString('ar-PS', { hour12: false, hour: '2-digit', minute: '2-digit'}))}
         </div>
         <button onClick={fetchAll} style={{
           background: t.cardBg, border: `1px solid ${t.cardBorder}`, borderRadius: 10,

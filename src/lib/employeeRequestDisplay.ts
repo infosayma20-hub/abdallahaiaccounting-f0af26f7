@@ -100,7 +100,7 @@ function fmtTime(t?: string | null): string {
   const s = String(t);
   if (/^\d{2}:\d{2}/.test(s)) return s.slice(0, 5);
   try {
-    return new Date(s).toLocaleTimeString("ar-EG", { hour: "2-digit", minute: "2-digit" });
+    return new Date(s).toLocaleTimeString("ar-EG", { hour12: false, hour: "2-digit", minute: "2-digit"}));
   } catch { return s; }
 }
 

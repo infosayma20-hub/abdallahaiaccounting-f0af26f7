@@ -296,7 +296,7 @@ const TenantsMonitoringPanel = () => {
       <div className="flex items-center gap-2 text-[11px] px-1" style={{ color: "var(--sa-text-faint)" }}>
         <Server className="h-3 w-3" />
         البثّ الفوري مفعّل على {health?.realtime_tables?.length ?? 0} جدول
-        {health?.generated_at ? ` • آخر تحديث: ${new Date(health.generated_at).toLocaleTimeString("en-GB")}` : ""}
+        {health?.generated_at ? ` • آخر تحديث: ${new Date(health.generated_at).toLocaleTimeString("en-GB", { hour12: false })}` : ""}
       </div>
     </div>
   );

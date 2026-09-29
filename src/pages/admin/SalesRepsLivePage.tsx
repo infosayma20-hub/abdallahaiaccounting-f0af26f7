@@ -217,7 +217,7 @@ export default function SalesRepsLivePage() {
           <p className="text-sm text-muted-foreground">
             حالة يوم البيع وإجماليات النقد والآجل لكل مندوب
             {lastUpdated && (
-              <span className="mx-2">• آخر تحديث: {lastUpdated.toLocaleTimeString("ar-EG")}</span>
+              <span className="mx-2">• آخر تحديث: {lastUpdated.toLocaleTimeString("ar-EG", { hour12: false })}</span>
             )}
           </p>
         </div>

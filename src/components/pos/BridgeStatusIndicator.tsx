@@ -320,7 +320,7 @@ export default function BridgeStatusIndicator() {
         </div>
         {lastCheck && (
           <div className="px-4 py-2 border-t bg-muted/40 text-[11px] text-muted-foreground text-center">
-            آخر فحص: {lastCheck.toLocaleTimeString("ar-EG", { hour: "2-digit", minute: "2-digit", second: "2-digit" })}
+            آخر فحص: {lastCheck.toLocaleTimeString("ar-EG", { hour12: false, hour: "2-digit", minute: "2-digit", second: "2-digit"}))}
           </div>
         )}
       </PopoverContent>

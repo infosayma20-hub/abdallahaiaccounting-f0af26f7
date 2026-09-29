@@ -215,18 +215,16 @@ export function AttendanceTab({ data }: Props) {
                       <HRTD numeric>{d.attendance_date}</HRTD>
                       <HRTD numeric className="text-muted-foreground">
                         {d.first_check_in
-                          ? new Date(d.first_check_in).toLocaleTimeString("ar", {
+                          ? new Date(d.first_check_in).toLocaleTimeString("ar", { hour12: false,
                               hour: "2-digit",
-                              minute: "2-digit",
-                            })
+                              minute: "2-digit",}))
                           : "—"}
                       </HRTD>
                       <HRTD numeric className="text-muted-foreground">
                         {d.last_check_out
-                          ? new Date(d.last_check_out).toLocaleTimeString("ar", {
+                          ? new Date(d.last_check_out).toLocaleTimeString("ar", { hour12: false,
                               hour: "2-digit",
-                              minute: "2-digit",
-                            })
+                              minute: "2-digit",}))
                           : "—"}
                       </HRTD>
                       <HRTD numeric>

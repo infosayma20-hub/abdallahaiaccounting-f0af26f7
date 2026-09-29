@@ -694,7 +694,7 @@ export function StockoutAlertsBanner({
                     <span className="text-[11px] text-red-800/80 truncate">
                       {a.branch_id ? `الفرع: ${branchMap.get(a.branch_id) || "—"} • ` : ""}
                       {a.raised_by_name ? `${a.raised_by_name} • ` : ""}
-                      {new Date(a.raised_at).toLocaleTimeString("ar-EG", { hour: "2-digit", minute: "2-digit" })}
+                      {new Date(a.raised_at).toLocaleTimeString("ar-EG", { hour12: false, hour: "2-digit", minute: "2-digit"}))}
                       {a.note ? ` • ${a.note}` : ""}
                     </span>
                   </div>
@@ -776,7 +776,7 @@ export function StockoutAlertsBanner({
                   <span className="text-[11px] text-red-800/80 truncate">
                     {a.branch_id ? `الفرع: ${branchMap.get(a.branch_id) || "—"} • ` : ""}
                     {a.raised_by_name ? `${a.raised_by_name} • ` : ""}
-                    {new Date(a.raised_at).toLocaleTimeString("ar-EG", { hour: "2-digit", minute: "2-digit" })}
+                    {new Date(a.raised_at).toLocaleTimeString("ar-EG", { hour12: false, hour: "2-digit", minute: "2-digit"}))}
                     {a.note ? ` • ${a.note}` : ""}
                   </span>
                 </div>

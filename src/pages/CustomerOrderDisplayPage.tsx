@@ -250,7 +250,7 @@ export default function CustomerOrderDisplayPage() {
           {isStale && <span className="text-amber-300 text-base animate-pulse">جارٍ إعادة الاتصال…</span>}
           <ConnectionDot ok={!isStale} />
           <div className="text-white/60 text-xl tabular-nums">
-            {new Date().toLocaleTimeString("ar-PS", { hour: "2-digit", minute: "2-digit" })}
+            {new Date().toLocaleTimeString("ar-PS", { hour12: false, hour: "2-digit", minute: "2-digit"}))}
           </div>
         </div>
       </div>

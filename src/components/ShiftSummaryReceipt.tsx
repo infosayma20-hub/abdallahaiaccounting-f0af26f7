@@ -197,7 +197,7 @@ export default function ShiftSummaryReceipt({ open, onOpenChange, data, cashierM
   };
 
   const formatDate = (iso: string) => new Date(iso).toLocaleDateString("ar-PS", { year: "numeric", month: "2-digit", day: "2-digit" });
-  const formatTime = (iso: string) => new Date(iso).toLocaleTimeString("ar-PS", { hour: "2-digit", minute: "2-digit" });
+  const formatTime = (iso: string) => new Date(iso).toLocaleTimeString("ar-PS", { hour12: false, hour: "2-digit", minute: "2-digit"}));
 
   const rowStyle = { display: "flex", justifyContent: "space-between", padding: "3px 0", fontSize: 13, color: "#000", fontWeight: 700 } as const;
   const amountStyle = { fontWeight: 800 as const, fontVariantNumeric: "tabular-nums" as const };
