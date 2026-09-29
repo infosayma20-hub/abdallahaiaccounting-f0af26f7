@@ -431,6 +431,45 @@ export type Database = {
         }
         Relationships: []
       }
+      account_merge_log: {
+        Row: {
+          batch: string
+          created_at: string
+          id: number
+          old_account_code: string | null
+          old_cost_center_id: string | null
+          old_cost_center_name: string | null
+          old_credit_account_code: string | null
+          old_debit_account_code: string | null
+          row_id: string
+          table_name: string
+        }
+        Insert: {
+          batch: string
+          created_at?: string
+          id?: number
+          old_account_code?: string | null
+          old_cost_center_id?: string | null
+          old_cost_center_name?: string | null
+          old_credit_account_code?: string | null
+          old_debit_account_code?: string | null
+          row_id: string
+          table_name: string
+        }
+        Update: {
+          batch?: string
+          created_at?: string
+          id?: number
+          old_account_code?: string | null
+          old_cost_center_id?: string | null
+          old_cost_center_name?: string | null
+          old_credit_account_code?: string | null
+          old_debit_account_code?: string | null
+          row_id?: string
+          table_name?: string
+        }
+        Relationships: []
+      }
       account_system_roles_v1: {
         Row: {
           account_id: string
