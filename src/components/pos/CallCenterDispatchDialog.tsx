@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Send, MapPin, Phone, User, Truck, ShoppingBag, CreditCard, Banknote, StickyNote, AlertCircle, CheckCircle2, Wifi, WifiOff, Utensils } from "lucide-react";
+import { Send, MapPin, Phone, User, Truck, ShoppingBag, CreditCard, Banknote, StickyNote, AlertCircle, CheckCircle2, Wifi, WifiOff, Utensils, Receipt } from "lucide-react";
 import DeliveryZonePicker, { DeliveryInfo } from "./DeliveryZonePicker";
 
 interface CartItem {
@@ -54,6 +54,8 @@ interface Props {
    * الافتراضي "طلب طاولة" ورقم الطاولة إلزامي، بينما اسم/جوال الزبون اختياري.
    */
   isWaiter?: boolean;
+  /** يسمح للموظف باختيار "آجل" (صاحب الحساب/مدير أو صلاحية البيع الآجل). */
+  canSellOnCredit?: boolean;
 }
 
 interface Branch {
@@ -139,7 +141,7 @@ function clearDispatchDraft(key: string | null) {
 type PaymentOption = {
   code: string;
   label: string;
-  icon: "cash" | "visa";
+  icon: "cash" | "visa" | "credit";
   color: string;
   gl_note?: string;
 };
@@ -149,7 +151,7 @@ const CallCenterDispatchDialog = ({
   customerName, customerPhone, deliveryAddress, orderNote, onSuccess,
   editingOrderId, editingBranchId, editingBranchName, editingPaymentMethod, editingSourceApp,
   editingDeliveryInfo, editingDeliveryFee, editingVisaGlAccountCode, editingSkipWheelsDispatch,
-  draftKey, isWaiter = false,
+  draftKey, isWaiter = false, canSellOnCredit = false,
 }: Props) => {
   const [branches, setBranches] = useState<Branch[]>([]);
   const [deliveryApps, setDeliveryApps] = useState<DeliveryApp[]>([]);
@@ -468,6 +470,10 @@ const CallCenterDispatchDialog = ({
   const paymentOptions: PaymentOption[] = [
     { code: "cash", label: "نقدي", icon: "cash", color: "bg-green-500 border-green-500 text-white" },
     { code: "visa", label: "فيزا", icon: "visa", color: "bg-purple-500 border-purple-500 text-white" },
+    // آجل: يُسجَّل على ذمة الزبون (1130) عند إتمام البيع في الفرع — يتطلب صلاحية البيع الآجل.
+    ...((canSellOnCredit || paymentMethod === "credit")
+      ? [{ code: "credit", label: "آجل (ذمم)", icon: "credit" as const, color: "bg-orange-600 border-orange-600 text-white" }]
+      : []),
     ...deliveryApps
       .filter(app => app.visa_gl_account_code)
       .map(app => ({
@@ -490,6 +496,12 @@ const CallCenterDispatchDialog = ({
     if (deliveryType === "delivery" && !deliveryInfo) newErrors.zone = true;
     if (deliveryType === "dine_in" && !tableLabel.trim()) newErrors.table = true;
     if (!paymentMethod) newErrors.payment = true;
+    if (paymentMethod === "credit") {
+      if (!canSellOnCredit) newErrors.payment = true;
+      // الآجل يحتاج زبون حقيقي (اسم + جوال) ليُربط بحساب ذمته.
+      if (!name.trim()) newErrors.name = true;
+      if (!phone.trim()) newErrors.phone = true;
+    }
     if (!sourceApp) newErrors.source = true;
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -564,15 +576,20 @@ const CallCenterDispatchDialog = ({
       // by name or phone. Upsert-by-phone within the same data owner.
       const trimmedName = name.trim();
       const trimmedPhone = phone.trim();
+      let customerContactId: string | null = null;
       if (trimmedPhone && dataOwnerId) {
         try {
-          const { data: existing } = await supabase
+          // limit(1) بدل maybeSingle: لو في رقم مكرر ما نفشل وننشئ نسخة ثالثة.
+          const { data: existingRows } = await supabase
             .from("contacts")
             .select("id, contact_name, address")
             .eq("user_id", dataOwnerId)
             .eq("phone", trimmedPhone)
-            .maybeSingle();
+            .order("created_at", { ascending: true })
+            .limit(1);
+          const existing = (existingRows as any[] | null)?.[0] || null;
           if (existing?.id) {
+            customerContactId = existing.id;
             const updates: any = {};
             if (!existing.contact_name && trimmedName) updates.contact_name = trimmedName;
             if (!existing.address && deliveryType === "delivery" && address.trim()) {
@@ -582,7 +599,7 @@ const CallCenterDispatchDialog = ({
               await supabase.from("contacts").update(updates).eq("id", existing.id);
             }
           } else if (trimmedName) {
-            await supabase.from("contacts").insert({
+            const { data: createdContact } = await supabase.from("contacts").insert({
               user_id: dataOwnerId,
               contact_name: trimmedName,
               contact_type: "عميل",
@@ -591,11 +608,18 @@ const CallCenterDispatchDialog = ({
               source: "call_center",
               created_from_order: true,
               is_active: true,
-            } as any);
+            } as any).select("id").single();
+            customerContactId = (createdContact as any)?.id || null;
           }
         } catch (contactErr) {
           console.warn("[CallCenter] contact upsert failed (non-blocking):", contactErr);
         }
+      }
+      // الآجل لازم يرتبط بزبون حقيقي حتى تنزل الفاتورة على ذمته بكشف الحساب.
+      if (paymentMethod === "credit" && !customerContactId) {
+        toast.error("تعذّر ربط الزبون — لا يمكن إرسال طلب آجل بدون زبون مسجل");
+        setSending(false);
+        return;
       }
 
       const payload = {
@@ -609,7 +633,8 @@ const CallCenterDispatchDialog = ({
             : deliveryType === "dine_in"
               ? `طاولة: ${tableLabel.trim()}`
               : null,
-        payment_method: paymentMethod.startsWith("visa") ? "visa" : "cash",
+        payment_method: paymentMethod.startsWith("visa") ? "visa" : paymentMethod === "credit" ? "credit" : "cash",
+        customer_contact_id: paymentMethod === "credit" ? customerContactId : null,
         // Persist the explicit GL account chosen by the agent (e.g. Yummy /
         // FoodOnTime / Wheels visa). This becomes the single source of truth
         // for downstream POS posting — independent of source_app name match.
@@ -654,6 +679,15 @@ const CallCenterDispatchDialog = ({
       let orderId: string | null = null;
 
       if (editingOrderId) {
+        // الآجل: اربط الزبون أولاً حتى يمر فحص قاعدة البيانات لما تتحول الطريقة لآجل.
+        if (paymentMethod === "credit") {
+          const { error: linkErr } = await supabase
+            .from("call_center_orders" as any)
+            .update({ customer_contact_id: customerContactId } as any)
+            .eq("id", editingOrderId)
+            .eq("status", "pending");
+          if (linkErr) throw linkErr;
+        }
         // EDIT MODE: atomic RPC — updates same row only if still pending
         // and the edit lock is still owned by this user. The branch cannot
         // see / accept this order while the lock is held.
@@ -1023,7 +1057,7 @@ const CallCenterDispatchDialog = ({
                       : "bg-muted/30 border-border hover:border-primary/30"
                   }`}
                 >
-                  {opt.icon === "cash" ? <Banknote className="h-4 w-4" /> : <CreditCard className="h-4 w-4" />}
+                  {opt.icon === "cash" ? <Banknote className="h-4 w-4" /> : opt.icon === "credit" ? <Receipt className="h-4 w-4" /> : <CreditCard className="h-4 w-4" />}
                   {opt.label}
                 </button>
               ))}

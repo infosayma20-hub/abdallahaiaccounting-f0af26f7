@@ -123,7 +123,7 @@ const CallCenterReportsPage = () => {
     const map: Record<string, { count: number; total: number }> = {};
     orders.forEach(o => {
       const pm = o.payment_method || "cash";
-      const label = pm === "cash" ? "نقدي" : pm === "visa" ? "فيزا" : pm.replace("visa_", "فيزا ").replace(/_/g, " ");
+      const label = pm === "cash" ? "نقدي" : pm === "visa" ? "فيزا" : pm === "credit" ? "آجل" : pm.replace("visa_", "فيزا ").replace(/_/g, " ");
       if (!map[label]) map[label] = { count: 0, total: 0 };
       map[label].count++;
       map[label].total += o.total || 0;
@@ -223,7 +223,7 @@ const CallCenterReportsPage = () => {
                           </Badge>
                         </td>
                         <td className="p-3 text-xs">
-                          {order.payment_method === "cash" ? "نقدي" : order.payment_method === "visa" ? "فيزا" : order.payment_method.replace("visa_", "فيزا ").replace(/_/g, " ")}
+                          {order.payment_method === "cash" ? "نقدي" : order.payment_method === "visa" ? "فيزا" : order.payment_method === "credit" ? "آجل" : order.payment_method.replace("visa_", "فيزا ").replace(/_/g, " ")}
                         </td>
                         <td className="p-3 font-bold font-mono text-xs">{fmt(order.total)}</td>
                         <td className="p-3">

@@ -861,9 +861,10 @@ const POSPage = () => {
   // accounting (card vs cash sales) matches what the agent recorded. We expose
   // it as a derived flag + sync `paymentMethod` whenever the active tab
   // changes to a locked order.
-  const ccLockedMethod: "cash" | "card" | null = (() => {
+  const ccLockedMethod: "cash" | "card" | "credit" | null = (() => {
     const m = activeOrder?.callCenterPaymentMethod;
     if (!m) return null;
+    if (m === "credit") return "credit";
     return m === "cash" ? "cash" : "card";
   })();
   const isPaymentLockedByCC = ccLockedMethod !== null;
@@ -4313,16 +4314,21 @@ const POSPage = () => {
     const ccVisaGl = activeOrder.callCenterVisaGlAccountCode || null;
 
     // Map call center payment to POS payment method
-    let posPayMethod = ccPayment === "cash" ? "cash" : "card";
+    // "credit" (آجل) يبقى آجل — الزبون مربوط بالطلبية (customerId) فتنزل على ذمته.
+    let posPayMethod = ccPayment === "cash" ? "cash" : ccPayment === "credit" ? "credit" : "card";
+    if (ccPayment === "credit" && !activeOrder.customerId) {
+      toast.error("طلب آجل بدون زبون مربوط — افتح شاشة الدفع واختر الزبون");
+      return;
+    }
 
     // PRIMARY: the agent's explicit visa-variant choice is stored on the
     // order itself — use it directly, no name matching needed.
-    if (ccPayment !== "cash" && ccVisaGl) {
+    if (ccPayment === "visa" && ccVisaGl) {
       posPayMethod = `card:${ccVisaGl}`;
     }
     // FALLBACK: legacy orders saved before visa_gl_account_code existed —
     // try to infer from source_app name matching the delivery_apps catalog.
-    else if (ccPayment !== "cash" && sourceApp && dataOwnerId) {
+    else if (ccPayment === "visa" && sourceApp && dataOwnerId) {
       const { data: appMatch } = await supabase
         .from("delivery_apps" as any)
         .select("visa_gl_account_code, name")
@@ -6379,6 +6385,7 @@ const POSPage = () => {
     newOrder.deliveryAddress = order.delivery_address || "";
     newOrder.callCenterOrderId = order.id;
     newOrder.callCenterPaymentMethod = order.payment_method || "cash";
+    if ((order as any).customer_contact_id) newOrder.customerId = (order as any).customer_contact_id;
     newOrder.callCenterSourceApp = order.source_app || null;
     newOrder.callCenterVisaGlAccountCode = (order as any).visa_gl_account_code || null;
     newOrder.callCenterSkipWheelsDispatch = !!(order as any).skip_wheels_dispatch;
@@ -7531,6 +7538,7 @@ const POSPage = () => {
               newOrder.deliveryAddress = order.delivery_address || "";
               newOrder.callCenterOrderId = order.id;
               newOrder.callCenterPaymentMethod = order.payment_method || "cash";
+              if ((order as any).customer_contact_id) newOrder.customerId = (order as any).customer_contact_id;
               newOrder.callCenterSourceApp = order.source_app || null;
               newOrder.callCenterVisaGlAccountCode = (order as any).visa_gl_account_code || null;
               newOrder.callCenterSkipWheelsDispatch = !!(order as any).skip_wheels_dispatch;
@@ -9314,7 +9322,7 @@ const POSPage = () => {
                 <span className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: '#605E5C', letterSpacing: '0.06em' }}>Tender type · نوع الدفع</span>
                 {isPaymentLockedByCC && (
                   <span className="text-[10px] font-semibold px-2 py-0.5 rounded" style={{ background: '#FFF4CE', color: '#8A6100', border: '1px solid #F2C811' }}>
-                    محددة من الكول سنتر · {ccLockedMethod === 'card' ? 'بطاقة' : 'نقد'}
+                    محددة من الكول سنتر · {ccLockedMethod === 'card' ? 'بطاقة' : ccLockedMethod === 'credit' ? 'آجل' : 'نقد'}
                   </span>
                 )}
               </div>
@@ -9329,7 +9337,7 @@ const POSPage = () => {
                   { key: "employee_account", label: "حساب موظف", icon: UserCheck, selColor: "#5C2D91", selBg: "#E9D8FD" },
                   { key: "__split", label: "دفع مختلط", icon: Split, selColor: "#5C2D91", selBg: "#EFE5FB" },
                 ] as const).filter(m => {
-                  if ((m as any).requiresPerm && !isAdmin && !posPerms.allow_credit_sale) return false;
+                  if ((m as any).requiresPerm && !isAdmin && !posPerms.allow_credit_sale && ccLockedMethod !== "credit") return false;
                   if ((m as any).requiresLoyalty && !loyaltyEnabled) return false;
                   return true;
                 }).map((m) => {
@@ -10849,6 +10857,7 @@ const POSPage = () => {
         editingSkipWheelsDispatch={activeOrder.isEditingDispatch ? (activeOrder.callCenterSkipWheelsDispatch || false) : null}
         draftKey={activeOrder.id}
         isWaiter={isWaiterUser}
+        canSellOnCredit={isAdmin || !!posPerms.allow_credit_sale}
         onSuccess={() => {
           // Clear cart after successful dispatch
           setCart([]); setSelectedCartIndex(null); setOrderDiscount(0); setManagerDiscountMeta(null); setOrderNote("");
@@ -10904,6 +10913,7 @@ const POSPage = () => {
           newOrder.orderNote = extractBaseNote(order.order_note);
           newOrder.callCenterOrderId = order.id;
           newOrder.callCenterPaymentMethod = order.payment_method || "cash";
+          if ((order as any).customer_contact_id) newOrder.customerId = (order as any).customer_contact_id;
           newOrder.callCenterSourceApp = order.source_app || null;
           newOrder.callCenterVisaGlAccountCode = (order as any).visa_gl_account_code || null;
           newOrder.callCenterSkipWheelsDispatch = !!(order as any).skip_wheels_dispatch;
