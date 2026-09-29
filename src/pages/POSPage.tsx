@@ -164,6 +164,8 @@ interface OrderTab {
   savedOrderId: string | null;
   callCenterOrderId?: string | null;
   callCenterPaymentMethod?: string | null;
+  /** زبون الذمة المحدد من الكول سنتر لطلبات الآجل — مقفول عند الكاشير. */
+  callCenterCustomerContactId?: string | null;
   callCenterSourceApp?: string | null;
   /** Specific visa GL account code the call-center agent picked at dispatch
    *  time (e.g. Yummy / FoodOnTime / Wheels visa). Source of truth — overrides
@@ -4677,6 +4679,24 @@ const POSPage = () => {
     }
     // Handle "card:GLCODE" format from delivery app visa accounts
     let effectivePaymentMethod = overridePaymentMethod || paymentMethod;
+    // 🔒 طلب كول سنتر: طريقة الدفع يحددها الكول سنتر فقط — الكاشير ما بيقدر يغيرها.
+    // (قاعدة البيانات كمان بترفض أي دفعة مخالفة — هذا خط الدفاع الأول.)
+    if (ccLockedFullMethod) {
+      if (splitMode && splitTenders.length > 1) {
+        toast.error("طريقة الدفع محددة من الكول سنتر — الدفع المختلط غير مسموح");
+        completingOrderRef.current = false;
+        return;
+      }
+      effectivePaymentMethod = ccLockedFullMethod;
+      if (ccLockedMethod === "credit") {
+        const ccContact = activeOrder.callCenterCustomerContactId || null;
+        if (!ccContact || activeOrder.customerId !== ccContact) {
+          toast.error("طلب آجل من الكول سنتر — لازم يُسجَّل على نفس الزبون المحدد");
+          completingOrderRef.current = false;
+          return;
+        }
+      }
+    }
     let visaGlAccountCode: string | null = null;
     if (effectivePaymentMethod.startsWith("card:")) {
       visaGlAccountCode = effectivePaymentMethod.split(":")[1];
@@ -5174,13 +5194,15 @@ const POSPage = () => {
         // adding 100-400ms to every call-center order before the heavy
         // `complete_pos_order` RPC. Failure is harmless: the order is still
         // saved and posted, only the back-link is missing (recoverable).
-        supabase
-          .from("call_center_orders" as any)
-          .update({ pos_order_id: orderId } as any)
-          .eq("id", activeOrder.callCenterOrderId)
-          .then(({ error }) => {
-            if (error) console.warn("[POS] link call-center order failed:", error);
-          });
+        // الربط لازم يتم قبل تسجيل الدفعة حتى قاعدة البيانات تتحقق من
+        // تطابق طريقة الدفع مع اختيار الكول سنتر (وخصوصاً الآجل).
+        {
+          const { error: linkErr } = await supabase
+            .from("call_center_orders" as any)
+            .update({ pos_order_id: orderId } as any)
+            .eq("id", activeOrder.callCenterOrderId);
+          if (linkErr) console.warn("[POS] link call-center order failed:", linkErr);
+        }
 
         // 💵 Consume any deposit (دفع مسبق) taken earlier for this scheduled
         // order. The invoice is rung up for the FULL amount, but the cashier
@@ -6385,6 +6407,7 @@ const POSPage = () => {
     newOrder.deliveryAddress = order.delivery_address || "";
     newOrder.callCenterOrderId = order.id;
     newOrder.callCenterPaymentMethod = order.payment_method || "cash";
+    newOrder.callCenterCustomerContactId = (order as any).customer_contact_id || null;
     if ((order as any).customer_contact_id) newOrder.customerId = (order as any).customer_contact_id;
     newOrder.callCenterSourceApp = order.source_app || null;
     newOrder.callCenterVisaGlAccountCode = (order as any).visa_gl_account_code || null;
@@ -7538,7 +7561,8 @@ const POSPage = () => {
               newOrder.deliveryAddress = order.delivery_address || "";
               newOrder.callCenterOrderId = order.id;
               newOrder.callCenterPaymentMethod = order.payment_method || "cash";
-              if ((order as any).customer_contact_id) newOrder.customerId = (order as any).customer_contact_id;
+              newOrder.callCenterCustomerContactId = (order as any).customer_contact_id || null;
+    if ((order as any).customer_contact_id) newOrder.customerId = (order as any).customer_contact_id;
               newOrder.callCenterSourceApp = order.source_app || null;
               newOrder.callCenterVisaGlAccountCode = (order as any).visa_gl_account_code || null;
               newOrder.callCenterSkipWheelsDispatch = !!(order as any).skip_wheels_dispatch;
@@ -9704,9 +9728,11 @@ const POSPage = () => {
                   <div className="relative">
                     <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 pointer-events-none" style={{ color: '#9ca3af' }} />
                     <input
-                      value={customerSearch || customerName}
-                      onChange={(e) => { setCustomerSearch(e.target.value); setCustomerName(e.target.value, null); setShowContactDropdown(true); }}
-                      onFocus={() => setShowContactDropdown(true)}
+                      value={ccLockedMethod === "credit" ? customerName : (customerSearch || customerName)}
+                      readOnly={ccLockedMethod === "credit"}
+                      title={ccLockedMethod === "credit" ? "الزبون محدد من الكول سنتر" : undefined}
+                      onChange={(e) => { if (ccLockedMethod === "credit") return; setCustomerSearch(e.target.value); setCustomerName(e.target.value, null); setShowContactDropdown(true); }}
+                      onFocus={() => { if (ccLockedMethod !== "credit") setShowContactDropdown(true); }}
                       placeholder="ابحث عن زبون أو مورد..."
                       autoFocus
                       className="w-full h-11 pr-10 text-sm focus:outline-none"
@@ -10873,6 +10899,7 @@ const POSPage = () => {
             callCenterBranchId: null,
             callCenterBranchName: null,
             callCenterPaymentMethod: null,
+            callCenterCustomerContactId: null,
             callCenterSourceApp: null,
             callCenterVisaGlAccountCode: null,
             callCenterSkipWheelsDispatch: false,
@@ -10913,7 +10940,8 @@ const POSPage = () => {
           newOrder.orderNote = extractBaseNote(order.order_note);
           newOrder.callCenterOrderId = order.id;
           newOrder.callCenterPaymentMethod = order.payment_method || "cash";
-          if ((order as any).customer_contact_id) newOrder.customerId = (order as any).customer_contact_id;
+          newOrder.callCenterCustomerContactId = (order as any).customer_contact_id || null;
+    if ((order as any).customer_contact_id) newOrder.customerId = (order as any).customer_contact_id;
           newOrder.callCenterSourceApp = order.source_app || null;
           newOrder.callCenterVisaGlAccountCode = (order as any).visa_gl_account_code || null;
           newOrder.callCenterSkipWheelsDispatch = !!(order as any).skip_wheels_dispatch;
