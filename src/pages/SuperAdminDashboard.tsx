@@ -20,7 +20,7 @@ import TenantsMonitoringPanel from "@/components/super-admin/TenantsMonitoringPa
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { BRAND } from "@/constants/brand";
+import unifyLogoWhite from "@/assets/unify/unify-logo-horizontal-white.png";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
@@ -2342,7 +2342,7 @@ export default function SuperAdminDashboard() {
       {/* Header — Dynamics 365 Finance shell */}
       <header className="sticky top-0 z-50" style={{ background: "#0D1B2E", height: 48 }}>
         <div className="h-full px-3 sm:px-4 flex items-center gap-3">
-          <img src={BRAND.logos.dark} alt="يونيفاي" className="h-6 sm:h-7 w-auto object-contain" />
+          <img src={unifyLogoWhite} alt="UNIFY" className="h-8 w-auto object-contain" />
           <span className="h-5 w-px" style={{ background: "rgba(255,255,255,0.25)" }} />
           <span className="text-[13px] font-semibold" style={{ color: "#FFFFFF" }}>إدارة المنصة</span>
           <span className="px-2 py-0.5 rounded text-[10px] font-semibold" style={{ background: "rgba(255,255,255,0.12)", color: "#FFFFFF" }}>Super Admin</span>
