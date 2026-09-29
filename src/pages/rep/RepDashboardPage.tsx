@@ -286,7 +286,7 @@ export default function RepDashboardPage() {
                   {dayName}، {opened.toLocaleDateString("en-GB", { day: "2-digit", month: "2-digit", year: "numeric" })}
                 </div>
                 <div className="text-[11px] text-muted-foreground/80">
-                  بدأت الساعة {opened.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", hour12: true })}
+                  بدأت الساعة {opened.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", hour12: false })}
                 </div>
                 <div className="text-[11px] font-medium text-foreground/80 mt-1">⏱ {durationStr}</div>
               </>

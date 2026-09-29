@@ -97,7 +97,7 @@ const formatTime = (iso?: string | null) => {
   if (!iso) return "—";
   try {
     const d = new Date(iso);
-    return d.toLocaleTimeString("ar", { hour: "2-digit", minute: "2-digit", hour12: true });
+    return d.toLocaleTimeString("ar", { hour: "2-digit", minute: "2-digit", hour12: false });
   } catch {
     return "—";
   }

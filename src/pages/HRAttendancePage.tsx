@@ -2634,7 +2634,7 @@ export default function HRAttendancePage() {
                     <Badge variant="outline" className={e.event_type === "check_in" ? "bg-emerald-50 text-emerald-700" : "bg-red-50 text-red-700"}>
                       {e.event_type === "check_in" ? "دخول" : "خروج"}
                     </Badge>
-                    <span className="font-mono text-sm">{format(new Date(e.event_time), "HH:mm:ss a")}</span>
+                    <span className="font-mono text-sm">{format(new Date(e.event_time), "HH:mm:ss")}</span>
                     {e.has_selfie ? (
                       <Badge variant="outline" className="bg-blue-50 text-blue-700 gap-1">
                         <Camera className="h-3 w-3" /> سيلفي مرفق
