@@ -120,7 +120,7 @@ export default function ProductionSubStages({ orderId, orderTable, onUpdate }: P
         const isActive = idx === activeStageIndex;
         const log = subLogs.find(l => l.sub_stage === stage && l.metadata?.completed);
         const dateStr = log ? new Date(log.changed_at).toLocaleDateString("ar-EG", { day: "2-digit", month: "2-digit" }) : "—";
-        const timeStr = log ? new Date(log.changed_at).toLocaleTimeString("ar-EG", { hour: "2-digit", minute: "2-digit" }) : "";
+        const timeStr = log ? new Date(log.changed_at).toLocaleTimeString("ar-EG", { hour12: false, hour: "2-digit", minute: "2-digit"}) : "";
 
         return (
           <div key={stage} style={{

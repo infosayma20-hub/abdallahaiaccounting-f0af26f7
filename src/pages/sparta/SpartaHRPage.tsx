@@ -134,8 +134,8 @@ export default function SpartaHRPage() {
                 {atts.slice(0,200).map(a=>(
                   <tr key={a.id} className="border-t">
                     <td className="p-3">{a.date}</td><td className="p-3">{empName(a.employee_id)}</td>
-                    <td className="p-3 text-xs">{a.check_in?new Date(a.check_in).toLocaleTimeString("ar"):""}</td>
-                    <td className="p-3 text-xs">{a.check_out?new Date(a.check_out).toLocaleTimeString("ar"):""}</td>
+                    <td className="p-3 text-xs">{a.check_in?new Date(a.check_in).toLocaleTimeString("ar", { hour12: false }):""}</td>
+                    <td className="p-3 text-xs">{a.check_out?new Date(a.check_out).toLocaleTimeString("ar", { hour12: false }):""}</td>
                     <td className="p-3">{a.work_hours||0}</td>
                     <td className="p-3"><Badge variant="outline">{a.status}</Badge></td>
                   </tr>

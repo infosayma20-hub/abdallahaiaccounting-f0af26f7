@@ -69,7 +69,7 @@ const ReceiptTemplate = forwardRef<HTMLDivElement, Props>(({
   }
   const now = displayDate ?? new Date();
   const dateStr = now.toLocaleDateString('en-GB');
-  const timeStr = now.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+  const timeStr = now.toLocaleTimeString('en-GB', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit'});
 
   // Strip leading zeros so "000005" → "5", "POS-20260602-0005" → "5".
   const qNumRaw = order.queueNumber || order.orderNumber || '---';

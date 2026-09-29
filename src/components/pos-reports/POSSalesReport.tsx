@@ -240,7 +240,7 @@ const POSSalesReport = ({ dailySales, orders = [], sessions = [], branches = [],
                                     {order.order_number || "—"}
                                   </td>
                                   <td className="px-4 py-2.5 text-right text-xs text-muted-foreground">
-                                    {format(new Date(order.created_at), "hh:mm a")}
+                                    {format(new Date(order.created_at), "HH:mm")}
                                   </td>
                                   <td className="px-4 py-2.5 text-right text-xs text-muted-foreground">
                                     {order.customer_name || "—"}

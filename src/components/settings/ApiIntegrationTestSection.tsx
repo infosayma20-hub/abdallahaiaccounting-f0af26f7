@@ -260,7 +260,7 @@ const ApiIntegrationTestSection = () => {
               <div className="flex items-center gap-2 text-xs font-bold">
                 <FlaskConical className="h-3.5 w-3.5" />
                 نتائج الفحص
-                {ranAt && <span className="text-muted-foreground font-normal">({ranAt.toLocaleTimeString("ar-PS")})</span>}
+                {ranAt && <span className="text-muted-foreground font-normal">({ranAt.toLocaleTimeString("ar-PS", { hour12: false })})</span>}
               </div>
               {running === null && (
                 <div className="flex gap-1.5">

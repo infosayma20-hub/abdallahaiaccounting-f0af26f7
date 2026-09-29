@@ -42,7 +42,7 @@ function dayLabel(iso: string) {
 }
 
 function timeLabel(iso: string) {
-  return new Date(iso).toLocaleTimeString("ar-EG", { hour: "2-digit", minute: "2-digit" });
+  return new Date(iso).toLocaleTimeString("ar-EG", { hour12: false, hour: "2-digit", minute: "2-digit"});
 }
 
 export default function ChatThreadView({ threadId, side, title, subtitle, className, emptyHint, readOnly, readOnlyHint }: Props) {

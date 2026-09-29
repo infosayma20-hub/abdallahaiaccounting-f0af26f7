@@ -300,7 +300,7 @@ const CustomerDetailDrawer = ({ open, onOpenChange, dataOwnerId, customer }: Pro
                         </td>
                         <td className="px-3 py-2 text-right text-xs text-muted-foreground">
                           {new Date(o.created_at).toLocaleDateString("en-GB")}{" "}
-                          {new Date(o.created_at).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })}
+                          {new Date(o.created_at).toLocaleTimeString("en-GB", { hour12: false, hour: "2-digit", minute: "2-digit"})}
                         </td>
                         <td className="px-3 py-2 text-center text-xs text-muted-foreground">{o.status || "—"}</td>
                         <td className="px-3 py-2 text-left font-mono font-semibold">₪{(Number(o.total) || 0).toLocaleString()}</td>
@@ -323,7 +323,7 @@ const CustomerDetailDrawer = ({ open, onOpenChange, dataOwnerId, customer }: Pro
                 <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
                   <span>
                     {new Date(selectedOrder.created_at).toLocaleDateString("en-GB")}{" "}
-                    {new Date(selectedOrder.created_at).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })}
+                    {new Date(selectedOrder.created_at).toLocaleTimeString("en-GB", { hour12: false, hour: "2-digit", minute: "2-digit"})}
                   </span>
                   <span>المصدر: {selectedOrder.source === "pos" ? "كاشير" : "كول سنتر"}</span>
                   {selectedOrder.status && <span>الحالة: {selectedOrder.status}</span>}

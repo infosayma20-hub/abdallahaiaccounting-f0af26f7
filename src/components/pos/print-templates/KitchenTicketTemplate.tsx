@@ -28,7 +28,7 @@ const KitchenTicketTemplate = forwardRef<HTMLDivElement, Props>(({ order, items,
 
   // Time string — HH:MM (24h, large for kitchen visibility)
   const now = new Date();
-  const timeStr = now.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+  const timeStr = now.toLocaleTimeString('en-GB', { hour12: false, hour: '2-digit', minute: '2-digit'});
   const dateStr = now.toLocaleDateString('en-GB');
 
   // Normalize orderType

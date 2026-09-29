@@ -110,7 +110,7 @@ const monthStart = () => {
   return `${y}-${m}-01`;
 };
 
-const fmtTime = (v?: string | null) => v ? new Date(v).toLocaleTimeString("ar", { hour: "2-digit", minute: "2-digit" }) : "—";
+const fmtTime = (v?: string | null) => v ? new Date(v).toLocaleTimeString("ar", { hour12: false, hour: "2-digit", minute: "2-digit"}) : "—";
 const isPending = (s?: string | null) => ["pending", "قيد المراجعة", "معلقة"].includes(String(s || ""));
 const presentStatuses = ["present", "حاضر", "complete", "مكتمل"];
 const lateStatuses = ["late", "متأخر"];

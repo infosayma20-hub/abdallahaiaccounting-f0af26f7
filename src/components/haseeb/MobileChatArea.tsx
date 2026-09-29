@@ -462,7 +462,7 @@ const MobileChatArea = ({ user, userName, data, cfoMode, onCheque, onJournal, on
                     <AIMessageRenderer content={msg.content} />
                   )}
                   <p className="text-[10px] mt-1.5" style={{ color: msg.role === "user" ? "rgba(255,255,255,0.4)" : "hsl(var(--muted-foreground))" }}>
-                    {msg.timestamp.toLocaleTimeString("ar", { hour: "2-digit", minute: "2-digit" })}
+                    {msg.timestamp.toLocaleTimeString("ar", { hour12: false, hour: "2-digit", minute: "2-digit"})}
                   </p>
                 </div>
                 {msg.role === "assistant" && (

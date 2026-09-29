@@ -250,7 +250,7 @@ export default function ManagerCallResults({ branches }: ManagerCallResultsProps
         day: "2-digit",
         hour: "2-digit",
         minute: "2-digit",
-        hour12: true,
+        hour12: false,
         timeZone: "Asia/Jerusalem",
         numberingSystem: "arab",
       }).format(d);

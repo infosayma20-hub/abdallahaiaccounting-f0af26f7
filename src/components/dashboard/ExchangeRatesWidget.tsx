@@ -207,7 +207,7 @@ export default function ExchangeRatesWidget() {
       });
 
       setRates(result);
-      setLastUpdated(new Date().toLocaleTimeString("ar-PS", { hour: "2-digit", minute: "2-digit" }));
+      setLastUpdated(new Date().toLocaleTimeString("ar-PS", { hour12: false, hour: "2-digit", minute: "2-digit"}));
 
       // Cache
       localStorage.setItem(CACHE_KEY, JSON.stringify({ rates: result, timestamp: Date.now() }));
@@ -243,7 +243,7 @@ export default function ExchangeRatesWidget() {
         const { rates: cachedRates, timestamp } = JSON.parse(cached);
         if (Date.now() - timestamp < CACHE_MAX_AGE) {
           setRates(cachedRates);
-          setLastUpdated(new Date(timestamp).toLocaleTimeString("ar-PS", { hour: "2-digit", minute: "2-digit" }));
+          setLastUpdated(new Date(timestamp).toLocaleTimeString("ar-PS", { hour12: false, hour: "2-digit", minute: "2-digit"}));
           setLoading(false);
           return;
         }

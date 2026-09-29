@@ -203,7 +203,7 @@ export default function EmployeeAttendanceTab({ employeeId, leaveProfile }: Prop
 
   const fmtT = (iso: string) =>
     new Date(iso).toLocaleTimeString("en-GB", {
-      hour: "2-digit", minute: "2-digit", hour12: true, timeZone: "Asia/Hebron",
+      hour: "2-digit", minute: "2-digit", hour12: false, timeZone: "Asia/Hebron",
     });
   const fmtDur = (ms: number) => {
     const mins = Math.round(ms / 60000);

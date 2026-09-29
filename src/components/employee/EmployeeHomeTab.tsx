@@ -548,11 +548,11 @@ export default function EmployeeHomeTab({ employeeName, todayRecord, todayEvents
                     </div>
                     <div className="flex flex-col leading-tight">
                       <span className="font-medium tabular-nums text-foreground">
-                        دخول {format(new Date(s.checkIn), "hh:mm a")}
+                        دخول {format(new Date(s.checkIn), "HH:mm")}
                       </span>
                       {s.checkOut ? (
                         <span className="font-medium tabular-nums text-foreground">
-                          خروج {format(new Date(s.checkOut), "hh:mm a")}
+                          خروج {format(new Date(s.checkOut), "HH:mm")}
                         </span>
                       ) : (
                         <span className="text-emerald-500 text-[10px] font-semibold">

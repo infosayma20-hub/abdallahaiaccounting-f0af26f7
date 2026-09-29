@@ -44,12 +44,12 @@ export function formatHrDate(
   return formatHrTime(iso, "yyyy-MM-dd", tz);
 }
 
-/** 12-hour clock with AM/PM in Arabic-friendly form, e.g. "02:35 م". */
+/** ساعة 24 ساعة بدون AM/PM، مثال "14:35". */
 export function formatHrTime12(
   iso: string | Date | null | undefined,
   tz: string = COMPANY_TIMEZONE,
 ): string {
-  return formatHrTime(iso, "hh:mm a", tz);
+  return formatHrTime(iso, "HH:mm", tz);
 }
 
 /**

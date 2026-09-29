@@ -123,7 +123,7 @@ export default function TeamAttendanceTab({ branchId, branchName, onBack }: { br
     exceeded: rows.filter(r => r.departures.exceeded).length,
   };
 
-  const fmt = (t: string | null) => t ? new Date(t).toLocaleTimeString("en", { hour: "2-digit", minute: "2-digit" }) : "—";
+  const fmt = (t: string | null) => t ? new Date(t).toLocaleTimeString("en", { hour12: false, hour: "2-digit", minute: "2-digit"}) : "—";
 
   return (
     <div dir="rtl" className="pb-24">

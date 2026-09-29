@@ -114,7 +114,7 @@ export function bucketEventsByBusinessDay(
 function fmtTime(t?: string | null): string {
   if (!t) return "—";
   try {
-    return new Date(t).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", hour12: true });
+    return new Date(t).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", hour12: false });
   } catch { return "—"; }
 }
 
