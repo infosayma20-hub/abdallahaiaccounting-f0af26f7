@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
+import { pickTenantAccountCode, OPENING_BALANCE_CODES } from "@/lib/tenantAccountResolver";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { Save, RotateCcw, Lock, Sparkles, Wand2, ChevronLeft, FolderTree, X as XIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";

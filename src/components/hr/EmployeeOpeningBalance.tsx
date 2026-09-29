@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { pickTenantAccountCode, OPENING_BALANCE_CODES } from "@/lib/tenantAccountResolver";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
