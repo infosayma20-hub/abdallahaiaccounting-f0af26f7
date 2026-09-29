@@ -1,4 +1,5 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
+import { onCrossTabChange } from "@/lib/crossTabSync";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { fetchAllRows } from "@/lib/fetch-all-rows";
@@ -138,7 +139,8 @@ const OrdersPage = () => {
 
   const fetchOrders = async () => {
     if (!user) return;
-    setLoading(true);
+    // Background refreshes (realtime/focus) must not blank the table.
+    setLoading(prev => prev || orders.length === 0);
 
     // Render the list as soon as the orders themselves arrive. Products and the
     // payment aggregations are secondary data and must never block first paint.
@@ -225,6 +227,39 @@ const OrdersPage = () => {
 
 
   useEffect(() => { fetchOrders(); }, [user]);
+
+  // Keep the list in sync after a receipt is posted from the order actions.
+  // The receipt screen opens in the same tab and this page may stay mounted
+  // (tab system), so a one-time fetch leaves paid/remaining stale. The DB
+  // trigger recalculates orders.paid_amount inside the same transaction as the
+  // receipt row, so any change on the owner's transactions means fresh data.
+  const fetchRef = useRef(fetchOrders);
+  fetchRef.current = fetchOrders;
+  useEffect(() => {
+    if (!user) return;
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    const refresh = () => {
+      if (timer) clearTimeout(timer);
+      timer = setTimeout(() => { fetchRef.current(); }, 400);
+    };
+    const ch = supabase
+      .channel(`orders-page-tx-${user.id}`)
+      .on("postgres_changes", { event: "*", schema: "public", table: "transactions", filter: `user_id=eq.${user.id}` }, refresh)
+      .subscribe();
+    const offCross = onCrossTabChange((e) => {
+      if (["receipt_voucher", "transaction", "invoice", "journal_entry", "order"].includes(e.entity)) refresh();
+    });
+    const onVisible = () => { if (document.visibilityState === "visible") refresh(); };
+    document.addEventListener("visibilitychange", onVisible);
+    window.addEventListener("focus", refresh);
+    return () => {
+      if (timer) clearTimeout(timer);
+      supabase.removeChannel(ch);
+      offCross();
+      document.removeEventListener("visibilitychange", onVisible);
+      window.removeEventListener("focus", refresh);
+    };
+  }, [user]);
 
   const fetchOrderItems = async (orderId: string) => {
     const { data } = await supabase.from("order_items").select("*").eq("order_id", orderId);
