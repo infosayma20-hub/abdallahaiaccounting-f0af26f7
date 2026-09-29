@@ -136,6 +136,7 @@ const ChequesPage = () => {
   const [filterStatus, setFilterStatus] = useState<string>("الكل");
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
+  const [filterMonth, setFilterMonth] = useState("");
   const [addOpen, setAddOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [expandedId, setExpandedId] = useState<string | null>(null);
