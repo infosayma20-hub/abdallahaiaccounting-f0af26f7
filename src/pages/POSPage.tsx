@@ -869,7 +869,8 @@ const POSPage = () => {
     if (m === "credit") return "credit";
     return m === "cash" ? "cash" : "card";
   })();
-  const isPaymentLockedByCC = ccLockedMethod !== null;
+  // الطريقة بتنعرض كاقتراح بس — الكاشير والمدير يقدروا يغيروها (قرار المستخدم).
+  const isPaymentLockedByCC = false;
   // When the call-center agent picked a specific visa source (Wheels/Yummy/FoodOnTime/Shini Go),
   // pre-select that exact source button in the cashier dialog instead of generic "card".
   const ccLockedFullMethod: string | null = (() => {
@@ -4679,24 +4680,8 @@ const POSPage = () => {
     }
     // Handle "card:GLCODE" format from delivery app visa accounts
     let effectivePaymentMethod = overridePaymentMethod || paymentMethod;
-    // 🔒 طلب كول سنتر: طريقة الدفع يحددها الكول سنتر فقط — الكاشير ما بيقدر يغيرها.
-    // (قاعدة البيانات كمان بترفض أي دفعة مخالفة — هذا خط الدفاع الأول.)
-    if (ccLockedFullMethod) {
-      if (splitMode && splitTenders.length > 1) {
-        toast.error("طريقة الدفع محددة من الكول سنتر — الدفع المختلط غير مسموح");
-        completingOrderRef.current = false;
-        return;
-      }
-      effectivePaymentMethod = ccLockedFullMethod;
-      if (ccLockedMethod === "credit") {
-        const ccContact = activeOrder.callCenterCustomerContactId || null;
-        if (!ccContact || activeOrder.customerId !== ccContact) {
-          toast.error("طلب آجل من الكول سنتر — لازم يُسجَّل على نفس الزبون المحدد");
-          completingOrderRef.current = false;
-          return;
-        }
-      }
-    }
+    // طلب كول سنتر: طريقة الدفع بتنختار تلقائياً من الكول سنتر، والكاشير/المدير يقدر يغيّرها.
+
     let visaGlAccountCode: string | null = null;
     if (effectivePaymentMethod.startsWith("card:")) {
       visaGlAccountCode = effectivePaymentMethod.split(":")[1];
