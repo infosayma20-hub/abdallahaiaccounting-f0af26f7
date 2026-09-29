@@ -9728,9 +9728,11 @@ const POSPage = () => {
                   <div className="relative">
                     <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 pointer-events-none" style={{ color: '#9ca3af' }} />
                     <input
-                      value={customerSearch || customerName}
-                      onChange={(e) => { setCustomerSearch(e.target.value); setCustomerName(e.target.value, null); setShowContactDropdown(true); }}
-                      onFocus={() => setShowContactDropdown(true)}
+                      value={ccLockedMethod === "credit" ? customerName : (customerSearch || customerName)}
+                      readOnly={ccLockedMethod === "credit"}
+                      title={ccLockedMethod === "credit" ? "الزبون محدد من الكول سنتر" : undefined}
+                      onChange={(e) => { if (ccLockedMethod === "credit") return; setCustomerSearch(e.target.value); setCustomerName(e.target.value, null); setShowContactDropdown(true); }}
+                      onFocus={() => { if (ccLockedMethod !== "credit") setShowContactDropdown(true); }}
                       placeholder="ابحث عن زبون أو مورد..."
                       autoFocus
                       className="w-full h-11 pr-10 text-sm focus:outline-none"
@@ -10897,6 +10899,7 @@ const POSPage = () => {
             callCenterBranchId: null,
             callCenterBranchName: null,
             callCenterPaymentMethod: null,
+            callCenterCustomerContactId: null,
             callCenterSourceApp: null,
             callCenterVisaGlAccountCode: null,
             callCenterSkipWheelsDispatch: false,
