@@ -253,6 +253,13 @@
       "when": 1790661765256,
       "tag": "0035_guard_cash_box_gl_integrity",
       "breakpoints": true
+    },
+    {
+      "idx": 36,
+      "version": "7",
+      "when": 1790662851076,
+      "tag": "0036_fix_employee_sub_account_ambiguity",
+      "breakpoints": true
     }
   ]
 }
