@@ -24,6 +24,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { UserPlus } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
+import TypedDateInput from "@/components/forms/TypedDateInput";
 import ChequeActionModal, { type ActionType, type ActionFormData, ACTION_CONFIGS } from "@/components/cheques/ChequeActionModal";
 import ChequeTimeline from "@/components/cheques/ChequeTimeline";
 import UnendorseChequeDialog from "@/components/cheques/UnendorseChequeDialog";
@@ -1192,58 +1193,66 @@ const ChequesPage = () => {
       onFiltersChange={setShellFilters}
       storageKey="cheques-page"
       rightSlot={
-        <div className="flex items-center gap-1.5 flex-wrap">
-          <div className="relative">
+        <div className="flex items-end gap-2 flex-wrap">
+          <div className="relative self-end">
             <Search className="absolute right-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground/60 pointer-events-none" />
             <Input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="رقم الشيك، الجهة، البنك، المبلغ..."
-              className="h-8 w-56 pr-8 text-xs"
+              className="h-10 w-56 rounded-xl pr-8 text-xs"
             />
           </div>
-          <Input
-            type="month"
-            value={filterMonth}
-            onChange={(e) => {
-              const m = e.target.value;
-              setFilterMonth(m);
-              if (m) {
-                const [y, mo] = m.split("-").map(Number);
-                const lastDay = new Date(y, mo, 0).getDate();
-                setDateFrom(`${m}-01`);
-                setDateTo(`${m}-${String(lastDay).padStart(2, "0")}`);
-              } else {
-                setDateFrom("");
-                setDateTo("");
-              }
-            }}
-            title="تصفية حسب الشهر"
-            className="h-8 w-36 text-xs"
-          />
-          <div className="flex items-center gap-1">
-            <Input
-              type="date"
+          <label className="grid gap-1">
+            <span className="text-[11px] font-medium text-muted-foreground">الشهر</span>
+            <input
+              type="month"
+              value={filterMonth}
+              onChange={(e) => {
+                const m = e.target.value;
+                setFilterMonth(m);
+                if (m) {
+                  const [y, mo] = m.split("-").map(Number);
+                  const lastDay = new Date(y, mo, 0).getDate();
+                  setDateFrom(`${m}-01`);
+                  setDateTo(`${m}-${String(lastDay).padStart(2, "0")}`);
+                } else {
+                  setDateFrom("");
+                  setDateTo("");
+                }
+              }}
+              aria-label="الشهر المطلوب"
+              className="h-10 w-36 rounded-xl border border-input bg-background px-3 text-sm tabular-nums outline-none shadow-sm transition-colors hover:border-foreground/30 focus:border-primary focus:ring-2 focus:ring-primary/15 [&::-webkit-calendar-picker-indicator]:hidden [&::-webkit-calendar-picker-indicator]:appearance-none"
+            />
+          </label>
+          <div className="flex items-end gap-2">
+            <label className="grid gap-1">
+              <span className="text-[11px] font-medium text-muted-foreground">من تاريخ</span>
+              <TypedDateInput
               value={dateFrom}
-              onChange={(e) => { setDateFrom(e.target.value); setFilterMonth(""); }}
-              title="من تاريخ"
-              className="h-8 w-32 text-xs"
+              onChange={(value) => { setDateFrom(value); setFilterMonth(""); }}
+              ariaLabel="من تاريخ"
+              className="w-[142px]"
             />
-            <span className="text-[10px] text-muted-foreground">إلى</span>
-            <Input
-              type="date"
+            </label>
+            <label className="grid gap-1">
+              <span className="text-[11px] font-medium text-muted-foreground">إلى تاريخ</span>
+              <TypedDateInput
               value={dateTo}
-              onChange={(e) => { setDateTo(e.target.value); setFilterMonth(""); }}
-              title="إلى تاريخ"
-              className="h-8 w-32 text-xs"
+              onChange={(value) => { setDateTo(value); setFilterMonth(""); }}
+              ariaLabel="إلى تاريخ"
+              className="w-[142px]"
             />
+            </label>
           </div>
           {(dateFrom || dateTo) && (
             <Button
               variant="ghost"
               size="sm"
-              className="h-8 px-2 text-xs"
+              className="h-10 w-10 rounded-xl p-0"
               onClick={() => { setDateFrom(""); setDateTo(""); setFilterMonth(""); }}
+              title="مسح التاريخ"
+              aria-label="مسح التاريخ"
             >
               <X className="h-3.5 w-3.5" />
             </Button>
