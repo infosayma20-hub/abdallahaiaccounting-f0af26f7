@@ -2827,8 +2827,8 @@ export default function SuperAdminDashboard() {
               )}
             </div>
           </TabsContent>
-        </Tabs>
       </div>
+      </Tabs>
 
       {/* Password Confirmation Dialog */}
       <PasswordConfirmDialog
