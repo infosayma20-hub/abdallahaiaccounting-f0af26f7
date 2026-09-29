@@ -2518,28 +2518,19 @@ const POSPage = () => {
             }
             // Persist refreshed rates back to DB so all terminals + reports see them
             try {
-              const { data: currRows } = await supabase
-                .from('currencies')
-                .select('id, code')
-                .eq('user_id', dataOwnerId)
-                .in('code', missingCodes);
-              const today = new Date().toISOString().split('T')[0];
-              const upserts = (currRows || [])
-                .filter((c: any) => rates[c.code] && rates[c.code] !== 1)
-                .map((c: any) => ({
-                  user_id: dataOwnerId,
-                  currency_id: c.id,
-                  rate_date: today,
-                  mid_rate: rates[c.code],
-                  sell_rate: rates[c.code],
-                  buy_rate: rates[c.code],
-                  source: 'pos_auto_refresh',
-                }));
-              if (upserts.length > 0) {
-                await (supabase.from('exchange_rates') as any).upsert(upserts, {
-                  onConflict: 'user_id,currency_id,rate_date',
-                  ignoreDuplicates: false,
+              // Persist via SECURITY DEFINER RPC: cashiers lack direct write on
+              // exchange_rates; the RPC validates team + POS access and never
+              // overwrites manually entered rates for the same day.
+              const payload: Record<string, number> = {};
+              for (const code of missingCodes) {
+                if (rates[code] && rates[code] !== 1) payload[code] = rates[code];
+              }
+              if (Object.keys(payload).length > 0) {
+                const { error: rpcErr } = await (supabase as any).rpc('pos_refresh_exchange_rates', {
+                  p_owner_id: dataOwnerId,
+                  p_rates: payload,
                 });
+                if (rpcErr) throw rpcErr;
               }
             } catch (persistErr) {
               console.warn('Failed to persist refreshed exchange rates:', persistErr);
