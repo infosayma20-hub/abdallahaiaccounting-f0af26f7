@@ -579,12 +579,15 @@ const CallCenterDispatchDialog = ({
       let customerContactId: string | null = null;
       if (trimmedPhone && dataOwnerId) {
         try {
-          const { data: existing } = await supabase
+          // limit(1) بدل maybeSingle: لو في رقم مكرر ما نفشل وننشئ نسخة ثالثة.
+          const { data: existingRows } = await supabase
             .from("contacts")
             .select("id, contact_name, address")
             .eq("user_id", dataOwnerId)
             .eq("phone", trimmedPhone)
-            .maybeSingle();
+            .order("created_at", { ascending: true })
+            .limit(1);
+          const existing = (existingRows as any[] | null)?.[0] || null;
           if (existing?.id) {
             customerContactId = existing.id;
             const updates: any = {};
@@ -596,7 +599,7 @@ const CallCenterDispatchDialog = ({
               await supabase.from("contacts").update(updates).eq("id", existing.id);
             }
           } else if (trimmedName) {
-            await supabase.from("contacts").insert({
+            const { data: createdContact } = await supabase.from("contacts").insert({
               user_id: dataOwnerId,
               contact_name: trimmedName,
               contact_type: "عميل",
@@ -605,11 +608,18 @@ const CallCenterDispatchDialog = ({
               source: "call_center",
               created_from_order: true,
               is_active: true,
-            } as any);
+            } as any).select("id").single();
+            customerContactId = (createdContact as any)?.id || null;
           }
         } catch (contactErr) {
           console.warn("[CallCenter] contact upsert failed (non-blocking):", contactErr);
         }
+      }
+      // الآجل لازم يرتبط بزبون حقيقي حتى تنزل الفاتورة على ذمته بكشف الحساب.
+      if (paymentMethod === "credit" && !customerContactId) {
+        toast.error("تعذّر ربط الزبون — لا يمكن إرسال طلب آجل بدون زبون مسجل");
+        setSending(false);
+        return;
       }
 
       const payload = {
@@ -623,7 +633,8 @@ const CallCenterDispatchDialog = ({
             : deliveryType === "dine_in"
               ? `طاولة: ${tableLabel.trim()}`
               : null,
-        payment_method: paymentMethod.startsWith("visa") ? "visa" : "cash",
+        payment_method: paymentMethod.startsWith("visa") ? "visa" : paymentMethod === "credit" ? "credit" : "cash",
+        customer_contact_id: paymentMethod === "credit" ? customerContactId : null,
         // Persist the explicit GL account chosen by the agent (e.g. Yummy /
         // FoodOnTime / Wheels visa). This becomes the single source of truth
         // for downstream POS posting — independent of source_app name match.
@@ -668,6 +679,15 @@ const CallCenterDispatchDialog = ({
       let orderId: string | null = null;
 
       if (editingOrderId) {
+        // الآجل: اربط الزبون أولاً حتى يمر فحص قاعدة البيانات لما تتحول الطريقة لآجل.
+        if (paymentMethod === "credit") {
+          const { error: linkErr } = await supabase
+            .from("call_center_orders" as any)
+            .update({ customer_contact_id: customerContactId } as any)
+            .eq("id", editingOrderId)
+            .eq("status", "pending");
+          if (linkErr) throw linkErr;
+        }
         // EDIT MODE: atomic RPC — updates same row only if still pending
         // and the edit lock is still owned by this user. The branch cannot
         // see / accept this order while the lock is held.
@@ -1037,7 +1057,7 @@ const CallCenterDispatchDialog = ({
                       : "bg-muted/30 border-border hover:border-primary/30"
                   }`}
                 >
-                  {opt.icon === "cash" ? <Banknote className="h-4 w-4" /> : <CreditCard className="h-4 w-4" />}
+                  {opt.icon === "cash" ? <Banknote className="h-4 w-4" /> : opt.icon === "credit" ? <Receipt className="h-4 w-4" /> : <CreditCard className="h-4 w-4" />}
                   {opt.label}
                 </button>
               ))}
