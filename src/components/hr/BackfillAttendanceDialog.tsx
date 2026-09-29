@@ -11,6 +11,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Loader2, CalendarPlus, Check, ChevronsUpDown, AlertTriangle } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { TimeTextInput } from "@/components/hr/TimeTextInput";
 
 interface Employee { id: string; full_name: string; is_active: boolean | null; }
 

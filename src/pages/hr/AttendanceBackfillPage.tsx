@@ -17,6 +17,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import BackButton from "@/components/BackButton";
+import { TimeTextInput } from "@/components/hr/TimeTextInput";
 import {
   ArrowLeft, Save, RefreshCw, Eye, Users, Calendar, Clock, FileText,
   CheckCircle2, XCircle, AlertTriangle, Loader2, ChevronDown, Fingerprint,
