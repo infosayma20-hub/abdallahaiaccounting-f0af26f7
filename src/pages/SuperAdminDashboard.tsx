@@ -20,7 +20,7 @@ import TenantsMonitoringPanel from "@/components/super-admin/TenantsMonitoringPa
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import unifyLogoWhite from "@/assets/unify/unify-logo-horizontal-white.png";
+import unifySymbolWhite from "@/assets/unify/unify-symbol-white.png.asset.json";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
