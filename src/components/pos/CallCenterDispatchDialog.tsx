@@ -54,6 +54,8 @@ interface Props {
    * الافتراضي "طلب طاولة" ورقم الطاولة إلزامي، بينما اسم/جوال الزبون اختياري.
    */
   isWaiter?: boolean;
+  /** يسمح للموظف باختيار "آجل" (صاحب الحساب/مدير أو صلاحية البيع الآجل). */
+  canSellOnCredit?: boolean;
 }
 
 interface Branch {
@@ -139,7 +141,7 @@ function clearDispatchDraft(key: string | null) {
 type PaymentOption = {
   code: string;
   label: string;
-  icon: "cash" | "visa";
+  icon: "cash" | "visa" | "credit";
   color: string;
   gl_note?: string;
 };
@@ -149,7 +151,7 @@ const CallCenterDispatchDialog = ({
   customerName, customerPhone, deliveryAddress, orderNote, onSuccess,
   editingOrderId, editingBranchId, editingBranchName, editingPaymentMethod, editingSourceApp,
   editingDeliveryInfo, editingDeliveryFee, editingVisaGlAccountCode, editingSkipWheelsDispatch,
-  draftKey, isWaiter = false,
+  draftKey, isWaiter = false, canSellOnCredit = false,
 }: Props) => {
   const [branches, setBranches] = useState<Branch[]>([]);
   const [deliveryApps, setDeliveryApps] = useState<DeliveryApp[]>([]);
@@ -468,6 +470,10 @@ const CallCenterDispatchDialog = ({
   const paymentOptions: PaymentOption[] = [
     { code: "cash", label: "نقدي", icon: "cash", color: "bg-green-500 border-green-500 text-white" },
     { code: "visa", label: "فيزا", icon: "visa", color: "bg-purple-500 border-purple-500 text-white" },
+    // آجل: يُسجَّل على ذمة الزبون (1130) عند إتمام البيع في الفرع — يتطلب صلاحية البيع الآجل.
+    ...((canSellOnCredit || paymentMethod === "credit")
+      ? [{ code: "credit", label: "آجل (ذمم)", icon: "credit" as const, color: "bg-orange-600 border-orange-600 text-white" }]
+      : []),
     ...deliveryApps
       .filter(app => app.visa_gl_account_code)
       .map(app => ({
@@ -490,6 +496,12 @@ const CallCenterDispatchDialog = ({
     if (deliveryType === "delivery" && !deliveryInfo) newErrors.zone = true;
     if (deliveryType === "dine_in" && !tableLabel.trim()) newErrors.table = true;
     if (!paymentMethod) newErrors.payment = true;
+    if (paymentMethod === "credit") {
+      if (!canSellOnCredit) newErrors.payment = true;
+      // الآجل يحتاج زبون حقيقي (اسم + جوال) ليُربط بحساب ذمته.
+      if (!name.trim()) newErrors.name = true;
+      if (!phone.trim()) newErrors.phone = true;
+    }
     if (!sourceApp) newErrors.source = true;
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -564,6 +576,7 @@ const CallCenterDispatchDialog = ({
       // by name or phone. Upsert-by-phone within the same data owner.
       const trimmedName = name.trim();
       const trimmedPhone = phone.trim();
+      let customerContactId: string | null = null;
       if (trimmedPhone && dataOwnerId) {
         try {
           const { data: existing } = await supabase
@@ -573,6 +586,7 @@ const CallCenterDispatchDialog = ({
             .eq("phone", trimmedPhone)
             .maybeSingle();
           if (existing?.id) {
+            customerContactId = existing.id;
             const updates: any = {};
             if (!existing.contact_name && trimmedName) updates.contact_name = trimmedName;
             if (!existing.address && deliveryType === "delivery" && address.trim()) {
