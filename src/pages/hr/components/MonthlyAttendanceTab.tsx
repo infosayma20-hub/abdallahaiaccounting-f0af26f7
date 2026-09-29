@@ -1381,7 +1381,7 @@ export default function MonthlyAttendanceTab({
     }
   };
 
-  const fmtTime = (ts: string | null) => ts ? format(new Date(ts), "hh:mm a") : "—";
+  const fmtTime = (ts: string | null) => ts ? format(new Date(ts), "HH:mm") : "—";
 
   return (
     <div className="space-y-3" dir="rtl">
