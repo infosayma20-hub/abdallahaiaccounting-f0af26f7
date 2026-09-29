@@ -20,6 +20,7 @@ import TenantsMonitoringPanel from "@/components/super-admin/TenantsMonitoringPa
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import unifyLogoWhite from "@/assets/unify/unify-logo-horizontal-white.png";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
@@ -157,6 +158,24 @@ type LiveEvent = {
   details?: string;
   type: "transaction" | "auth" | "system" | "pos";
 };
+
+const SA_TABS = [
+  { value: "dashboard", icon: Activity, label: "لوحة التحكم" },
+  { value: "tenants_monitor", icon: Server, label: "مراقبة المشتركين" },
+  { value: "users", icon: Users, label: "المستخدمون" },
+  { value: "database", icon: Database, label: "قاعدة البيانات" },
+  { value: "live", icon: Wifi, label: "مراقبة حية" },
+  { value: "audit", icon: FileText, label: "سجل التدقيق" },
+  { value: "user_security", icon: Shield, label: "السجل الأمني" },
+  { value: "watchlist", icon: AlertTriangle, label: "مراقبة الحسابات" },
+  { value: "settings", icon: Settings, label: "إعدادات المنصة" },
+  { value: "tools", icon: Zap, label: "أدوات" },
+  { value: "subscriptions", icon: CreditCard, label: "الاشتراكات" },
+  { value: "finance_integrity", icon: AlertTriangle, label: "تدقيق المالية" },
+  { value: "leads", icon: UserPlus, label: "زبائن سامي" },
+  { value: "revenue", icon: BarChart3, label: "الإيرادات" },
+  { value: "notifications", icon: Bell, label: "الإشعارات" },
+];
 
 const API_BASE = `https://${import.meta.env.VITE_SUPABASE_PROJECT_ID}.supabase.co/functions/v1/super-admin-api`;
 
@@ -2320,130 +2339,67 @@ export default function SuperAdminDashboard() {
        style={{ background: "var(--sa-bg-gradient)", fontFamily: "Tajawal, sans-serif", paddingTop: "env(safe-area-inset-top, 0px)" }} dir="rtl">
       <style>{LIGHT_THEME_STYLES}</style>
 
-      {/* Header */}
-      <header className="sticky top-0 z-50" style={{
-        background: "var(--sa-header-bg)",
-        borderBottom: "1px solid var(--sa-header-border)",
-        backdropFilter: "blur(16px)",
-        height: 60,
-      }}>
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 h-full flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <img src="/logos/unify-mark-navy.png" alt="يونيفاي" className="w-8 h-8 sm:w-9 sm:h-9" />
-            <h1 className="text-base sm:text-lg font-bold hidden sm:block" style={{ color: "var(--sa-text-primary)", fontFamily: "Tajawal, sans-serif" }}>Unify ERP</h1>
-            <span className="px-2 py-0.5 rounded-full text-[10px] sm:text-[11px] font-semibold" style={{ background: "#4A9EE8", color: "#0A2342" }}>
-              Super Admin
-            </span>
-          </div>
-          <div className="flex items-center gap-1.5 sm:gap-3">
-            <SignupNotificationsBell />
-            <button onClick={toggleTheme}
-              className="p-1.5 sm:p-2 rounded-lg transition-colors"
-              style={{ background: "var(--sa-surface)", color: "var(--sa-text-muted)" }}
+      {/* Header — Dynamics 365 Finance shell */}
+      <header className="sticky top-0 z-50" style={{ background: "#0D1B2E", height: 48 }}>
+        <div className="h-full px-3 sm:px-4 flex items-center gap-3">
+          <img src={unifyLogoWhite} alt="UNIFY" className="h-8 w-auto object-contain" />
+          <span className="h-5 w-px" style={{ background: "rgba(255,255,255,0.25)" }} />
+          <span className="text-[13px] font-semibold" style={{ color: "#FFFFFF" }}>إدارة المنصة</span>
+          <span className="px-2 py-0.5 rounded text-[10px] font-semibold" style={{ background: "rgba(255,255,255,0.12)", color: "#FFFFFF" }}>Super Admin</span>
+          <div className="flex items-center gap-1 sm:gap-2" style={{ marginInlineStart: "auto" }}>
+            <div className="[&_button]:text-white"><SignupNotificationsBell /></div>
+            <button onClick={toggleTheme} className="p-2 rounded transition-colors hover:bg-white/10" style={{ color: "#FFFFFF" }}
               title={theme === "dark" ? "الوضع الفاتح" : "الوضع الداكن"}>
               {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
             </button>
-            <div className="hidden sm:flex items-center gap-1.5 px-3 py-1 rounded-full" style={{ background: "rgba(220,38,38,0.1)", border: "1px solid rgba(220,38,38,0.2)" }}>
-              <Wifi className="h-3 w-3 text-red-400" />
-              <span className="text-[11px] text-red-400 font-medium">LIVE</span>
-            </div>
-            <Button variant="ghost" size="sm" onClick={() => navigate("/apps")} style={{ color: "var(--sa-text-muted)" }} className="px-2 sm:px-3">
-              <LogOut className="h-4 w-4 sm:ml-1" /> <span className="hidden sm:inline">خروج</span>
-            </Button>
+            <button onClick={() => navigate("/apps")} className="px-2 py-1.5 rounded flex items-center gap-1 text-[12px] hover:bg-white/10" style={{ color: "#FFFFFF" }}>
+              <LogOut className="h-4 w-4" /> <span className="hidden sm:inline">خروج</span>
+            </button>
           </div>
         </div>
       </header>
 
-      <div className="max-w-7xl mx-auto px-3 sm:px-6 py-4 sm:py-6">
-        <Tabs value={activeTab} onValueChange={(tab) => {
-          setActiveTab(tab);
-          setSearchParams({ tab });
-        }}>
-          <div className="overflow-x-auto -mx-3 px-3 sm:mx-0 sm:px-0 mb-4 sm:mb-6">
-            <TabsList className="border p-1 flex-nowrap sm:flex-wrap h-auto gap-1 w-max sm:w-auto"
-              style={{ background: "var(--sa-surface)", borderColor: "var(--sa-card-border)" }}>
-              {[
-                { value: "dashboard", icon: Activity, label: "لوحة التحكم" },
-                { value: "tenants_monitor", icon: Server, label: "مراقبة المشتركين" },
-                { value: "users", icon: Users, label: "المستخدمون" },
-                { value: "database", icon: Database, label: "قاعدة البيانات" },
-                { value: "live", icon: Wifi, label: "مراقبة حية" },
-                { value: "audit", icon: FileText, label: "سجل التدقيق" },
-                { value: "user_security", icon: Shield, label: "السجل الأمني" },
-                { value: "watchlist", icon: AlertTriangle, label: "مراقبة الحسابات" },
-                { value: "settings", icon: Settings, label: "إعدادات المنصة" },
-                { value: "tools", icon: Zap, label: "أدوات" },
-                { value: "subscriptions", icon: CreditCard, label: "الاشتراكات" },
-                { value: "finance_integrity", icon: AlertTriangle, label: "تدقيق المالية" },
-                { value: "leads", icon: UserPlus, label: "زبائن سامي" },
-                { value: "revenue", icon: BarChart3, label: "الإيرادات" },
-                { value: "notifications", icon: Bell, label: "الإشعارات" },
-              ].map(tab => (
-                <TabsTrigger key={tab.value} value={tab.value} className="whitespace-nowrap text-xs sm:text-sm"
+      <Tabs value={activeTab} onValueChange={(tab) => { setActiveTab(tab); setSearchParams({ tab }); }}>
+        {/* شريط البنود — Dynamics pivot strip */}
+        <div className="sticky z-40 overflow-x-auto" style={{ top: 48, background: "var(--sa-card-bg)", borderBottom: "1px solid var(--sa-card-border)" }}>
+          <TabsList className="h-auto p-0 bg-transparent rounded-none flex-nowrap w-max gap-0 px-2">
+            {SA_TABS.map(tab => {
+              const on = activeTab === tab.value;
+              return (
+                <TabsTrigger key={tab.value} value={tab.value}
+                  className="whitespace-nowrap text-[13px] rounded-none px-3 py-2.5 data-[state=active]:shadow-none"
                   style={{
-                    color: activeTab === tab.value ? "var(--sa-tab-active-text)" : "var(--sa-tab-inactive-text)",
-                    background: activeTab === tab.value ? "var(--sa-tab-active-bg)" : "transparent",
+                    background: "transparent",
+                    color: on ? "#0D1B2E" : "var(--sa-text-muted)",
+                    fontWeight: on ? 700 : 500,
+                    borderBottom: on ? "2px solid #0078D4" : "2px solid transparent",
                   }}>
-                  <tab.icon className="h-3.5 w-3.5 sm:h-4 sm:w-4 ml-1" /> <span className="hidden sm:inline">{tab.label}</span><span className="sm:hidden">{tab.label}</span>
+                  <tab.icon className="h-3.5 w-3.5 ml-1.5" /> {tab.label}
                 </TabsTrigger>
-              ))}
-            </TabsList>
-          </div>
+              );
+            })}
+          </TabsList>
+        </div>
 
+      <div className="max-w-7xl mx-auto px-3 sm:px-6 py-4 sm:py-5">
           {/* ─── TENANTS MONITORING TAB (read-only) ─── */}
           <TabsContent value="tenants_monitor" className="space-y-6">
             <TenantsMonitoringPanel />
           </TabsContent>
 
-          {/* ─── DASHBOARD TAB ─── */}
-          <TabsContent value="dashboard" className="space-y-6">
-            <div className="flex items-center justify-between">
-              <h2 className="text-xl font-bold" style={{ color: "var(--sa-text-primary)" }}>نظرة عامة</h2>
-              <Button variant="ghost" size="sm" onClick={loadDashboard} disabled={loadingDashboard} style={{ color: "var(--sa-text-muted)" }}>
-                <RefreshCw className={`h-4 w-4 ml-1 ${loadingDashboard ? "animate-spin" : ""}`} /> تحديث
-              </Button>
-            </div>
-
-            {stats && (
-              <div className="grid grid-cols-2 gap-2 sm:gap-4">
-                <KPICard icon={Users} label="إجمالي الشركات" value={stats.total_users} sub={`+${stats.new_users_today} اليوم`} color="bg-[#00B4D8]/20 text-[#00B4D8]" accentColor="#00B4D8" />
-                <KPICard icon={ShoppingCart} label="المستخدمون النشطون" value={stats.active_sessions} sub={`₪${stats.active_sessions_revenue.toLocaleString()}`} color="bg-[#4A9EE8]/20 text-[#4A9EE8]" accentColor="#4A9EE8" />
-                <KPICard icon={DollarSign} label="القيود اليوم" value={`₪${stats.today_revenue.toLocaleString()}`} sub={`${stats.today_transactions} عملية`} color="bg-[#16A34A]/20 text-[#16A34A]" accentColor="#16A34A" />
-                <KPICard icon={Database} label="تنبيهات النظام" value={stats.total_accounts} sub={`${stats.total_contacts} جهة اتصال`} color="bg-[#DC2626]/20 text-[#DC2626]" accentColor="#DC2626" />
-              </div>
-            )}
-
-            {/* Recent Activity */}
-            <div className="rounded-2xl overflow-hidden" style={{ background: "var(--sa-card-bg)", border: "1px solid var(--sa-card-border)" }}>
-              <div className="px-5 py-4 flex items-center gap-2" style={{ borderBottom: "1px solid var(--sa-divider)" }}>
-                <Clock className="h-4 w-4 text-amber-400" />
-                <h3 className="text-sm font-semibold" style={{ color: "var(--sa-text-primary)" }}>آخر الأحداث</h3>
-              </div>
-              <div className="max-h-[400px] overflow-y-auto">
-                {recentActivity.length === 0 && (
-                  <p className="text-center py-8 text-sm" style={{ color: "var(--sa-text-faint)" }}>لا توجد أحداث بعد</p>
-                )}
-                {recentActivity.map((log) => (
-                  <div key={log.id} className="px-5 py-3 flex items-center gap-3 transition-colors"
-                    style={{ borderBottom: "1px solid var(--sa-divider)" }}
-                    onMouseEnter={(e) => (e.currentTarget.style.background = "var(--sa-card-hover)")}
-                    onMouseLeave={(e) => (e.currentTarget.style.background = "")}>
-                    <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0" style={{ background: "var(--sa-surface)" }}>
-                      <Activity className="h-3.5 w-3.5" style={{ color: "var(--sa-text-muted)" }} />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm truncate" style={{ color: "var(--sa-text-secondary)" }}>{actionLabel[log.action] || log.action}</p>
-                      {log.target_id && <p className="text-[11px] truncate" style={{ color: "var(--sa-text-faint)" }}>{log.target_type}: {log.target_id}</p>}
-                    </div>
-                    <span className="text-[11px] shrink-0 tabular-nums" style={{ color: "var(--sa-text-faint)" }}>
-                      {format(new Date(log.created_at), "HH:mm:ss")}
-                    </span>
-                    {log.ip_address && (
-                      <span className="text-[10px] shrink-0 font-mono" style={{ color: "var(--sa-text-faint)" }}>{log.ip_address.substring(0, 12)}</span>
-                    )}
-                  </div>
-                ))}
-              </div>
+          {/* ─── DASHBOARD TAB: بطاقات البنود ─── */}
+          <TabsContent value="dashboard" className="mt-0">
+            <h2 className="text-[15px] font-bold mb-3" style={{ color: "var(--sa-text-primary)" }}>البنود</h2>
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 sm:gap-3">
+              {SA_TABS.filter(t => t.value !== "dashboard").map(tab => (
+                <button key={tab.value} type="button"
+                  onClick={() => { setActiveTab(tab.value); setSearchParams({ tab: tab.value }); }}
+                  className="text-right p-3 sm:p-4 transition-shadow hover:shadow-md flex flex-col justify-between min-h-[104px]"
+                  style={{ background: "var(--sa-card-bg)", border: "1px solid var(--sa-card-border)", borderTop: "3px solid #0078D4", borderRadius: 2 }}>
+                  <tab.icon className="h-6 w-6" style={{ color: "#0078D4" }} />
+                  <span className="text-[13px] font-semibold mt-3" style={{ color: "var(--sa-text-primary)" }}>{tab.label}</span>
+                </button>
+              ))}
             </div>
           </TabsContent>
 
@@ -2871,8 +2827,8 @@ export default function SuperAdminDashboard() {
               )}
             </div>
           </TabsContent>
-        </Tabs>
       </div>
+      </Tabs>
 
       {/* Password Confirmation Dialog */}
       <PasswordConfirmDialog
