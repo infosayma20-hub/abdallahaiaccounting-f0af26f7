@@ -31,6 +31,23 @@ const statusLabel = (s: string, fd?: any) =>
     : s === "approved" ? "معتمد" : s === "submitted" || s === "pending" ? "مرسل" : s === "rejected" ? "مرفوض" : "مسودة";
 
 
+/** Normalize messy free-text branch names (trailing spaces, spelling variants, Arabic/English) into canonical branch names. */
+function normalizeBranchName(raw: string): string {
+  let b = String(raw || "").trim().replace(/\s+/g, " ");
+  if (!b) return b;
+  b = b.replace(/[ـ…\.]+/g, " ").replace(/\s+/g, " ").trim();
+  const lower = b.toLowerCase();
+  if (/اختبار|اختبا|اختيار/.test(b)) return "اختبار";
+  if (/طيره|طيرة|الطيرة/.test(b)) return "الطيرة";
+  if (/بلاز|plaza/.test(lower)) return "بلازا";
+  if (b === "رام الله" || lower.includes("ramallah")) return "رام الله";
+  if (/المطبخ/.test(b)) return "المطبخ";
+  if (/المركزي/.test(b)) return "المركزي";
+  if (/فيصل/.test(b)) return "فيصل";
+  if (/سفيان/.test(b)) return "سفيان";
+  return b;
+}
+
 /** Convert legacy flat inventory forms (key: qty) into the standard lines shape. */
 function normalizeLegacy(fd: any, createdAt: string) {
   const skip = new Set(["branch", "branch_name", "employee_name", "month", "notes", "kind"]);
