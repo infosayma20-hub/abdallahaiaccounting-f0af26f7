@@ -288,6 +288,13 @@
       "when": 1790677216327,
       "tag": "0040_call_center_credit_default_perms",
       "breakpoints": true
+    },
+    {
+      "idx": 41,
+      "version": "7",
+      "when": 1790677362298,
+      "tag": "0041_fix_returns_stock_double_and_movements",
+      "breakpoints": true
     }
   ]
 }
