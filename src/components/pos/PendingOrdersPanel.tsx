@@ -483,7 +483,7 @@ const PendingOrdersPanel = ({ dataOwnerId, branchId, sessionId, enabled, onAccep
                         <div className="flex items-center justify-between">
                           <Badge className="bg-blue-600 text-[10px]"><Pencil className="h-2.5 w-2.5 ml-0.5" /> طلب تعديل</Badge>
                           <span className="text-[10px] text-muted-foreground">
-                            {new Date(edit.created_at).toLocaleTimeString("ar-PS", { hour12: false, hour: "2-digit", minute: "2-digit"}))}
+                            {new Date(edit.created_at).toLocaleTimeString("ar-PS", { hour12: false, hour: "2-digit", minute: "2-digit"})}
                           </span>
                         </div>
                         {original && (
@@ -593,7 +593,7 @@ const PendingOrdersPanel = ({ dataOwnerId, branchId, sessionId, enabled, onAccep
                             </Badge>
                           )}
                           <span className="text-[10px] text-muted-foreground">
-                            {new Date(order.created_at).toLocaleTimeString("ar-PS", { hour12: false, hour: "2-digit", minute: "2-digit"}))}
+                            {new Date(order.created_at).toLocaleTimeString("ar-PS", { hour12: false, hour: "2-digit", minute: "2-digit"})}
                           </span>
                         </div>
                         <Badge className={`text-[10px] px-1.5 py-0 h-5 ${order.delivery_type === "delivery" ? "bg-orange-500" : "bg-blue-500"}`}>

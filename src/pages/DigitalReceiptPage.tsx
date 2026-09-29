@@ -76,7 +76,7 @@ const DigitalReceiptPage = () => {
           <div className="grid grid-cols-2 gap-y-1.5 text-[13px]">
             <span className="text-gray-500">تاريخ | Date</span>
             <span className="text-left font-mono" dir="ltr">
-              {orderDate.toLocaleDateString("ar-PS")} {orderDate.toLocaleTimeString("ar-PS", { hour12: false, hour: "2-digit", minute: "2-digit"}))}
+              {orderDate.toLocaleDateString("ar-PS")} {orderDate.toLocaleTimeString("ar-PS", { hour12: false, hour: "2-digit", minute: "2-digit"})}
             </span>
             <span className="text-gray-500">البائع | Sales Person</span>
             <span className="text-left">{cashierName}</span>

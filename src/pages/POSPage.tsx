@@ -4069,7 +4069,7 @@ const POSPage = () => {
     if (!enforceDeviceGuard()) return;
     if (!requireOrderTypeChosen()) return;
 
-    const time = new Date().toLocaleTimeString("ar-PS", { hour12: false, hour: "2-digit", minute: "2-digit"}));
+    const time = new Date().toLocaleTimeString("ar-PS", { hour12: false, hour: "2-digit", minute: "2-digit"});
     // ⚠️ لا نستعمل اسم الزبون كاسم طاولة لطلبات التوصيل/السفري —
     //    يُسبّب تذاكر مثل "طاولة: <اسم الزبون>" وهو خطأ دلالي.
     const _ot = (activeOrder as any).orderType;

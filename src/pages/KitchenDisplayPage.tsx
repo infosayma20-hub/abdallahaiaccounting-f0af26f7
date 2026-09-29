@@ -201,7 +201,7 @@ export default function KitchenDisplayPage() {
       ${item.modifiers?.map((m: any) => `<tr><td colspan="2" style="font-size:12px;color:#000;font-weight:700;padding:1px 6px 3px;">↳ ${m.option_name}</td></tr>`).join("") || ""}`
     ).join("");
 
-    const time = new Date(ticket.created_at).toLocaleTimeString("ar-PS", { hour12: false, hour: "2-digit", minute: "2-digit"}));
+    const time = new Date(ticket.created_at).toLocaleTimeString("ar-PS", { hour12: false, hour: "2-digit", minute: "2-digit"});
 
     const bodyHtml = `
       <div class="header">

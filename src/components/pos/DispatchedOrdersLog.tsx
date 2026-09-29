@@ -654,7 +654,7 @@ export default function DispatchedOrdersLog({ open, onClose, dataOwnerId, isAdmi
                         </Badge>
                         <span className="text-[10px] text-muted-foreground">
                           {rangePreset === "today"
-                            ? new Date(order.created_at).toLocaleTimeString("ar-PS", { hour12: false, hour: "2-digit", minute: "2-digit"}))
+                            ? new Date(order.created_at).toLocaleTimeString("ar-PS", { hour12: false, hour: "2-digit", minute: "2-digit"})
                             : new Date(order.created_at).toLocaleString("ar-PS", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}
                         </span>
                         <span className="text-[10px] text-muted-foreground">→</span>
@@ -892,7 +892,7 @@ export default function DispatchedOrdersLog({ open, onClose, dataOwnerId, isAdmi
                       order.delivered_at ? (
                         <div className="flex items-center gap-1 text-[10px] text-blue-600 font-medium">
                           <CheckCircle2 className="h-3 w-3" />
-                          وصلت لجهاز الفرع — {new Date(order.delivered_at).toLocaleTimeString("ar-PS", { hour12: false, hour: "2-digit", minute: "2-digit"}))}
+                          وصلت لجهاز الفرع — {new Date(order.delivered_at).toLocaleTimeString("ar-PS", { hour12: false, hour: "2-digit", minute: "2-digit"})}
                         </div>
                       ) : (
                         getSecondsSince(order.created_at) > 10 ? (
@@ -910,7 +910,7 @@ export default function DispatchedOrdersLog({ open, onClose, dataOwnerId, isAdmi
                     )}
                     {order.accepted_at && (
                       <div className="text-[10px] text-muted-foreground">
-                        تم القبول: {new Date(order.accepted_at).toLocaleTimeString("ar-PS", { hour12: false, hour: "2-digit", minute: "2-digit"}))}
+                        تم القبول: {new Date(order.accepted_at).toLocaleTimeString("ar-PS", { hour12: false, hour: "2-digit", minute: "2-digit"})}
                       </div>
                     )}
 

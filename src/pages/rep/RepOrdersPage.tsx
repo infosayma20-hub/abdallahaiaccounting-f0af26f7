@@ -248,7 +248,7 @@ function RepOrderRow({ o, busy, onDelete, onCancel, onEdit }: { o: any; busy: bo
             {o.payment_method === "cash" ? "نقدي" : "آجل"}
             {o.contact_name ? ` • ${o.contact_name}` : ""}
             {" • "}
-            {new Date(o.created_at).toLocaleTimeString("ar-EG", { hour12: false, hour: "2-digit", minute: "2-digit"}))}
+            {new Date(o.created_at).toLocaleTimeString("ar-EG", { hour12: false, hour: "2-digit", minute: "2-digit"})}
           </div>
         </div>
       </div>

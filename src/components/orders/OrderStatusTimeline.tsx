@@ -132,7 +132,7 @@ export default function OrderStatusTimeline({ orderId, orderTable = "orders" }: 
         const meta = log.metadata || {};
         const date = new Date(log.changed_at);
         const dateStr = date.toLocaleDateString("ar-EG", { day: "2-digit", month: "2-digit", year: "numeric" });
-        const timeStr = date.toLocaleTimeString("ar-EG", { hour12: false, hour: "2-digit", minute: "2-digit"}));
+        const timeStr = date.toLocaleTimeString("ar-EG", { hour12: false, hour: "2-digit", minute: "2-digit"});
 
         return (
           <div key={log.id} style={{ position: "relative", paddingRight: "40px", paddingBottom: "28px" }}>

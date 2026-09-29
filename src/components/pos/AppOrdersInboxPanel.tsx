@@ -178,7 +178,7 @@ export default function AppOrdersInboxPanel({ open, onClose, dataOwnerId, onCoun
                     {o.payment_method === "visa" ? <CreditCard className="h-3 w-3" /> : <Banknote className="h-3 w-3" />}
                     {o.payment_method === "visa" ? "بطاقة" : "نقدي"}
                   </span>
-                  <span>{new Date(o.created_at).toLocaleTimeString("ar", { hour12: false, hour: "2-digit", minute: "2-digit"}))}</span>
+                  <span>{new Date(o.created_at).toLocaleTimeString("ar", { hour12: false, hour: "2-digit", minute: "2-digit"})}</span>
                 </div>
                 {o.delivery_address && (
                   <div className="text-[11px] flex items-start gap-1"><MapPin className="h-3 w-3 mt-0.5" />{o.delivery_address}</div>

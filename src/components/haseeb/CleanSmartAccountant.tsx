@@ -612,7 +612,7 @@ const CleanSmartAccountant = ({ user, userName, data, cfoMode, onToggleCfo, onCh
                       <span className="inline-block w-[2px] h-4 ml-0.5 align-middle" style={{ background: "#0A2342", animation: "blink 1s infinite" }} />
                     )}
                     <p className="text-[10px] mt-1.5" style={{ color: msg.role === "user" ? "rgba(255,255,255,0.4)" : "#8B9BB4" }}>
-                      {msg.timestamp.toLocaleTimeString("ar", { hour12: false, hour: "2-digit", minute: "2-digit"}))}
+                      {msg.timestamp.toLocaleTimeString("ar", { hour12: false, hour: "2-digit", minute: "2-digit"})}
                     </p>
                   </div>
                   {msg.role === "assistant" && (

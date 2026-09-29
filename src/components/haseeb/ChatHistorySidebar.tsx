@@ -84,7 +84,7 @@ const ChatHistorySidebar = ({ open, onClose, userId, activeConversationId, onSel
   const groups = groupByDate(filtered);
 
   const formatTime = (dateStr: string) => {
-    return new Date(dateStr).toLocaleTimeString("ar", { hour12: false, hour: "2-digit", minute: "2-digit"}));
+    return new Date(dateStr).toLocaleTimeString("ar", { hour12: false, hour: "2-digit", minute: "2-digit"});
   };
 
   return (

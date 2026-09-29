@@ -89,7 +89,7 @@ const METHOD_LABELS: Record<string, string> = {
 
 const ShiftSummaryTemplate = forwardRef<HTMLDivElement, { data: ShiftSummaryPrintData }>(({ data }, ref) => {
   const formatDate = (iso: string) => new Date(iso).toLocaleDateString("en-GB");
-  const formatTime = (iso: string) => new Date(iso).toLocaleTimeString("en-GB", { hour12: false, hour: "2-digit", minute: "2-digit"}));
+  const formatTime = (iso: string) => new Date(iso).toLocaleTimeString("en-GB", { hour12: false, hour: "2-digit", minute: "2-digit"});
 
   const variancePrefix = data.variance > 0 ? "⚠️ فائض" : data.variance < 0 ? "⚠️ عجز" : "✅ شغل مرتب";
   const pmb = data.paymentMethodBreakdown || {};
