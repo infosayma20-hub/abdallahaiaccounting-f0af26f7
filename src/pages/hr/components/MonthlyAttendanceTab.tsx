@@ -1972,7 +1972,7 @@ export default function MonthlyAttendanceTab({
                           </span>
                         </div>
                         <span className="tabular-nums text-foreground">
-                          {format(new Date(e.event_time), "hh:mm:ss a")}
+                          {format(new Date(e.event_time), "HH:mm:ss")}
                         </span>
                         <span className="flex-1 text-muted-foreground truncate text-left">
                           {e.branch_id ? (branchNames[e.branch_id] || "—") : "—"}
