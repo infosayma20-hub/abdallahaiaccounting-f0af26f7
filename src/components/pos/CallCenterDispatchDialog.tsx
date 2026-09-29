@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Send, MapPin, Phone, User, Truck, ShoppingBag, CreditCard, Banknote, StickyNote, AlertCircle, CheckCircle2, Wifi, WifiOff, Utensils, Receipt } from "lucide-react";
+import { Send, MapPin, Phone, User, Truck, ShoppingBag, CreditCard, Banknote, StickyNote, AlertCircle, CheckCircle2, Wifi, WifiOff, Utensils, Receipt, Search, X } from "lucide-react";
 import DeliveryZonePicker, { DeliveryInfo } from "./DeliveryZonePicker";
 
 interface CartItem {
@@ -171,6 +171,14 @@ const CallCenterDispatchDialog = ({
   // zone changes without wiping any manual details (street, building, landmark)
   // the agent typed afterwards.
   const [autoFilledPrefix, setAutoFilledPrefix] = useState<string>("");
+
+  // جهة الآجل: موظف الكول سنتر يختار الزبون من قائمة الجهات المسجلة (نفس
+  // منطق الكاشير) حتى ترتبط الطلبية بحساب ذمته من لحظة الإرسال.
+  interface CreditContact { id: string; contact_name: string; phone: string | null; contact_type?: string | null; }
+  const [selectedCreditContact, setSelectedCreditContact] = useState<CreditContact | null>(null);
+  const [creditContactSearch, setCreditContactSearch] = useState("");
+  const [creditContactResults, setCreditContactResults] = useState<CreditContact[]>([]);
+  const [creditContactLoading, setCreditContactLoading] = useState(false);
 
   // Some orders (e.g. from Wheels app itself) already exist on the Wheels
   // courier screen, so we must NOT re-dispatch them to Wheels after payment
