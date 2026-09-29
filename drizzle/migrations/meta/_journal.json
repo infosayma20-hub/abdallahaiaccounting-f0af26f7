@@ -260,6 +260,13 @@
       "when": 1790662851076,
       "tag": "0036_fix_employee_sub_account_ambiguity",
       "breakpoints": true
+    },
+    {
+      "idx": 37,
+      "version": "7",
+      "when": 1790667659810,
+      "tag": "0037_pos_refresh_exchange_rates_rpc",
+      "breakpoints": true
     }
   ]
 }

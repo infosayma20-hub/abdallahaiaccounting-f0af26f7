@@ -32845,6 +32845,10 @@ export type Database = {
         }
         Returns: Json
       }
+      pos_refresh_exchange_rates: {
+        Args: { p_owner_id: string; p_rates: Json }
+        Returns: number
+      }
       pos_resolve_target_minutes: {
         Args: { _owner: string; _product_id: string }
         Returns: number

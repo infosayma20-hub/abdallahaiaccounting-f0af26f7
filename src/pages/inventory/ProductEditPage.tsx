@@ -210,7 +210,7 @@ export default function ProductEditPage() {
       const [{ data: whs }, { data: accs }, { data: sups }, prods] = await Promise.all([
         supabase.from("warehouses").select("id,name").eq("user_id", ownerId).eq("is_active", true).order("name"),
         supabase.from("accounts").select("id,account_code,account_name").eq("user_id", ownerId).eq("is_active", true).order("account_code"),
-        supabase.from("suppliers").select("id,name").eq("user_id", ownerId).order("name"),
+        supabase.from("suppliers").select("id,name:company_name").eq("user_id", ownerId).order("company_name"),
         // Paged: tenants with >1000 items would otherwise lose the tail of the
         // list (prev/next navigation, lookup dialog, replacement product).
         fetchAllRows<{ id: string; name: string; sku: string | null }>((from, to) =>

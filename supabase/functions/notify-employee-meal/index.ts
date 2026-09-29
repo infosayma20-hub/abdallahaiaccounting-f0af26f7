@@ -60,12 +60,13 @@ Deno.serve(async (req) => {
     const admin = createClient(supabaseUrl, serviceKey);
 
     // Authorization: caller must belong to the same data owner (multi-tenant guard).
-    const { data: callerProfile } = await admin
-      .from("profiles")
-      .select("id, owner_id, company_id")
-      .eq("id", callerId)
-      .maybeSingle();
-    const callerOwner = (callerProfile as any)?.owner_id || callerId;
+    // Resolve tenant via the canonical get_team_owner_id RPC (profiles has no owner_id).
+    const { data: ownerData } = await admin.rpc("get_team_owner_id", { _user_id: callerId });
+    let callerOwner: string = (ownerData as string) || callerId;
+    if (callerOwner !== data_owner_id && callerId !== data_owner_id) {
+      const { data: isMember } = await admin.rpc("is_team_member", { _user_id: callerId, _data_owner_id: data_owner_id });
+      if (isMember === true) callerOwner = data_owner_id;
+    }
     if (callerOwner !== data_owner_id && callerId !== data_owner_id) {
       return new Response(JSON.stringify({ error: "Forbidden: owner mismatch" }), {
         status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
