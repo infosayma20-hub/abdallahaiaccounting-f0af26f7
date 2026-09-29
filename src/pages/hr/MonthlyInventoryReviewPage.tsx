@@ -21,6 +21,8 @@ type Row = {
   archived_at: string | null;
   form_data: any;
   employee_name: string;
+  /** monthly = نموذج «جرد شهري»؛ weekly = «رصيد الأصناف» اللي بيعبّيه المدراء أسبوعياً */
+  countType: "monthly" | "weekly";
 };
 
 const statusLabel = (s: string, fd?: any) =>
@@ -56,6 +58,10 @@ export default function MonthlyInventoryReviewPage() {
   const [rows, setRows] = useState<Row[]>([]);
   const [branch, setBranch] = useState("");
   const [year, setYear] = useState("");
+  const [countType, setCountType] = useState<Row["countType"]>(
+    () => (sessionStorage.getItem("inv-review-type") as Row["countType"]) || "monthly",
+  );
+  useEffect(() => { sessionStorage.setItem("inv-review-type", countType); }, [countType]);
   const [month, setMonth] = useState("");
   const [selected, setSelected] = useState<Row | null>(null);
   const [prices, setPrices] = useState<Record<string, number>>({});
@@ -77,7 +83,7 @@ export default function MonthlyInventoryReviewPage() {
     setLoading(true);
     const { data, error } = await supabase
       .from("employee_forms")
-      .select("id, created_at, status, archived_at, form_data, employees!employee_forms_employee_id_fkey(full_name)")
+      .select("id, form_type, created_at, status, archived_at, form_data, employees!employee_forms_employee_id_fkey(full_name)")
       .or("form_data->>kind.eq.monthly_inventory,form_type.eq.inventory_balance,template_id.eq.a369fcf6-adfd-4c00-b421-310c89e04fc1")
       .order("created_at", { ascending: false })
       .limit(500);
@@ -89,6 +95,7 @@ export default function MonthlyInventoryReviewPage() {
         (data || []).map((r: any) => {
           const fd = r.form_data || {};
           const legacy = fd.kind !== "monthly_inventory";
+          const countType: Row["countType"] = r.form_type === "inventory_balance" ? "weekly" : "monthly";
           return {
             id: r.id,
             created_at: r.created_at,
@@ -96,6 +103,7 @@ export default function MonthlyInventoryReviewPage() {
             archived_at: r.archived_at,
             form_data: legacy ? normalizeLegacy(fd, r.created_at) : fd,
             employee_name: r.employees?.full_name || "—",
+            countType,
           };
         })
       );
@@ -157,13 +165,14 @@ export default function MonthlyInventoryReviewPage() {
         (r) => {
           const m = String(r.form_data?.month || "");
           return (
+            r.countType === countType &&
             (!branch || r.form_data?.branch_name === branch) &&
             (!year || m.slice(0, 4) === year) &&
             (!month || m.slice(5, 7) === month)
           );
         }
       ),
-    [rows, branch, year, month]
+    [rows, branch, year, month, countType]
   );
 
   const exportList = () => {
@@ -182,8 +191,9 @@ export default function MonthlyInventoryReviewPage() {
     const ws = XLSX.utils.aoa_to_sheet(aoa);
     (ws as any)["!views"] = [{ RTL: true }];
     const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "الجرد الشهري");
-    XLSX.writeFile(wb, `الجرد_الشهري_${year || "الكل"}${month ? "-" + month : ""}.xlsx`);
+    const tLabel = countType === "weekly" ? "الجرد_الأسبوعي" : "الجرد_الشهري";
+    XLSX.utils.book_append_sheet(wb, ws, countType === "weekly" ? "الجرد الأسبوعي" : "الجرد الشهري");
+    XLSX.writeFile(wb, `${tLabel}_${year || "الكل"}${month ? "-" + month : ""}.xlsx`);
   };
 
   const actionTabs: ActionTab[] = [
@@ -240,6 +250,19 @@ export default function MonthlyInventoryReviewPage() {
     <div className="space-y-4" dir="rtl">
       <Card className="print:hidden">
         <CardContent className="p-3 flex flex-wrap gap-2 items-center">
+          <div className="inline-flex rounded-md border overflow-hidden" role="tablist">
+            {([
+              ["monthly", "الجرد الشهري"],
+              ["weekly", "الجرد الأسبوعي (المدراء)"],
+            ] as const).map(([k, label]) => (
+              <button key={k} type="button" role="tab" aria-selected={countType === k}
+                onClick={() => setCountType(k)}
+                className={`px-3 h-9 text-sm font-medium transition-colors ${countType === k ? "bg-primary text-primary-foreground" : "bg-background text-muted-foreground hover:bg-muted"}`}>
+                {label}
+                <span className="mr-1.5 text-xs opacity-80">({rows.filter((r) => r.countType === k).length})</span>
+              </button>
+            ))}
+          </div>
           <Select value={branch || "all"} onValueChange={(v) => setBranch(v === "all" ? "" : v)}>
             <SelectTrigger className="h-9 w-44 text-sm"><SelectValue placeholder="كل الفروع" /></SelectTrigger>
             <SelectContent>
