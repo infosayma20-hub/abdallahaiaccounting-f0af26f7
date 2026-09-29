@@ -453,11 +453,12 @@ const AccountFormPage = ({ mode }: AccountFormPageProps) => {
       }
 
       // ─── Opening Balance posting (idempotent via RPC) ───
-      if (savedAccountId && code !== "3110") {
+      if (savedAccountId && !OPENING_BALANCE_CODES.includes(code)) {
         const ref = `OB-ACC-${savedAccountId}`;
         if (obAmount > 0) {
-          const debitCode = obType === "debit" ? savedAccountCode : "3110";
-          const creditCode = obType === "debit" ? "3110" : savedAccountCode;
+          const obCode = await pickTenantAccountCode(dataOwnerId || user.id, OPENING_BALANCE_CODES);
+          const debitCode = obType === "debit" ? savedAccountCode : obCode;
+          const creditCode = obType === "debit" ? obCode : savedAccountCode;
           const isFX = currency !== "شيكل";
           const ilsAmount = isFX ? obAmount * obExchangeRate : obAmount;
           const { data: rpcRes, error: obErr } = await supabase.rpc("create_opening_balance_entry", {

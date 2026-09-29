@@ -470,11 +470,11 @@ const ReturnCreatePage = ({ returnType }: Props) => {
 
         let debitCode: string, creditCode: string;
         if (isSales) {
-          debitCode = "4150";
+          debitCode = await pickTenantAccountCode(ownerId, ["4150", "4400"], "sales_returns");
           creditCode = form.refundMethod === "cash" ? cashCode : form.refundMethod === "bank" ? bankCode : partyCode;
         } else {
           debitCode = form.refundMethod === "cash" ? cashCode : form.refundMethod === "bank" ? bankCode : partyCode;
-          creditCode = "5160";
+          creditCode = await pickTenantAccountCode(ownerId, ["5160", "5120"], "purchase_returns");
         }
 
         const txDescription = `${titleAr} ${returnNumber} - ${form.contactName}`;
