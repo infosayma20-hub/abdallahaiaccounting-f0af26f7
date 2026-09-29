@@ -58,7 +58,7 @@ function normalizeLegacy(fd: any, createdAt: string) {
   return {
     ...fd,
     kind: "monthly_inventory",
-    branch_name: fd?.branch_name || fd?.branch || "—",
+    branch_name: normalizeBranchName(fd?.branch_name || fd?.branch || "—"),
     month: fd?.month || String(createdAt).slice(0, 7),
     lines,
     summary: fd?.summary || { qty, filled: lines.length, total: lines.length, byCategory: [] },
