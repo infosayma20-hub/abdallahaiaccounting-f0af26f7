@@ -355,7 +355,7 @@ export default function MonthlyInventoryReviewPage() {
 
   return (
     <FinanceShell
-      title="الجرد الشهري — جميع الفروع"
+      title={countType === "weekly" ? "الجرد الأسبوعي (المدراء) — جميع الفروع" : "الجرد الشهري — جميع الفروع"}
       subtitle="مراجعة نماذج الجرد وتسعيرها لمعرفة قيمة المخزون لكل فرع وشهر"
       breadcrumb={[{ label: "المالية", href: "/accounting-center" }, { label: "الجرد الشهري" }]}
       actionTabs={actionTabs}
