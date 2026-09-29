@@ -119,9 +119,9 @@ export default function AlertsTab({ incompleteDays, corrections, employeeId, use
                   </span>
                 </div>
                 <span className="text-[10px] text-muted-foreground">
-                  {day.first_check_in ? format(new Date(day.first_check_in), "hh:mm a") : "مفقود"}
+                  {day.first_check_in ? format(new Date(day.first_check_in), "HH:mm") : "مفقود"}
                   {" | "}
-                  {day.last_check_out ? format(new Date(day.last_check_out), "hh:mm a") : "مفقود"}
+                  {day.last_check_out ? format(new Date(day.last_check_out), "HH:mm") : "مفقود"}
                 </span>
               </div>
               <p className="text-[10px] text-primary mt-1">اضغط للتعديل ▸</p>

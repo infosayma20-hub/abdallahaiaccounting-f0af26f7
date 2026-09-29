@@ -49,7 +49,7 @@ export function formatHrTime12(
   iso: string | Date | null | undefined,
   tz: string = COMPANY_TIMEZONE,
 ): string {
-  return formatHrTime(iso, "hh:mm a", tz);
+  return formatHrTime(iso, "HH:mm", tz);
 }
 
 /**

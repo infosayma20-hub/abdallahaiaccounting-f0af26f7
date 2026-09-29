@@ -482,7 +482,7 @@ export default function EmployeeAttendancePage() {
               <div className="text-xs text-muted-foreground">وقت الدخول</div>
               <div className="font-bold">
                 {todayRecord?.first_check_in
-                  ? format(new Date(todayRecord.first_check_in), "hh:mm a")
+                  ? format(new Date(todayRecord.first_check_in), "HH:mm")
                   : "—"}
               </div>
             </div>
@@ -491,7 +491,7 @@ export default function EmployeeAttendancePage() {
               <div className="text-xs text-muted-foreground">وقت الخروج</div>
               <div className="font-bold">
                 {todayRecord?.last_check_out
-                  ? format(new Date(todayRecord.last_check_out), "hh:mm a")
+                  ? format(new Date(todayRecord.last_check_out), "HH:mm")
                   : "—"}
               </div>
             </div>
@@ -573,9 +573,9 @@ export default function EmployeeAttendancePage() {
                   <div key={b.id} className="flex items-center justify-between text-xs bg-muted/30 rounded-lg px-3 py-1.5">
                     <span className="text-muted-foreground">{b.reason || "استراحة"}</span>
                     <div className="flex items-center gap-2">
-                      <span>{format(new Date(b.break_out), "hh:mm a")}</span>
+                      <span>{format(new Date(b.break_out), "HH:mm")}</span>
                       <span>←</span>
-                      <span>{b.break_in ? format(new Date(b.break_in), "hh:mm a") : "مفتوح"}</span>
+                      <span>{b.break_in ? format(new Date(b.break_in), "HH:mm") : "مفتوح"}</span>
                       {b.duration_minutes != null && (
                         <Badge variant="outline" className="text-[10px] px-1.5">{b.duration_minutes} د</Badge>
                       )}
@@ -629,9 +629,9 @@ export default function EmployeeAttendancePage() {
                     </div>
                     <div className="flex items-center gap-4 text-xs text-muted-foreground">
                       <span>
-                        {day.first_check_in ? format(new Date(day.first_check_in), "hh:mm a") : "—"}
+                        {day.first_check_in ? format(new Date(day.first_check_in), "HH:mm") : "—"}
                         {" ← "}
-                        {day.last_check_out ? format(new Date(day.last_check_out), "hh:mm a") : "—"}
+                        {day.last_check_out ? format(new Date(day.last_check_out), "HH:mm") : "—"}
                       </span>
                       <span className="font-bold text-foreground">{day.total_hours?.toFixed(1) || "0"} س</span>
                     </div>
@@ -661,9 +661,9 @@ export default function EmployeeAttendancePage() {
                     <span className="text-sm">{format(new Date(day.attendance_date), "EEEE d/M", { locale: ar })}</span>
                   </div>
                   <span className="text-xs text-muted-foreground">
-                    دخول: {day.first_check_in ? format(new Date(day.first_check_in), "hh:mm a") : "مفقود"}
+                    دخول: {day.first_check_in ? format(new Date(day.first_check_in), "HH:mm") : "مفقود"}
                     {" | "}
-                    خروج: {day.last_check_out ? format(new Date(day.last_check_out), "hh:mm a") : "مفقود"}
+                    خروج: {day.last_check_out ? format(new Date(day.last_check_out), "HH:mm") : "مفقود"}
                   </span>
                 </div>
               </Card>

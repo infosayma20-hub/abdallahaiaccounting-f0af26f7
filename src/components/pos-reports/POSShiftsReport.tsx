@@ -244,10 +244,10 @@ export default function POSShiftsReport({ sessions, onRefresh }: Props) {
                     </td>
                     <td className="px-3 py-3 text-sm text-foreground font-medium">{s.cashier_name || "—"}</td>
                     <td className="px-3 py-3 text-sm text-muted-foreground font-mono">{format(new Date(s.opened_at), "dd/MM/yyyy")}</td>
-                    <td className="px-3 py-3 text-sm font-mono text-muted-foreground">{format(new Date(s.opened_at), "hh:mm a", { locale: ar })}</td>
+                    <td className="px-3 py-3 text-sm font-mono text-muted-foreground">{format(new Date(s.opened_at), "HH:mm", { locale: ar })}</td>
                     <td className="px-3 py-3 text-sm font-mono">
                       {s.closed_at
-                        ? <span className="text-muted-foreground">{format(new Date(s.closed_at), "hh:mm a", { locale: ar })}</span>
+                        ? <span className="text-muted-foreground">{format(new Date(s.closed_at), "HH:mm", { locale: ar })}</span>
                         : <span className="text-warning text-xs font-medium">مفتوحة</span>
                       }
                     </td>
