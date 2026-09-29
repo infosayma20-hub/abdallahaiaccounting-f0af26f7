@@ -271,6 +271,9 @@ const CallCenterDispatchDialog = ({
     setDispatchStatus(null);
     setTableLabel("");
     setSkipWheelsTouched(false);
+    setSelectedCreditContact(null);
+    setCreditContactSearch("");
+    setCreditContactResults([]);
     // In edit mode honor the saved flag; in new-order mode the auto-effect
     // above will set the default once sourceApp is initialized.
     if (editingOrderId) {
@@ -419,6 +422,34 @@ const CallCenterDispatchDialog = ({
       setPaymentMethod(code);
     }
   }, [editingOrderId, editingVisaGlAccountCode, deliveryApps]);
+
+  // بحث جهات الآجل: يجلب الجهات المسجلة لنفس صاحب الحساب مع فلترة بالاسم أو
+  // الجوال (debounce خفيف). تُحمّل أول 15 جهة حتى بدون نص بحث حتى تظهر
+  // القائمة فور اختيار "آجل".
+  useEffect(() => {
+    if (paymentMethod !== "credit" || !dataOwnerId) {
+      setCreditContactResults([]);
+      return;
+    }
+    const q = creditContactSearch.trim().replace(/[%_,]/g, " ");
+    const timer = setTimeout(async () => {
+      setCreditContactLoading(true);
+      let query = supabase
+        .from("contacts")
+        .select("id, contact_name, phone, contact_type")
+        .eq("user_id", dataOwnerId)
+        .eq("is_active", true)
+        .order("contact_name")
+        .limit(15);
+      if (q) {
+        query = query.or(`contact_name.ilike.%${q}%,phone.ilike.%${q}%`);
+      }
+      const { data } = await query;
+      setCreditContactResults((data as any) || []);
+      setCreditContactLoading(false);
+    }, 250);
+    return () => clearTimeout(timer);
+  }, [paymentMethod, creditContactSearch, dataOwnerId]);
 
   const checkBranchSessions = async (branchList: Branch[]) => {
     // Check which branches have active POS sessions (cashiers online)
