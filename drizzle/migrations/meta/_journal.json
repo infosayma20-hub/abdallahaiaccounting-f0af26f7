@@ -281,6 +281,13 @@
       "when": 1790676444715,
       "tag": "0039_lock_call_center_payment_method_at_pos",
       "breakpoints": true
+    },
+    {
+      "idx": 40,
+      "version": "7",
+      "when": 1790677216327,
+      "tag": "0040_call_center_credit_default_perms",
+      "breakpoints": true
     }
   ]
 }
