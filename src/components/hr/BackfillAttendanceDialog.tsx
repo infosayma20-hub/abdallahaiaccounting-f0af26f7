@@ -155,11 +155,11 @@ export default function BackfillAttendanceDialog({ open, onOpenChange, defaultEm
           <div className="grid grid-cols-2 gap-3">
             <div>
               <Label>وقت الدخول</Label>
-              <Input type="time" value={checkIn} onChange={e => setCheckIn(e.target.value)} />
+              <TimeTextInput value={checkIn} onChange={setCheckIn} />
             </div>
             <div>
               <Label>وقت الخروج</Label>
-              <Input type="time" value={checkOut} onChange={e => setCheckOut(e.target.value)} />
+              <TimeTextInput value={checkOut} onChange={setCheckOut} />
             </div>
           </div>
 
