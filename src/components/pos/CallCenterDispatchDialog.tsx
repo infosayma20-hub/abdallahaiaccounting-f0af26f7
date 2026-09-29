@@ -537,9 +537,12 @@ const CallCenterDispatchDialog = ({
     if (!paymentMethod) newErrors.payment = true;
     if (paymentMethod === "credit") {
       if (!canSellOnCredit) newErrors.payment = true;
-      // الآجل يحتاج زبون حقيقي (اسم + جوال) ليُربط بحساب ذمته.
-      if (!name.trim()) newErrors.name = true;
-      if (!phone.trim()) newErrors.phone = true;
+      // الآجل يحتاج جهة مسجلة: إما مختارة من القائمة أو اسم + جوال يدويين.
+      if (!selectedCreditContact) {
+        if (!name.trim()) newErrors.name = true;
+        if (!phone.trim()) newErrors.phone = true;
+        newErrors.creditContact = true;
+      }
     }
     if (!sourceApp) newErrors.source = true;
     setErrors(newErrors);
@@ -615,8 +618,10 @@ const CallCenterDispatchDialog = ({
       // by name or phone. Upsert-by-phone within the same data owner.
       const trimmedName = name.trim();
       const trimmedPhone = phone.trim();
-      let customerContactId: string | null = null;
-      if (trimmedPhone && dataOwnerId) {
+      // جهة مختارة من القائمة تُعتمد مباشرة — لا بحث بالجوال ولا إنشاء نسخة.
+      let customerContactId: string | null =
+        paymentMethod === "credit" ? (selectedCreditContact?.id || null) : null;
+      if (!customerContactId && trimmedPhone && dataOwnerId) {
         try {
           // limit(1) بدل maybeSingle: لو في رقم مكرر ما نفشل وننشئ نسخة ثالثة.
           const { data: existingRows } = await supabase
