@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Send, MapPin, Phone, User, Truck, ShoppingBag, CreditCard, Banknote, StickyNote, AlertCircle, CheckCircle2, Wifi, WifiOff, Utensils } from "lucide-react";
+import { Send, MapPin, Phone, User, Truck, ShoppingBag, CreditCard, Banknote, StickyNote, AlertCircle, CheckCircle2, Wifi, WifiOff, Utensils, Receipt } from "lucide-react";
 import DeliveryZonePicker, { DeliveryInfo } from "./DeliveryZonePicker";
 
 interface CartItem {
