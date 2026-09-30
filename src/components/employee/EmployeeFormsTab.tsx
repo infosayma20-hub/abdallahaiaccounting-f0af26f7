@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { TimeTextInput } from "@/components/hr/TimeTextInput";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -1191,7 +1192,7 @@ export default function EmployeeFormsTab({
              </div>
             <div>
               <label className="text-xs text-muted-foreground mb-1 block">وقت البصمة *</label>
-              <Input type="time" value={formData.correction_time || ""} onChange={e => setFormData(p => ({ ...p, correction_time: e.target.value }))} dir="ltr" className="rounded-xl" />
+              <TimeTextInput value={formData.correction_time || ""} onChange={(v) => setFormData(p => ({ ...p, correction_time: v }))} className="rounded-xl" />
               <p className="text-[10px] text-muted-foreground mt-0.5">الوقت الفعلي للدخول/الخروج</p>
             </div>
             <div>
@@ -1220,11 +1221,11 @@ export default function EmployeeFormsTab({
             <div className="grid grid-cols-2 gap-2">
               <div>
                 <label className="text-xs text-muted-foreground mb-1 block">من ساعة *</label>
-                <Input type="time" value={formData.from_time || ""} onChange={e => setFormData(p => ({ ...p, from_time: e.target.value }))} dir="ltr" className="rounded-xl" />
+                <TimeTextInput value={formData.from_time || ""} onChange={(v) => setFormData(p => ({ ...p, from_time: v }))} className="rounded-xl" />
               </div>
               <div>
                 <label className="text-xs text-muted-foreground mb-1 block">إلى ساعة *</label>
-                <Input type="time" value={formData.to_time || ""} onChange={e => setFormData(p => ({ ...p, to_time: e.target.value }))} dir="ltr" className="rounded-xl" />
+                <TimeTextInput value={formData.to_time || ""} onChange={(v) => setFormData(p => ({ ...p, to_time: v }))} className="rounded-xl" />
               </div>
             </div>
             <div>
