@@ -2457,8 +2457,8 @@ export default function HRAttendancePage() {
           </DialogHeader>
           <div className="space-y-3">
             <div className="grid grid-cols-2 gap-3">
-              <div><label className="text-xs text-muted-foreground mb-1 block">الدخول</label><Input type="time" value={editRecordForm.first_check_in} onChange={e => setEditRecordForm(p => ({ ...p, first_check_in: e.target.value }))} dir="ltr" /></div>
-              <div><label className="text-xs text-muted-foreground mb-1 block">الخروج</label><Input type="time" value={editRecordForm.last_check_out} onChange={e => setEditRecordForm(p => ({ ...p, last_check_out: e.target.value }))} dir="ltr" /></div>
+              <div><label className="text-xs text-muted-foreground mb-1 block">الدخول</label><TimeTextInput value={editRecordForm.first_check_in} onChange={(v) => setEditRecordForm(p => ({ ...p, first_check_in: v }))} /></div>
+              <div><label className="text-xs text-muted-foreground mb-1 block">الخروج</label><TimeTextInput value={editRecordForm.last_check_out} onChange={(v) => setEditRecordForm(p => ({ ...p, last_check_out: v }))} /></div>
             </div>
             <div>
               <label className="text-xs text-muted-foreground mb-1 block">الحالة</label>
