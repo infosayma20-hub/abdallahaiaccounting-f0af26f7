@@ -231,6 +231,10 @@ export default function JobApplicationsPage() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  /** الفلاتر المتعددة: مصفوفة فارغة = إظهار الكل، ومصفوفة بقيم = مطابقة أي قيمة محددة. */
+  const [multiFilters, setMultiFilters] = useState<Record<MultiFilterKey, string[]>>({
+    desired_position: [], work_location: [], shift_preference: [],
+  });
   /** عمود الترتيب واتجاهه — الافتراضي الأحدث أولاً. */
   const [sortKey, setSortKey] = useState<string>("created_at");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
