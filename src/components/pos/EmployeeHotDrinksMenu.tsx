@@ -119,15 +119,15 @@ export default function EmployeeHotDrinksMenu({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[92dvh] overflow-hidden p-0" dir="rtl">
-        <DialogHeader className="border-b border-border px-5 py-4">
+      <DialogContent className="flex h-[92dvh] max-h-[92dvh] max-w-4xl flex-col gap-0 overflow-hidden p-0" dir="rtl">
+        <DialogHeader className="shrink-0 border-b border-border px-5 py-4">
           <DialogTitle className="flex items-center gap-2 text-xl">
             <Coffee className="h-5 w-5 text-primary" /> مشروبات الموظفين الساخنة
           </DialogTitle>
         </DialogHeader>
 
-        <div className="grid min-h-0 flex-1 gap-0 md:grid-cols-[240px_1fr]">
-          <aside className="border-b border-border bg-muted/40 p-4 md:border-b-0 md:border-l">
+        <div className="grid min-h-0 flex-1 grid-rows-[auto_minmax(0,1fr)] gap-0 overflow-hidden md:grid-cols-[240px_1fr] md:grid-rows-[minmax(0,1fr)]">
+          <aside className="max-h-[35dvh] min-h-0 overflow-y-auto md:max-h-none border-b border-border bg-muted/40 p-4 md:border-b-0 md:border-l">
             <label className="mb-2 block text-sm font-semibold">الموظف</label>
             {employee ? (
               <button
@@ -204,7 +204,7 @@ export default function EmployeeHotDrinksMenu({
           </section>
         </div>
 
-        <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border bg-background px-5 py-4">
+        <div className="flex shrink-0 flex-wrap items-center justify-between gap-3 border-t border-border bg-background px-5 py-4">
           <div>
             <div className="text-xs text-muted-foreground">{totalQuantity} مشروب</div>
             <div className="text-xl font-black">₪{total.toFixed(2)}</div>
