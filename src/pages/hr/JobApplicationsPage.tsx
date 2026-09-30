@@ -74,10 +74,10 @@ const STATUS_GROUPS = [
 /** حقول الفلترة المتعددة — يمكن اختيار عدة قيم معًا (أو بين القيم، و/ بين الحقول). */
 type MultiFilterKey = "desired_position" | "work_location" | "shift_preference";
 
-const MULTI_FILTERS: { key: MultiFilterKey; label: string }[] = [
-  { key: "desired_position", label: "الوظيفة المطلوبة" },
-  { key: "work_location", label: "موقع العمل" },
-  { key: "shift_preference", label: "الفترة" },
+const MULTI_FILTERS: { key: MultiFilterKey; label: string; fields: string[] }[] = [
+  { key: "desired_position", label: "الوظيفة المطلوبة", fields: ["desired_position"] },
+  { key: "work_location", label: "موقع العمل", fields: ["work_location", "birth_place"] },
+  { key: "shift_preference", label: "الفترة", fields: ["shift_preference"] },
 ];
 
 /** قائمة منسدلة متعددة الاختيار: عدة قيم معًا، بلا تحديد = إظهار الكل. */
