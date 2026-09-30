@@ -4,7 +4,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { TimeTextInput } from "@/components/hr/TimeTextInput";
+import { TimeTextInput, normalizeTime24 } from "@/components/hr/TimeTextInput";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -1157,8 +1157,10 @@ export default function MonthlyAttendanceTab({
         const stored: BreakDraft[] = rows.map((b) => ({
           id: b.id,
           break_type: (b.break_type as BreakDraft["break_type"]) || "other",
-          out: b.break_out ? format(new Date(b.break_out), "hh:mm a") : "",
-          in: b.break_in ? format(new Date(b.break_in), "hh:mm a") : "",
+          // ⚠️ القيمة الداخلية يجب أن تبقى HH:mm (24 ساعة) — الحقل يعرضها AM/PM.
+          // صيغة "hh:mm a" هنا كانت تكسر الحساب والحفظ (01:10 PM ⇒ 01:00 صباحاً).
+          out: b.break_out ? format(new Date(b.break_out), "HH:mm") : "",
+          in: b.break_in ? format(new Date(b.break_in), "HH:mm") : "",
           reason: b.reason || "",
         }));
         const storedRanges = rows.map((b) => ({ break_out: b.break_out, break_in: b.break_in }));
@@ -1182,7 +1184,9 @@ export default function MonthlyAttendanceTab({
    *  Overnight-shift aware: when `anchor` is provided and the resulting time
    *  falls before it, roll forward one calendar day so a 04:49 PM check-in
    *  + 01:04 AM check-out is treated as ~8h15m (not a negative span). */
-  const combineDT = useCallback((dateStr: string, hhmm: string, anchor?: Date | null): Date | null => {
+  const combineDT = useCallback((dateStr: string, hhmmRaw: string, anchor?: Date | null): Date | null => {
+    // 🛡️ يقبل "13:10" أو "01:10 PM" — أي صيغة أخرى تُرفض بدل حفظ وقت خاطئ بصمت.
+    const hhmm = normalizeTime24(hhmmRaw);
     if (!hhmm) return null;
     const [y, mo, d] = dateStr.split("-").map(Number);
     const [h, mi] = hhmm.split(":").map(Number);
