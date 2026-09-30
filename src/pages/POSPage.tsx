@@ -9367,7 +9367,17 @@ const POSPage = () => {
                 <span className="text-[15px] font-semibold" style={{ color: '#201F1E' }}>طريقة الدفع</span>
               </div>
               <button
-                onClick={() => { discardStagedOrderRef.current?.(); setShowPayment(false); }}
+                onClick={() => {
+                  discardStagedOrderRef.current?.();
+                  setShowPayment(false);
+                  if (employeeHotDrinkOrder) {
+                    setCart([]);
+                    setSelectedEmployee(null);
+                    setEmployeeHotDrinkOrder(false);
+                    setMealDiscountType(null);
+                    setPaymentMethod("cash");
+                  }
+                }}
                 className="w-7 h-7 flex items-center justify-center transition-colors"
                 style={{ background: 'transparent', color: '#605E5C', borderRadius: 2 }}
                 onMouseEnter={e => { e.currentTarget.style.background = '#F3F2F1'; }}
@@ -9443,7 +9453,7 @@ const POSPage = () => {
                       key={m.key}
                       whileTap={{ scale: lockedOut ? 1 : 0.97 }}
                       disabled={lockedOut}
-                      title={lockedOut ? 'طريقة الدفع محددة من الكول سنتر ولا يمكن تغييرها' : undefined}
+                      title={lockedOut ? (employeeHotDrinkOrder ? 'مشروبات الموظفين تُسجّل على حساب الموظف فقط' : 'طريقة الدفع محددة من الكول سنتر ولا يمكن تغييرها') : undefined}
                       onClick={() => {
                         if (lockedOut) return;
                         if (isSplitTile) {
