@@ -343,7 +343,7 @@ export default function POSReceiptDialog({ open, onOpenChange, data, showReturnP
                 </div>
               )}
 
-              <hr style={{ border: "none", borderTop: "1px solid #000", margin: "8px 0" }} />
+              <div style={{ height: "8px" }} />
 
               {/* ═══ TABLE HEADER ═══ */}
               <div style={{ display: "flex", justifyContent: "space-between", padding: "4px 0", fontSize: "11px", fontWeight: 900, letterSpacing: "0.5px", color: "#000", borderBottom: "1px solid #333" }}>
