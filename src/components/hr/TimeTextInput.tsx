@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Input } from "@/components/ui/input";
+import { useRef, useState } from "react";
+import { cn } from "@/lib/utils";
 
 /**
  * حقل وقت بالكتابة اليدوية (بدون منتقي الساعة) بنظام AM/PM.
@@ -43,34 +43,102 @@ export function TimeTextInput({
   onChange: (v: string) => void;
   className?: string;
 }) {
-  const [draft, setDraft] = useState<string | null>(null);
-  const invalid = draft !== null && draft.trim() !== "" && !parseTimeText(draft);
+  // تقسيم القيمة المخزنة HH:MM إلى ساعة (1-12) ودقائق وفترة
+  const parsed = (() => {
+    const m = (value || "").match(/^(\d{1,2}):(\d{2})/);
+    if (!m) return null;
+    const h = Number(m[1]);
+    return { h12: String(h % 12 === 0 ? 12 : h % 12).padStart(2, "0"), min: m[2], pm: h >= 12 };
+  })();
+
+  const [hDraft, setHDraft] = useState<string | null>(null);
+  const [mDraft, setMDraft] = useState<string | null>(null);
+  const [pmLocal, setPmLocal] = useState<boolean | null>(null);
+  const minRef = useRef<HTMLInputElement>(null);
+
+  const hour = hDraft ?? parsed?.h12 ?? "";
+  const minute = mDraft ?? parsed?.min ?? "";
+  const pm = pmLocal ?? parsed?.pm ?? false;
+
+  const emit = (hStr: string, mStr: string, isPm: boolean) => {
+    const h = Number(hStr);
+    const mi = Number(mStr);
+    if (hStr === "" || mStr === "" || !(h >= 1 && h <= 12) || !(mi >= 0 && mi <= 59)) return false;
+    let h24 = h % 12;
+    if (isPm) h24 += 12;
+    onChange(`${String(h24).padStart(2, "0")}:${String(mi).padStart(2, "0")}`);
+    return true;
+  };
+
+  const hInvalid = hour !== "" && !(Number(hour) >= 1 && Number(hour) <= 12);
+  const mInvalid = minute !== "" && !(Number(minute) >= 0 && Number(minute) <= 59);
+
+  const box = "w-9 bg-transparent text-center outline-none tabular-nums";
 
   return (
-    <Input
-      type="text"
+    <div
       dir="ltr"
-      placeholder="09:00 AM"
-      aria-invalid={invalid || undefined}
-      className={`${className ?? ""} ${invalid ? "border-destructive" : ""}`}
-      value={draft ?? formatTime12(value)}
-      onChange={(e) => {
-        const v = e.target.value.slice(0, 12);
-        setDraft(v);
-        const n = parseTimeText(v);
-        if (n) onChange(n);
-      }}
-      onBlur={() => {
-        if (draft === null) return;
-        const n = parseTimeText(draft);
-        if (n) {
-          onChange(n);
-          setDraft(null);
-        } else if (draft.trim() === "") {
-          setDraft(null);
-        }
-        // غير صالح: نُبقي النص ظاهراً مع إطار أحمر بدل الرجوع الصامت للقيمة القديمة
-      }}
-    />
+      className={cn(
+        "flex h-10 w-full items-center gap-1 rounded-md border border-input bg-background px-2 text-sm focus-within:ring-2 focus-within:ring-ring",
+        (hInvalid || mInvalid) && "border-destructive",
+        className,
+      )}
+    >
+      <input
+        inputMode="numeric"
+        placeholder="09"
+        aria-label="الساعة"
+        className={box}
+        value={hour}
+        onFocus={(e) => e.target.select()}
+        onChange={(e) => {
+          const v = e.target.value.replace(/\D/g, "").slice(0, 2);
+          setHDraft(v);
+          emit(v, minute, pm);
+          // انتقال تلقائي للدقائق بعد رقمين أو رقم لا يمكن أن يبدأ ساعة من خانتين
+          if (v.length === 2 || (v.length === 1 && Number(v) > 1)) minRef.current?.focus();
+        }}
+        onBlur={() => {
+          if (hDraft && emit(hDraft, minute, pm)) setHDraft(null);
+        }}
+      />
+      <span className="text-muted-foreground">:</span>
+      <input
+        ref={minRef}
+        inputMode="numeric"
+        placeholder="00"
+        aria-label="الدقائق"
+        className={box}
+        value={minute}
+        onFocus={(e) => e.target.select()}
+        onChange={(e) => {
+          const v = e.target.value.replace(/\D/g, "").slice(0, 2);
+          setMDraft(v);
+          emit(hour, v, pm);
+        }}
+        onBlur={() => {
+          if (mDraft !== null && emit(hour, mDraft.padStart(2, "0"), pm)) setMDraft(null);
+        }}
+      />
+      <div className="ms-auto flex overflow-hidden rounded border border-input text-xs font-semibold">
+        {([false, true] as const).map((isPm) => (
+          <button
+            key={String(isPm)}
+            type="button"
+            tabIndex={-1}
+            onClick={() => {
+              setPmLocal(isPm);
+              emit(hour, minute, isPm);
+            }}
+            className={cn(
+              "px-2 py-1 transition-colors",
+              pm === isPm ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted",
+            )}
+          >
+            {isPm ? "PM" : "AM"}
+          </button>
+        ))}
+      </div>
+    </div>
   );
 }
