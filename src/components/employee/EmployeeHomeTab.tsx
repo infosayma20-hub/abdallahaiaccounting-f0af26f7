@@ -488,9 +488,11 @@ export default function EmployeeHomeTab({ employeeName, todayRecord, todayEvents
       {/* Live Clock */}
       <Card className="border-border bg-card overflow-hidden">
         <CardContent className="p-4 text-center">
-          <div className="text-5xl font-bold tabular-nums text-primary tracking-tight" style={{ fontFeatureSettings: "'tnum' 1", fontFamily: "JetBrains Mono, monospace" }}>
-            {format(currentTime, "hh:mm a")}
+          {/* dir=ltr: بدونه الواجهة العربية تقلب الترتيب فتظهر "PM:21 06:37" */}
+          <div dir="ltr" className="inline-flex items-baseline justify-center gap-1 text-5xl font-bold tabular-nums text-primary tracking-tight" style={{ fontFeatureSettings: "'tnum' 1", fontFamily: "JetBrains Mono, monospace" }}>
+            <span>{format(currentTime, "hh:mm")}</span>
             <span className="text-2xl text-primary/50">:{format(currentTime, "ss")}</span>
+            <span className="ms-2 text-3xl">{format(currentTime, "a")}</span>
           </div>
         </CardContent>
       </Card>
