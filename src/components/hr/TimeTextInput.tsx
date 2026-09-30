@@ -70,8 +70,15 @@ export function TimeTextInput({
     return { h12: String(h % 12 === 0 ? 12 : h % 12).padStart(2, "0"), min: n.slice(3), pm: h >= 12 };
   })();
 
-  const [hDraft, setHDraft] = useState<string | null>(null);
-  const [mDraft, setMDraft] = useState<string | null>(null);
+  // المسودّات محفوظة في ref أيضاً: عند انتقال المؤشر تلقائياً للدقائق يحدث
+  // «الخروج من خانة الساعة» فوراً قبل أن تتحدّث الشاشة، فكان يقرأ الرقم القديم
+  // ("1" بدل "12") ويحفظه — وهذا سبب تحوّل 12:10 إلى 01:10.
+  const [hDraft, setHDraftState] = useState<string | null>(null);
+  const [mDraft, setMDraftState] = useState<string | null>(null);
+  const hDraftRef = useRef<string | null>(null);
+  const mDraftRef = useRef<string | null>(null);
+  const setHDraft = (v: string | null) => { hDraftRef.current = v; setHDraftState(v); };
+  const setMDraft = (v: string | null) => { mDraftRef.current = v; setMDraftState(v); };
   const [pmLocal, setPmLocal] = useState<boolean | null>(null);
   const minRef = useRef<HTMLInputElement>(null);
 
@@ -117,12 +124,13 @@ export function TimeTextInput({
           setHDraft(v);
           // لا نحفظ ساعة ناقصة (مثل "1" أثناء كتابة "12") — ننتظر اكتمالها أو الخروج من الخانة.
           if (hourComplete(v)) {
-            emit(v, minute, pm);
+            if (emit(v, minute, pm)) setHDraft(null);
             minRef.current?.focus();
           }
         }}
         onBlur={() => {
-          if (hDraft !== null && emit(hDraft, minute, pm)) setHDraft(null);
+          const d = hDraftRef.current;
+          if (d !== null && emit(d, minute, pm)) setHDraft(null);
         }}
       />
       <span className="text-muted-foreground">:</span>
@@ -137,10 +145,11 @@ export function TimeTextInput({
         onChange={(e) => {
           const v = lastTwoDigits(e.target.value);
           setMDraft(v);
-          if (v.length === 2) emit(hour, v, pm);
+          if (v.length === 2) emit(hDraftRef.current ?? hour, v, pm);
         }}
         onBlur={() => {
-          if (mDraft !== null && emit(hour, mDraft.padStart(2, "0"), pm)) setMDraft(null);
+          const d = mDraftRef.current;
+          if (d !== null && emit(hDraftRef.current ?? hour, d.padStart(2, "0"), pm)) setMDraft(null);
         }}
       />
       <div className="ms-auto flex overflow-hidden rounded border border-input text-xs font-semibold">
@@ -151,8 +160,8 @@ export function TimeTextInput({
             tabIndex={-1}
             onMouseDown={(e) => e.preventDefault()}
             onClick={() => {
-              const h = hDraft ?? hour;
-              const m = mDraft !== null ? mDraft.padStart(2, "0") : minute;
+              const h = hDraftRef.current ?? hour;
+              const m = mDraftRef.current !== null ? mDraftRef.current.padStart(2, "0") : minute;
               if (emit(h, m, isPm)) {
                 setPmLocal(null);
                 setHDraft(null);
