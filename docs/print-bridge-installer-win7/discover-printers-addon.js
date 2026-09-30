@@ -1,73 +1,65 @@
 /**
- * Unify Print Bridge — Network Printer Discovery Add-on
- * ──────────────────────────────────────────────────────
+ * discover-printers-addon.js
  * Adds POST /discover-network-printers to the existing
- * print-bridge-v6.3.7-clean.js. Safely scans the local subnet for
- * devices with TCP port 9100 open (typical thermal printers).
+ * print-bridge-v6.3.7-clean.js. Safely scans the local network for
+ * printers listening on port 9100 (RAW/JetDirect).
  *
- * ── Install ────────────────────────────────────────
- *   1) Save this file as c:\print-bridge\discover-printers-addon.js
- *   2) In print-bridge-v6.3.7-clean.js, anywhere AFTER `const app = express();`
- *      and BEFORE `app.listen(...)`, add ONE line:
- *
- *        require('./discover-printers-addon')(app);
- *
- *   3) Restart the bridge service.
- *
- * ── API ────────────────────────────────────────────
  *   POST /discover-network-printers
- *     Optional body: {
- *       "subnet":    "192.168.1",    // /24 prefix; auto-detected from
- *                                    //   local interfaces when omitted
- *       "port":      9100,           // default 9100
- *       "timeoutMs": 300,            // 100..1500
- *       "from":      1,              // 1..254
- *       "to":        254,            // from..254 (max 254 hosts)
- *       "concurrency": 30            // 1..64
- *     }
- *     Returns: {
- *       ok: true,
- *       subnet: "192.168.1",
- *       port:   9100,
- *       scanned: 254,
- *       elapsedMs: 1234,
- *       found: [ { ip, port, status:"open", label } ]
- *     }
+ *     body (all optional): { subnet, port, timeoutMs, from, to, concurrency }
+ *     → { ok, subnets, port, scanned, elapsedMs, found: [{ip, port, status, label}] }
  *
- * ── Safety ─────────────────────────────────────────
- *   - Only RFC1918 private subnets allowed:
- *       10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16
- *   - 127.x.x.x is rejected (no localhost-wide scan)
- *   - Max 254 hosts per request
+ *   - If `subnet` is omitted, the bridge scans AUTOMATICALLY:
+ *       1) every IPv4 network the computer is connected to (all interfaces)
+ *       2) the /24 networks of printers already saved in device.json
+ *     So printers on a different subnet than the PC (e.g. 178.10.1.x)
+ *     are still found without typing anything.
  *   - Endpoint refuses requests not originating from 127.0.0.1 / ::1
+ *   - Max 254 hosts per subnet per request
  *   - No data is written to printers; only a TCP connect() probe
  */
 
-const net = require('net');
-const os  = require('os');
+const net  = require('net');
+const os   = require('os');
+const fs   = require('fs');
+const path = require('path');
 
-function isPrivatePrefix(prefix) {
+function isValidPrefix(prefix) {
   const parts = prefix.split('.').map(Number);
-  if (parts.length !== 3 || parts.some(n => !Number.isInteger(n) || n < 0 || n > 255)) return false;
-  const [a, b] = parts;
-  if (a === 10) return true;
-  if (a === 172 && b >= 16 && b <= 31) return true;
-  if (a === 192 && b === 168) return true;
-  return false;
+  return parts.length === 3 && parts.every(n => Number.isInteger(n) && n >= 0 && n <= 255);
 }
 
-function detectLocalPrefix() {
+/** All unique /24 prefixes of every non-internal IPv4 interface. */
+function detectLocalPrefixes() {
+  const out = new Set();
   const ifaces = os.networkInterfaces();
   for (const list of Object.values(ifaces)) {
     for (const ni of (list || [])) {
       if (ni.family !== 'IPv4' || ni.internal) continue;
       const parts = ni.address.split('.');
-      if (parts.length !== 4) continue;
-      const pref = parts.slice(0, 3).join('.');
-      if (isPrivatePrefix(pref)) return pref;
+      if (parts.length !== 4 || parts[0] === '127') continue;
+      out.add(parts.slice(0, 3).join('.'));
     }
   }
-  return null;
+  return [...out];
+}
+
+/** /24 prefixes of printers already saved in device.json (covers printers
+ *  on a different subnet than the PC, e.g. 178.10.1.x). */
+function configuredPrinterPrefixes() {
+  const out = new Set();
+  try {
+    const file = path.join(__dirname, 'device.json');
+    const cfg = JSON.parse(fs.readFileSync(file, 'utf8'));
+    const printers = Array.isArray(cfg?.printers) ? cfg.printers : [];
+    for (const p of printers) {
+      const ip = String(p?.ip || '').trim();
+      const parts = ip.split('.');
+      if (parts.length === 4 && parts.every(n => /^\d+$/.test(n) && Number(n) <= 255)) {
+        out.add(parts.slice(0, 3).join('.'));
+      }
+    }
+  } catch { /* no device.json yet — fine */ }
+  return [...out];
 }
 
 function probe(ip, port, timeoutMs) {
@@ -107,6 +99,7 @@ function cors(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST,OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  res.setHeader('Access-Control-Private-Network', 'true');
   res.setHeader('Access-Control-Allow-Private-Network', 'true');
 }
 
@@ -151,14 +144,20 @@ module.exports = function attachDiscovery(app) {
     }
     const body = (await readJsonBody(req)) || {};
 
-    // subnet
-    let subnet = typeof body.subnet === 'string' ? body.subnet.trim() : '';
-    if (subnet && !isPrivatePrefix(subnet)) {
-      return res.status(400).json({ ok: false, error: 'subnet_not_private', subnet });
-    }
-    if (!subnet) {
-      subnet = detectLocalPrefix();
-      if (!subnet) return res.status(400).json({ ok: false, error: 'no_private_interface_found' });
+    // subnets to scan
+    let subnets = [];
+    const manual = typeof body.subnet === 'string' ? body.subnet.trim().replace(/\.+$/, '') : '';
+    if (manual) {
+      if (!isValidPrefix(manual)) {
+        return res.status(400).json({ ok: false, error: 'subnet_invalid', subnet: manual });
+      }
+      subnets = [manual];
+    } else {
+      // automatic: every local interface + subnets of already-configured printers
+      subnets = [...new Set([...detectLocalPrefixes(), ...configuredPrinterPrefixes()])];
+      if (!subnets.length) {
+        return res.status(400).json({ ok: false, error: 'no_network_interface_found' });
+      }
     }
 
     // port, timeout, range, concurrency
@@ -173,14 +172,26 @@ module.exports = function attachDiscovery(app) {
 
     const t0 = Date.now();
     try {
-      const found = await runScan({ subnet, port, timeoutMs, from, to, concurrency });
+      const found = [];
+      for (const subnet of subnets) {
+        const hits = await runScan({ subnet, port, timeoutMs, from, to, concurrency });
+        found.push(...hits);
+        console.log(`[discover-printers] ${subnet}.${from}-${to} port ${port} → ${hits.length} hits`);
+      }
       const elapsedMs = Date.now() - t0;
-      console.log(`[discover-printers] ${subnet}.${from}-${to} port ${port} → ${found.length} hits in ${elapsedMs}ms`);
-      res.json({ ok: true, subnet, port, scanned: to - from + 1, elapsedMs, found });
+      res.json({
+        ok: true,
+        subnet: subnets[0],           // backward compat
+        subnets,
+        port,
+        scanned: (to - from + 1) * subnets.length,
+        elapsedMs,
+        found,
+      });
     } catch (e) {
       res.status(500).json({ ok: false, error: 'scan_failed', detail: String(e?.message || e) });
     }
   });
 
-  console.log('[discover-printers] add-on loaded — POST /discover-network-printers');
+  console.log('[discover-printers] add-on loaded — POST /discover-network-printers (multi-subnet auto)');
 };

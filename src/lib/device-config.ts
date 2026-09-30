@@ -675,6 +675,7 @@ export interface DiscoveredPrinter {
 export interface DiscoverResult {
   ok: boolean;
   subnet?: string;
+  subnets?: string[];
   port?: number;
   scanned?: number;
   elapsedMs?: number;
@@ -716,6 +717,7 @@ export async function discoverNetworkPrinters(opts: {
       return {
         ok: !!json?.ok,
         subnet: json?.subnet,
+        subnets: Array.isArray(json?.subnets) ? json.subnets : (json?.subnet ? [json.subnet] : undefined),
         port: json?.port,
         scanned: json?.scanned,
         elapsedMs: json?.elapsedMs,
