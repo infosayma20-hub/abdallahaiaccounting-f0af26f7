@@ -1660,25 +1660,28 @@ function AddPrinterDialog({
         name: name.trim(),
         ip_address: mode === "network" ? ip.trim() : "",
         port: mode === "network" ? (Number(port) || 9100) : 0,
-        printer_type: role === "receipt" ? "receipt" : "kitchen_ticket",
-        print_categories: [role],
+        printer_type: roles.includes("receipt") ? "receipt" : "kitchen_ticket",
+        print_categories: roles,
         branch_id: branchId || null,
         is_active: true,
-        is_default: role === "receipt",
+        is_default: roles.includes("receipt"),
         settings: mode === "usb"
           ? { connection: "windows", windows_printer_name: winName.trim() }
-          : (role === "unified_kitchen" ? { image_mode: "unified_kitchen" } : {}),
+          : (roles.includes("unified_kitchen") ? { image_mode: "unified_kitchen" } : {}),
       };
       const { error } = await supabase.from("pos_printers").insert(row);
       if (error) { toast.error("فشل الحفظ: " + error.message); return; }
       // Push the new printer to the bridge (device.json) immediately so the
-      // cashier doesn't have to restart anything.
-      const bridgeKey = roleToBridgeKey(role);
-      if (bridgeKey) {
-        const printerForBridge: any = mode === "usb"
+      // cashier doesn't have to restart anything — one entry per selected role.
+      const bridgeEntries: Record<string, any> = {};
+      for (const r of roles) {
+        const k = roleToBridgeKey(r);
+        if (k) bridgeEntries[k] = mode === "usb"
           ? { type: "windows", name: name.trim(), windowsPrinterName: winName.trim(), width: 576 }
           : { type: "network", name: name.trim(), ip: ip.trim(), port: Number(port) || 9100, width: 576 };
-        const pushed = await pushPrintersToBridge({ [bridgeKey]: printerForBridge }).catch(() => false);
+      }
+      if (Object.keys(bridgeEntries).length > 0) {
+        const pushed = await pushPrintersToBridge(bridgeEntries).catch(() => false);
         if (pushed) toast.success(`✅ تم إضافة "${name}" — تم حفظها محلياً على هذا الجهاز`);
         else        toast.success(`✅ تم إضافة "${name}" (لن تنطبق على الجسر حتى يعمل برنامج الطباعة)`);
       } else {
