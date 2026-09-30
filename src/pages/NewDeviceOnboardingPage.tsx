@@ -1220,7 +1220,7 @@ export default function NewDeviceOnboardingPage() {
                 <Input
                   value={discoverSubnet}
                   onChange={(e) => setDiscoverSubnet(e.target.value)}
-                  placeholder="اتركه فارغاً ليُكتشف تلقائياً، أو اكتب 192.168.1"
+                  placeholder="اتركه فارغاً — يفحص كل الشبكات تلقائياً"
                   dir="ltr"
                   className="text-xs"
                 />
@@ -1238,7 +1238,7 @@ export default function NewDeviceOnboardingPage() {
               </Button>
             </div>
             <p className="text-[11px] text-muted-foreground">
-              يفحص جميع عناوين الشبكة (1–254) على port 9100. آمن ولا يطبع شيئاً.
+              يفحص تلقائياً كل الشبكات المتصل بها الكمبيوتر وشبكات الطابعات المحفوظة (1–254) على port 9100. آمن ولا يطبع شيئاً.
             </p>
 
             {discovering && (
