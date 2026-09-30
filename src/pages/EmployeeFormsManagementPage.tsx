@@ -330,14 +330,30 @@ export default function EmployeeFormsManagementPage() {
   // Spinner only on the first load; later refreshes (after any action)
   // update the list silently so the screen never blanks out.
   const formsLoadedRef = useRef(false);
+  // 🛡️ الخادم يُرجع 1000 صف كحد أقصى لكل طلب — بدون تقسيم الصفحات كانت
+  // الطلبات الأقدم (ومنها طلبات معلّقة) تختفي بصمت من الشاشة.
+  const fetchAllPages = async (table: "employee_forms" | "correction_requests") => {
+    const PAGE = 1000;
+    const rows: any[] = [];
+    for (let offset = 0; ; offset += PAGE) {
+      const { data, error } = await (supabase as any)
+        .from(table)
+        .select("*")
+        .is("hr_hidden_at", null)
+        .order("created_at", { ascending: false })
+        .order("id", { ascending: true })
+        .range(offset, offset + PAGE - 1);
+      if (error) return { data: null, error };
+      rows.push(...(data || []));
+      if (!data || data.length < PAGE) break;
+    }
+    return { data: rows, error: null };
+  };
+
   const fetchForms = async () => {
     if (!user) return;
     if (!formsLoadedRef.current) setLoading(true);
-    const { data, error } = await supabase
-      .from("employee_forms")
-      .select("*")
-      .is("hr_hidden_at", null)
-      .order("created_at", { ascending: false });
+    const { data, error } = await fetchAllPages("employee_forms");
     if (!error) {
       setForms(data || []);
       formsLoadedRef.current = true;
@@ -347,12 +363,8 @@ export default function EmployeeFormsManagementPage() {
 
   const fetchCorrections = async () => {
     if (!user) return;
-    const { data } = await supabase
-      .from("correction_requests")
-      .select("*")
-      .is("hr_hidden_at", null)
-      .order("created_at", { ascending: false });
-    setCorrections(data || []);
+    const { data, error } = await fetchAllPages("correction_requests");
+    if (!error) setCorrections(data || []);
   };
 
   // Normalize correction_requests rows into the same shape as employee_forms rows.
