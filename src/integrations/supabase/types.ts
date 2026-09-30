@@ -8375,6 +8375,110 @@ export type Database = {
           },
         ]
       }
+      employee_hot_drink_usage: {
+        Row: {
+          business_date: string
+          charged_amount: number
+          company_id: string
+          created_at: string
+          created_by: string | null
+          discounted_quantity: number
+          employee_id: string
+          id: string
+          order_id: string
+          order_line_id: string
+          product_id: string
+          quantity: number
+          regular_quantity: number
+          regular_unit_price: number
+          user_id: string
+        }
+        Insert: {
+          business_date: string
+          charged_amount: number
+          company_id: string
+          created_at?: string
+          created_by?: string | null
+          discounted_quantity?: number
+          employee_id: string
+          id?: string
+          order_id: string
+          order_line_id: string
+          product_id: string
+          quantity: number
+          regular_quantity?: number
+          regular_unit_price: number
+          user_id: string
+        }
+        Update: {
+          business_date?: string
+          charged_amount?: number
+          company_id?: string
+          created_at?: string
+          created_by?: string | null
+          discounted_quantity?: number
+          employee_id?: string
+          id?: string
+          order_id?: string
+          order_line_id?: string
+          product_id?: string
+          quantity?: number
+          regular_quantity?: number
+          regular_unit_price?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "employee_hot_drink_usage_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_hot_drink_usage_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_hot_drink_usage_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees_safe"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_hot_drink_usage_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "pos_orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_hot_drink_usage_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "pos_orders_effective"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_hot_drink_usage_order_line_id_fkey"
+            columns: ["order_line_id"]
+            isOneToOne: true
+            referencedRelation: "pos_order_lines"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_hot_drink_usage_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       employee_hr_records: {
         Row: {
           action_taken: string | null
@@ -30778,6 +30882,15 @@ export type Database = {
         }
         Returns: Json
       }
+      complete_employee_hot_drink_order: {
+        Args: {
+          p_employee_id: string
+          p_order_id: string
+          p_payments: Json
+          p_user_id: string
+        }
+        Returns: Json
+      }
       complete_pos_order: {
         Args: {
           p_meal_subsidy?: number
@@ -31882,6 +31995,19 @@ export type Database = {
           template_id: string
           template_name: string
           view_source: string
+        }[]
+      }
+      get_employee_hot_drink_daily_status: {
+        Args: {
+          p_business_date?: string
+          p_employee_id: string
+          p_user_id: string
+        }
+        Returns: {
+          business_date: string
+          discounted_remaining: number
+          discounted_used: number
+          total_used: number
         }[]
       }
       get_employee_id_for_user: { Args: { _user: string }; Returns: string }
@@ -33081,6 +33207,15 @@ export type Database = {
       refresh_procurement_order_receipt_status: {
         Args: { p_order_id: string }
         Returns: string
+      }
+      register_employee_hot_drink_order: {
+        Args: { p_employee_id: string; p_order_id: string; p_user_id: string }
+        Returns: {
+          charged_amount: number
+          discounted_quantity: number
+          discounted_remaining: number
+          regular_quantity: number
+        }[]
       }
       reject_order_edit: {
         Args: { p_edit_id: string; p_reason: string }
