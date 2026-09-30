@@ -734,9 +734,14 @@ export default function JobApplicationsPage() {
           </section>
 
           <section className="flex flex-col gap-2 rounded-md border border-border bg-card p-2.5 md:flex-row md:items-center md:justify-between">
-            <div className="flex min-w-0 items-center gap-2">
+            <div className="flex min-w-0 flex-wrap items-center gap-2">
               <span className="text-xs font-semibold text-foreground">المرحلة الحالية</span>
               <Badge variant="outline" className="font-normal">{statusFilter === "all" ? `كل الطلبات · ${counts.all}` : statusFilter === "archived" ? `الأرشيف · ${counts.archived || 0}` : `${statusMeta(statusFilter).label} · ${counts[statusFilter] || 0}`}</Badge>
+              {multiFiltersActive > 0 && (
+                <Badge variant="outline" className="font-normal border-primary text-primary">
+                  المعروض: {filtered.length} من {counts.all} · فلاتر: {multiFiltersActive}
+                </Badge>
+              )}
             </div>
             <div className="flex flex-wrap gap-x-3 gap-y-1 text-[10px] text-muted-foreground">
               {STATUS_GROUPS.map((group) => <span key={group.key}>{group.label}: {JOB_APPLICATION_STATUSES.filter((s) => s.group === group.key).length} مراحل</span>)}
