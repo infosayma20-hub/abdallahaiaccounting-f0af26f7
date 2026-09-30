@@ -141,8 +141,8 @@ function buildBreakSummary(list: BreakRow[]): BreakSummary {
 }
 function formatBreakDetails(list: BreakRow[]): string {
   return list.map(b => {
-    const out = format(new Date(b.break_out), "HH:mm");
-    const back = b.break_in ? format(new Date(b.break_in), "HH:mm") : "لسا برا";
+    const out = format(new Date(b.break_out), "hh:mm a");
+    const back = b.break_in ? format(new Date(b.break_in), "hh:mm a") : "لسا برا";
     const label = BREAK_TYPE_LABELS[b.break_type] || b.break_type || "";
     return `${out}→${back}${label ? ` ${label}` : ""}`;
   }).join(" | ");
@@ -1871,8 +1871,8 @@ export default function HRAttendancePage() {
           if (!y || !m || !d) return "—";
           return ["الأحد","الإثنين","الثلاثاء","الأربعاء","الخميس","الجمعة","السبت"][new Date(y, m - 1, d).getDay()];
         })(),
-        "الدخول": r.first_check_in ? format(new Date(r.first_check_in), "HH:mm") : "—",
-        "الخروج": r.last_check_out ? format(new Date(r.last_check_out), "HH:mm") : "—",
+        "الدخول": r.first_check_in ? format(new Date(r.first_check_in), "hh:mm a") : "—",
+        "الخروج": r.last_check_out ? format(new Date(r.last_check_out), "hh:mm a") : "—",
         "ساعات مطلوبة": requiredHours,
         "الساعات": r.total_hours || 0,
         "إضافي": r.overtime_hours || 0,
@@ -2018,7 +2018,7 @@ export default function HRAttendancePage() {
           {lastRefreshAt && (
             <span className="text-[11px] flex items-center gap-1 text-emerald-600 ms-2">
               <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
-              آخر تحديث: {format(lastRefreshAt, "HH:mm")}
+              آخر تحديث: {format(lastRefreshAt, "hh:mm a")}
             </span>
           )}
         </div>
@@ -2211,8 +2211,8 @@ export default function HRAttendancePage() {
                           <td className="px-3 py-3 text-sm">{branchName}</td>
                           <td className="px-3 py-3 text-sm">{r.employees?.department || "—"}</td>
                           <td className="px-3 py-3 text-sm">{r.employees?.job_title || "—"}</td>
-                          <td className="px-3 py-3 tabular-nums whitespace-nowrap">{r.first_check_in ? format(new Date(r.first_check_in), "HH:mm") : <span className="text-muted-foreground">—</span>}</td>
-                          <td className="px-3 py-3 tabular-nums whitespace-nowrap">{r.last_check_out ? format(new Date(r.last_check_out), "HH:mm") : <span className="text-muted-foreground">—</span>}</td>
+                          <td className="px-3 py-3 tabular-nums whitespace-nowrap">{r.first_check_in ? format(new Date(r.first_check_in), "hh:mm a") : <span className="text-muted-foreground">—</span>}</td>
+                          <td className="px-3 py-3 tabular-nums whitespace-nowrap">{r.last_check_out ? format(new Date(r.last_check_out), "hh:mm a") : <span className="text-muted-foreground">—</span>}</td>
                           <td className="px-3 py-3 tabular-nums">{r.total_hours?.toFixed(1) || "0"}</td>
                           <td className={cn("px-3 py-3 tabular-nums", issue.lateMin > 0 && "text-amber-700 font-semibold")}>
                             {issue.lateMin > 0 ? `${issue.lateMin} د` : "—"}
@@ -2450,8 +2450,8 @@ export default function HRAttendancePage() {
             {editRecord && (
               <div className="text-xs text-muted-foreground mt-1 flex flex-wrap items-center gap-x-3 gap-y-1">
                 <span>📅 {fmtDateDisplay(editRecord.attendance_date)}</span>
-                <span>دخول أصلي: <b className="tabular-nums">{editRecord.first_check_in ? format(new Date(editRecord.first_check_in), "HH:mm") : "—"}</b></span>
-                <span>خروج أصلي: <b className="tabular-nums">{editRecord.last_check_out ? format(new Date(editRecord.last_check_out), "HH:mm") : "—"}</b></span>
+                <span>دخول أصلي: <b className="tabular-nums">{editRecord.first_check_in ? format(new Date(editRecord.first_check_in), "hh:mm a") : "—"}</b></span>
+                <span>خروج أصلي: <b className="tabular-nums">{editRecord.last_check_out ? format(new Date(editRecord.last_check_out), "hh:mm a") : "—"}</b></span>
                 <span>الحالة: <b>{tAttendanceStatus(editRecord.status)}</b></span>
               </div>
             )}
@@ -2515,9 +2515,9 @@ export default function HRAttendancePage() {
                         <div key={i} className="flex items-center justify-between gap-2 text-[11px] bg-background rounded px-2 py-1.5 border border-border">
                           <span className="text-muted-foreground shrink-0">جلسة {i + 1}</span>
                           <span className="flex-1 flex items-center justify-center gap-2 tabular-nums">
-                            <span className="text-emerald-700">{s.ci ? format(new Date(s.ci.event_time), "HH:mm") : "— دخول ناقص —"}</span>
+                            <span className="text-emerald-700">{s.ci ? format(new Date(s.ci.event_time), "hh:mm a") : "— دخول ناقص —"}</span>
                             <span className="text-muted-foreground">→</span>
-                            <span className="text-rose-700">{s.co ? format(new Date(s.co.event_time), "HH:mm") : "— خروج ناقص —"}</span>
+                            <span className="text-rose-700">{s.co ? format(new Date(s.co.event_time), "hh:mm a") : "— خروج ناقص —"}</span>
                           </span>
                           <span className="shrink-0 text-muted-foreground tabular-nums">
                             {s.ci && s.co ? fmtMin(dur) : "—"}
@@ -2542,9 +2542,9 @@ export default function HRAttendancePage() {
                       <div key={b.id} className="flex items-center justify-between gap-2 text-[11px] bg-amber-50 border border-amber-200 rounded px-2 py-1.5">
                         <span className="shrink-0 text-amber-800">{BREAK_TYPE_LABELS[b.break_type] || b.break_type}</span>
                         <span className="flex-1 flex items-center justify-center gap-2 tabular-nums text-amber-900">
-                          <span>{format(new Date(b.break_out), "HH:mm")}</span>
+                          <span>{format(new Date(b.break_out), "hh:mm a")}</span>
                           <span>→</span>
-                          <span>{b.break_in ? format(new Date(b.break_in), "HH:mm") : "لسا برا"}</span>
+                          <span>{b.break_in ? format(new Date(b.break_in), "hh:mm a") : "لسا برا"}</span>
                         </span>
                         <span className="shrink-0 tabular-nums text-amber-800">{dur != null ? fmtMin(dur) : "—"}</span>
                       </div>
@@ -2588,8 +2588,8 @@ export default function HRAttendancePage() {
                 {(missingDialog ? (missingByEmp.get(missingDialog.employeeId) || []) : []).map((mr) => (
                   <tr key={mr.id} className="border-b border-border/50">
                     <td className="px-3 py-2 whitespace-nowrap">{fmtDateDisplay(mr.attendance_date)}</td>
-                    <td className="px-3 py-2 tabular-nums">{mr.first_check_in ? format(new Date(mr.first_check_in), "HH:mm") : <span className="text-red-600 font-semibold">ناقصة</span>}</td>
-                    <td className="px-3 py-2 tabular-nums">{mr.last_check_out ? format(new Date(mr.last_check_out), "HH:mm") : <span className="text-red-600 font-semibold">ناقصة</span>}</td>
+                    <td className="px-3 py-2 tabular-nums">{mr.first_check_in ? format(new Date(mr.first_check_in), "hh:mm a") : <span className="text-red-600 font-semibold">ناقصة</span>}</td>
+                    <td className="px-3 py-2 tabular-nums">{mr.last_check_out ? format(new Date(mr.last_check_out), "hh:mm a") : <span className="text-red-600 font-semibold">ناقصة</span>}</td>
                     <td className="px-3 py-2"><Badge variant="outline" className={cn("text-xs", statusBadgeClass(mr.status))}>{tAttendanceStatus(mr.status)}</Badge></td>
                     <td className="px-3 py-2">
                       <Button
@@ -2635,7 +2635,7 @@ export default function HRAttendancePage() {
                     <Badge variant="outline" className={e.event_type === "check_in" ? "bg-emerald-50 text-emerald-700" : "bg-red-50 text-red-700"}>
                       {e.event_type === "check_in" ? "دخول" : "خروج"}
                     </Badge>
-                    <span className="font-mono text-sm">{format(new Date(e.event_time), "HH:mm:ss")}</span>
+                    <span className="font-mono text-sm">{format(new Date(e.event_time), "hh:mm:ss a")}</span>
                     {e.has_selfie ? (
                       <Badge variant="outline" className="bg-blue-50 text-blue-700 gap-1">
                         <Camera className="h-3 w-3" /> سيلفي مرفق

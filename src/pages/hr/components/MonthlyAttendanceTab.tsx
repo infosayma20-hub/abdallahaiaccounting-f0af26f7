@@ -986,8 +986,8 @@ export default function MonthlyAttendanceTab({
           "التاريخ": r.attendance_date,
           "اليوم": fmtWeekday(r.attendance_date),
           "الموظف": r.employees?.full_name || "—",
-          "الحضور": r.first_check_in ? format(new Date(r.first_check_in), "HH:mm") : "—",
-          "الانصراف": r.last_check_out ? format(new Date(r.last_check_out), "HH:mm") : "—",
+          "الحضور": r.first_check_in ? format(new Date(r.first_check_in), "hh:mm a") : "—",
+          "الانصراف": r.last_check_out ? format(new Date(r.last_check_out), "hh:mm a") : "—",
           "ساعات العمل": Number((rowWorkMinutes(r) / 60).toFixed(2)),
           "إضافي": Number((Number(r.overtime_hours) || 0).toFixed(2)),
           "المغادرات (دقيقة)": (r.breaks || []).reduce((a, b) => a + (b.minutes || 0), 0),
@@ -1157,8 +1157,8 @@ export default function MonthlyAttendanceTab({
         const stored: BreakDraft[] = rows.map((b) => ({
           id: b.id,
           break_type: (b.break_type as BreakDraft["break_type"]) || "other",
-          out: b.break_out ? format(new Date(b.break_out), "HH:mm") : "",
-          in: b.break_in ? format(new Date(b.break_in), "HH:mm") : "",
+          out: b.break_out ? format(new Date(b.break_out), "hh:mm a") : "",
+          in: b.break_in ? format(new Date(b.break_in), "hh:mm a") : "",
           reason: b.reason || "",
         }));
         const storedRanges = rows.map((b) => ({ break_out: b.break_out, break_in: b.break_in }));
@@ -1382,7 +1382,7 @@ export default function MonthlyAttendanceTab({
     }
   };
 
-  const fmtTime = (ts: string | null) => ts ? format(new Date(ts), "HH:mm") : "—";
+  const fmtTime = (ts: string | null) => ts ? format(new Date(ts), "hh:mm a") : "—";
 
   return (
     <div className="space-y-3" dir="rtl">
@@ -1973,7 +1973,7 @@ export default function MonthlyAttendanceTab({
                           </span>
                         </div>
                         <span className="tabular-nums text-foreground">
-                          {format(new Date(e.event_time), "HH:mm:ss")}
+                          {format(new Date(e.event_time), "hh:mm:ss a")}
                         </span>
                         <span className="flex-1 text-muted-foreground truncate text-left">
                           {e.branch_id ? (branchNames[e.branch_id] || "—") : "—"}

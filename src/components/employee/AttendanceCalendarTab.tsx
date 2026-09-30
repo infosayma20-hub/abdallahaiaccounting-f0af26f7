@@ -168,13 +168,13 @@ export default function AttendanceCalendarTab({ history }: Props) {
               <div className="bg-secondary/50 rounded-lg p-2">
                 <div className="text-muted-foreground text-[10px]">دخول</div>
                 <div className="font-semibold">
-                  {selectedDay.first_check_in ? format(new Date(selectedDay.first_check_in), "HH:mm") : "—"}
+                  {selectedDay.first_check_in ? format(new Date(selectedDay.first_check_in), "hh:mm a") : "—"}
                 </div>
               </div>
               <div className="bg-secondary/50 rounded-lg p-2">
                 <div className="text-muted-foreground text-[10px]">خروج</div>
                 <div className="font-semibold">
-                  {selectedDay.last_check_out ? format(new Date(selectedDay.last_check_out), "HH:mm") : "—"}
+                  {selectedDay.last_check_out ? format(new Date(selectedDay.last_check_out), "hh:mm a") : "—"}
                 </div>
               </div>
               <div className="bg-secondary/50 rounded-lg p-2">
