@@ -11084,6 +11084,7 @@ const POSPage = () => {
         originalPrice={priceReasonTarget != null ? (cart[priceReasonTarget]?.base_price ?? 0) : 0}
         newPrice={priceReasonTarget != null ? (cart[priceReasonTarget]?.unit_price ?? 0) : 0}
         qty={priceReasonTarget != null ? (cart[priceReasonTarget]?.qty ?? 1) : 1}
+        variant={dataOwnerId === MALAKI_OWNER_ID ? "malaki" : "note"}
         onCancel={cancelPriceChange}
         onConfirm={confirmPriceChange}
       />
