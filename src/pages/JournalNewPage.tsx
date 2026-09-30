@@ -905,35 +905,60 @@ const JournalNewPage = () => {
     if (validLines.length < 2) { toast.error(tt("أدخل سطرين على الأقل")); return; }
 
     // ─── OFFLINE CAPTURE ───
-    // No internet: a balanced ILS entry with no attachments is stored encrypted
-    // in the local outbox and posted through the same atomic RPC — with the
-    // same idempotency key — once the connection is back.
+    // No internet: a balanced ILS voucher with no attachments is stored in the
+    // local outbox and replayed through `create_journal_voucher_offline`, which
+    // creates the SAME voucher the online save creates (book + number + QV ref +
+    // lines + transactions) in one transaction, idempotent on the local id.
     if (!navigator.onLine && mode === "posted" && !editingVoucherId) {
       const isIls = formCurrency === "ILS" || formCurrency === "شيكل";
-      const pairs = isIls && attachments.length === 0 ? pairJournalLines(validLines as any) : null;
-      if (!pairs) {
+      if (!isIls || attachments.length > 0) {
         toast.error(
-          tt("لا يوجد اتصال بالإنترنت — يمكن حفظ قيد متوازن بالشيكل بدون مرفقات فقط")
+          tt("لا يوجد اتصال بالإنترنت — يمكن حفظ سند متوازن بالشيكل بدون مرفقات فقط")
         );
         return;
       }
-      const totalAmount = pairs.reduce((s, p) => s + p.amount, 0);
+      const offlineLines = validLines.map((l) => ({
+        account_code: l.account_code,
+        account_name: l.account_name || null,
+        debit: Number(l.debit) || 0,
+        credit: Number(l.credit) || 0,
+        contact_id: l.contact_id && l.contact_id !== "__none__" ? l.contact_id : null,
+        contact_name: l.contact_name || null,
+        line_comment: l.line_comment || null,
+        cost_center_id: l.cost_center_id || null,
+      }));
+      const validationError = validateJournalInput({
+        date: formDate, subtype: formSubtype as any, lines: offlineLines, mode: "posted",
+      });
+      if (validationError) { toast.error(validationError); return; }
+      const pairs = buildOfflineJournalPairs({
+        lines: offlineLines,
+        subtype: formSubtype,
+        voucherContactId: formContactId || null,
+        voucherCostCenterId: formCostCenterId || null,
+      });
+      if (pairs.length === 0) { toast.error(tt("القيد غير متوازن")); return; }
+      const totalAmount = offlineLines.reduce((s, l) => s + l.debit, 0);
       const queued = await queueOfflineDocument({
         docType: "journal_entry",
-        rpc: "create_journal_entry_multi_party_atomic",
+        rpc: "create_journal_voucher_offline",
         payload: {
           p_user_id: ownerId,
-          p_entry_date: formDate,
-          p_description: formDescription || "قيد يدوي",
-          p_lines: pairs,
-          p_currency: "شيكل",
-          p_reference: null,
-          p_source: "offline",
-          p_notes: formNotes || null,
-          p_cost_center_id: formCostCenterId || null,
+          p_voucher: {
+            date: formDate,
+            subtype: formSubtype,
+            description: formDescription || null,
+            notes: formNotes || null,
+            book_id: formBookId,
+            contact_id: formContactId || null,
+            cost_center_id: formCostCenterId || null,
+            line_sort_order: lineSortOrder,
+          },
+          p_lines: offlineLines,
+          p_txns: pairs,
         },
         summary: {
-          title: `سند قيد — ${formDescription || "قيد يدوي"}`,
+          title: `سند قيد — ${formDescription || formNotes || currentBook?.name || "دفتر عام"}`,
           amount: totalAmount,
           currency: "شيكل",
           doc_date: formDate,
@@ -941,8 +966,8 @@ const JournalNewPage = () => {
         userId: ownerId!,
       });
       try { clearDraft(); } catch {}
-      toast.success("تم حفظ القيد محلياً — سيُرحَّل تلقائياً عند عودة الإنترنت", {
-        description: `المعرّف المؤقت: ${queued.local_id.slice(0, 16)}…`,
+      toast.success("تم حفظ السند على الجهاز — سيُرحَّل تلقائياً برقمه ودفتره عند عودة الإنترنت", {
+        description: `لا تُعِد إدخاله. المعرّف المؤقت: ${queued.local_id.slice(0, 16)}…`,
       });
       navigate("/journal-entries");
       return;
