@@ -243,6 +243,9 @@ const POSThemeToggle = ({ darkMode, onToggle }: { darkMode: boolean; onToggle: (
   );
 };
 
+/** مالك بيانات الملكي (فاميلي 1/2، مخبز بيت الكل) — يشوف أسباب تعديل السعر الجاهزة، غيره يكتب ملاحظة حرة. */
+const MALAKI_OWNER_ID = "c7f6dcea-b581-4b5e-a64c-aeee387bd7d3";
+
 const createNewOrder = (index: number, tableId?: string | null, tableName?: string | null, guestCount?: number, guestName?: string): OrderTab => ({
   id: crypto.randomUUID(),
   name: tableName ? `${tableName}` : `طلب ${index}`,
