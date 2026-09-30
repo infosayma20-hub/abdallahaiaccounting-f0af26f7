@@ -25,7 +25,7 @@ import { toast } from "sonner";
 import {
   Monitor, Wifi, WifiOff, Building2, Boxes, Save, TestTube, RefreshCw,
   CheckCircle2, XCircle, Sparkles, Printer, Rocket, Plus, Download, Upload,
-  Copy, ShieldAlert, Banknote, Link2, Trash2, AlertCircle, ListChecks, Radar,
+  Copy, ShieldAlert, Banknote, Link2, Trash2, AlertCircle, ListChecks, Radar, Check,
   Cloud, ChevronDown,
   Image as ImageIcon,
 } from "lucide-react";
@@ -1603,15 +1603,19 @@ function AddPrinterDialog({
 }) {
   const [mode, setMode] = useState<"network" | "usb">("network");
   const [name, setName] = useState("");
-  const [role, setRole] = useState("receipt");
+  /** الطابعة يمكن أن تخدم أكثر من وظيفة (مثلاً مطبخ + مشاوي) */
+  const [roles, setRoles] = useState<string[]>(["receipt"]);
   const [ip, setIp]     = useState("");
   const [port, setPort] = useState("9100");
   const [winName, setWinName] = useState("");
   const [saving, setSaving] = useState(false);
   const [testing, setTesting] = useState(false);
 
+  const toggleRole = (v: string) =>
+    setRoles(prev => prev.includes(v) ? prev.filter(r => r !== v) : [...prev, v]);
+
   const reset = () => {
-    setMode("network"); setName(""); setRole("receipt");
+    setMode("network"); setName(""); setRoles(["receipt"]);
     setIp(""); setPort("9100"); setWinName("");
   };
 
@@ -1636,9 +1640,10 @@ function AddPrinterDialog({
 
   const handleSave = async () => {
     if (!name.trim()) { toast.error("أدخل اسم الطابعة"); return; }
+    if (roles.length === 0) { toast.error("اختر وظيفة واحدة على الأقل"); return; }
     if (mode === "network" && !ip) { toast.error("أدخل عنوان IP"); return; }
     if (mode === "usb" && !winName.trim()) { toast.error("اختر/أدخل اسم طابعة Windows"); return; }
-    if (mode === "usb" && role === "receipt") {
+    if (mode === "usb" && roles.includes("receipt")) {
       const info = windowsPrinters.find(w => w.name === winName.trim());
       const kind = detectPrinterConnection(info?.portName, info?.driverName, info?.name || winName);
       if (kind === "Virtual/PDF" || kind === "Remote/AnyDesk") {
@@ -1655,25 +1660,28 @@ function AddPrinterDialog({
         name: name.trim(),
         ip_address: mode === "network" ? ip.trim() : "",
         port: mode === "network" ? (Number(port) || 9100) : 0,
-        printer_type: role === "receipt" ? "receipt" : "kitchen_ticket",
-        print_categories: [role],
+        printer_type: roles.includes("receipt") ? "receipt" : "kitchen_ticket",
+        print_categories: roles,
         branch_id: branchId || null,
         is_active: true,
-        is_default: role === "receipt",
+        is_default: roles.includes("receipt"),
         settings: mode === "usb"
           ? { connection: "windows", windows_printer_name: winName.trim() }
-          : (role === "unified_kitchen" ? { image_mode: "unified_kitchen" } : {}),
+          : (roles.includes("unified_kitchen") ? { image_mode: "unified_kitchen" } : {}),
       };
       const { error } = await supabase.from("pos_printers").insert(row);
       if (error) { toast.error("فشل الحفظ: " + error.message); return; }
       // Push the new printer to the bridge (device.json) immediately so the
-      // cashier doesn't have to restart anything.
-      const bridgeKey = roleToBridgeKey(role);
-      if (bridgeKey) {
-        const printerForBridge: any = mode === "usb"
+      // cashier doesn't have to restart anything — one entry per selected role.
+      const bridgeEntries: Record<string, any> = {};
+      for (const r of roles) {
+        const k = roleToBridgeKey(r);
+        if (k) bridgeEntries[k] = mode === "usb"
           ? { type: "windows", name: name.trim(), windowsPrinterName: winName.trim(), width: 576 }
           : { type: "network", name: name.trim(), ip: ip.trim(), port: Number(port) || 9100, width: 576 };
-        const pushed = await pushPrintersToBridge({ [bridgeKey]: printerForBridge }).catch(() => false);
+      }
+      if (Object.keys(bridgeEntries).length > 0) {
+        const pushed = await pushPrintersToBridge(bridgeEntries).catch(() => false);
         if (pushed) toast.success(`✅ تم إضافة "${name}" — تم حفظها محلياً على هذا الجهاز`);
         else        toast.success(`✅ تم إضافة "${name}" (لن تنطبق على الجسر حتى يعمل برنامج الطباعة)`);
       } else {
@@ -1713,15 +1721,25 @@ function AddPrinterDialog({
           </div>
 
           <div className="space-y-1.5">
-            <Label className="text-xs">الوظيفة</Label>
-            <Select value={role} onValueChange={setRole}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
-                {PRINTER_ROLES.map(r => (
-                  <SelectItem key={r.value} value={r.value}>{r.emoji} {r.label}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <Label className="text-xs">الوظيفة (يمكن اختيار أكثر من واحدة)</Label>
+            <div className="rounded-md border divide-y">
+              {PRINTER_ROLES.map(r => {
+                const checked = roles.includes(r.value);
+                return (
+                  <button
+                    key={r.value}
+                    type="button"
+                    onClick={() => toggleRole(r.value)}
+                    className={`w-full flex items-center gap-2 px-3 py-2 text-sm text-right transition-colors ${checked ? "bg-primary/5 text-primary" : "hover:bg-muted/40"}`}
+                  >
+                    <span className={`inline-flex h-4 w-4 items-center justify-center rounded-sm border ${checked ? "border-primary bg-primary text-primary-foreground" : "border-muted-foreground/40"}`}>
+                      {checked && <Check className="h-3 w-3" />}
+                    </span>
+                    <span>{r.emoji} {r.label}</span>
+                  </button>
+                );
+              })}
+            </div>
           </div>
 
           {mode === "network" ? (

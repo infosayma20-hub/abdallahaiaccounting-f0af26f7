@@ -205,7 +205,26 @@ export function buildBridgePrintersMapFromRows(rows: PosPrinterRow[]): BridgePri
     return null;
   }
   for (const p of rows) {
-    const role = p.print_categories?.[0] || p.printer_type;
+    const cats = (p.print_categories && p.print_categories.length > 0
+      ? p.print_categories
+      : [p.printer_type]).filter(Boolean) as string[];
+    // Multi-role printer: register the SAME printer under every selected role.
+    if (cats.length > 1) {
+      const settings0 = (p.settings || {}) as Record<string, any>;
+      const isWin0 = settings0.connection === "usb" || settings0.connection === "windows" || !!settings0.windows_printer_name;
+      const entry0 = isWin0
+        ? { type: "windows" as const, name: p.name, windowsPrinterName: String(settings0.windows_printer_name || "") }
+        : (p.ip_address && p.ip_address !== "usb"
+          ? { type: "network" as const, name: p.name, ip: p.ip_address, port: Number(p.port) || 9100 }
+          : null);
+      if (!entry0) continue;
+      for (const c of cats) {
+        const k = posPrinterRoleToBridgeKey(c);
+        if (k && !out[k]) out[k] = entry0;
+      }
+      continue;
+    }
+    const role = cats[0];
     let key = posPrinterRoleToBridgeKey(role);
     if (!key) continue;
     // If this slot is already taken and it's a kitchen-style role, pick next free
