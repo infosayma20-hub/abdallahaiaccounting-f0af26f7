@@ -1,0 +1,2 @@
+ALTER TABLE public.branches ADD COLUMN IF NOT EXISTS attendance_mobile_only boolean NOT NULL DEFAULT false;
+COMMENT ON COLUMN public.branches.attendance_mobile_only IS 'When true, attendance punches for this branch are accepted only from mobile phones (desktop/laptop blocked server-side).';
