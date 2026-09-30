@@ -573,17 +573,19 @@ export default function JobApplicationsPage() {
     });
   }, [rows, search, statusFilter, multiFilters, sortKey, sortDir]);
 
-  /** الخيارات المتاحة لكل فلتر متعدد — من الطلبات غير المؤرشفة. */
+  /** الخيارات المتاحة لكل فلتر متعدد — من الطلبات غير المؤرشفة (موحّدة من كل الحقول المرتبطة). */
   const multiOptions = useMemo(() => {
     const live = rows.filter((r) => !r.archived_at);
     const opts = { desired_position: [], work_location: [], shift_preference: [] } as Record<MultiFilterKey, string[]>;
     for (const f of MULTI_FILTERS) {
       const set = new Set<string>();
       for (const r of live) {
-        const v = ((r as any)[f.key] || "").toString().trim().replace(/\s+/g, " ");
-        if (v && v !== "—") set.add(v);
+        for (const k of f.fields) {
+          const v = ((r as any)[k] || "").toString().trim().replace(/\s+/g, " ");
+          if (v && v !== "—") set.add(v);
+        }
       }
-      opts[f.key] = [...set].sort((a, b) => a.localeCompare(b, "ar")).slice(0, 60);
+      opts[f.key] = [...set].sort((a, b) => a.localeCompare(b, "ar")).slice(0, 80);
     }
     return opts;
   }, [rows]);
