@@ -25,7 +25,7 @@ import { toast } from "sonner";
 import {
   Monitor, Wifi, WifiOff, Building2, Boxes, Save, TestTube, RefreshCw,
   CheckCircle2, XCircle, Sparkles, Printer, Rocket, Plus, Download, Upload,
-  Copy, ShieldAlert, Banknote, Link2, Trash2, AlertCircle, ListChecks, Radar,
+  Copy, ShieldAlert, Banknote, Link2, Trash2, AlertCircle, ListChecks, Radar, Check,
   Cloud, ChevronDown,
   Image as ImageIcon,
 } from "lucide-react";
