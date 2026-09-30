@@ -395,6 +395,10 @@ export function openEmploymentVerificationLetter(args: {
       ${infoRowsAr}
       <p>${args.purpose || "وقد أُعطي هذا الكتاب بناءً على طلبه لاستخدامه في الأغراض الرسمية التي يحتاجها، دون أن يترتب على ذلك أي التزامات مالية أو قانونية على الشركة."}</p>
       <p>وتفضلوا بقبول فائق الاحترام والتقدير،،،</p>
+      <div class="sig" style="margin-top:34px;">
+        <div class="line">التوقيع<br/><span class="muted">إدارة الموارد البشرية</span></div>
+        <div class="line">الختم<br/><span class="muted">${company.name || ""}</span></div>
+      </div>
       ${letterheadBottom}
       ${footer()}
     `,
@@ -416,6 +420,10 @@ export function openEmploymentVerificationLetter(args: {
       ${infoRowsEn}
       <p style="text-align:left">${args.purposeEn || "This letter is issued upon the employee's request for official purposes, without creating any financial or legal obligation on the company."}</p>
       <p style="text-align:left">Sincerely,</p>
+      <div class="sig" style="margin-top:34px;">
+        <div class="line">Signature<br/><span class="muted">Human Resources Department</span></div>
+        <div class="line">Company Stamp<br/><span class="muted">${company.name || ""}</span></div>
+      </div>
       ${letterheadBottom}
       <div class="footer">This document is issued electronically by the Unify accounting system</div>
     `,
