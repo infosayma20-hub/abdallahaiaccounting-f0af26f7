@@ -548,13 +548,17 @@ export default function JobApplicationsPage() {
       if (statusFilter === "archived") { if (!archived) return false; }
       else if (archived) return false;
       if (statusFilter !== "all" && statusFilter !== "archived" && (r.status || "new") !== statusFilter) return false;
-      // الفلاتر المتعددة: أي قيمة محددة ضمن الحقل = مطابقة (أو بين القيم)
+      // الفلاتر المتعددة: أي قيمة محددة ضمن أي حقل مرتبط = مطابقة (أو بين القيم)
       for (const f of MULTI_FILTERS) {
         const selected = multiFilters[f.key];
         if (!selected.length) continue;
-        const val = ((r as any)[f.key] || "").toString().trim().toLowerCase();
-        if (!val) return false;
-        if (!selected.some((s) => val.includes(s.toLowerCase()) || s.toLowerCase().includes(val))) return false;
+        const vals = f.fields
+          .map((k) => ((r as any)[k] || "").toString().trim().toLowerCase())
+          .filter(Boolean);
+        if (vals.length === 0) return false;
+        const hit = vals.some((val) =>
+          selected.some((s) => val.includes(s.toLowerCase()) || s.toLowerCase().includes(val)));
+        if (!hit) return false;
       }
       if (!q) return true;
       return [r.full_name, r.phone, r.email, r.desired_position, r.national_id]
