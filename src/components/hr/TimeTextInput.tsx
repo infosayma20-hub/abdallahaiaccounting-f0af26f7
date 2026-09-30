@@ -7,8 +7,8 @@ import { cn } from "@/lib/utils";
  * يعرض القيمة بصيغة 12 ساعة، ويُرجع للنظام دائماً HH:MM (24 ساعة) للتخزين.
  */
 export function parseTimeText(raw: string): string | null {
-  const s = raw.trim().toLowerCase().replace(/\s+/g, " ");
-  const m = s.match(/^(\d{1,2})(?:\s*[:：.]\s*(\d{1,2}))?\s*(am|pm|a|p|ص|م)?\.?$/);
+  const s = (raw || "").trim().toLowerCase().replace(/\s+/g, " ");
+  const m = s.match(/^(\d{1,2})(?:\s*[:：.]\s*(\d{1,2}))?(?::\d{1,2})?\s*(am|pm|a|p|ص|م)?\.?$/);
   if (!m) return null;
   let h = Number(m[1]);
   const min = m[2] !== undefined ? Number(m[2]) : 0;
@@ -26,12 +26,31 @@ export function parseTimeText(raw: string): string | null {
   return `${String(h).padStart(2, "0")}:${String(min).padStart(2, "0")}`;
 }
 
+/** يحوّل أي صيغة وقت مقبولة إلى HH:MM (24 ساعة)، أو "" إن لم تكن صالحة. */
+export function normalizeTime24(v: string | null | undefined): string {
+  return parseTimeText(v || "") ?? "";
+}
+
 export function formatTime12(v: string): string {
-  const m = (v || "").match(/^(\d{1,2}):(\d{2})/);
-  if (!m) return v || "";
-  const h = Number(m[1]);
+  const n = parseTimeText(v || "");
+  if (!n) return v || "";
+  const h = Number(n.slice(0, 2));
   const h12 = h % 12 === 0 ? 12 : h % 12;
-  return `${String(h12).padStart(2, "0")}:${m[2]} ${h < 12 ? "AM" : "PM"}`;
+  return `${String(h12).padStart(2, "0")}:${n.slice(3)} ${h < 12 ? "AM" : "PM"}`;
+}
+
+/** تحديد كامل محتوى الخانة — مؤجَّل ليعمل على الآيفون/الآيباد أيضاً. */
+function selectAll(el: HTMLInputElement) {
+  el.select();
+  requestAnimationFrame(() => {
+    try { el.setSelectionRange(0, el.value.length); } catch { /* ignore */ }
+  });
+}
+
+/** يأخذ آخر رقمين كُتبا — حتى لو لم يُحدَّد النص القديم (مثلاً "01" ثم "2" ⇒ "12"). */
+function lastTwoDigits(raw: string): string {
+  const d = raw.replace(/\D/g, "");
+  return d.length > 2 ? d.slice(-2) : d;
 }
 
 export function TimeTextInput({
@@ -43,12 +62,12 @@ export function TimeTextInput({
   onChange: (v: string) => void;
   className?: string;
 }) {
-  // تقسيم القيمة المخزنة HH:MM إلى ساعة (1-12) ودقائق وفترة
+  // القيمة المخزنة قد تصل بصيغة "13:10" أو "01:10 PM" — نوحّدها قبل التقسيم.
   const parsed = (() => {
-    const m = (value || "").match(/^(\d{1,2}):(\d{2})/);
-    if (!m) return null;
-    const h = Number(m[1]);
-    return { h12: String(h % 12 === 0 ? 12 : h % 12).padStart(2, "0"), min: m[2], pm: h >= 12 };
+    const n = parseTimeText(value || "");
+    if (!n) return null;
+    const h = Number(n.slice(0, 2));
+    return { h12: String(h % 12 === 0 ? 12 : h % 12).padStart(2, "0"), min: n.slice(3), pm: h >= 12 };
   })();
 
   const [hDraft, setHDraft] = useState<string | null>(null);
@@ -70,6 +89,8 @@ export function TimeTextInput({
     return true;
   };
 
+  const hourComplete = (v: string) => v.length === 2 || (v.length === 1 && Number(v) > 1);
+
   const hInvalid = hour !== "" && !(Number(hour) >= 1 && Number(hour) <= 12);
   const mInvalid = minute !== "" && !(Number(minute) >= 0 && Number(minute) <= 59);
 
@@ -90,16 +111,18 @@ export function TimeTextInput({
         aria-label="الساعة"
         className={box}
         value={hour}
-        onFocus={(e) => e.target.select()}
+        onFocus={(e) => selectAll(e.currentTarget)}
         onChange={(e) => {
-          const v = e.target.value.replace(/\D/g, "").slice(0, 2);
+          const v = lastTwoDigits(e.target.value);
           setHDraft(v);
-          emit(v, minute, pm);
-          // انتقال تلقائي للدقائق بعد رقمين أو رقم لا يمكن أن يبدأ ساعة من خانتين
-          if (v.length === 2 || (v.length === 1 && Number(v) > 1)) minRef.current?.focus();
+          // لا نحفظ ساعة ناقصة (مثل "1" أثناء كتابة "12") — ننتظر اكتمالها أو الخروج من الخانة.
+          if (hourComplete(v)) {
+            emit(v, minute, pm);
+            minRef.current?.focus();
+          }
         }}
         onBlur={() => {
-          if (hDraft && emit(hDraft, minute, pm)) setHDraft(null);
+          if (hDraft !== null && emit(hDraft, minute, pm)) setHDraft(null);
         }}
       />
       <span className="text-muted-foreground">:</span>
@@ -110,11 +133,11 @@ export function TimeTextInput({
         aria-label="الدقائق"
         className={box}
         value={minute}
-        onFocus={(e) => e.target.select()}
+        onFocus={(e) => selectAll(e.currentTarget)}
         onChange={(e) => {
-          const v = e.target.value.replace(/\D/g, "").slice(0, 2);
+          const v = lastTwoDigits(e.target.value);
           setMDraft(v);
-          emit(hour, v, pm);
+          if (v.length === 2) emit(hour, v, pm);
         }}
         onBlur={() => {
           if (mDraft !== null && emit(hour, mDraft.padStart(2, "0"), pm)) setMDraft(null);
@@ -126,9 +149,17 @@ export function TimeTextInput({
             key={String(isPm)}
             type="button"
             tabIndex={-1}
+            onMouseDown={(e) => e.preventDefault()}
             onClick={() => {
-              setPmLocal(isPm);
-              emit(hour, minute, isPm);
+              const h = hDraft ?? hour;
+              const m = mDraft !== null ? mDraft.padStart(2, "0") : minute;
+              if (emit(h, m, isPm)) {
+                setPmLocal(null);
+                setHDraft(null);
+                setMDraft(null);
+              } else {
+                setPmLocal(isPm);
+              }
             }}
             className={cn(
               "px-2 py-1 transition-colors",
