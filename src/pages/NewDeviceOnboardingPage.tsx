@@ -189,7 +189,7 @@ export default function NewDeviceOnboardingPage() {
   const [discoverSubnet, setDiscoverSubnet] = useState("");
   const [discovering, setDiscovering]       = useState(false);
   const [discovered, setDiscovered]         = useState<DiscoveredPrinter[] | null>(null);
-  const [discoverMeta, setDiscoverMeta]     = useState<{ subnet?: string; elapsedMs?: number; error?: string } | null>(null);
+  const [discoverMeta, setDiscoverMeta]     = useState<{ subnet?: string; subnets?: string[]; elapsedMs?: number; error?: string } | null>(null);
   const [assigningIp, setAssigningIp]       = useState<string | null>(null);
   const [showDiscovery, setShowDiscovery]   = useState(false);
 
@@ -696,13 +696,13 @@ export default function NewDeviceOnboardingPage() {
     try {
       const subnet = discoverSubnet.trim().replace(/\.+$/, "");
       const result = await discoverNetworkPrinters(subnet ? { subnet } : {});
-      setDiscoverMeta({ subnet: result.subnet, elapsedMs: result.elapsedMs, error: result.error });
+      setDiscoverMeta({ subnet: result.subnet, subnets: result.subnets, elapsedMs: result.elapsedMs, error: result.error });
       if (!result.ok) {
-        const msg = result.error === "subnet_not_private"
-          ? "الشبكة المُدخلة ليست شبكة محلية (يجب أن تكون 192.168.x.x أو 10.x.x.x أو 172.16-31.x.x)"
+        const msg = result.error === "subnet_invalid"
+          ? "صيغة الشبكة غير صحيحة — اكتبها مثل 192.168.1"
           : result.error === "forbidden_remote"
             ? "فحص الشبكة مسموح فقط من نفس الكمبيوتر الذي عليه برنامج الطباعة"
-            : result.error === "no_private_interface_found"
+            : result.error === "no_network_interface_found" || result.error === "no_private_interface_found"
               ? "تعذّر اكتشاف الشبكة المحلية تلقائياً — أدخل الـ subnet يدوياً (مثل 192.168.1)"
               : result.error === "bridge_unreachable"
                 ? "Print Bridge لا يستجيب — تأكد أنه شغّال"
@@ -1249,8 +1249,10 @@ export default function NewDeviceOnboardingPage() {
 
             {!discovering && discovered && discovered.length === 0 && (
               <div className="rounded-md border border-amber-300/40 bg-amber-50 dark:bg-amber-950/20 px-3 py-2 text-xs text-amber-900 dark:text-amber-100">
-                لم نجد طابعات على هذه الشبكة
-                {discoverMeta?.subnet ? <> (<span dir="ltr">{discoverMeta.subnet}.x</span>)</> : null}.
+                لم نجد طابعات
+                {discoverMeta?.subnets?.length
+                  ? <> على <span dir="ltr">{discoverMeta.subnets.map(s => `${s}.x`).join(" + ")}</span></>
+                  : discoverMeta?.subnet ? <> (<span dir="ltr">{discoverMeta.subnet}.x</span>)</> : null}.
                 تأكد أن الطابعة شغّالة، وعلى نفس الشبكة، وأن IP ثابت، أو أدخل IP يدوياً.
               </div>
             )}
@@ -1259,7 +1261,9 @@ export default function NewDeviceOnboardingPage() {
               <div className="space-y-2">
                 <div className="text-[11px] text-muted-foreground">
                   {discovered.length} جهاز محتمل
-                  {discoverMeta?.subnet ? <> على <span dir="ltr">{discoverMeta.subnet}.x</span></> : null}
+                  {discoverMeta?.subnets?.length
+                    ? <> على <span dir="ltr">{discoverMeta.subnets.map(s => `${s}.x`).join(" + ")}</span></>
+                    : discoverMeta?.subnet ? <> على <span dir="ltr">{discoverMeta.subnet}.x</span></> : null}
                   {discoverMeta?.elapsedMs ? <> · {(discoverMeta.elapsedMs / 1000).toFixed(1)}s</> : null}
                 </div>
                 {discovered.map((d) => {
