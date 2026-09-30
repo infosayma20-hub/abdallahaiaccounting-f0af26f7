@@ -17,11 +17,12 @@ import {
   ArrowRight, RefreshCw, Search, Loader2, QrCode, Copy, Download,
   Paperclip, CheckCircle2, Printer, SlidersHorizontal,
   MoreHorizontal, Archive, ArchiveRestore, Trash2, ArrowUpDown, ArrowUp, ArrowDown,
-  Users, UserCheck, CalendarCheck2, BriefcaseBusiness,
+  Users, UserCheck, CalendarCheck2, BriefcaseBusiness, Filter,
 } from "lucide-react";
 import { formatHRDateTime } from "@/lib/hrDate";
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
+  DropdownMenuCheckboxItem, DropdownMenuLabel, DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
@@ -69,6 +70,62 @@ const STATUS_GROUPS = [
   { key: "decision", label: "القرار والتعيين" },
   { key: "closed", label: "النتائج والمتابعة" },
 ] as const;
+
+/** حقول الفلترة المتعددة — يمكن اختيار عدة قيم معًا (أو بين القيم، و/ بين الحقول). */
+type MultiFilterKey = "desired_position" | "work_location" | "shift_preference";
+
+const MULTI_FILTERS: { key: MultiFilterKey; label: string; fields: string[] }[] = [
+  { key: "desired_position", label: "الوظيفة المطلوبة", fields: ["desired_position"] },
+  { key: "work_location", label: "موقع العمل", fields: ["work_location", "birth_place"] },
+  { key: "shift_preference", label: "الفترة", fields: ["shift_preference"] },
+];
+
+/** قائمة منسدلة متعددة الاختيار: عدة قيم معًا، بلا تحديد = إظهار الكل. */
+function MultiFilterDropdown({ label, options, selected, onChange }: {
+  label: string; options: string[]; selected: string[]; onChange: (next: string[]) => void;
+}) {
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button
+          variant="outline" size="sm"
+          className={`h-8 gap-1.5 text-[12px] ${selected.length ? "border-primary text-primary" : ""}`}>
+          <Filter className="w-3.5 h-3.5" />
+          {label}
+          {selected.length > 0 && (
+            <span className="rounded-full bg-primary px-1.5 text-[10px] font-bold text-primary-foreground">
+              {selected.length}
+            </span>
+          )}
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="start" className="max-h-[320px] w-56 overflow-y-auto">
+        <DropdownMenuLabel className="text-[11px] text-muted-foreground">{label} — اختر قيمة أو أكثر</DropdownMenuLabel>
+        {options.length === 0 && (
+          <div className="px-2 py-3 text-center text-xs text-muted-foreground">لا توجد خيارات بعد</div>
+        )}
+        {options.map((opt) => (
+          <DropdownMenuCheckboxItem
+            key={opt}
+            checked={selected.includes(opt)}
+            onCheckedChange={(c) => onChange(c ? [...selected, opt] : selected.filter((x) => x !== opt))}
+            onSelect={(e) => e.preventDefault()}
+            className="text-[12.5px]">
+            {opt}
+          </DropdownMenuCheckboxItem>
+        ))}
+        {selected.length > 0 && (
+          <>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onSelect={() => onChange([])} className="justify-center text-[12px] text-destructive focus:text-destructive">
+              مسح التحديد
+            </DropdownMenuItem>
+          </>
+        )}
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
 
 const statusMeta = getJobApplicationStatus;
 
@@ -174,6 +231,10 @@ export default function JobApplicationsPage() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  /** الفلاتر المتعددة: مصفوفة فارغة = إظهار الكل، ومصفوفة بقيم = مطابقة أي قيمة محددة. */
+  const [multiFilters, setMultiFilters] = useState<Record<MultiFilterKey, string[]>>({
+    desired_position: [], work_location: [], shift_preference: [],
+  });
   /** عمود الترتيب واتجاهه — الافتراضي الأحدث أولاً. */
   const [sortKey, setSortKey] = useState<string>("created_at");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
@@ -487,6 +548,18 @@ export default function JobApplicationsPage() {
       if (statusFilter === "archived") { if (!archived) return false; }
       else if (archived) return false;
       if (statusFilter !== "all" && statusFilter !== "archived" && (r.status || "new") !== statusFilter) return false;
+      // الفلاتر المتعددة: أي قيمة محددة ضمن أي حقل مرتبط = مطابقة (أو بين القيم)
+      for (const f of MULTI_FILTERS) {
+        const selected = multiFilters[f.key];
+        if (!selected.length) continue;
+        const vals = f.fields
+          .map((k) => ((r as any)[k] || "").toString().trim().toLowerCase())
+          .filter(Boolean);
+        if (vals.length === 0) return false;
+        const hit = vals.some((val) =>
+          selected.some((s) => val.includes(s.toLowerCase()) || s.toLowerCase().includes(val)));
+        if (!hit) return false;
+      }
       if (!q) return true;
       return [r.full_name, r.phone, r.email, r.desired_position, r.national_id]
         .some((v) => (v || "").toString().toLowerCase().includes(q));
@@ -498,7 +571,26 @@ export default function JobApplicationsPage() {
         : va.localeCompare(vb, "ar");
       return sortDir === "asc" ? cmp : -cmp;
     });
-  }, [rows, search, statusFilter, sortKey, sortDir]);
+  }, [rows, search, statusFilter, multiFilters, sortKey, sortDir]);
+
+  /** الخيارات المتاحة لكل فلتر متعدد — من الطلبات غير المؤرشفة (موحّدة من كل الحقول المرتبطة). */
+  const multiOptions = useMemo(() => {
+    const live = rows.filter((r) => !r.archived_at);
+    const opts = { desired_position: [], work_location: [], shift_preference: [] } as Record<MultiFilterKey, string[]>;
+    for (const f of MULTI_FILTERS) {
+      const set = new Set<string>();
+      for (const r of live) {
+        for (const k of f.fields) {
+          const v = ((r as any)[k] || "").toString().trim().replace(/\s+/g, " ");
+          if (v && v !== "—") set.add(v);
+        }
+      }
+      opts[f.key] = [...set].sort((a, b) => a.localeCompare(b, "ar")).slice(0, 80);
+    }
+    return opts;
+  }, [rows]);
+
+  const multiFiltersActive = MULTI_FILTERS.reduce((n, f) => n + multiFilters[f.key].length, 0);
 
   /** تبديل الترتيب عند الضغط على عنوان العمود: نفس العمود = قلب الاتجاه، عمود جديد = تصاعدي. */
   const toggleSort = (key: string) => {
@@ -615,6 +707,16 @@ export default function JobApplicationsPage() {
                 <SelectItem value="archived">الأرشيف الفعلي ({counts.archived || 0})</SelectItem>
               </SelectContent>
             </Select>
+            {/* فلاتر متعددة: الوظيفة، موقع العمل، الفترة */}
+            {MULTI_FILTERS.map((f) => (
+              <MultiFilterDropdown
+                key={f.key}
+                label={f.label}
+                options={multiOptions[f.key]}
+                selected={multiFilters[f.key]}
+                onChange={(next) => setMultiFilters((prev) => ({ ...prev, [f.key]: next }))}
+              />
+            ))}
           </div>
 
         }
@@ -638,9 +740,14 @@ export default function JobApplicationsPage() {
           </section>
 
           <section className="flex flex-col gap-2 rounded-md border border-border bg-card p-2.5 md:flex-row md:items-center md:justify-between">
-            <div className="flex min-w-0 items-center gap-2">
+            <div className="flex min-w-0 flex-wrap items-center gap-2">
               <span className="text-xs font-semibold text-foreground">المرحلة الحالية</span>
               <Badge variant="outline" className="font-normal">{statusFilter === "all" ? `كل الطلبات · ${counts.all}` : statusFilter === "archived" ? `الأرشيف · ${counts.archived || 0}` : `${statusMeta(statusFilter).label} · ${counts[statusFilter] || 0}`}</Badge>
+              {multiFiltersActive > 0 && (
+                <Badge variant="outline" className="font-normal border-primary text-primary">
+                  المعروض: {filtered.length} من {counts.all} · فلاتر: {multiFiltersActive}
+                </Badge>
+              )}
             </div>
             <div className="flex flex-wrap gap-x-3 gap-y-1 text-[10px] text-muted-foreground">
               {STATUS_GROUPS.map((group) => <span key={group.key}>{group.label}: {JOB_APPLICATION_STATUSES.filter((s) => s.group === group.key).length} مراحل</span>)}
