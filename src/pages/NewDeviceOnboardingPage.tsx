@@ -1640,9 +1640,10 @@ function AddPrinterDialog({
 
   const handleSave = async () => {
     if (!name.trim()) { toast.error("أدخل اسم الطابعة"); return; }
+    if (roles.length === 0) { toast.error("اختر وظيفة واحدة على الأقل"); return; }
     if (mode === "network" && !ip) { toast.error("أدخل عنوان IP"); return; }
     if (mode === "usb" && !winName.trim()) { toast.error("اختر/أدخل اسم طابعة Windows"); return; }
-    if (mode === "usb" && role === "receipt") {
+    if (mode === "usb" && roles.includes("receipt")) {
       const info = windowsPrinters.find(w => w.name === winName.trim());
       const kind = detectPrinterConnection(info?.portName, info?.driverName, info?.name || winName);
       if (kind === "Virtual/PDF" || kind === "Remote/AnyDesk") {
