@@ -110,6 +110,7 @@ import {
 import { CSS } from "@dnd-kit/utilities";
 import { multiWordMatchAny, normalizeArabicSearch } from "@/lib/utils";
 import GeneralManagerCelebration from "@/components/pos/GeneralManagerCelebration";
+import EmployeeHotDrinksMenu, { type EmployeeHotDrinkSelection } from "@/components/pos/EmployeeHotDrinksMenu";
 
 // Types
 interface CartItem {
@@ -130,6 +131,7 @@ interface CartItem {
   note: string;
   station_id?: string | null;
   modifiers?: SelectedModifier[];
+  employee_hot_drink?: boolean;
 }
 
 interface OrderTab {
@@ -520,6 +522,8 @@ const POSPage = () => {
   const [mealWarnAtPct, setMealWarnAtPct] = useState<number>(80);
   // Monthly meal totals for currently selected employee
   const [employeeMealMonthly, setEmployeeMealMonthly] = useState<{ family: number; individual: number }>({ family: 0, individual: 0 });
+  const [showEmployeeHotDrinks, setShowEmployeeHotDrinks] = useState(false);
+  const [employeeHotDrinkOrder, setEmployeeHotDrinkOrder] = useState(false);
   // زبائن بدون ميزة وجبات الموظفين (وضع تجزئة مثلاً): نتجاهل النمط الثنائي تماماً
   // حتى لو بقيت قيمته "dual" في payroll_settings — لا أزرار ولا تحقق ولا قيود إعانة.
   const mealDualMode = employeeMealsEnabled && mealDiscountMode === "dual";
@@ -2787,6 +2791,46 @@ const POSPage = () => {
     loadEmployeeBalance(emp.id);
   }, [setCustomerName]);
 
+  const hotDrinkCategory = useMemo(
+    () => posCategories.find((category) => category.name.trim() === "مشروبات ساخنة"),
+    [posCategories]
+  );
+
+  const employeeHotDrinks = useMemo(() => {
+    if (!hotDrinkCategory) return [];
+    return products.filter((product) => product.is_pos_available && product.pos_category_id === hotDrinkCategory.id);
+  }, [hotDrinkCategory, products]);
+
+  const startEmployeeHotDrinkOrder = useCallback((selection: EmployeeHotDrinkSelection) => {
+    const nextCart: CartItem[] = selection.items.map(({ product, quantity, discountedQuantity, regularQuantity, chargedAmount }) => ({
+      id: crypto.randomUUID(),
+      product_id: product.id,
+      name: product.name,
+      qty: quantity,
+      unit_price: quantity > 0 ? chargedAmount / quantity : product.sell_price,
+      base_price: product.sell_price,
+      cost_price: 0,
+      discount_pct: 0,
+      tax_rate: product.tax_rate,
+      unit: product.unit,
+      total: chargedAmount,
+      note: `[EMPLOYEE_HOT_DRINK] مخفض ${discountedQuantity} | عادي ${regularQuantity}`,
+      station_id: product.kitchen_station_id,
+      modifiers: [],
+      employee_hot_drink: true,
+    }));
+
+    setCart(nextCart);
+    setOrderDiscount(0);
+    setManagerDiscountMeta(null);
+    setOrderNote("منيو مشروبات الموظفين");
+    setEmployeeHotDrinkOrder(true);
+    setMealDiscountType("none");
+    selectEmployeeForPayment(selection.employee);
+    setShowEmployeeHotDrinks(false);
+    setShowPayment(true);
+  }, [selectEmployeeForPayment]);
+
   const filteredContacts = useMemo(() => {
     if (!customerSearch) return contacts;
     return contacts.filter(c =>
@@ -3858,7 +3902,9 @@ const POSPage = () => {
       subtotal: item.qty * item.unit_price,
       total: item.total,
       cost_price: item.cost_price,
-      notes: item.note?.trim() || null,
+      notes: item.employee_hot_drink
+        ? `[EMPLOYEE_HOT_DRINK] ${item.note?.replace(/^\[EMPLOYEE_HOT_DRINK\]\s*/, "").trim() || ""}`.trim()
+        : item.note?.trim() || null,
     }));
 
     const { data: insertedLines, error: linesError } = await supabase
@@ -4756,6 +4802,7 @@ const POSPage = () => {
     if (
       effectivePaymentMethod === "employee_account" &&
       mealDualMode &&
+      !employeeHotDrinkOrder &&
       !mealDiscountType
     ) {
       toast.error("يرجى اختيار نوع الخصم (بدون خصم / عائلي 10% / فردي 50%)");
@@ -4766,6 +4813,7 @@ const POSPage = () => {
     if (
       effectivePaymentMethod === "employee_account" &&
       mealDualMode &&
+      !employeeHotDrinkOrder &&
       mealDiscountType &&
       mealDiscountType !== "none" &&
       selectedEmployee
@@ -4988,6 +5036,7 @@ const POSPage = () => {
       // ─────────────────────────────────────────────────────────────
       const isDualMealOrder =
         effectivePaymentMethod === "employee_account" &&
+        !employeeHotDrinkOrder &&
         mealDualMode &&
         !!mealDiscountType;
       const companySharePct = isDualMealOrder
@@ -5368,14 +5417,21 @@ const POSPage = () => {
         return;
       }
 
-      const { data: result, error: completeError } = await supabase.rpc("complete_pos_order", {
-        p_order_id: orderId,
-        p_user_id: dataOwnerId,
-        p_payments: safePaymentsPayload,
-        // Optional: company-paid portion of an employee meal (dual mode).
-        // Stays 0 for every other tender / mode, keeping all other call paths unchanged.
-        p_meal_subsidy: mealSubsidy,
-      });
+      const { data: result, error: completeError } = employeeHotDrinkOrder && selectedEmployee
+        ? await (supabase as any).rpc("complete_employee_hot_drink_order", {
+            p_user_id: dataOwnerId,
+            p_employee_id: selectedEmployee.id,
+            p_order_id: orderId,
+            p_payments: safePaymentsPayload,
+          })
+        : await supabase.rpc("complete_pos_order", {
+            p_order_id: orderId,
+            p_user_id: dataOwnerId,
+            p_payments: safePaymentsPayload,
+            // Optional: company-paid portion of an employee meal (dual mode).
+            // Stays 0 for every other tender / mode, keeping all other call paths unchanged.
+            p_meal_subsidy: mealSubsidy,
+          });
 
       if (completeError) throw completeError;
 
@@ -5472,7 +5528,7 @@ const POSPage = () => {
         .catch((e) => console.warn("[POS] incrementSessionTotals failed (optimistic kept):", e));
 
       // Record employee account movement
-      if (effectivePaymentMethod === "employee_account" && selectedEmployee) {
+      if (effectivePaymentMethod === "employee_account" && selectedEmployee && !employeeHotDrinkOrder) {
         const now = new Date();
         const itemsSummary = cart.map(i => `${i.name} x${i.qty}`).join(", ");
         const noteStr = employeeNote.trim() ? ` | ${employeeNote.trim()}` : "";
@@ -6278,6 +6334,7 @@ const POSPage = () => {
         setShowTablePicker(false);
       }
       setSelectedEmployee(null);
+      setEmployeeHotDrinkOrder(false);
       setEmployeeSearch("");
       setEmployeeBalance(0);
       setEmployeeNote("");
@@ -7645,6 +7702,26 @@ const POSPage = () => {
               ran out of an item (e.g. "الرز جاهز نفد بفرع فيصل"). */}
           {dataOwnerId && (
             <StockoutAlertsBanner dataOwnerId={dataOwnerId} mode="icon" />
+          )}
+
+          {isMalakyTenant && employeeMealsEnabled && (
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="h-9 gap-2 text-primary-foreground hover:bg-primary-foreground/10 hover:text-primary-foreground"
+              disabled={!session || employeeHotDrinks.length === 0}
+              onClick={() => {
+                if (cart.length > 0) {
+                  toast.error("أنه طلبك الحالي أولاً قبل فتح منيو مشروبات الموظفين");
+                  return;
+                }
+                setShowEmployeeHotDrinks(true);
+              }}
+            >
+              <Coffee className="h-4 w-4" />
+              <span className="hidden sm:inline">مشروبات الموظفين</span>
+            </Button>
           )}
 
           {/* Tables — hidden for Malaky (unused) */}
@@ -9358,7 +9435,9 @@ const POSPage = () => {
                           ? (paymentMethod === "card" || paymentMethod.startsWith("card:"))
                           : paymentMethod === m.key
                       ));
-                  const lockedOut = isPaymentLockedByCC && (isSplitTile || m.key !== ccLockedMethod);
+                  const lockedOut = employeeHotDrinkOrder
+                    ? (isSplitTile || m.key !== "employee_account")
+                    : isPaymentLockedByCC && (isSplitTile || m.key !== ccLockedMethod);
                   return (
                     <motion.button
                       key={m.key}
@@ -10117,6 +10196,16 @@ const POSPage = () => {
       )}
 
       {/* Close Shift Dialog - Employee sees only cash count input */}
+      <EmployeeHotDrinksMenu
+        open={showEmployeeHotDrinks}
+        onOpenChange={setShowEmployeeHotDrinks}
+        dataOwnerId={dataOwnerId}
+        employees={employees}
+        drinks={employeeHotDrinks}
+        cutoffHour={DEFAULT_POS_CUTOFF_HOUR}
+        onConfirm={startEmployeeHotDrinkOrder}
+      />
+
       <Dialog open={showCloseShift} onOpenChange={setShowCloseShift}>
         <DialogContent className="sm:max-w-md" dir="rtl">
           <DialogHeader>

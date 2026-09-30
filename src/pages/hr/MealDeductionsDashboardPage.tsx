@@ -4,7 +4,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
-import { ArrowRight, Download, Loader2, Utensils, AlertTriangle } from "lucide-react";
+import { ArrowRight, Coffee, Download, Loader2, Utensils, AlertTriangle } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 
 const monthsAr = ["يناير","فبراير","مارس","أبريل","مايو","يونيو","يوليو","أغسطس","سبتمبر","أكتوبر","نوفمبر","ديسمبر"];
@@ -18,6 +18,7 @@ interface Row {
   movement_date: string;
   reference_number: string | null;
   employee_name?: string;
+  source_type: "pos_meal" | "pos_hot_drink";
 }
 
 export default function MealDeductionsDashboardPage() {
@@ -54,8 +55,8 @@ export default function MealDeductionsDashboardPage() {
         }
         const { data, error } = await supabase
           .from("employee_financial_movements")
-          .select("id, employee_id, amount, original_full_amount, meal_discount_type, movement_date, reference_number, employees!inner(full_name)")
-          .eq("source_type", "pos_meal")
+          .select("id, employee_id, source_type, amount, original_full_amount, meal_discount_type, movement_date, reference_number, employees!inner(full_name)")
+          .in("source_type", ["pos_meal", "pos_hot_drink"])
           .eq("salary_year", year)
           .eq("salary_month", month)
           .order("movement_date", { ascending: false });
@@ -75,17 +76,19 @@ export default function MealDeductionsDashboardPage() {
   }, [user, year, month]);
 
   const totals = useMemo(() => {
-    let family = 0, individual = 0, none = 0, full = 0;
-    const perEmp = new Map<string, { name: string; family: number; individual: number; none: number; total: number }>();
+    let family = 0, individual = 0, none = 0, hotDrinks = 0, full = 0;
+    const perEmp = new Map<string, { name: string; family: number; individual: number; none: number; hotDrinks: number; total: number }>();
     for (const r of rows) {
       const a = Number(r.amount) || 0;
       full += Number(r.original_full_amount) || 0;
-      if (r.meal_discount_type === "family") family += a;
+      if (r.source_type === "pos_hot_drink") hotDrinks += a;
+      else if (r.meal_discount_type === "family") family += a;
       else if (r.meal_discount_type === "individual") individual += a;
       else if (r.meal_discount_type === "none") none += a;
       const key = r.employee_id;
-      const cur = perEmp.get(key) || { name: r.employee_name || "—", family: 0, individual: 0, none: 0, total: 0 };
-      if (r.meal_discount_type === "family") cur.family += a;
+      const cur = perEmp.get(key) || { name: r.employee_name || "—", family: 0, individual: 0, none: 0, hotDrinks: 0, total: 0 };
+      if (r.source_type === "pos_hot_drink") cur.hotDrinks += a;
+      else if (r.meal_discount_type === "family") cur.family += a;
       else if (r.meal_discount_type === "individual") cur.individual += a;
       else if (r.meal_discount_type === "none") cur.none += a;
       cur.total += a;
@@ -95,8 +98,8 @@ export default function MealDeductionsDashboardPage() {
       .map(([id, v]) => ({ id, ...v }))
       .sort((a, b) => b.total - a.total)
       .slice(0, 10);
-    const totalDeducted = family + individual + none;
-    return { family, individual, none, total: totalDeducted, fullCompanyPaid: full, companyShare: Math.max(0, full - totalDeducted), topEmployees, perEmp };
+    const totalDeducted = family + individual + none + hotDrinks;
+    return { family, individual, none, hotDrinks, total: totalDeducted, fullCompanyPaid: full, companyShare: Math.max(0, full - totalDeducted), topEmployees, perEmp };
   }, [rows]);
 
   const overCap = useMemo(() => {
@@ -118,7 +121,7 @@ export default function MealDeductionsDashboardPage() {
       r.movement_date,
       (r.employee_name || "").replace(/,/g, " "),
       r.reference_number || "",
-      r.meal_discount_type === "family" ? "عائلي" : r.meal_discount_type === "individual" ? "فردي" : "",
+      r.source_type === "pos_hot_drink" ? "مشروبات ساخنة" : r.meal_discount_type === "family" ? "عائلي" : r.meal_discount_type === "individual" ? "فردي" : "بدون خصم",
       (Number(r.original_full_amount)||0).toFixed(2),
       (Number(r.amount)||0).toFixed(2),
     ].join(",")).join("\n");
@@ -154,7 +157,7 @@ export default function MealDeductionsDashboardPage() {
         </div>
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
         <Card className="p-3">
           <div className="text-[11px] text-muted-foreground">إجمالي عائلي</div>
           <div className="text-xl font-bold text-violet-600">₪{totals.family.toFixed(2)}</div>
@@ -162,6 +165,10 @@ export default function MealDeductionsDashboardPage() {
         <Card className="p-3">
           <div className="text-[11px] text-muted-foreground">إجمالي فردي</div>
           <div className="text-xl font-bold text-violet-600">₪{totals.individual.toFixed(2)}</div>
+        </Card>
+        <Card className="p-3">
+          <div className="text-[11px] text-muted-foreground flex items-center gap-1"><Coffee className="h-3.5 w-3.5" /> مشروبات ساخنة</div>
+          <div className="text-xl font-bold text-primary">₪{totals.hotDrinks.toFixed(2)}</div>
         </Card>
         <Card className="p-3">
           <div className="text-[11px] text-muted-foreground">إجمالي مخصوم من الموظفين</div>
@@ -208,6 +215,7 @@ export default function MealDeductionsDashboardPage() {
                   <th className="p-2 text-right">الموظف</th>
                   <th className="p-2 text-left">عائلي</th>
                   <th className="p-2 text-left">فردي</th>
+                  <th className="p-2 text-left">مشروبات</th>
                   <th className="p-2 text-left">الإجمالي</th>
                 </tr>
               </thead>
@@ -218,6 +226,7 @@ export default function MealDeductionsDashboardPage() {
                     <td className="p-2 font-medium">{e.name}</td>
                     <td className="p-2 text-left tabular-nums">₪{e.family.toFixed(2)}</td>
                     <td className="p-2 text-left tabular-nums">₪{e.individual.toFixed(2)}</td>
+                    <td className="p-2 text-left tabular-nums">₪{e.hotDrinks.toFixed(2)}</td>
                     <td className="p-2 text-left tabular-nums font-bold text-red-600">₪{e.total.toFixed(2)}</td>
                   </tr>
                 ))}

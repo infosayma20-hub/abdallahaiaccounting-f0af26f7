@@ -309,6 +309,20 @@
       "when": 1790687639850,
       "tag": "0043_account_merge_log",
       "breakpoints": true
+    },
+    {
+      "idx": 44,
+      "version": "7",
+      "when": 1790749693822,
+      "tag": "0044_employee_hot_drink_daily_tracking",
+      "breakpoints": true
+    },
+    {
+      "idx": 45,
+      "version": "7",
+      "when": 1790749838505,
+      "tag": "0045_complete_employee_hot_drink_orders_atomically",
+      "breakpoints": true
     }
   ]
 }
