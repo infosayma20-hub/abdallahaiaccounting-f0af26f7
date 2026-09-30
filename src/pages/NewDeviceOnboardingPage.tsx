@@ -1721,15 +1721,25 @@ function AddPrinterDialog({
           </div>
 
           <div className="space-y-1.5">
-            <Label className="text-xs">الوظيفة</Label>
-            <Select value={role} onValueChange={setRole}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
-                {PRINTER_ROLES.map(r => (
-                  <SelectItem key={r.value} value={r.value}>{r.emoji} {r.label}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <Label className="text-xs">الوظيفة (يمكن اختيار أكثر من واحدة)</Label>
+            <div className="rounded-md border divide-y">
+              {PRINTER_ROLES.map(r => {
+                const checked = roles.includes(r.value);
+                return (
+                  <button
+                    key={r.value}
+                    type="button"
+                    onClick={() => toggleRole(r.value)}
+                    className={`w-full flex items-center gap-2 px-3 py-2 text-sm text-right transition-colors ${checked ? "bg-primary/5 text-primary" : "hover:bg-muted/40"}`}
+                  >
+                    <span className={`inline-flex h-4 w-4 items-center justify-center rounded-sm border ${checked ? "border-primary bg-primary text-primary-foreground" : "border-muted-foreground/40"}`}>
+                      {checked && <Check className="h-3 w-3" />}
+                    </span>
+                    <span>{r.emoji} {r.label}</span>
+                  </button>
+                );
+              })}
+            </div>
           </div>
 
           {mode === "network" ? (
