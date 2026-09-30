@@ -524,6 +524,7 @@ const POSPage = () => {
   const [employeeMealMonthly, setEmployeeMealMonthly] = useState<{ family: number; individual: number }>({ family: 0, individual: 0 });
   const [showEmployeeHotDrinks, setShowEmployeeHotDrinks] = useState(false);
   const [employeeHotDrinkOrder, setEmployeeHotDrinkOrder] = useState(false);
+  const [posDayCutoffHour, setPosDayCutoffHour] = useState(DEFAULT_POS_CUTOFF_HOUR);
   // زبائن بدون ميزة وجبات الموظفين (وضع تجزئة مثلاً): نتجاهل النمط الثنائي تماماً
   // حتى لو بقيت قيمته "dual" في payroll_settings — لا أزرار ولا تحقق ولا قيود إعانة.
   const mealDualMode = employeeMealsEnabled && mealDiscountMode === "dual";
@@ -2013,7 +2014,7 @@ const POSPage = () => {
         // Load POS settings needed at startup (receipt policy + default opening cash)
         const { data: posSettings } = await supabase
           .from("company_settings" as any)
-          .select("pos_show_return_policy, pos_return_policy_days, pos_default_opening_balance, pos_allow_order_transfer, pos_require_cash_box, pos_auto_print, logo_url, pos_cashier_cancel_window_minutes, pos_cashier_invoice_amount_visible_minutes")
+          .select("pos_show_return_policy, pos_return_policy_days, pos_default_opening_balance, pos_allow_order_transfer, pos_require_cash_box, pos_auto_print, logo_url, pos_cashier_cancel_window_minutes, pos_cashier_invoice_amount_visible_minutes, pos_day_cutoff_hour")
           .eq("user_id", dataOwnerId)
           .maybeSingle();
 
@@ -2034,6 +2035,10 @@ const POSPage = () => {
           if (Number.isFinite(cw) && cw > 0) setCashierCancelWindowMin(cw);
           const av = Number((posSettings as any).pos_cashier_invoice_amount_visible_minutes);
           if (Number.isFinite(av) && av > 0) setCashierAmountVisibleMin(av);
+          const configuredCutoff = Number((posSettings as any).pos_day_cutoff_hour);
+          if (Number.isInteger(configuredCutoff) && configuredCutoff >= 0 && configuredCutoff <= 23) {
+            setPosDayCutoffHour(configuredCutoff);
+          }
         }
 
         const rawDefaultOpeningCash = (posSettings as any)?.pos_default_opening_balance;
@@ -10212,7 +10217,7 @@ const POSPage = () => {
         dataOwnerId={dataOwnerId}
         employees={employees}
         drinks={employeeHotDrinks}
-        cutoffHour={DEFAULT_POS_CUTOFF_HOUR}
+        cutoffHour={posDayCutoffHour}
         onConfirm={startEmployeeHotDrinkOrder}
       />
 

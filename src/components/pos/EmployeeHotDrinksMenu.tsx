@@ -174,6 +174,10 @@ export default function EmployeeHotDrinksMenu({
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
               {filteredDrinks.map((drink) => {
                 const quantity = quantities[drink.id] || 0;
+                const selectedBefore = selected
+                  .filter((item) => item.product.id.localeCompare(drink.id) < 0)
+                  .reduce((sum, item) => sum + item.discountedQuantity, 0);
+                const hasDiscountForNext = Math.max(0, remaining - selectedBefore - quantity) > 0;
                 return (
                   <div key={drink.id} className="overflow-hidden rounded-md border border-border bg-card">
                     {drink.image_url ? (
@@ -184,8 +188,8 @@ export default function EmployeeHotDrinksMenu({
                     <div className="p-3">
                       <div className="min-h-10 text-sm font-bold leading-5">{drink.name}</div>
                       <div className="mt-1 flex items-center justify-between text-xs">
-                        <span className="font-bold text-primary">₪{(drink.sell_price * 0.5).toFixed(2)}</span>
-                        <span className="text-muted-foreground line-through">₪{drink.sell_price.toFixed(2)}</span>
+                        <span className="font-bold text-primary">₪{(hasDiscountForNext ? drink.sell_price * 0.5 : drink.sell_price).toFixed(2)}</span>
+                        {hasDiscountForNext && <span className="text-muted-foreground line-through">₪{drink.sell_price.toFixed(2)}</span>}
                       </div>
                       <div className="mt-3 grid grid-cols-[32px_1fr_32px] items-center gap-2">
                         <Button type="button" size="icon" variant="outline" className="h-8 w-8" disabled={!employee || quantity === 0} onClick={() => setQuantities((prev) => ({ ...prev, [drink.id]: Math.max(0, quantity - 1) }))}><Minus className="h-3.5 w-3.5" /></Button>
