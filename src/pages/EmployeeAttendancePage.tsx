@@ -430,7 +430,7 @@ export default function EmployeeAttendancePage() {
       <PageHeader title="نظام الحضور والانصراف" breadcrumb={["الموارد البشرية", "الحضور والانصراف"]} />
       <div className="flex items-center justify-end">
         <div className="text-left">
-          <div className="text-3xl font-bold tabular-nums text-primary">
+          <div dir="ltr" className="text-3xl font-bold tabular-nums text-primary">
             {format(currentTime, "hh:mm:ss a")}
           </div>
           <div className="text-xs text-muted-foreground">
