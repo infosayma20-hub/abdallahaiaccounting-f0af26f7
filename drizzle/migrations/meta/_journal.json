@@ -330,6 +330,13 @@
       "when": 1790758185096,
       "tag": "0046_fix_journal_entry_offline_idempotency",
       "breakpoints": true
+    },
+    {
+      "idx": 47,
+      "version": "7",
+      "when": 1790758322206,
+      "tag": "0047_create_journal_voucher_offline_rpc",
+      "breakpoints": true
     }
   ]
 }

@@ -31227,6 +31227,16 @@ export type Database = {
         }
         Returns: Json
       }
+      create_journal_voucher_offline: {
+        Args: {
+          p_lines: Json
+          p_local_id: string
+          p_txns: Json
+          p_user_id: string
+          p_voucher: Json
+        }
+        Returns: Json
+      }
       create_kiosk_call_center_order: {
         Args: {
           p_branch_id: string

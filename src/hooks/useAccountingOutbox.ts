@@ -34,12 +34,20 @@ const PERMANENT_ERROR_PATTERNS = [
   "permission denied",
   "invalid params",
   "violates row-level security",
+  "حساب أب",
+  "غير متوازن",
+  "فترة مقفلة",
 ];
 
 function isPermanentError(msg: string): boolean {
   const lower = (msg || "").toLowerCase();
   return PERMANENT_ERROR_PATTERNS.some((p) => lower.includes(p.toLowerCase()));
 }
+
+/** RPCs whose idempotency argument is not named `p_idempotency_key`. */
+const OUTBOX_KEY_PARAM: Record<string, string> = {
+  create_journal_voucher_offline: "p_local_id",
+};
 
 export interface QueueDocumentInput {
   docType: OutboxDocType;
@@ -88,9 +96,10 @@ export function useAccountingOutbox() {
 
   const syncOne = useCallback(async (entry: OutboxEntry): Promise<boolean> => {
     try {
+      const keyParam = OUTBOX_KEY_PARAM[entry.rpc] || "p_idempotency_key";
       const { data, error } = await supabase.rpc(entry.rpc as any, {
         ...entry.payload,
-        p_idempotency_key: entry.local_id,
+        [keyParam]: entry.local_id,
       } as any);
 
       if (error) {

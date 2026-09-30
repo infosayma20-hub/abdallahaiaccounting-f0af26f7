@@ -214,6 +214,54 @@ function buildTransactionsFromLines(args: {
   return { txns, usedClearing };
 }
 
+/** Journal pair as sent to `create_journal_voucher_offline` — built with the
+ *  SAME pairing algorithm as the online save, so an entry captured offline
+ *  posts exactly the transactions it would have posted online. */
+export interface OfflineJournalPair {
+  debit_account_code: string;
+  credit_account_code: string;
+  amount: number;
+  contact_id: string | null;
+  contact_name: string | null;
+  cost_center_id: string | null;
+  transaction_type: string;
+  key_suffix: string;
+}
+
+export function buildOfflineJournalPairs(args: {
+  lines: JournalSaveLine[];
+  subtype: string;
+  voucherContactId?: string | null;
+  voucherCostCenterId?: string | null;
+}): OfflineJournalPair[] {
+  const { txns } = buildTransactionsFromLines({
+    userId: "",
+    date: "",
+    description: "",
+    lines: args.lines,
+    txType: SUBTYPE_TO_TX_TYPE[args.subtype] || "journal",
+    reference: "",
+    voucherId: "",
+    voucherContactId: args.voucherContactId,
+    voucherCostCenterId: args.voucherCostCenterId || null,
+    currencyLabel: "شيكل",
+    currencyCode: "ILS",
+    exchangeRate: 1,
+  });
+  return txns.map((t) => ({
+    debit_account_code: t.debit_account_code,
+    credit_account_code: t.credit_account_code,
+    amount: t.amount,
+    contact_id: t.contact_id || null,
+    // description was built as `${""} - ${contactName}` when a name exists
+    contact_name: String(t.description || "").replace(/^ - /, "") || null,
+    cost_center_id: t.cost_center_id || null,
+    transaction_type: t.transaction_type,
+    key_suffix: String(t.idempotency_key).replace(/^VOUCHER--/, ""),
+  }));
+}
+
+
 /** توليد رقم سند جديد بصيغة QV-YYYY-#### */
 async function generateRefNumber(userId: string): Promise<string> {
   const year = new Date().getFullYear();
