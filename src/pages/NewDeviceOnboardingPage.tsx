@@ -1603,15 +1603,19 @@ function AddPrinterDialog({
 }) {
   const [mode, setMode] = useState<"network" | "usb">("network");
   const [name, setName] = useState("");
-  const [role, setRole] = useState("receipt");
+  /** الطابعة يمكن أن تخدم أكثر من وظيفة (مثلاً مطبخ + مشاوي) */
+  const [roles, setRoles] = useState<string[]>(["receipt"]);
   const [ip, setIp]     = useState("");
   const [port, setPort] = useState("9100");
   const [winName, setWinName] = useState("");
   const [saving, setSaving] = useState(false);
   const [testing, setTesting] = useState(false);
 
+  const toggleRole = (v: string) =>
+    setRoles(prev => prev.includes(v) ? prev.filter(r => r !== v) : [...prev, v]);
+
   const reset = () => {
-    setMode("network"); setName(""); setRole("receipt");
+    setMode("network"); setName(""); setRoles(["receipt"]);
     setIp(""); setPort("9100"); setWinName("");
   };
 
