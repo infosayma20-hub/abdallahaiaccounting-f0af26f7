@@ -132,7 +132,7 @@ export default function DeviceSetupPage({ variant = "advanced" }: DeviceSetupPag
       } else {
         const { data: newCo, error: coErr } = await supabase
           .from("pos_companies")
-          .insert({ user_id: ownerId, name: "شركتي", currency_code: "ILS", is_active: true } as any)
+          .insert({ user_id: ownerId, name: (await supabase.from("profiles").select("company_name").eq("user_id", ownerId).maybeSingle()).data?.company_name || "شركتي", currency_code: "ILS", is_active: true } as any)
           .select("id").single();
         if (coErr || !newCo) {
           toast.error("تعذر تجهيز شركة الـ POS: " + (coErr?.message || "خطأ"));
