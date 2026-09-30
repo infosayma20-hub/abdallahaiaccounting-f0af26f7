@@ -1,8 +1,10 @@
+import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
 import { Tag } from "lucide-react";
 
-/** أسباب تعديل السعر المعتمدة (الملكي). اختيار السبب = تأكيد فوري. */
+/** أسباب تعديل السعر المعتمدة (الملكي فقط). اختيار السبب = تأكيد فوري. */
 const REASONS = [
   "فرقية سعر التطبيقات",
   "تغير قطع البروست",
@@ -16,14 +18,19 @@ interface Props {
   originalPrice: number;
   newPrice: number;
   qty: number;
+  /** الملكي: أسباب جاهزة. غيره: ملاحظة حرة. */
+  variant?: "malaki" | "note";
   onCancel: () => void;
   onConfirm: (reason: string) => void;
 }
 
 const PriceChangeReasonDialog = ({
-  open, productName, originalPrice, newPrice, qty, onCancel, onConfirm,
+  open, productName, originalPrice, newPrice, qty, variant = "note", onCancel, onConfirm,
 }: Props) => {
   const diff = (newPrice - originalPrice) * qty;
+  const [note, setNote] = useState("");
+
+  useEffect(() => { if (open) setNote(""); }, [open]);
 
   return (
     <Dialog open={open} onOpenChange={o => { if (!o) onCancel(); }}>
@@ -47,18 +54,38 @@ const PriceChangeReasonDialog = ({
           </div>
         </div>
 
-        <div className="grid gap-1.5">
-          {REASONS.map(r => (
-            <button
-              key={r}
-              type="button"
-              onClick={() => onConfirm(r)}
-              className="w-full text-right text-[13px] px-3 py-2.5 rounded-md border border-border bg-card hover:bg-primary/10 hover:border-primary/40 active:scale-[0.99] transition-all"
+        {variant === "malaki" ? (
+          <div className="grid gap-1.5">
+            {REASONS.map(r => (
+              <button
+                key={r}
+                type="button"
+                onClick={() => onConfirm(r)}
+                className="w-full text-right text-[13px] px-3 py-2.5 rounded-md border border-border bg-card hover:bg-primary/10 hover:border-primary/40 active:scale-[0.99] transition-all"
+              >
+                {r}
+              </button>
+            ))}
+          </div>
+        ) : (
+          <div className="grid gap-1.5">
+            <Textarea
+              value={note}
+              onChange={e => setNote(e.target.value)}
+              placeholder="اكتب سبب تعديل السعر…"
+              className="min-h-[72px] text-[13px] resize-none"
+              autoFocus
+            />
+            <Button
+              size="sm"
+              className="h-9 text-[13px]"
+              disabled={!note.trim()}
+              onClick={() => onConfirm(note.trim())}
             >
-              {r}
-            </button>
-          ))}
-        </div>
+              تأكيد تعديل السعر
+            </Button>
+          </div>
+        )}
 
         <Button variant="ghost" size="sm" className="h-8 text-[12px]" onClick={onCancel}>
           إلغاء وإرجاع السعر
