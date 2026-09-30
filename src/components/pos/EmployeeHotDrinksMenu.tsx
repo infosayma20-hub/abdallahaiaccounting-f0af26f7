@@ -126,8 +126,8 @@ export default function EmployeeHotDrinksMenu({
           </DialogTitle>
         </DialogHeader>
 
-        <div className="grid min-h-0 flex-1 gap-0 overflow-hidden md:grid-cols-[240px_1fr]">
-          <aside className="min-h-0 overflow-y-auto border-b border-border bg-muted/40 p-4 md:border-b-0 md:border-l">
+        <div className="grid min-h-0 flex-1 grid-rows-[auto_minmax(0,1fr)] gap-0 overflow-hidden md:grid-cols-[240px_1fr] md:grid-rows-[minmax(0,1fr)]">
+          <aside className="max-h-[35dvh] min-h-0 overflow-y-auto md:max-h-none border-b border-border bg-muted/40 p-4 md:border-b-0 md:border-l">
             <label className="mb-2 block text-sm font-semibold">الموظف</label>
             {employee ? (
               <button
