@@ -1088,10 +1088,13 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
             if ((data as any).linked_transaction_id) {
               const { data: tx } = await supabase
                 .from("transactions")
-                .select("cost_center_id, currency, exchange_rate")
+                .select("cost_center_id, currency, exchange_rate, order_id")
                 .eq("id", (data as any).linked_transaction_id)
                 .maybeSingle();
               if (tx && (tx as any).cost_center_id) setCostCenterId((tx as any).cost_center_id);
+              // Restore the order link: edits recreate the transaction, so a
+              // missing linkedOrderId here silently unlinked the order.
+              if (tx && (tx as any).order_id) setLinkedOrderId((tx as any).order_id);
               // receipt_vouchers has no currency column — restore it from the
               // linked journal entry. transactions.currency is stored as the
               // Arabic label (e.g. "يورو") so map it back to CURRENCIES.value.
@@ -2419,7 +2422,11 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
       const hasInvoiceAllocations = effectiveInvoices.some(
         (invoice) => invoice.selected && (invoice.allocatedAmount || 0) > 0,
       );
-      const useAtomicBasicVoucher = !asDraft && isSimpleContactVoucher &&
+      // The atomic RPC has no order_id parameter and returns early, so an
+      // order-linked receipt must take the regular path that attaches and
+      // verifies transactions.order_id before the voucher is recorded.
+      const hasOrderLink = isReceipt && !!(linkedOrderId || prefillOrderId);
+      const useAtomicBasicVoucher = !asDraft && isSimpleContactVoucher && !hasOrderLink &&
         !hasInvoiceAllocations && attachments.length === 0 && endorsedCheques.length === 0;
 
       if (useAtomicBasicVoucher) {
