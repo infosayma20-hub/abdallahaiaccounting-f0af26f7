@@ -701,6 +701,16 @@ export default function JobApplicationsPage() {
                 <SelectItem value="archived">الأرشيف الفعلي ({counts.archived || 0})</SelectItem>
               </SelectContent>
             </Select>
+            {/* فلاتر متعددة: الوظيفة، موقع العمل، الفترة */}
+            {MULTI_FILTERS.map((f) => (
+              <MultiFilterDropdown
+                key={f.key}
+                label={f.label}
+                options={multiOptions[f.key]}
+                selected={multiFilters[f.key]}
+                onChange={(next) => setMultiFilters((prev) => ({ ...prev, [f.key]: next }))}
+              />
+            ))}
           </div>
 
         }
