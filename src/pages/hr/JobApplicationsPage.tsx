@@ -548,6 +548,14 @@ export default function JobApplicationsPage() {
       if (statusFilter === "archived") { if (!archived) return false; }
       else if (archived) return false;
       if (statusFilter !== "all" && statusFilter !== "archived" && (r.status || "new") !== statusFilter) return false;
+      // الفلاتر المتعددة: أي قيمة محددة ضمن الحقل = مطابقة (أو بين القيم)
+      for (const f of MULTI_FILTERS) {
+        const selected = multiFilters[f.key];
+        if (!selected.length) continue;
+        const val = ((r as any)[f.key] || "").toString().trim().toLowerCase();
+        if (!val) return false;
+        if (!selected.some((s) => val.includes(s.toLowerCase()) || s.toLowerCase().includes(val))) return false;
+      }
       if (!q) return true;
       return [r.full_name, r.phone, r.email, r.desired_position, r.national_id]
         .some((v) => (v || "").toString().toLowerCase().includes(q));
@@ -559,7 +567,24 @@ export default function JobApplicationsPage() {
         : va.localeCompare(vb, "ar");
       return sortDir === "asc" ? cmp : -cmp;
     });
-  }, [rows, search, statusFilter, sortKey, sortDir]);
+  }, [rows, search, statusFilter, multiFilters, sortKey, sortDir]);
+
+  /** الخيارات المتاحة لكل فلتر متعدد — من الطلبات غير المؤرشفة. */
+  const multiOptions = useMemo(() => {
+    const live = rows.filter((r) => !r.archived_at);
+    const opts = { desired_position: [], work_location: [], shift_preference: [] } as Record<MultiFilterKey, string[]>;
+    for (const f of MULTI_FILTERS) {
+      const set = new Set<string>();
+      for (const r of live) {
+        const v = ((r as any)[f.key] || "").toString().trim().replace(/\s+/g, " ");
+        if (v && v !== "—") set.add(v);
+      }
+      opts[f.key] = [...set].sort((a, b) => a.localeCompare(b, "ar")).slice(0, 60);
+    }
+    return opts;
+  }, [rows]);
+
+  const multiFiltersActive = MULTI_FILTERS.reduce((n, f) => n + multiFilters[f.key].length, 0);
 
   /** تبديل الترتيب عند الضغط على عنوان العمود: نفس العمود = قلب الاتجاه، عمود جديد = تصاعدي. */
   const toggleSort = (key: string) => {
