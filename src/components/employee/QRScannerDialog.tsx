@@ -440,6 +440,7 @@ export default function QRScannerDialog({ open, onOpenChange, action, onSuccess,
             latitude: lat,
             longitude: lng,
             device_info: navigator.userAgent.substring(0, 100),
+            touch_points: navigator.maxTouchPoints || 0,
             device_fingerprint: await getDeviceFingerprint().catch(() => null),
             selfie_base64: selfieBase64,
             // Audit only — server overrides; used to detect device clock tampering

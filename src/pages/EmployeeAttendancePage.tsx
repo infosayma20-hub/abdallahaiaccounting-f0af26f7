@@ -318,6 +318,7 @@ export default function EmployeeAttendancePage() {
         latitude: lat,
         longitude: lng,
         device_info: navigator.userAgent.substring(0, 100),
+        touch_points: navigator.maxTouchPoints || 0,
         // Audit only — server overrides; used to detect device clock tampering
         client_time: new Date().toISOString(),
       };

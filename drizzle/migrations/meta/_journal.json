@@ -337,6 +337,13 @@
       "when": 1790758322206,
       "tag": "0047_create_journal_voucher_offline_rpc",
       "breakpoints": true
+    },
+    {
+      "idx": 48,
+      "version": "7",
+      "when": 1790761743707,
+      "tag": "0048_branches_mobile_only_attendance",
+      "breakpoints": true
     }
   ]
 }
