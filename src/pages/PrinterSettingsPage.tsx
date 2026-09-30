@@ -294,7 +294,7 @@ export default function PrinterSettingsPage() {
                     return (
                       <tr key={station.id} className="border-b last:border-0">
                         <td className="p-3 font-medium">{station.name}</td>
-                        <td className="p-3 text-muted-foreground">{station.station_type === 'kitchen' ? 'مطبخ' : station.station_type}</td>
+                        <td className="p-3 text-muted-foreground">{({kitchen:'مطبخ',drinks:'مشروبات',bar:'بار',hookah:'أراجيل',appetizers:'مقبلات',salads:'سلطات',pizza:'بيتزا',desserts:'حلويات',grill:'شواية',cold:'أطباق باردة',other:'أخرى'} as Record<string,string>)[station.station_type] || station.station_type}</td>
                         <td className="p-3">
                           {linkedPrinter ? (
                             <span className="flex items-center gap-1.5">
