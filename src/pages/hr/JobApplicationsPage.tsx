@@ -99,7 +99,7 @@ function MultiFilterDropdown({ label, options, selected, onChange }: {
           )}
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent dir="rtl" align="start" className="max-h-[320px] w-56 overflow-y-auto">
+      <DropdownMenuContent align="start" className="max-h-[320px] w-56 overflow-y-auto">
         <DropdownMenuLabel className="text-[11px] text-muted-foreground">{label} — اختر قيمة أو أكثر</DropdownMenuLabel>
         {options.length === 0 && (
           <div className="px-2 py-3 text-center text-xs text-muted-foreground">لا توجد خيارات بعد</div>
