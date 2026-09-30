@@ -4,6 +4,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { TimeTextInput } from "@/components/hr/TimeTextInput";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -1898,11 +1899,11 @@ export default function MonthlyAttendanceTab({
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="text-xs text-muted-foreground mb-1 block">الدخول</label>
-                <Input type="time" value={form.first_check_in} onChange={e => setForm(p => ({ ...p, first_check_in: e.target.value }))} dir="ltr" />
+                <TimeTextInput value={form.first_check_in} onChange={(v) => setForm(p => ({ ...p, first_check_in: v }))} />
               </div>
               <div>
                 <label className="text-xs text-muted-foreground mb-1 block">الخروج</label>
-                <Input type="time" value={form.last_check_out} onChange={e => setForm(p => ({ ...p, last_check_out: e.target.value }))} dir="ltr" />
+                <TimeTextInput value={form.last_check_out} onChange={(v) => setForm(p => ({ ...p, last_check_out: v }))} />
               </div>
             </div>
             <div>
@@ -2068,21 +2069,17 @@ export default function MonthlyAttendanceTab({
                         </div>
                         <div className="col-span-3">
                           <label className="text-[10px] text-muted-foreground mb-0.5 block">خروج</label>
-                          <Input
-                            type="time"
+                          <TimeTextInput
                             value={b.out}
-                            onChange={(e) => setBreaks((prev) => prev.map((x, i) => (i === idx ? { ...x, out: e.target.value } : x)))}
-                            dir="ltr"
+                            onChange={(v) => setBreaks((prev) => prev.map((x, i) => (i === idx ? { ...x, out: v } : x)))}
                             className="h-8 text-xs"
                           />
                         </div>
                         <div className="col-span-3">
                           <label className="text-[10px] text-muted-foreground mb-0.5 block">عودة</label>
-                          <Input
-                            type="time"
+                          <TimeTextInput
                             value={b.in}
-                            onChange={(e) => setBreaks((prev) => prev.map((x, i) => (i === idx ? { ...x, in: e.target.value } : x)))}
-                            dir="ltr"
+                            onChange={(v) => setBreaks((prev) => prev.map((x, i) => (i === idx ? { ...x, in: v } : x)))}
                             className="h-8 text-xs"
                           />
                         </div>
