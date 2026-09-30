@@ -71,6 +71,62 @@ const STATUS_GROUPS = [
   { key: "closed", label: "النتائج والمتابعة" },
 ] as const;
 
+/** حقول الفلترة المتعددة — يمكن اختيار عدة قيم معًا (أو بين القيم، و/ بين الحقول). */
+type MultiFilterKey = "desired_position" | "work_location" | "shift_preference";
+
+const MULTI_FILTERS: { key: MultiFilterKey; label: string }[] = [
+  { key: "desired_position", label: "الوظيفة المطلوبة" },
+  { key: "work_location", label: "موقع العمل" },
+  { key: "shift_preference", label: "الفترة" },
+];
+
+/** قائمة منسدلة متعددة الاختيار: عدة قيم معًا، بلا تحديد = إظهار الكل. */
+function MultiFilterDropdown({ label, options, selected, onChange }: {
+  label: string; options: string[]; selected: string[]; onChange: (next: string[]) => void;
+}) {
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button
+          variant="outline" size="sm"
+          className={`h-8 gap-1.5 text-[12px] ${selected.length ? "border-primary text-primary" : ""}`}>
+          <Filter className="w-3.5 h-3.5" />
+          {label}
+          {selected.length > 0 && (
+            <span className="rounded-full bg-primary px-1.5 text-[10px] font-bold text-primary-foreground">
+              {selected.length}
+            </span>
+          )}
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent dir="rtl" align="start" className="max-h-[320px] w-56 overflow-y-auto">
+        <DropdownMenuLabel className="text-[11px] text-muted-foreground">{label} — اختر قيمة أو أكثر</DropdownMenuLabel>
+        {options.length === 0 && (
+          <div className="px-2 py-3 text-center text-xs text-muted-foreground">لا توجد خيارات بعد</div>
+        )}
+        {options.map((opt) => (
+          <DropdownMenuCheckboxItem
+            key={opt}
+            checked={selected.includes(opt)}
+            onCheckedChange={(c) => onChange(c ? [...selected, opt] : selected.filter((x) => x !== opt))}
+            onSelect={(e) => e.preventDefault()}
+            className="text-[12.5px]">
+            {opt}
+          </DropdownMenuCheckboxItem>
+        ))}
+        {selected.length > 0 && (
+          <>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onSelect={() => onChange([])} className="justify-center text-[12px] text-destructive focus:text-destructive">
+              مسح التحديد
+            </DropdownMenuItem>
+          </>
+        )}
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
+
 const statusMeta = getJobApplicationStatus;
 
 /** يسطّح صفوف jsonb (تعليم، دورات، لغات، خبرات، معرفون، إجابات مخصصة) لنص واحد للإكسل. */
