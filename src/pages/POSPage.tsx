@@ -243,8 +243,8 @@ const POSThemeToggle = ({ darkMode, onToggle }: { darkMode: boolean; onToggle: (
   );
 };
 
-/** مالك بيانات الملكي (فاميلي 1/2، مخبز بيت الكل) — يشوف أسباب تعديل السعر الجاهزة، غيره يكتب ملاحظة حرة. */
-const MALAKI_OWNER_ID = "c7f6dcea-b581-4b5e-a64c-aeee387bd7d3";
+/** مالك بيانات الملكي (رام الله، بلازا مول، سفيان، فيصل، المركزي) — يشوف أسباب تعديل السعر الجاهزة، غيره يكتب ملاحظة حرة. ملاحظة: فاميلي 1/2 ومخبز بيت الكل تخص Family Stores وليست للملكي. */
+const MALAKI_OWNER_ID = "0b08eba6-c81a-4f6c-b371-e6e324016e73";
 
 const createNewOrder = (index: number, tableId?: string | null, tableName?: string | null, guestCount?: number, guestName?: string): OrderTab => ({
   id: crypto.randomUUID(),
