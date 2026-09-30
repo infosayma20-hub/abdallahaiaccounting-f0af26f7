@@ -24,7 +24,7 @@ const bodyParser  = require('body-parser');
 
 // v6.3.6-clean version + buildHash. buildHash is a sha1 of THIS file
 // computed at startup, so operators can verify what's actually deployed.
-const BRIDGE_VERSION = '6.3.8-flush';
+const BRIDGE_VERSION = '6.3.9-flush';
 const BRIDGE_FEATURES = [
   'note-downward',
   'dedupe-on-success',
@@ -36,6 +36,8 @@ const BRIDGE_FEATURES = [
   // v6.3.8: TCP transmit waits for the printer to actually drain the raster
   // payload (FIN/close) instead of destroying the socket 300ms after write().
   'tcp-flush-before-close',
+  // v6.3.9: cashier receipt no longer draws a line under «نوع الطلب».
+  'no-line-under-order-type',
 ];
 let BRIDGE_BUILD_HASH = 'unknown';
 try {
@@ -681,7 +683,8 @@ function renderReceiptSVG(order, logoTopMargin) {
   if (order.tableNumber) push(30, (cy) => `
     <text x="${W - padX}" y="${cy}" text-anchor="end" font-size="22" font-weight="700" font-family="Tahoma">الطاولة</text>
     <text x="${padX}" y="${cy}" text-anchor="start" font-size="22" font-weight="800" font-family="Tahoma">${esc(order.tableNumber)}</text>`);
-  push(14, (cy) => `<line x1="${padX}" y1="${cy}" x2="${W - padX}" y2="${cy}" stroke="#000" stroke-width="2"/>`);
+  // v6.3.9: removed the divider line under «نوع الطلب» (above the items header) — spacing kept.
+  push(14, () => '');
 
   // ── ITEMS GRID (v6.3.7-clean items-table) ────────────────────────────
   // Clean RTL table: [الصنف+ملاحظة] | [الكمية] | [السعر] | [المجموع]
