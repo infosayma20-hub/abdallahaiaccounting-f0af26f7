@@ -48,6 +48,7 @@ export default function KitchenStationsManager() {
   const [loading, setLoading] = useState(true);
   const [newName, setNewName] = useState("");
   const [newType, setNewType] = useState("kitchen");
+  const [customType, setCustomType] = useState("");
   const [newColor, setNewColor] = useState("#ef4444");
   const [newBranchId, setNewBranchId] = useState<string>("");
   const [filterBranch, setFilterBranch] = useState<string>("all");
@@ -68,10 +69,12 @@ export default function KitchenStationsManager() {
 
   const addStation = async () => {
     if (!newName.trim()) return toast.error("أدخل اسم المحطة");
+    const finalType = newType === CUSTOM_TYPE ? customType.trim() : newType;
+    if (!finalType) return toast.error("اكتب اسم النوع المخصص");
     const { error } = await supabase.from("kitchen_stations").insert({
       user_id: user!.id,
       name: newName.trim(),
-      station_type: newType,
+      station_type: finalType,
       color: newColor,
       display_order: stations.length,
       branch_id: newBranchId && newBranchId !== "__none__" ? newBranchId : null,
@@ -145,8 +148,12 @@ export default function KitchenStationsManager() {
             <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
             <SelectContent>
               {STATION_TYPES.map(t => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}
+              <SelectItem value={CUSTOM_TYPE}>+ نوع مخصص...</SelectItem>
             </SelectContent>
           </Select>
+          {newType === CUSTOM_TYPE && (
+            <Input value={customType} onChange={e => setCustomType(e.target.value)} placeholder="اسم النوع" className="h-9 mt-1" />
+          )}
         </div>
         {branches.length > 0 && (
           <div className="w-[140px] space-y-1">
