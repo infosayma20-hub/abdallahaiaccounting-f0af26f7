@@ -489,7 +489,7 @@ export default function EmployeeHomeTab({ employeeName, todayRecord, todayEvents
       <Card className="border-border bg-card overflow-hidden">
         <CardContent className="p-4 text-center">
           <div className="text-5xl font-bold tabular-nums text-primary tracking-tight" style={{ fontFeatureSettings: "'tnum' 1", fontFamily: "JetBrains Mono, monospace" }}>
-            {format(currentTime, "HH:mm")}
+            {format(currentTime, "hh:mm a")}
             <span className="text-2xl text-primary/50">:{format(currentTime, "ss")}</span>
           </div>
         </CardContent>
@@ -548,11 +548,11 @@ export default function EmployeeHomeTab({ employeeName, todayRecord, todayEvents
                     </div>
                     <div className="flex flex-col leading-tight">
                       <span className="font-medium tabular-nums text-foreground">
-                        دخول {format(new Date(s.checkIn), "HH:mm")}
+                        دخول {format(new Date(s.checkIn), "hh:mm a")}
                       </span>
                       {s.checkOut ? (
                         <span className="font-medium tabular-nums text-foreground">
-                          خروج {format(new Date(s.checkOut), "HH:mm")}
+                          خروج {format(new Date(s.checkOut), "hh:mm a")}
                         </span>
                       ) : (
                         <span className="text-emerald-500 text-[10px] font-semibold">

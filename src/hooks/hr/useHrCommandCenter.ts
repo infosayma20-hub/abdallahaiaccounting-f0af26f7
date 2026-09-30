@@ -170,7 +170,7 @@ export function useHrCommandCenter(filters?: {
           .order("attendance_date", { ascending: false }),
         supabase
           .from("employee_payroll")
-          .select("employee_id, period_year, period_month, base_salary, net_salary, total_deductions, loan_deduction, total_allowances, attendance_bonus, special_allowance, is_paid, paid_date, created_at")
+          .select("employee_id, period_year, period_month, base_salary, net_salary, total_deductions, deduction_loan, total_allowances, attendance_bonus, special_allowance, is_paid, paid_date, created_at")
           .gte("created_at", since6Months)
           .order("period_year", { ascending: false })
           .order("period_month", { ascending: false }),

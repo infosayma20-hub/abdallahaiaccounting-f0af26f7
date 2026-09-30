@@ -82,7 +82,7 @@ export function PayrollTab({ data, cost }: Props) {
                         <HRMoney value={r.total_deductions} />
                       </HRTD>
                       <HRTD numeric className="text-amber-600">
-                        <HRMoney value={r.loan_deduction} />
+                        <HRMoney value={r.deduction_loan} />
                       </HRTD>
                       <HRTD numeric className="font-bold">
                         <HRMoney value={r.net_salary} />
