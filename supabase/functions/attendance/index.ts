@@ -274,10 +274,9 @@ Deno.serve(async (req) => {
       if ((branch as any).attendance_mobile_only === true) {
         const ua = `${req.headers.get("user-agent") || ""} ${typeof device_info === "string" ? device_info : ""}`;
         const touchPoints = Number(body.touch_points ?? 0);
-        const isMobileUa = /Android|iPhone|iPod|iPad|Mobile/i.test(ua);
+        const isPhoneUa = /Android|iPhone|iPod|iPad/i.test(ua);
         const isIpadDesktopUa = /Macintosh/i.test(ua) && touchPoints > 1;
-        const isDesktopOs = /Windows NT|X11|Linux x86_64|CrOS|Macintosh/i.test(ua) && !/Android/i.test(ua);
-        if (!(isMobileUa || isIpadDesktopUa) || (isDesktopOs && !isIpadDesktopUa && !/Android|iPhone|iPod|iPad/i.test(ua))) {
+        if (!(isPhoneUa || isIpadDesktopUa)) {
           console.warn("[attendance] desktop punch blocked", { branch_id, ua: ua.slice(0, 160) });
           return new Response(
             JSON.stringify({ error: "البصمة مسموحة من الجوال فقط — لا يمكن تسجيل الحضور من كمبيوتر" }),
