@@ -17,7 +17,7 @@ import {
   ArrowRight, RefreshCw, Search, Loader2, QrCode, Copy, Download,
   Paperclip, CheckCircle2, Printer, SlidersHorizontal,
   MoreHorizontal, Archive, ArchiveRestore, Trash2, ArrowUpDown, ArrowUp, ArrowDown,
-  Users, UserCheck, CalendarCheck2, BriefcaseBusiness,
+  Users, UserCheck, CalendarCheck2, BriefcaseBusiness, Filter,
 } from "lucide-react";
 import { formatHRDateTime } from "@/lib/hrDate";
 import {
