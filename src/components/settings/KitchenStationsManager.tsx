@@ -27,11 +27,17 @@ interface Branch {
 const STATION_TYPES = [
   { value: "kitchen", label: "مطبخ" },
   { value: "drinks", label: "مشروبات" },
+  { value: "bar", label: "بار" },
+  { value: "hookah", label: "أراجيل" },
+  { value: "appetizers", label: "مقبلات" },
+  { value: "salads", label: "سلطات" },
+  { value: "pizza", label: "بيتزا" },
   { value: "desserts", label: "حلويات" },
   { value: "grill", label: "شواية" },
   { value: "cold", label: "أطباق باردة" },
   { value: "other", label: "أخرى" },
 ];
+const CUSTOM_TYPE = "__custom__";
 
 const COLORS = ["#ef4444", "#f97316", "#eab308", "#22c55e", "#3b82f6", "#8b5cf6", "#ec4899", "#64748b"];
 
