@@ -568,6 +568,15 @@ const BackupSettingsSection = () => {
   // أرشيف ZIP فيه ملف CSV لكل جدول (يفتح مباشرة في Excel).
   // السبب: بناء ملف xlsx واحد بمئات آلاف الصفوف داخل المتصفح كان يستهلك
   // ذاكرة هائلة ويجمّد الصفحة ثم يفشل بـ "Invalid array length".
+  // فتح من تنبيه الموعد الدوري → ابدأ التنزيل تلقائيًا
+  useEffect(() => {
+    if (autoStarted.current || searchParams.get("auto") !== "1" || !user?.id) return;
+    autoStarted.current = true;
+    const next = new URLSearchParams(searchParams); next.delete("auto"); setSearchParams(next, { replace: true });
+    exportJSON();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams, user?.id]);
+
   const csvEscape = (v: any): string => {
     if (v == null) return "";
     let s: string;
