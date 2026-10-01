@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Download, FileJson, FileSpreadsheet, Loader2, CheckCircle, Database, FileArchive, Layers } from "lucide-react";
 import { saveAs } from "file-saver";
 import JSZip from "jszip";
+import { CloudBackupStatusCard } from "./CloudBackupStatusCard";
 
 // جميع جداول بيانات المستأجر — RLS يحصر النتائج على بيانات المستخدم الحالي فقط
 const BACKUP_TABLES: { key: string; label: string; scoped?: boolean }[] = [
@@ -628,6 +629,7 @@ const BackupSettingsSection = () => {
 
   return (
     <div className="p-6 space-y-8">
+      <CloudBackupStatusCard />
       {/* Header */}
       <div>
         <h3 className="text-base font-semibold text-foreground mb-2 flex items-center gap-2">
