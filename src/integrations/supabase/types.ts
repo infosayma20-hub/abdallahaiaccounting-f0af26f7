@@ -30631,6 +30631,7 @@ export type Database = {
         Args: { p_account_id: string; p_notes?: string; p_role: string }
         Returns: string
       }
+      attendance_departure_rules: { Args: never; Returns: Json }
       audit_contact_account_integrity: {
         Args: { p_user_id?: string }
         Returns: {
@@ -32483,6 +32484,7 @@ export type Database = {
         Args: {
           p_breaks?: Json
           p_day_id: string
+          p_dismissed_gaps?: Json
           p_first_check_in: string
           p_last_check_out: string
           p_notes: string

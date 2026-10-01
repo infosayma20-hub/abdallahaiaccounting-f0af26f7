@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { DEPARTURE_CAP_MIN, MAX_DERIVED_GAP_MIN } from "@/lib/attendance-departures";
+import { DEPARTURE_CAP_MIN, MAX_DERIVED_GAP_MIN, applyAttendanceRules, getAttendanceRules } from "@/lib/attendance-departures";
 
 /**
  * إعداد سقف المغادرات اليومي (الوقت بين الجلسات) من إعدادات الموارد البشرية.
@@ -21,6 +21,10 @@ export function useDepartureCap(): DepartureCapConfig {
         const { data: auth } = await supabase.auth.getUser();
         const uid = auth?.user?.id;
         if (!uid) { if (alive) setState((s) => ({ ...s, loading: false })); return; }
+        // نفس قواعد الخادم (مرجع واحد) قبل أي حساب على الشاشة
+        const { data: serverRules } = await supabase.rpc("attendance_departure_rules" as any);
+        applyAttendanceRules(serverRules);
+        const R = getAttendanceRules();
         const { data: owner } = await supabase.rpc("get_team_owner_id", { _user_id: uid });
         const ownerId = (owner as string) || uid;
         const { data } = await supabase
@@ -33,10 +37,10 @@ export function useDepartureCap(): DepartureCapConfig {
           enabled: !!(data as any)?.hr_departure_cap_enabled,
           cap: Number((data as any)?.hr_departure_cap_minutes) > 0
             ? Number((data as any).hr_departure_cap_minutes)
-            : DEPARTURE_CAP_MIN,
+            : R.defaultCap,
           maxGap: Number((data as any)?.hr_departure_max_gap_minutes) > 0
             ? Number((data as any).hr_departure_max_gap_minutes)
-            : MAX_DERIVED_GAP_MIN,
+            : R.defaultMaxGap,
           loading: false,
         });
       } catch {

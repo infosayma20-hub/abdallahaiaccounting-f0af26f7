@@ -20,6 +20,45 @@ export const DEPARTURE_CAP_MIN = 30;
  */
 export const END_OF_DAY_RETURN_GRACE_MIN = 60;
 
+/**
+ * القيم الفعلية المعتمدة تُقرأ من قاعدة البيانات (`attendance_departure_rules`)
+ * وهي نفس القيم التي يستخدمها حساب اليوم على الخادم. الثوابت أعلاه قيم
+ * احتياطية فقط إلى أن تصل القواعد من الخادم.
+ */
+export type AttendanceRules = {
+  minGap: number;
+  endOfDayGrace: number;
+  dismissalToleranceSec: number;
+  defaultCap: number;
+  defaultMaxGap: number;
+  timezone: string;
+  businessDayStart: string;
+};
+const rules: AttendanceRules = {
+  minGap: MIN_DERIVED_GAP_MIN,
+  endOfDayGrace: END_OF_DAY_RETURN_GRACE_MIN,
+  dismissalToleranceSec: 90,
+  defaultCap: DEPARTURE_CAP_MIN,
+  defaultMaxGap: MAX_DERIVED_GAP_MIN,
+  timezone: "Asia/Hebron",
+  businessDayStart: "06:00",
+};
+export function getAttendanceRules(): Readonly<AttendanceRules> {
+  return rules;
+}
+/** تطبيق القواعد القادمة من الخادم (يتجاهل أي قيمة غير صالحة). */
+export function applyAttendanceRules(raw: any): void {
+  if (!raw || typeof raw !== "object") return;
+  const num = (v: any) => (Number.isFinite(Number(v)) && Number(v) > 0 ? Number(v) : null);
+  rules.minGap = num(raw.min_gap_minutes) ?? rules.minGap;
+  rules.endOfDayGrace = num(raw.end_of_day_grace_minutes) ?? rules.endOfDayGrace;
+  rules.dismissalToleranceSec = num(raw.dismissal_tolerance_seconds) ?? rules.dismissalToleranceSec;
+  rules.defaultCap = num(raw.default_cap_minutes) ?? rules.defaultCap;
+  rules.defaultMaxGap = num(raw.default_max_gap_minutes) ?? rules.defaultMaxGap;
+  if (typeof raw.timezone === "string" && raw.timezone) rules.timezone = raw.timezone;
+  if (typeof raw.business_day_start === "string" && raw.business_day_start) rules.businessDayStart = raw.business_day_start;
+}
+
 /** نية الموظف عند بصمة الخروج. NULL = بصمات قديمة قبل تفعيل الخيار. */
 export type CheckoutKind = "temporary" | "end_of_day" | null | undefined;
 
@@ -40,8 +79,8 @@ export type DerivedGap = { out: string; in: string; minutes: number; kind?: Chec
  *  • NULL (قديم) → السلوك السابق: كل فجوة ضمن الحدّين تُعتبر مغادرة.
  */
 export function gapCountsAsDeparture(minutes: number, kind: CheckoutKind, maxGap: number): boolean {
-  if (minutes < MIN_DERIVED_GAP_MIN) return false;
-  if (kind === "end_of_day") return minutes <= END_OF_DAY_RETURN_GRACE_MIN;
+  if (minutes < rules.minGap) return false;
+  if (kind === "end_of_day") return minutes <= rules.endOfDayGrace;
   if (kind === "temporary") return minutes <= maxGap;
   return minutes <= maxGap;
 }
@@ -55,7 +94,7 @@ export function deriveGapsFromPunches(
   events: RawPunch[],
   window?: { start?: string | null; end?: string | null; maxGap?: number },
 ): DerivedGap[] {
-  const maxGap = window?.maxGap && window.maxGap > 0 ? window.maxGap : MAX_DERIVED_GAP_MIN;
+  const maxGap = window?.maxGap && window.maxGap > 0 ? window.maxGap : rules.defaultMaxGap;
   const ws = window?.start ? new Date(window.start).getTime() : null;
   const we = window?.end ? new Date(window.end).getTime() : null;
   const sorted = [...events]
@@ -95,7 +134,7 @@ export function deriveGapsFromSessions(
   sessions: { checkIn: string; checkOut: string | null; checkoutKind?: CheckoutKind }[],
   maxGap?: number,
 ): DerivedGap[] {
-  const cap = maxGap && maxGap > 0 ? maxGap : MAX_DERIVED_GAP_MIN;
+  const cap = maxGap && maxGap > 0 ? maxGap : rules.defaultMaxGap;
   const gaps: DerivedGap[] = [];
   for (let i = 0; i < sessions.length - 1; i++) {
     const out = sessions[i].checkOut;
@@ -136,8 +175,8 @@ export function gapIsDismissed(
   return dismissals.some(
     (d) =>
       d.attendance_day_id === dayId &&
-      Math.abs(new Date(d.gap_out).getTime() - gs) <= 90000 &&
-      Math.abs(new Date(d.gap_in).getTime() - ge) <= 90000,
+      Math.abs(new Date(d.gap_out).getTime() - gs) <= rules.dismissalToleranceSec * 1000 &&
+      Math.abs(new Date(d.gap_in).getTime() - ge) <= rules.dismissalToleranceSec * 1000,
   );
 }
 
