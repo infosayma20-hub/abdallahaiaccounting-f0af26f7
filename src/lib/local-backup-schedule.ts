@@ -34,7 +34,7 @@ function todayAt5(now = new Date()): Date {
 }
 
 export function nextDue(s: BackupSchedule): Date | null {
-  if (s.frequency === "off") null;
+  if (s.frequency === "off") return null;
   if (!s.lastRun) return new Date();
   const last = new Date(s.lastRun);
   if (s.frequency === "daily") {
