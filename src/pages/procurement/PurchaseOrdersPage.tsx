@@ -438,11 +438,7 @@ const PurchaseOrdersPage = () => {
 
   // فتح الطلبية بالضغط: القابلة للتعديل تفتح شاشة كاملة مثل فاتورة المشتريات
   const openOrder = (o: any) => {
-    if (["draft", "sent", "partially_received"].includes(o.status) && !editBlockReason(o)) {
-      navigate(`/procurement/orders/${o.id}/edit`);
-    } else {
-      openDetail(o);
-    }
+    navigate(`/procurement/orders/${o.id}/edit`);
   };
 
   const rowActions = (o: any) => (
