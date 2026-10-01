@@ -34,7 +34,7 @@ export function CloudBackupStatusCard() {
         <h3 className="font-semibold text-foreground">النسخ الاحتياطي السحابي اليومي</h3>
       </div>
       <p className="text-sm text-muted-foreground">
-        تُحفظ نسخة كاملة تلقائيًا كل ليلة الساعة 1:00 بملف خاص بكل شركة، مرتبة حسب القسم ثم التاريخ، مع الصور والمرفقات.
+        تُحفظ نسخة كاملة تلقائيًا كل يوم الساعة 5:00 صباحًا بتوقيت فلسطين بملف خاص بكل شركة، مرتبة حسب القسم ثم التاريخ، مع الصور والمرفقات.
       </p>
       {isLoading ? (
         <p className="text-sm text-muted-foreground">جارِ التحميل…</p>
