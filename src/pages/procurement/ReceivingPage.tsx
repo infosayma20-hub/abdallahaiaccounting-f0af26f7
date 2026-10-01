@@ -470,27 +470,6 @@ function ReceivingSession({ sessionId }: { sessionId: string }) {
         </DialogContent>
       </Dialog>
 
-      {/* Edit line */}
-      <Dialog open={!!editLine} onOpenChange={o => { if (!o) { setEditLine(null); focus(); } }}>
-        <DialogContent dir="rtl" className="max-w-md">
-          <DialogHeader><DialogTitle>{editLine?.item_name}</DialogTitle></DialogHeader>
-          <div className="space-y-3">
-            <div>
-              <div className="mb-1 text-sm">الكمية المستلمة</div>
-              <Input type="number" inputMode="decimal" min={0} value={editQty} onChange={e => setEditQty(e.target.value)} className="h-12 text-lg" />
-            </div>
-            <div>
-              <div className="mb-1 text-sm">تاريخ الانتهاء *</div>
-              <Input type="date" min={today} value={editExpiry} onChange={e => setEditExpiry(e.target.value)} className="h-12 text-lg" />
-            </div>
-            <div>
-              <div className="mb-1 text-sm">ملاحظة (تالف، ناقص…)</div>
-              <Textarea value={editNote} onChange={e => setEditNote(e.target.value)} rows={3} />
-            </div>
-          </div>
-          <DialogFooter><Button onClick={saveEdit}>حفظ</Button></DialogFooter>
-        </DialogContent>
-      </Dialog>
 
       {/* Barcode mismatch — offer to add as new barcode */}
       <Dialog open={!!mismatch} onOpenChange={o => { if (!o) { setMismatch(null); focus(); } }}>
