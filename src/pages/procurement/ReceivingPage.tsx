@@ -349,17 +349,17 @@ function ReceivingSession({ sessionId }: { sessionId: string }) {
           <Badge variant={session.status === "submitted" ? "default" : "outline"}>{receivingStatusLabel[session.status]}</Badge>
         </div>
       </>}>
-      <div className="space-y-3 p-3 md:p-6">
+      <div className="space-y-2 p-2 md:p-6">
         {session.order_notes && <div className="border-r-4 border-primary bg-card px-3 py-2 text-sm font-medium text-foreground">📝 {session.order_notes}</div>}
         {/* Scan bar — compact */}
         {editable ? (
           <form onSubmit={e => { e.preventDefault(); burst.reset(); const v = code; setCode(""); handleScan(v); }}
-            className={`flex flex-wrap items-center gap-2 border bg-card px-3 py-2 transition-colors ${flash ? (flash.ok ? "border-primary" : "border-destructive") : "border-border"}`}>
+            className={`flex flex-wrap items-center gap-2 border bg-card px-2 py-1.5 transition-colors ${flash ? (flash.ok ? "border-primary" : "border-destructive") : "border-border"}`}>
             <ScanLine className="h-4 w-4 shrink-0 text-primary" />
             <Input ref={inputRef} value={code} onChange={e => { setCode(e.target.value); burst.onChange(e.target.value); }} onBlur={focus}
               inputMode="none" autoComplete="off" placeholder="امسح الباركود…"
-              className="h-9 min-w-36 flex-1 font-mono text-sm" />
-            <Button type="button" size="icon" variant="outline" className="h-9 w-9 shrink-0" title="مسح بالكاميرا"
+              className="h-8 min-w-32 flex-1 font-mono text-sm" />
+            <Button type="button" size="icon" variant="outline" className="h-8 w-8 shrink-0" title="مسح بالكاميرا"
               onClick={e => { e.stopPropagation(); setCameraLine(null); setCameraOpen(true); }}>
               <Camera className="h-4 w-4" />
             </Button>
@@ -376,7 +376,7 @@ function ReceivingSession({ sessionId }: { sessionId: string }) {
 
         {/* Lines */}
         <div className="overflow-hidden border bg-card">
-          <div className="border-b bg-muted/60 px-4 py-2 text-xs font-semibold text-muted-foreground">بنود الطلبية ({totals.count})</div>
+          <div className="border-b bg-muted/60 px-2 py-1.5 text-[11px] font-semibold text-muted-foreground">بنود الطلبية ({totals.count})</div>
           {session.lines.map(l => {
             const diff = Number(l.scanned_qty) - Number(l.target_qty);
             const state = diff === 0 ? "done" : diff > 0 ? "over" : Number(l.scanned_qty) > 0 ? "partial" : "none";
