@@ -164,7 +164,7 @@ export async function resolveDocumentRoute(params: {
       ? [findReturn, findInvoice, findVoucherByRef, findByLinkedTx]
       : isVoucherLike
       ? [findVoucherByRef, findInvoice, findByLinkedTx]
-      : [findInvoice, findReturn, findVoucherByRef, findByLinkedTx];
+      : [findPurchaseInvoice, findInvoice, findReturn, findVoucherByRef, findByLinkedTx];
     for (const step of order) {
       const route = await step();
       if (route) return route;
