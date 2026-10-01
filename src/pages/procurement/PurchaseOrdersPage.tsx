@@ -765,7 +765,7 @@ const PurchaseOrdersPage = () => {
 
       {/* Order Detail Sheet */}
       <Sheet open={!!detailOrder} onOpenChange={() => setDetailOrder(null)}>
-        <SheetContent side="right" className="w-[500px] sm:w-[550px]" dir="rtl">
+        <SheetContent side="right" className="w-full sm:w-[640px] sm:max-w-[640px] overflow-y-auto" dir="rtl">
           <SheetHeader><SheetTitle>تفاصيل الطلبية</SheetTitle></SheetHeader>
           {detailOrder && (
             <div className="mt-4 space-y-4">
@@ -807,10 +807,10 @@ const PurchaseOrdersPage = () => {
                     <TableRow key={item.id}>
                       <TableCell className="text-xs">{idx + 1}</TableCell>
                       <TableCell className="text-xs font-medium">{item.item_name}</TableCell>
-                      <TableCell className="text-xs">{item.unit}</TableCell>
-                      <TableCell className="text-xs">{item.quantity}</TableCell>
-                      <TableCell className="text-xs">{Number(item.unit_price).toFixed(2)}</TableCell>
-                      <TableCell className="text-xs font-mono">{Number(item.total_price).toFixed(2)} ₪</TableCell>
+                      <TableCell className="text-xs whitespace-nowrap">{item.unit}</TableCell>
+                      <TableCell className="text-xs whitespace-nowrap">{item.quantity}</TableCell>
+                      <TableCell className="text-xs whitespace-nowrap">{Number(item.unit_price).toFixed(2)}</TableCell>
+                      <TableCell className="text-xs font-mono whitespace-nowrap">{Number(item.total_price).toFixed(2)} ₪</TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
