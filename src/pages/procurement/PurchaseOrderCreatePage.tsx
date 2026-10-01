@@ -471,9 +471,9 @@ const PurchaseOrderCreatePage = () => {
         <div className="flex-1 flex min-h-0">
           {/* CENTER: Categories + Items Grid */}
           <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-            {/* Category chips — source toggle + single scrollable row (POS-style) */}
-            <div className="shrink-0 border-b border-border bg-muted/20 px-3 py-1.5">
-              <div className="flex items-center gap-1.5 overflow-x-auto">
+            {/* Category chips — source toggle + wrapping rows (all visible, no scroll) */}
+            <div className="shrink-0 border-b border-border bg-muted/20 px-3 py-1.5 max-h-40 overflow-y-auto">
+              <div className="flex flex-wrap items-center gap-1.5">
                 <span className="w-px h-5 bg-border shrink-0" />
                 <button
                   onClick={() => { setItemSource("inventory"); setActiveCategory(null); setActivePosCategory(null); savePrefs({ ...loadPrefs(), itemSource: "inventory" }); }}
