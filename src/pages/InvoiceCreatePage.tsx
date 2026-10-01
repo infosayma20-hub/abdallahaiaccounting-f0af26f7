@@ -4022,30 +4022,15 @@ const InvoiceCreatePage = () => {
                         </td>
                       )}
 
-                       {/* Subtotal */}
+                       {/* Subtotal — editable: typing the total back-computes the unit price */}
                        <td className="py-2 px-3 text-left align-middle bg-primary/5 min-w-[140px] whitespace-nowrap">
-                        {(() => {
-                          const sub = calcItemSubtotal(item);
-                          const formatted = fmtCurrency(sub);
-                          const sizeClass =
-                            formatted.length <= 10
-                              ? "text-[13px]"
-                              : formatted.length <= 14
-                              ? "text-[12px]"
-                              : formatted.length <= 18
-                              ? "text-[11px]"
-                              : "text-[10px]";
-                          return (
-                            <span
-                              dir="ltr"
-                              title={formatted}
-                              aria-label={formatted}
-                              className={`block whitespace-nowrap font-bold text-primary tabular-nums ${sizeClass}`}
-                            >
-                              {formatted}
-                            </span>
-                          );
-                        })()}
+                        <InvoiceLineTotalInput
+                          item={item}
+                          subtotal={calcItemSubtotal(item)}
+                          disabled={!(item.quantity > 0) || form.taxInclusive}
+                          currencySymbol={currSymbol}
+                          onTotal={(total) => setItemTotal(item.id, total)}
+                        />
                       </td>
 
                       {/* Delete */}
@@ -4118,7 +4103,14 @@ const InvoiceCreatePage = () => {
                   </div>
                   <div>
                     <Label className="text-[9px] text-muted-foreground">{tt("الإجمالي")}</Label>
-                    <div className="h-8 flex items-center justify-center text-[12px] font-bold tabular-nums">{fmtCurrency(calcItemSubtotal(item))}</div>
+                    <InvoiceLineTotalInput
+                      item={item}
+                      subtotal={calcItemSubtotal(item)}
+                      disabled={!(item.quantity > 0) || form.taxInclusive}
+                      currencySymbol={currSymbol}
+                      onTotal={(total) => setItemTotal(item.id, total)}
+                      compact
+                    />
                   </div>
                 </div>
               </div>
