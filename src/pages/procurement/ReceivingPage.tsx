@@ -402,7 +402,7 @@ function ReceivingSession({ sessionId }: { sessionId: string }) {
               <div key={l.id} className={`border-b p-3 last:border-b-0 ${cls} ${lastLineId === l.id ? "ring-2 ring-inset ring-primary" : ""}`}>
                 <div className="flex flex-wrap items-center gap-3">
                   <div className="min-w-0 flex-1">
-                    <div className="truncate text-base font-bold text-foreground">{l.item_name}</div>
+                    <div className="break-words text-sm font-bold leading-snug text-foreground">{l.item_name}</div>
                     <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
                       <span className="font-mono">{l.barcode || (l.extra_barcodes?.[0]) || "بدون باركود"}</span>
                       {l.unit && <span>· {l.unit}</span>}
