@@ -484,7 +484,6 @@ const POSPage = () => {
 
   // State
   const [products, setProducts] = useState<Product[]>([]);
-  const [posCategories, setPosCategories] = useState<POSCategory[]>([]);
 
   // English receipts: names map + branch print language (default Arabic).
   useEffect(() => {
@@ -501,6 +500,8 @@ const POSPage = () => {
         setEnglishReceiptHeader({ name: d.name_en, address: d.address_en, phone: d.phone });
       });
   }, []);
+  const [posCategories, setPosCategories] = useState<POSCategory[]>([]);
+
   const [selectedCategory, setSelectedCategory] = useState<string>("الكل");
   const [searchQuery, setSearchQuery] = useState("");
   // Per-shift default-category guard (Malaky: default to "كرسبي فردي" on shift open)
