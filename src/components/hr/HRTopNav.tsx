@@ -25,9 +25,11 @@ import {
   UserPlus,
   Star,
   LayoutGrid,
+  Activity,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
+export type HrAppItem = Item;
 type Item = {
   to: string;
   label: string;
@@ -42,8 +44,9 @@ type Item = {
   chip: string;
 };
 
-const ITEMS: Item[] = [
+export const HR_APP_ITEMS: Item[] = [
   { to: "/hr", label: "لوحة HR", Icon: LayoutDashboard, matchPrefixes: [], group: "عام", chip: "text-sky-600 bg-sky-500/10" },
+  { to: "/hr/activity", label: "ملخص النشاطات", Icon: Activity, matchPrefixes: ["/hr/activity"], group: "عام", chip: "text-pink-600 bg-pink-500/10" },
   { to: "/employees", label: "الموظفون", Icon: Users, perms: ["can_view_employees", "can_edit_employees", "can_add_employees"], matchPrefixes: ["/employees", "/hr/employee", "/hr/people"], group: "عام", chip: "text-blue-600 bg-blue-500/10" },
   { to: "/hr-attendance", label: "الحضور", Icon: Clock, perms: ["can_view_attendance", "can_manage_attendance"], matchPrefixes: ["/hr-attendance"], group: "الدوام والإجازات", chip: "text-amber-600 bg-amber-500/10" },
   { to: "/hr/leaves-balances", label: "الإجازات", Icon: Palmtree, perms: ["can_view_hr_reports", "can_manage_hr_settings"], matchPrefixes: ["/hr/leaves-balances"], group: "الدوام والإجازات", chip: "text-emerald-600 bg-emerald-500/10" },
@@ -62,7 +65,7 @@ const ITEMS: Item[] = [
   { to: "/hr/settings", label: "إعدادات HR", Icon: Settings, perms: ["can_manage_hr_settings"], matchPrefixes: ["/hr/settings", "/hr/definitions", "/hr/day-types", "/hr/policy-assignment", "/payroll-settings"], group: "تقارير وإعدادات", chip: "text-slate-600 bg-slate-500/10" },
 ];
 
-const GROUP_ORDER = ["عام", "الدوام والإجازات", "الطلبات والمراسلة", "الرواتب والمالية", "تقارير وإعدادات"];
+export const HR_APP_GROUP_ORDER = ["عام", "الدوام والإجازات", "الطلبات والمراسلة", "الرواتب والمالية", "تقارير وإعدادات"];
 
 export function HRTopNav() {
   const { isAdmin, isHRManager, can } = useHRManagerPermissions();
@@ -71,7 +74,7 @@ export function HRTopNav() {
   const [open, setOpen] = useState(false);
 
   const items = useMemo(() => {
-    return ITEMS.filter((i) => {
+    return HR_APP_ITEMS.filter((i) => {
       if (!i.perms || i.perms.length === 0) return true;
       if (isAdmin) return true;
       if (isHRManager && can(...i.perms)) return true;
@@ -90,7 +93,7 @@ export function HRTopNav() {
 
   const grouped = useMemo(
     () =>
-      GROUP_ORDER.map((g) => ({ group: g, list: items.filter((i) => i.group === g) })).filter(
+      HR_APP_GROUP_ORDER.map((g) => ({ group: g, list: items.filter((i) => i.group === g) })).filter(
         (g) => g.list.length > 0
       ),
     [items]
