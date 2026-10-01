@@ -1360,6 +1360,29 @@ const InvoiceCreatePage = () => {
     }));
   };
 
+  // ─── إجمالي البند قابل للتحرير ───
+  // المستخدم يكتب إجمالي البند، ويُحسب سعر الوحدة عكسيًا = الإجمالي ÷ الكمية
+  // مع عكس أثر الخصم والضريبة. يُحفظ السعر بست خانات عشرية حتى يعود الإجمالي
+  // كما كتبه المستخدم بالضبط (مثل 400 ÷ 230 = 1.739130).
+  // يتعطل عند الكمية صفر أو عند "السعر شامل الضريبة" (المعادلة غير قابلة للعكس حينها).
+  const setItemTotal = (itemId: string, total: number) => {
+    setForm(prev => ({
+      ...prev,
+      items: prev.items.map(item => {
+        if (item.id !== itemId) return item;
+        if (!(item.quantity > 0) || !Number.isFinite(total) || total < 0 || prev.taxInclusive) return item;
+        const discountFactor = item.discountType === "percent" ? Math.max(0, 1 - item.discount / 100) : 1;
+        const taxFactor = taxEnabled && item.taxCategory !== "exempt" ? 1 + item.taxRate / 100 : 1;
+        const divisor = item.quantity * discountFactor * taxFactor;
+        if (!(divisor > 0)) return item;
+        const unitPrice = Math.round((total / divisor) * 1e6) / 1e6;
+        const updated = { ...item, unitPrice };
+        updated.subtotal = calcItemSubtotal(updated);
+        return updated;
+      }),
+    }));
+  };
+
   const selectProduct = (itemId: string, productId: string) => {
     const prod = products.find(p => p.id === productId);
     if (!prod) return;
