@@ -88,6 +88,7 @@ const PurchaseOrderCreatePage = () => {
   const isEdit = !!editId;
   const [editOrder, setEditOrder] = useState<{ order_number: string; status: string } | null>(null);
   const [editLoading, setEditLoading] = useState(isEdit);
+  const [blockReason, setBlockReason] = useState<string | null>(null);
   const prefs = loadPrefs();
   const [supplierId, setSupplierId] = useState("");
   const [defaultBranchId, setDefaultBranchId] = useState(prefs.branchId || "");
@@ -164,7 +165,7 @@ const PurchaseOrderCreatePage = () => {
       ]);
       if (cancelled) return;
       if (oErr || !order) { toast({ title: "تعذر تحميل الطلبية", variant: "destructive" }); navigate("/procurement/orders"); return; }
-      if (reason) { toast({ title: "لا يمكن تعديل هذه الطلبية", description: String(reason), variant: "destructive" }); navigate("/procurement/orders"); return; }
+      setBlockReason(reason ? String(reason) : null);
       const ids = ((items as any[]) || []).map(i => i.id);
       const receivedById: Record<string, number> = {};
       if (ids.length) {
@@ -509,7 +510,7 @@ const PurchaseOrderCreatePage = () => {
             <span className="font-bold text-sm text-foreground whitespace-nowrap ms-1 me-3">{isEdit ? `تعديل طلبية ${editOrder?.order_number || ""}` : "طلب مشتريات جديد"}</span>
 
             <div className="flex items-center gap-0.5 border-s border-border ps-2 overflow-x-auto">
-              <Button size="sm" className="h-8 text-xs gap-1.5 bg-primary text-primary-foreground hover:bg-primary/90" onClick={() => handleSave(!isEdit || editOrder?.status === "draft")} disabled={saving || editLoading || !supplierId || lines.length === 0}>
+              <Button size="sm" className="h-8 text-xs gap-1.5 bg-primary text-primary-foreground hover:bg-primary/90" onClick={() => handleSave(!isEdit || editOrder?.status === "draft")} disabled={saving || editLoading || !!blockReason || !supplierId || lines.length === 0}>
                 {isEdit ? <><Save className="h-3.5 w-3.5" />حفظ التعديلات</> : <><Send className="h-3.5 w-3.5" />حفظ وترحيل</>}
               </Button>
               {(!isEdit || editOrder?.status === "draft") && (
