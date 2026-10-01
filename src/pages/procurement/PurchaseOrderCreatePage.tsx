@@ -504,7 +504,7 @@ const PurchaseOrderCreatePage = () => {
         <div className="shrink-0 border-b border-border bg-card">
           {blockReason && (
             <div className="px-3 py-1.5 text-xs bg-destructive/10 text-destructive border-b border-destructive/30" role="alert">
-              عرض فقط — {blockReason}. لتعديلها: ألغِ إسناد الاستلام من شاشة أوامر الشراء أولًا.
+              عرض فقط — {blockReason}. لتعديلها لازم يخلص الاستلام أو ينلغى أولًا.
             </div>
           )}
           {/* Row 1: Title + command strip + totals */}
