@@ -457,7 +457,6 @@ const PurchaseOrderCreatePage = () => {
     if (!newItem.name.trim()) { toast({ title: "أدخل اسم الصنف", variant: "destructive" }); return; }
     if (!newItem.unit.trim()) { toast({ title: "أدخل الوحدة", variant: "destructive" }); return; }
     if (!newItem.category_id) { toast({ title: "اختر التصنيف", variant: "destructive" }); return; }
-    if (!DEFAULT_UNITS.includes(newItem.unit)) { saveCustomUnit(newItem.unit); setUnitOptions(prev => [...new Set([...prev, newItem.unit])]); }
     setSavingDialog(true);
     const ok = await itemsCrud.create({
       name: newItem.name, category_id: newItem.category_id,
@@ -485,7 +484,6 @@ const PurchaseOrderCreatePage = () => {
   const handleEditItem = async () => {
     if (!editItem) return;
     if (!editItem.unit?.trim()) { toast({ title: "أدخل الوحدة", variant: "destructive" }); return; }
-    if (!DEFAULT_UNITS.includes(editItem.unit)) { saveCustomUnit(editItem.unit); setUnitOptions(prev => [...new Set([...prev, editItem.unit])]); }
     setSavingDialog(true);
     const ok = await itemsCrud.update(editItem.id, {
       name: editItem.name, category_id: editItem.category_id,
