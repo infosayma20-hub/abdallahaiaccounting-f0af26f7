@@ -1036,7 +1036,7 @@ function LineTotalInput({ quantity, unitPrice, onPrice }: { quantity: number; un
   const [draft, setDraft] = useState<string | null>(null);
   const canSplit = quantity > 0;
   return (
-    <span className="flex items-center gap-0.5">
+    <span className="flex items-center gap-0.5 self-center">
       <Input
         type="number" inputMode="decimal" min={0} step="any" dir="ltr"
         value={draft ?? String(computed)}
