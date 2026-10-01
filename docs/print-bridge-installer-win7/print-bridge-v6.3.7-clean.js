@@ -282,6 +282,11 @@ try {
 } catch (e) {
   console.warn('[bridge] discover-printers-addon not loaded:', e.message);
 }
+try {
+  require('./scale-addon')(app);
+} catch (e) {
+  console.warn('[bridge] scale-addon not loaded:', e.message);
+}
 
 // ────────────────────────────────────────────────────────────────────────
 //  PRINTER REGISTRY
