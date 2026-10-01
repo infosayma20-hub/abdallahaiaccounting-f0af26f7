@@ -439,7 +439,7 @@ function ReceivingSession({ sessionId }: { sessionId: string }) {
                     {editable ? (
                       <Input type="date" min={today} value={l.expiry_date || ""} onChange={e => setExpiry(l, e.target.value)}
                         onBlur={focus}
-                        className={`h-7 flex-1 text-xs ${l.expiry_date ? "" : "border-destructive"}`} />
+                        className={`h-7 w-[125px] shrink-0 px-1.5 text-xs ${l.expiry_date ? "" : "border-destructive"}`} />
                     ) : <span className="text-xs">{l.expiry_date || "—"}</span>}
                   </div>
                 )}
