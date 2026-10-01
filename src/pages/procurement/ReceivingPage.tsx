@@ -365,7 +365,7 @@ function ReceivingSession({ sessionId }: { sessionId: string }) {
           </div>
         )}
         <POSBarcodeScanner open={cameraOpen} onClose={() => { setCameraOpen(false); setCameraLine(null); }}
-          onScan={c => { if (cameraLine) cameraScanLine(cameraLine); else handleScan(c); }} />
+          onScan={c => { if (cameraLine) cameraScanLine(cameraLine, c); else handleScan(c); }} />
 
         {/* Lines */}
         <div className="overflow-hidden border bg-card">
