@@ -8,8 +8,9 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
-import { ArrowRight, ScanLine, Minus, Plus, CheckCircle2, Package, RefreshCw, Barcode, Printer, StickyNote, ClipboardList } from "lucide-react";
+import { ArrowRight, ScanLine, Minus, Plus, CheckCircle2, Package, RefreshCw, Barcode, Printer, StickyNote, ClipboardList, Camera } from "lucide-react";
 import { receivingStatusLabel } from "@/components/procurement/ReceivingAssignDialog";
+import POSBarcodeScanner from "@/components/pos/POSBarcodeScanner";
 import { useAuth } from "@/hooks/useAuth";
 import { BRAND } from "@/constants/brand";
 
@@ -156,6 +157,7 @@ function ReceivingSession({ sessionId }: { sessionId: string }) {
   const [submitNotes, setSubmitNotes] = useState("");
   const [pending, setPending] = useState<number>(readQueue(sessionId).length);
   const inputRef = useRef<HTMLInputElement>(null);
+  const [cameraOpen, setCameraOpen] = useState(false);
   const busy = useRef(false);
 
   const today = new Date().toISOString().slice(0, 10);
@@ -324,6 +326,10 @@ function ReceivingSession({ sessionId }: { sessionId: string }) {
               <Input ref={inputRef} value={code} onChange={e => setCode(e.target.value)} onBlur={focus}
                 inputMode="none" autoComplete="off" placeholder="امسح الباركود…"
                 className="h-14 flex-1 text-xl font-mono" />
+              <Button type="button" size="lg" variant="outline" className="h-14 w-14 shrink-0" title="مسح بالكاميرا"
+                onClick={e => { e.stopPropagation(); setCameraOpen(true); }}>
+                <Camera className="h-6 w-6" />
+              </Button>
               <Button type="submit" size="lg" className="h-14">إضافة</Button>
             </div>
             <div className={`mt-3 min-h-[1.75rem] text-center text-lg font-bold ${flash ? (flash.ok ? "text-primary" : "text-destructive") : "text-muted-foreground"}`}>
@@ -336,6 +342,7 @@ function ReceivingSession({ sessionId }: { sessionId: string }) {
             {session.status === "submitted" ? "تم إرسال الاستلام — بانتظار اعتماد المحاسب" : "الاستلام مغلق"}
           </div>
         )}
+        <POSBarcodeScanner open={cameraOpen} onClose={() => setCameraOpen(false)} onScan={c => handleScan(c)} />
 
         {/* Lines */}
         <div className="overflow-hidden border bg-card">
