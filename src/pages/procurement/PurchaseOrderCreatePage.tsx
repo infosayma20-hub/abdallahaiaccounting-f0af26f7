@@ -654,7 +654,8 @@ const PurchaseOrderCreatePage = () => {
                       <div className="flex items-center justify-between gap-1">
                         <button type="button" onClick={() => setEditingNoteId(editingNoteId === line.id ? null : line.id)} className="text-xs font-semibold leading-tight truncate text-start hover:underline" title="اضغط لإضافة ملاحظة">{line.item_name}{line.notes && <span className="block text-[10px] font-normal text-[#D97706] truncate">📝 {line.notes}</span>}</button>
                         <div className="flex items-center gap-1 shrink-0">
-                          <span className="text-xs font-bold">{(line.quantity * line.unit_price).toFixed(2)} ₪</span>
+                          <LineTotalInput quantity={line.quantity} unitPrice={line.unit_price}
+                            onPrice={p => updateLine(line.id, "unit_price", p)} />
                           <button onClick={() => removeLine(line.id)} className="text-muted-foreground hover:text-destructive p-0.5">
                             <X className="h-3 w-3" />
                           </button>
@@ -916,3 +917,35 @@ const PurchaseOrderCreatePage = () => {
 };
 
 export default PurchaseOrderCreatePage;
+
+/**
+ * إجمالي البند قابل للتعديل: المستخدم يكتب المجموع، ويُحسب سعر الوحدة = المجموع ÷ الكمية.
+ * يُحفظ النص أثناء الكتابة محليًا كي لا يقفز الرقم بسبب التقريب، ويعود للقيمة المحسوبة عند الخروج.
+ */
+function LineTotalInput({ quantity, unitPrice, onPrice }: { quantity: number; unitPrice: number; onPrice: (p: number) => void }) {
+  const computed = Math.round(quantity * unitPrice * 100) / 100;
+  const [draft, setDraft] = useState<string | null>(null);
+  const canSplit = quantity > 0;
+  return (
+    <span className="flex items-center gap-0.5">
+      <Input
+        type="number" inputMode="decimal" min={0} step="any" dir="ltr"
+        value={draft ?? String(computed)}
+        disabled={!canSplit}
+        title={canSplit ? "اكتب المجموع ليُحسب سعر الوحدة تلقائيًا" : "أدخل الكمية أولًا"}
+        onFocus={e => { setDraft(String(computed)); e.currentTarget.select(); }}
+        onChange={e => {
+          const raw = e.target.value;
+          setDraft(raw);
+          const total = Number(raw);
+          if (raw.trim() === "" || !Number.isFinite(total) || total < 0 || !canSplit) return;
+          // سعر الوحدة يُخزَّن بخانتين عشريتين، لذا نقرّب هنا؛ عند الخروج يظهر المجموع الفعلي بعد التقريب
+          onPrice(Math.round((total / quantity) * 100) / 100);
+        }}
+        onBlur={() => setDraft(null)}
+        className="h-6 w-20 text-center text-xs font-bold px-1"
+      />
+      <span className="text-xs font-bold">₪</span>
+    </span>
+  );
+}
