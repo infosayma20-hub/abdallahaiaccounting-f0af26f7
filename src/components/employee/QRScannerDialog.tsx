@@ -95,13 +95,33 @@ export default function QRScannerDialog({ open, onOpenChange, action, onSuccess,
       }
       setGpsAcquiring(true);
       try {
+        // بعض الجوالات (خصوصاً مع إطفاء «الموقع الدقيق») ترجع أول قراءة من
+        // الشبكة بخطأ 1-3 كم، أو قراءة قديمة مخزّنة. نراقب القراءات لمدة قصيرة
+        // ونختار الأدق — دون أي تخفيف لشرط النطاق في السيرفر.
         const pos = await new Promise<GeolocationPosition>((resolve, reject) => {
-          navigator.geolocation.getCurrentPosition(resolve, reject, {
-            enableHighAccuracy: true,
-            timeout: 15000,
-            maximumAge: 30000,
-          });
+          let best: GeolocationPosition | null = null;
+          let done = false;
+          const finish = (err?: GeolocationPositionError) => {
+            if (done) return;
+            done = true;
+            navigator.geolocation.clearWatch(watchId);
+            clearTimeout(timer);
+            if (best) resolve(best);
+            else reject(err ?? { code: 3 });
+          };
+          const watchId = navigator.geolocation.watchPosition(
+            (p) => {
+              if (!best || p.coords.accuracy < best.coords.accuracy) best = p;
+              if (p.coords.accuracy <= 30) finish();
+            },
+            (err) => {
+              if (err.code === 1 || !best) finish(err);
+            },
+            { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 },
+          );
+          const timer = setTimeout(() => finish(), 12000);
         });
+        lastGpsAccuracyRef.current = Math.round(pos.coords.accuracy || 0);
         return { lat: pos.coords.latitude, lng: pos.coords.longitude };
       } catch (e: any) {
         const code = e?.code;
@@ -488,8 +508,14 @@ export default function QRScannerDialog({ open, onOpenChange, action, onSuccess,
           typeof data?.error === "string"
             ? data.error
             : (data?.error?.message || data?.message || "حدث خطأ، أعد المحاولة");
+        const acc = lastGpsAccuracyRef.current;
+        const outOfRange = serverMsg.includes("خارج نطاق");
         const message = isAuthErr
           ? "انتهت جلستك — سجّل دخول من جديد"
+          : outOfRange && acc > 100
+          ? `${serverMsg}\n\nدقة موقع جوالك ضعيفة (±${acc}م). فعّل «الموقع الدقيق / Google Location Accuracy» من إعدادات الجوال، وتأكد أن إذن الموقع للمتصفح «دقيق»، ثم أعد المحاولة.`
+          : outOfRange
+          ? `${serverMsg}\n\nإذا كنت فعلاً داخل الفرع: أطفئ الموقع وشغّله من جديد، ثم أعد المحاولة.`
           : serverMsg;
 
         setResult({ success: false, message, authError: isAuthErr });
