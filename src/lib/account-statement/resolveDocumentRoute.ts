@@ -112,6 +112,32 @@ export async function resolveDocumentRoute(params: {
     return preferred ? voucherRoute(preferred) : null;
   };
 
+  // فواتير مشتريات الاستلام (purchase_invoices) — تعيش خارج جدول invoices
+  const findPurchaseInvoice = async (): Promise<string | null> => {
+    const isPurchase = txType.includes("purchase") || /^PO-/i.test(ref);
+    if (!isPurchase) return null;
+    let inv: any = null;
+    if (ref) {
+      const { data } = await supabase
+        .from("purchase_invoices" as any)
+        .select("id")
+        .eq("user_id", ownerId)
+        .eq("invoice_number", ref)
+        .limit(1);
+      inv = ((data as any[]) || [])[0];
+    }
+    if (!inv?.id) {
+      const { data } = await supabase
+        .from("purchase_invoices" as any)
+        .select("id")
+        .eq("user_id", ownerId)
+        .eq("linked_transaction_id", transactionId)
+        .limit(1);
+      inv = ((data as any[]) || [])[0];
+    }
+    return inv?.id ? `/procurement/invoices/new?invoiceId=${inv.id}` : null;
+  };
+
   const findByLinkedTx = async (): Promise<string | null> => {
     const { data: rv } = await supabase
       .from("receipt_vouchers")
@@ -138,7 +164,7 @@ export async function resolveDocumentRoute(params: {
       ? [findReturn, findInvoice, findVoucherByRef, findByLinkedTx]
       : isVoucherLike
       ? [findVoucherByRef, findInvoice, findByLinkedTx]
-      : [findInvoice, findReturn, findVoucherByRef, findByLinkedTx];
+      : [findPurchaseInvoice, findInvoice, findReturn, findVoucherByRef, findByLinkedTx];
     for (const step of order) {
       const route = await step();
       if (route) return route;
