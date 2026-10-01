@@ -17513,6 +17513,158 @@ export type Database = {
           },
         ]
       }
+      pos_scale_items: {
+        Row: {
+          created_at: string
+          id: string
+          key_no: number | null
+          plu: number
+          product_id: string
+          scale_id: string
+          shelf_life_days: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          key_no?: number | null
+          plu: number
+          product_id: string
+          scale_id: string
+          shelf_life_days?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          key_no?: number | null
+          plu?: number
+          product_id?: string
+          scale_id?: string
+          shelf_life_days?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pos_scale_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pos_scale_items_scale_id_fkey"
+            columns: ["scale_id"]
+            isOneToOne: false
+            referencedRelation: "pos_scales"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pos_scale_sync_log: {
+        Row: {
+          action: string
+          created_at: string
+          id: string
+          items_count: number
+          message: string | null
+          performed_by: string | null
+          scale_id: string
+          status: string
+          user_id: string
+        }
+        Insert: {
+          action: string
+          created_at?: string
+          id?: string
+          items_count?: number
+          message?: string | null
+          performed_by?: string | null
+          scale_id: string
+          status: string
+          user_id: string
+        }
+        Update: {
+          action?: string
+          created_at?: string
+          id?: string
+          items_count?: number
+          message?: string | null
+          performed_by?: string | null
+          scale_id?: string
+          status?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pos_scale_sync_log_scale_id_fkey"
+            columns: ["scale_id"]
+            isOneToOne: false
+            referencedRelation: "pos_scales"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pos_scales: {
+        Row: {
+          barcode_prefix: string
+          branch_id: string | null
+          created_at: string
+          id: string
+          ip_address: string | null
+          is_active: boolean
+          last_export_at: string | null
+          last_status: string | null
+          model: string
+          name: string
+          plu_digits: number
+          port: number
+          updated_at: string
+          user_id: string
+          value_decimals: number
+          value_mode: string
+        }
+        Insert: {
+          barcode_prefix?: string
+          branch_id?: string | null
+          created_at?: string
+          id?: string
+          ip_address?: string | null
+          is_active?: boolean
+          last_export_at?: string | null
+          last_status?: string | null
+          model?: string
+          name: string
+          plu_digits?: number
+          port?: number
+          updated_at?: string
+          user_id: string
+          value_decimals?: number
+          value_mode?: string
+        }
+        Update: {
+          barcode_prefix?: string
+          branch_id?: string | null
+          created_at?: string
+          id?: string
+          ip_address?: string | null
+          is_active?: boolean
+          last_export_at?: string | null
+          last_status?: string | null
+          model?: string
+          name?: string
+          plu_digits?: number
+          port?: number
+          updated_at?: string
+          user_id?: string
+          value_decimals?: number
+          value_mode?: string
+        }
+        Relationships: []
+      }
       pos_sensitive_actions_log: {
         Row: {
           action: string
@@ -30735,6 +30887,7 @@ export type Database = {
         Args: { _employee_auth: string; _viewer: string }
         Returns: boolean
       }
+      can_manage_pos_scales: { Args: { _owner: string }; Returns: boolean }
       can_view_complaint_row: {
         Args: { _form_type: string; _target: string; _uid: string }
         Returns: boolean

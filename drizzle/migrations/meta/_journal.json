@@ -351,6 +351,13 @@
       "when": 1790833948893,
       "tag": "0049_attendance_unified_rules_atomic_dismissals",
       "breakpoints": true
+    },
+    {
+      "idx": 50,
+      "version": "7",
+      "when": 1790835775635,
+      "tag": "0050_pos_scales",
+      "breakpoints": true
     }
   ]
 }

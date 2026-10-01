@@ -1,3 +1,4 @@
+import { parseScaleBarcode, type ScaleFormat } from "@/lib/scale-barcode";
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { usePOSOffline } from "@/hooks/usePOSOffline";
 import { getCachedProducts } from "@/lib/pos-offline-db";
@@ -3461,6 +3462,56 @@ const POSPage = () => {
     return () => clearTimeout(t);
   }, [searchQuery]);
 
+  // ── الموازين الإلكترونية: صيغ الباركود وربط رقم الصنف بالمنتج ──
+  const scaleConfigRef = useRef<{ formats: ScaleFormat[]; map: Record<string, string> }>({ formats: [], map: {} });
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const { data: sc } = await (supabase as any).from("pos_scales").select("id,barcode_prefix,plu_digits,value_mode,value_decimals").eq("is_active", true);
+      if (!sc?.length) return;
+      const { data: it } = await (supabase as any).from("pos_scale_items").select("scale_id,plu,product_id").in("scale_id", sc.map((x: any) => x.id));
+      if (cancelled) return;
+      const map: Record<string, string> = {};
+      (it || []).forEach((r: any) => { map[`${r.scale_id}:${r.plu}`] = r.product_id; });
+      scaleConfigRef.current = { formats: sc, map };
+    })();
+    return () => { cancelled = true; };
+  }, []);
+
+  /** يحاول قراءة الكود كملصق ميزان؛ يرجع true إذا عالجه. */
+  const tryScaleBarcode = useCallback((code: string): boolean => {
+    const { formats, map } = scaleConfigRef.current;
+    if (!formats.length) return false;
+    const parsed = parseScaleBarcode(code, formats);
+    if (!parsed) return false;
+    const productId = map[`${parsed.scaleId}:${parsed.plu}`];
+    const product = productId ? products.find((p) => p.id === productId) : undefined;
+    if (!product) {
+      toast.error(`صنف الميزان رقم ${parsed.plu} غير مربوط بصنف`, { duration: 3000 });
+      return true;
+    }
+    if (!product.is_pos_available) {
+      toast.error(`المنتج "${product.name}" غير متاح في نقطة البيع`, { duration: 3000 });
+      return true;
+    }
+    let qty = parsed.value;
+    if (parsed.mode === "price") {
+      if (!(product.sell_price > 0)) { toast.error(`سعر "${product.name}" صفر — لا يمكن حساب الوزن`); return true; }
+      qty = parsed.value / product.sell_price;
+    }
+    qty = Math.round(qty * 1000) / 1000;
+    setCart((prev) => [...prev, {
+      id: crypto.randomUUID(), product_id: product.id, name: product.name, qty,
+      unit_price: product.sell_price, base_price: product.sell_price, cost_price: product.buy_price,
+      discount_pct: 0, tax_rate: product.tax_rate, unit: product.unit, note: "",
+      station_id: product.kitchen_station_id, modifiers: [],
+    } as any]);
+    setSearchQuery("");
+    setDebouncedSearch("");
+    toast.success(`✅ ${product.name} — ${qty.toFixed(3)} كغ`, { duration: 1500 });
+    return true;
+  }, [products, setCart]);
+
   // ── Barcode scan handler (USB scanner Enter / Camera / Manual) ──
   const handleBarcodeScan = useCallback((rawCode: string) => {
     const code = (rawCode || "").trim();
@@ -3470,6 +3521,7 @@ const POSPage = () => {
     const matched = products.find(
       (p) => (p.barcode || "").toLowerCase() === lc || (p.sku || "").toLowerCase() === lc
     );
+    if (!matched && tryScaleBarcode(code)) return;
     if (!matched) {
       toast.error(`المنتج غير موجود (${code})`, { duration: 3000 });
       return;
@@ -7438,6 +7490,7 @@ const POSPage = () => {
                     handleBarcodeScan(q);
                     return;
                   }
+                  if (/^\d{13}$/.test(q) && tryScaleBarcode(q)) return;
                   // بدون مطابقة دقيقة → جرّب أول نتيجة بحث ظاهرة
                   if (filteredProducts.length === 1) {
                     addToCart(filteredProducts[0]);
