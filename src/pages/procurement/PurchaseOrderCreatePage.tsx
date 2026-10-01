@@ -8,7 +8,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { Plus, Minus, Trash2, Send, Save, Package, Search, Wheat, Beef, Droplets, Sparkles, CupSoda, UtensilsCrossed, Shield, X, StickyNote, LayoutGrid, Grid3X3, Grid2X2, ArrowRight, Settings, UserPlus, MapPin, FolderPlus, Pencil, Milk, Egg, SprayCan, Shirt, Boxes } from "lucide-react";
 import { useSuppliers, useItemCategories, useProcurementItems, useProcurementOrders, useBranches } from "@/hooks/useProcurement";
 import { useSuppliersCrud, useCategoriesCrud, useItemsCrud } from "@/hooks/useProcurementSettings";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { toast } from "@/hooks/use-toast";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
@@ -55,6 +55,10 @@ interface OrderLine {
   unit_price: number;
   notes: string;
   branch_id: string;
+  /** معرف البند في قاعدة البيانات (وضع التعديل فقط) */
+  db_id?: string;
+  /** الكمية المفوترة/المستلمة على البند — لا يُسمح بالنزول تحتها ولا بالحذف */
+  received?: number;
 }
 
 const STORAGE_KEY = "po-prefs";
@@ -83,6 +87,10 @@ const PurchaseOrderCreatePage = () => {
     : procurementItems;
   const allSuppliers = suppliersCrud.suppliers.length > 0 ? suppliersCrud.suppliers : suppliers;
 
+  const { id: editId } = useParams<{ id: string }>();
+  const isEdit = !!editId;
+  const [editOrder, setEditOrder] = useState<{ order_number: string; status: string } | null>(null);
+  const [editLoading, setEditLoading] = useState(isEdit);
   const prefs = loadPrefs();
   const [supplierId, setSupplierId] = useState("");
   const [defaultBranchId, setDefaultBranchId] = useState(prefs.branchId || "");
@@ -147,6 +155,54 @@ const PurchaseOrderCreatePage = () => {
   useEffect(() => {
     if (supplierId || defaultBranchId) savePrefs({ ...loadPrefs(), supplierId, branchId: defaultBranchId, cardSize });
   }, [supplierId, defaultBranchId, cardSize]);
+
+  // وضع التعديل: تحميل الطلبية وبنودها والكميات المستلمة على كل بند
+  useEffect(() => {
+    if (!editId) return;
+    let cancelled = false;
+    (async () => {
+      setEditLoading(true);
+      const [{ data: reason }, { data: order, error: oErr }, { data: items }] = await Promise.all([
+        supabase.rpc("procurement_order_edit_block_reason" as any, { p_order_id: editId }),
+        supabase.from("procurement_orders" as any).select("*").eq("id", editId).maybeSingle(),
+        supabase.from("procurement_order_items" as any).select("*").eq("order_id", editId),
+      ]);
+      if (cancelled) return;
+      if (oErr || !order) { toast({ title: "تعذر تحميل الطلبية", variant: "destructive" }); navigate("/procurement/orders"); return; }
+      if (reason) { toast({ title: "لا يمكن تعديل هذه الطلبية", description: String(reason), variant: "destructive" }); navigate("/procurement/orders"); return; }
+      const ids = ((items as any[]) || []).map(i => i.id);
+      const receivedById: Record<string, number> = {};
+      if (ids.length) {
+        const { data: inv } = await supabase.from("purchase_invoice_items" as any)
+          .select("quantity, procurement_order_item_id, invoice_id").in("procurement_order_item_id", ids);
+        const invIds = [...new Set(((inv as any[]) || []).map(r => r.invoice_id))];
+        const active = new Set<string>();
+        if (invIds.length) {
+          const { data: invs } = await supabase.from("purchase_invoices" as any).select("id, status").in("id", invIds);
+          ((invs as any[]) || []).forEach(v => { if (!["cancelled", "rejected"].includes(v.status || "")) active.add(v.id); });
+        }
+        ((inv as any[]) || []).forEach(r => {
+          if (active.has(r.invoice_id)) receivedById[r.procurement_order_item_id] = (receivedById[r.procurement_order_item_id] || 0) + Number(r.quantity || 0);
+        });
+      }
+      if (cancelled) return;
+      const o: any = order;
+      setEditOrder({ order_number: o.order_number, status: o.status });
+      setSupplierId(o.supplier_id || "");
+      setOrderDate(o.order_date || new Date().toISOString().split("T")[0]);
+      setExpectedDate(o.expected_delivery_date || "");
+      setNotes(o.notes || "");
+      if (o.branch_id) setDefaultBranchId(o.branch_id);
+      setLines(((items as any[]) || []).map(i => ({
+        id: i.id, db_id: i.id, product_id: i.product_id, item_name: i.item_name, unit: i.unit || "قطعة",
+        quantity: Number(i.quantity) || 0, unit_price: Number(i.unit_price) || 0, notes: i.notes || "",
+        branch_id: i.branch_id || o.branch_id || "", received: receivedById[i.id] || 0,
+      })));
+      setEditLoading(false);
+    })();
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [editId]);
 
   // تحميل أصناف المخزون وتصنيفات نقطة البيع للتصفح بنمط نقطة البيع
   useEffect(() => {
@@ -250,6 +306,10 @@ const PurchaseOrderCreatePage = () => {
       const existing = prev.find(l => l.product_id === item.id);
       if (existing) {
         const newQty = existing.quantity + delta;
+        if ((existing.received || 0) > 0 && newQty < (existing.received || 0)) {
+          toast({ title: "لا يمكن النزول تحت الكمية المستلمة", description: `${existing.item_name}: ${existing.received}`, variant: "destructive" });
+          return prev;
+        }
         if (newQty <= 0) return prev.filter(l => l.id !== existing.id);
         return prev.map(l => l.id === existing.id ? { ...l, quantity: newQty } : l);
       } else if (delta > 0) {
@@ -275,16 +335,45 @@ const PurchaseOrderCreatePage = () => {
   const updateLine = (id: string, field: string, value: any) => {
     setLines(prev => prev.map(l => l.id === id ? { ...l, [field]: value } : l));
   };
-  const removeLine = (id: string) => setLines(prev => prev.filter(l => l.id !== id));
-  const clearAll = () => setLines([]);
+  const removeLine = (id: string) => {
+    const l = lines.find(x => x.id === id);
+    if (l && (l.received || 0) > 0) {
+      toast({ title: "لا يمكن حذف بند عليه استلام", description: l.item_name, variant: "destructive" });
+      return;
+    }
+    setLines(prev => prev.filter(x => x.id !== id));
+  };
+  const clearAll = () => {
+    if (lines.some(l => (l.received || 0) > 0)) {
+      setLines(prev => prev.filter(l => (l.received || 0) > 0));
+      toast({ title: "حُذفت البنود غير المستلمة فقط" });
+      return;
+    }
+    setLines([]);
+  };
 
   const handleSave = async (send: boolean) => {
     if (!supplierId) { toast({ title: "اختر المورد", variant: "destructive" }); return; }
     if (lines.length === 0) { toast({ title: "أضف صنفاً واحداً على الأقل", variant: "destructive" }); return; }
     const linesWithoutBranch = lines.filter(l => !l.branch_id);
     if (linesWithoutBranch.length > 0) { toast({ title: "حدد الفرع لجميع الأصناف", variant: "destructive" }); return; }
+    const belowReceived = lines.find(l => (l.received || 0) > 0 && l.quantity < (l.received || 0));
+    if (belowReceived) { toast({ title: "كمية أقل من المستلم", description: `${belowReceived.item_name}: المستلم ${belowReceived.received}`, variant: "destructive" }); return; }
     setSaving(true);
     const firstBranch = lines[0]?.branch_id || defaultBranchId || null;
+    if (isEdit && editId) {
+      const { error } = await supabase.rpc("update_procurement_order" as any, {
+        p_order_id: editId,
+        p_header: { supplier_id: supplierId, branch_id: firstBranch, order_date: orderDate, expected_delivery_date: expectedDate || null, notes },
+        p_items: lines.map(l => ({ id: l.db_id || null, product_id: l.product_id, item_name: l.item_name, unit: l.unit, quantity: l.quantity, unit_price: l.unit_price, branch_id: l.branch_id, notes: l.notes })),
+      });
+      if (error) { setSaving(false); toast({ title: "تعذر حفظ التعديلات", description: error.message, variant: "destructive" }); return; }
+      if (send && editOrder?.status === "draft") await updateStatus(editId, "sent");
+      setSaving(false);
+      toast({ title: "✅ تم حفظ تعديلات الطلبية" });
+      navigate("/procurement/orders");
+      return;
+    }
     const result = await createOrder(
       { supplier_id: supplierId, branch_id: firstBranch, order_date: orderDate, expected_delivery_date: expectedDate, notes },
       lines.map(l => ({ product_id: l.product_id, item_name: l.item_name, unit: l.unit, quantity: l.quantity, unit_price: l.unit_price, branch_id: l.branch_id, notes: l.notes }))
@@ -411,15 +500,17 @@ const PurchaseOrderCreatePage = () => {
             <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0" onClick={() => navigate(-1)} aria-label="رجوع">
               <ArrowRight className="h-4 w-4" />
             </Button>
-            <span className="font-bold text-sm text-foreground whitespace-nowrap ms-1 me-3">طلب مشتريات جديد</span>
+            <span className="font-bold text-sm text-foreground whitespace-nowrap ms-1 me-3">{isEdit ? `تعديل طلبية ${editOrder?.order_number || ""}` : "طلب مشتريات جديد"}</span>
 
             <div className="flex items-center gap-0.5 border-s border-border ps-2 overflow-x-auto">
-              <Button size="sm" className="h-8 text-xs gap-1.5 bg-primary text-primary-foreground hover:bg-primary/90" onClick={() => handleSave(true)} disabled={saving || !supplierId || lines.length === 0}>
-                <Send className="h-3.5 w-3.5" />حفظ وترحيل
+              <Button size="sm" className="h-8 text-xs gap-1.5 bg-primary text-primary-foreground hover:bg-primary/90" onClick={() => handleSave(!isEdit || editOrder?.status === "draft")} disabled={saving || editLoading || !supplierId || lines.length === 0}>
+                {isEdit ? <><Save className="h-3.5 w-3.5" />حفظ التعديلات</> : <><Send className="h-3.5 w-3.5" />حفظ وترحيل</>}
               </Button>
-              <Button variant="ghost" size="sm" className="h-8 text-xs gap-1.5" onClick={() => handleSave(false)} disabled={saving}>
-                <Save className="h-3.5 w-3.5" />حفظ مسودة
-              </Button>
+              {(!isEdit || editOrder?.status === "draft") && (
+                <Button variant="ghost" size="sm" className="h-8 text-xs gap-1.5" onClick={() => handleSave(false)} disabled={saving || editLoading}>
+                  <Save className="h-3.5 w-3.5" />{isEdit ? "حفظ كمسودة" : "حفظ مسودة"}
+                </Button>
+              )}
               <span className="w-px h-5 bg-border mx-1" />
               <Button variant="ghost" size="sm" className="h-8 text-xs gap-1.5" onClick={() => setItemOpen(true)}>
                 <Plus className="h-3.5 w-3.5" />صنف جديد
@@ -670,11 +761,11 @@ const PurchaseOrderCreatePage = () => {
                     <div key={line.id} className="px-2 py-1.5">
                       {/* Row 1: name + total + delete */}
                       <div className="flex items-center justify-between gap-1">
-                        <button type="button" onClick={() => setEditingNoteId(editingNoteId === line.id ? null : line.id)} className="text-xs font-semibold leading-tight truncate text-start hover:underline" title="اضغط لإضافة ملاحظة">{line.item_name}{line.notes && <span className="block text-[10px] font-normal text-[#D97706] truncate">📝 {line.notes}</span>}</button>
+                        <button type="button" onClick={() => setEditingNoteId(editingNoteId === line.id ? null : line.id)} className="text-xs font-semibold leading-tight truncate text-start hover:underline" title="اضغط لإضافة ملاحظة">{line.item_name}{line.notes && <span className="block text-[10px] font-normal text-[#D97706] truncate">📝 {line.notes}</span>}{(line.received || 0) > 0 && <span className="block text-[10px] font-normal text-primary">مستلم: {line.received}</span>}</button>
                         <div className="flex items-center gap-1 shrink-0">
                           <LineTotalInput quantity={line.quantity} unitPrice={line.unit_price}
                             onPrice={p => updateLine(line.id, "unit_price", p)} />
-                          <button onClick={() => removeLine(line.id)} className="text-muted-foreground hover:text-destructive p-0.5">
+                          <button onClick={() => removeLine(line.id)} disabled={(line.received || 0) > 0} className="text-muted-foreground hover:text-destructive p-0.5 disabled:opacity-30 disabled:cursor-not-allowed">
                             <X className="h-3 w-3" />
                           </button>
                         </div>
@@ -683,7 +774,7 @@ const PurchaseOrderCreatePage = () => {
                       {/* Row 2: qty controls + price + unit + note */}
                       <div className="flex items-center gap-1 mt-1">
                         <button className="h-6 w-6 rounded border border-border flex items-center justify-center hover:bg-muted transition-colors shrink-0"
-                          onClick={() => { if (line.quantity > 1) updateLine(line.id, "quantity", line.quantity - 1); else removeLine(line.id); }}>
+                          onClick={() => { if ((line.received || 0) > 0 && line.quantity - 1 < (line.received || 0)) return; if (line.quantity > 1) updateLine(line.id, "quantity", line.quantity - 1); else removeLine(line.id); }}>
                           <Minus className="h-3 w-3" />
                         </button>
                         <Input type="number" value={line.quantity} min={0.001} step="any"
