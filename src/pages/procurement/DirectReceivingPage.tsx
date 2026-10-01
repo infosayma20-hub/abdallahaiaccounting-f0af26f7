@@ -219,18 +219,18 @@ function DirectSession({ orderId, ctx }: { orderId: string; ctx: Ctx }) {
   const flush = useCallback(async () => {
     const q = readQ(orderId);
     if (!q.length || !navigator.onLine) return;
-    const left: string[] = []; const unknown: string[] = [];
+    let done = 0; let unknown = 0;
     for (const b of q) {
-      const r = await scanOnce(b);
-      if (r === "queued") { left.push(b); break; }
-      if (r === "unknown") unknown.push(b);
+      const { data, error } = await supabase.rpc("direct_receiving_scan" as any, { p_order_id: orderId, p_barcode: b });
+      if (error && isNetworkError(error)) break; // نوقف ونحتفظ بالباقي
+      if (!error && !(data as any)?.matched) unknown++;
+      done++;
     }
-    // scanOnce أعاد الإضافة للطابور عند الفشل؛ نعيد ضبطه بما تبقى
-    const rest = q.slice(q.length - (q.length - (q.indexOf(left[0]) >= 0 ? q.indexOf(left[0]) : q.length)));
-    writeQ(orderId, left.length ? rest : []); setPending(left.length ? rest.length : 0);
-    if (unknown.length) { toast.warning(`${unknown.length} باركود غير معرّف من الطابور — امسحها مرة ثانية لإضافتها كبنود مؤقتة`); }
-    load();
-  }, [orderId, scanOnce, load]);
+    const rest = q.slice(done);
+    writeQ(orderId, rest); setPending(rest.length);
+    if (unknown) toast.warning(`${unknown} باركود غير معرّف من المسحات المحفوظة — امسحها مرة ثانية لإضافتها كبنود مؤقتة`);
+    if (done) load();
+  }, [orderId, load]);
   useEffect(() => { flush(); const on = () => flush(); window.addEventListener("online", on); return () => window.removeEventListener("online", on); }, [flush]);
 
   const handleScan = async (raw: string) => {
