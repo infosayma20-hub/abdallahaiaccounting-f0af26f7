@@ -296,10 +296,23 @@ function ReceivingSession({ sessionId }: { sessionId: string }) {
 
     if (!codes.includes(barcode)) {
       beep(false);
-      showFlash(false, `الباركود لا يطابق ${fresh.item_name}`);
+      setMismatch({ line: fresh, barcode });
       return;
     }
     await handleScan(barcode);
+  };
+
+  // باركود غير مطابق — الشركة الأم غيّرت الباركود: نضيفه كباركود إضافي للصنف ثم نسجّل المسحة
+  const linkMismatchBarcode = async () => {
+    if (!mismatch) return;
+    const { line, barcode } = mismatch;
+    if (!navigator.onLine) { beep(false); showFlash(false, "ربط الباركود بحاجة إنترنت"); return; }
+    const { error } = await supabase.rpc("receiving_link_barcode", { p_line_id: line.id, p_barcode: barcode } as any);
+    if (error) { beep(false); showFlash(false, error.message); return; }
+    setMismatch(null);
+    showFlash(true, `تمت إضافة الباركود الجديد للصنف ${line.item_name}`);
+    await handleScan(barcode);
+    load();
   };
 
   const submit = async () => {
