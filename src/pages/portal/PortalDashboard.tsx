@@ -323,7 +323,10 @@ export default function PortalDashboard() {
   const switchTab = (tab: TabKey) => {
     setActiveTab(tab);
     setActiveIndex(tabIndexMap[tab] ?? 0);
+    setShowMore(false);
     setShowTasksPage(false);
+    setShowEmployeeRequests(false);
+    setShowJobApplicationsPage(false);
     setShowRosterPage(false);
     setShowBranchHoursPage(false);
     setShowCampaignsPage(false);
@@ -337,6 +340,7 @@ export default function PortalDashboard() {
     setShowCompensationsPage(false);
     setShowEvaluationsPage(false);
     setShowDrawingsPage(false);
+    setShowSalesReportPage(null);
   };
 
   const themeMode = darkMode ? 'dark' as const : 'light' as const;
@@ -1056,13 +1060,7 @@ export default function PortalDashboard() {
                 key={item.key}
                 onClick={() => {
                   if (navigator.vibrate) navigator.vibrate(10);
-                  if (item.key === 'more') { switchTab('more'); scrollRef.current?.scrollTo({ top: 0, behavior: 'smooth' }); return; }
-                  setActiveTab(item.key);
-                  setActiveIndex(idx);
-                  setShowMore(false);
-                  setShowTasksPage(false);
-                  setShowEmployeeRequests(false);
-                  setShowLoyaltyPage(false);
+                  switchTab(item.key);
                   scrollRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
                 }}
                 style={{
