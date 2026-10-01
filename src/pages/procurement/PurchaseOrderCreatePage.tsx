@@ -15,6 +15,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useDataOwnerId } from "@/hooks/useDataOwnerId";
 import { SupplierPicker } from "@/components/procurement/SupplierPicker";
+import ProductUnitSelect from "@/components/inventory/ProductUnitSelect";
 import { multiWordMatchAny } from "@/lib/utils";
 
 const iconMap: Record<string, any> = {
@@ -232,6 +233,17 @@ const PurchaseOrderCreatePage = () => {
       if (cancelled) return;
       if (cats.data) setPosCats(cats.data as any[]);
       setInventoryProducts(prods as any[]);
+      // وحدات الشراء المعرفة ببطاقة الصنف (product_units) — وحدة الشراء الافتراضية لكل منتج
+      const { data: pu } = await supabase.from("product_units" as any)
+        .select("product_id, unit_name, is_purchase, is_default")
+        .eq("user_id", ownerId).eq("is_active", true);
+      if (cancelled) return;
+      const map: Record<string, string> = {};
+      ((pu as any[]) || []).forEach(u => {
+        const cur = map[u.product_id];
+        if (!cur || u.is_purchase || u.is_default) map[u.product_id] = u.unit_name;
+      });
+      setPurchaseUnitByProduct(map);
     })();
     return () => { cancelled = true; };
   }, [ownerId]);
