@@ -396,9 +396,9 @@ function ReceivingSession({ sessionId }: { sessionId: string }) {
                 <div className="flex items-center gap-1.5">
                   <div className="min-w-0 flex-1">
                     <div className="truncate text-xs font-bold leading-tight text-foreground" title={l.item_name}>{l.item_name}</div>
-                    <div className="truncate text-[10px] leading-tight text-muted-foreground">
+                    <div className="text-[10px] leading-tight text-muted-foreground">
                       {barcodes.length > 0
-                        ? barcodes.map((b, i) => <span key={`${b}-${i}`} className="font-mono">{i > 0 && <span className="px-0.5">+</span>}{b}</span>)
+                        ? barcodes.map((b, i) => <span key={`${b}-${i}`} className="font-mono break-all">{i > 0 && <span className="px-0.5">+</span>}{b}</span>)
                         : "بدون باركود"}
                       {l.unit && <span> · {l.unit}</span>}
                       {l.branch_name && <span> · {l.branch_name}</span>}
