@@ -5,7 +5,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { Plus, Minus, Trash2, Send, Save, Package, Search, Wheat, Beef, Droplets, Sparkles, CupSoda, UtensilsCrossed, Shield, X, StickyNote, LayoutGrid, Grid3X3, Grid2X2, ArrowRight, Settings, UserPlus, MapPin, FolderPlus, Pencil, Milk, Egg, SprayCan, Shirt } from "lucide-react";
+import { Plus, Minus, Trash2, Send, Save, Package, Search, Wheat, Beef, Droplets, Sparkles, CupSoda, UtensilsCrossed, Shield, X, StickyNote, LayoutGrid, Grid3X3, Grid2X2, ArrowRight, Settings, UserPlus, MapPin, FolderPlus, Pencil, Milk, Egg, SprayCan, Shirt, Boxes, FolderOpen } from "lucide-react";
 import { useSuppliers, useItemCategories, useProcurementItems, useProcurementOrders, useBranches } from "@/hooks/useProcurement";
 import { useSuppliersCrud, useCategoriesCrud, useItemsCrud } from "@/hooks/useProcurementSettings";
 import { useNavigate } from "react-router-dom";
@@ -100,6 +100,17 @@ const PurchaseOrderCreatePage = () => {
   const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
   const [mobileCartOpen, setMobileCartOpen] = useState(false);
 
+  // ── مصدر التصفح: المخزون/نقطة البيع (افتراضي) أو كتالوج المشتريات ──
+  const [itemSource, setItemSource] = useState<"inventory" | "catalog">(
+    (prefs as any).itemSource === "catalog" ? "catalog" : "inventory"
+  );
+  const [inventoryProducts, setInventoryProducts] = useState<any[]>([]);
+  const [posCats, setPosCats] = useState<any[]>([]);
+  const [activePosCategory, setActivePosCategory] = useState<string | null>(null);
+  const [ensuringId, setEnsuringId] = useState<string | null>(null);
+  const procIdByProductIdRef = useRef<Record<string, string>>({});
+  const [, bumpProcIdVersion] = useState(0);
+
   // Dialog states
   const [manualOpen, setManualOpen] = useState(false);
   const [manualItem, setManualItem] = useState({ item_name: "", unit: "قطعة", unit_price: 0, quantity: 1, notes: "" });
@@ -117,25 +128,87 @@ const PurchaseOrderCreatePage = () => {
   const [editItem, setEditItem] = useState<any>(null);
 
   useEffect(() => {
-    if (supplierId || defaultBranchId) savePrefs({ supplierId, branchId: defaultBranchId, cardSize });
+    if (supplierId || defaultBranchId) savePrefs({ ...loadPrefs(), supplierId, branchId: defaultBranchId, cardSize });
   }, [supplierId, defaultBranchId, cardSize]);
 
-  useEffect(() => { searchRef.current?.focus(); }, [activeCategory]);
+  // تحميل أصناف المخزون وتصنيفات نقطة البيع للتصفح بنمط نقطة البيع
+  useEffect(() => {
+    if (!ownerId) return;
+    let cancelled = false;
+    (async () => {
+      const [cats, prods] = await Promise.all([
+        supabase.from("pos_categories").select("id, name, color, sort_order, display_order")
+          .eq("user_id", ownerId).eq("is_active", true)
+          .order("sort_order").order("display_order"),
+        supabase.from("products").select("id, name, unit, pos_category_id, category, buy_price, barcode")
+          .eq("user_id", ownerId).order("name"),
+      ]);
+      if (cancelled) return;
+      if (cats.data) setPosCats(cats.data as any[]);
+      if (prods.data) setInventoryProducts(prods.data as any[]);
+    })();
+    return () => { cancelled = true; };
+  }, [ownerId]);
+
+  useEffect(() => { searchRef.current?.focus(); }, [activeCategory, activePosCategory]);
+
+  // ── التأكد من وجود صنف مشتريات مرتبط بالمنتج (ربط تلقائي) ──
+  const ensureProcItem = useCallback(async (product: any): Promise<string | null> => {
+    const cached = procIdByProductIdRef.current[product.id];
+    if (cached) return cached;
+    setEnsuringId(product.id);
+    try {
+      const { data, error } = await supabase.rpc("ensure_procurement_item_from_product", { p_product_id: product.id });
+      if (error || !data) throw error || new Error("تعذر ربط الصنف");
+      procIdByProductIdRef.current[product.id] = data as string;
+      bumpProcIdVersion(v => v + 1);
+      return data as string;
+    } catch (e: any) {
+      toast({ title: "تعذر إضافة الصنف للطلبية", description: e?.message || "", variant: "destructive" });
+      return null;
+    } finally {
+      setEnsuringId(null);
+    }
+  }, []);
+
+  // إضافة/تعديل بند: في وضع المخزون نربط الصنف تلقائياً بكتالوج المشتريات أولًا
+  const handleItemAction = useCallback(async (item: any, delta: number) => {
+    if (itemSource === "catalog") { addOrUpdateItem(item, delta); return; }
+    const procId = await ensureProcItem(item);
+    if (!procId) return;
+    addOrUpdateItem({ id: procId, name: item.name, unit: item.unit || "قطعة", default_price: Number(item.buy_price) || 0 }, delta);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [itemSource, ensureProcItem, defaultBranchId]);
 
   const filteredItems = useMemo(() => {
-    let result = allItems;
-    if (activeCategory) result = result.filter((i: any) => i.category_id === activeCategory);
+    let result: any[] = itemSource === "inventory" ? inventoryProducts : allItems;
+    if (itemSource === "inventory") {
+      if (activePosCategory === "__uncat") result = result.filter((i: any) => !i.pos_category_id);
+      else if (activePosCategory) result = result.filter((i: any) => i.pos_category_id === activePosCategory);
+    } else {
+      if (activeCategory) result = result.filter((i: any) => i.category_id === activeCategory);
+    }
     if (searchQuery) {
       result = result.filter((i: any) => multiWordMatchAny(searchQuery, i.name));
     }
     return result;
-  }, [allItems, activeCategory, searchQuery]);
+  }, [itemSource, inventoryProducts, allItems, activeCategory, activePosCategory, searchQuery]);
 
   const categoryCounts = useMemo(() => {
     const counts: Record<string, number> = {};
     allItems.forEach((i: any) => { if (i.category_id) counts[i.category_id] = (counts[i.category_id] || 0) + 1; });
     return counts;
   }, [allItems]);
+
+  const posCategoryCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    let uncat = 0;
+    inventoryProducts.forEach((i: any) => {
+      if (i.pos_category_id) counts[i.pos_category_id] = (counts[i.pos_category_id] || 0) + 1;
+      else uncat++;
+    });
+    return { counts, uncat };
+  }, [inventoryProducts]);
 
   const getLineQuantity = (itemId: string) => lines.find(l => l.product_id === itemId)?.quantity || 0;
   const totalQty = lines.reduce((s, l) => s + l.quantity, 0);
@@ -385,42 +458,107 @@ const PurchaseOrderCreatePage = () => {
         <div className="flex-1 flex min-h-0">
           {/* CENTER: Categories + Items Grid */}
           <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-            {/* Category chips — single scrollable row */}
+            {/* Category chips — source toggle + single scrollable row (POS-style) */}
             <div className="shrink-0 border-b border-border bg-muted/20 px-3 py-1.5">
               <div className="flex items-center gap-1.5 overflow-x-auto">
+                <span className="w-px h-5 bg-border shrink-0" />
                 <button
-                  onClick={() => setActiveCategory(null)}
-                  className={`shrink-0 flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-semibold transition-colors ${
-                    !activeCategory ? "bg-primary text-primary-foreground" : "bg-background text-muted-foreground hover:text-foreground border border-border"
+                  onClick={() => { setItemSource("inventory"); setActiveCategory(null); setActivePosCategory(null); savePrefs({ ...loadPrefs(), itemSource: "inventory" }); }}
+                  className={`shrink-0 flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-bold transition-colors ${
+                    itemSource === "inventory" ? "bg-primary text-primary-foreground" : "bg-background text-muted-foreground hover:text-foreground border border-border"
                   }`}
                 >
-                  الكل <span className="text-[10px] opacity-80">({allItems.length})</span>
+                  <Boxes className="h-3.5 w-3.5" />المخزون
                 </button>
-                {categories.map((cat: any) => {
-                  const isActive = activeCategory === cat.id;
-                  const Icon = iconMap[cat.icon || ""] || Package;
-                  const count = categoryCounts[cat.id] || 0;
-                  return (
+                <button
+                  onClick={() => { setItemSource("catalog"); setActivePosCategory(null); savePrefs({ ...loadPrefs(), itemSource: "catalog" }); }}
+                  className={`shrink-0 flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-bold transition-colors ${
+                    itemSource === "catalog" ? "bg-primary text-primary-foreground" : "bg-background text-muted-foreground hover:text-foreground border border-border"
+                  }`}
+                >
+                  <FolderOpen className="h-3.5 w-3.5" />كتالوج المشتريات
+                </button>
+                <span className="w-px h-5 bg-border shrink-0" />
+
+                {itemSource === "inventory" ? (
+                  <>
                     <button
-                      key={cat.id}
-                      onClick={() => setActiveCategory(isActive ? null : cat.id)}
+                      onClick={() => setActivePosCategory(null)}
                       className={`shrink-0 flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-semibold transition-colors ${
-                        isActive ? "bg-primary text-primary-foreground" : "bg-background text-muted-foreground hover:text-foreground border border-border"
+                        !activePosCategory ? "bg-primary text-primary-foreground" : "bg-background text-muted-foreground hover:text-foreground border border-border"
                       }`}
                     >
-                      <Icon className="h-3.5 w-3.5" />
-                      <span>{cat.name}</span>
-                      <span className="text-[10px] opacity-80">({count})</span>
+                      الكل <span className="text-[10px] opacity-80">({inventoryProducts.length})</span>
                     </button>
-                  );
-                })}
+                    {posCats.map((cat: any) => {
+                      const isActive = activePosCategory === cat.id;
+                      const count = posCategoryCounts.counts[cat.id] || 0;
+                      if (count === 0) return null;
+                      return (
+                        <button
+                          key={cat.id}
+                          onClick={() => setActivePosCategory(isActive ? null : cat.id)}
+                          className={`shrink-0 flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold transition-colors ${
+                            isActive ? "bg-primary text-primary-foreground" : "bg-background text-muted-foreground hover:text-foreground border border-border"
+                          }`}
+                        >
+                          <span className="inline-block h-2 w-2 rounded-full shrink-0" style={{ backgroundColor: cat.color || "#6b7280" }} />
+                          <span>{cat.name}</span>
+                          <span className="text-[10px] opacity-80">({count})</span>
+                        </button>
+                      );
+                    })}
+                    {posCategoryCounts.uncat > 0 && (
+                      <button
+                        onClick={() => setActivePosCategory(activePosCategory === "__uncat" ? null : "__uncat")}
+                        className={`shrink-0 flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-semibold transition-colors ${
+                          activePosCategory === "__uncat" ? "bg-primary text-primary-foreground" : "bg-background text-muted-foreground hover:text-foreground border border-border"
+                        }`}
+                      >
+                        <Package className="h-3.5 w-3.5" />
+                        غير مصنف <span className="text-[10px] opacity-80">({posCategoryCounts.uncat})</span>
+                      </button>
+                    )}
+                  </>
+                ) : (
+                  <>
+                    <button
+                      onClick={() => setActiveCategory(null)}
+                      className={`shrink-0 flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-semibold transition-colors ${
+                        !activeCategory ? "bg-primary text-primary-foreground" : "bg-background text-muted-foreground hover:text-foreground border border-border"
+                      }`}
+                    >
+                      الكل <span className="text-[10px] opacity-80">({allItems.length})</span>
+                    </button>
+                    {categories.map((cat: any) => {
+                      const isActive = activeCategory === cat.id;
+                      const Icon = iconMap[cat.icon || ""] || Package;
+                      const count = categoryCounts[cat.id] || 0;
+                      return (
+                        <button
+                          key={cat.id}
+                          onClick={() => setActiveCategory(isActive ? null : cat.id)}
+                          className={`shrink-0 flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-semibold transition-colors ${
+                            isActive ? "bg-primary text-primary-foreground" : "bg-background text-muted-foreground hover:text-foreground border border-border"
+                          }`}
+                        >
+                          <Icon className="h-3.5 w-3.5" />
+                          <span>{cat.name}</span>
+                          <span className="text-[10px] opacity-80">({count})</span>
+                        </button>
+                      );
+                    })}
+                  </>
+                )}
               </div>
             </div>
 
             {/* Grid */}
             <div className={`flex-1 overflow-y-auto p-2 grid ${gridCols} gap-1.5 auto-rows-min content-start`}>
               {filteredItems.map((item: any) => {
-                const qty = getLineQuantity(item.id);
+                const isInventory = itemSource === "inventory";
+                const procId = isInventory ? procIdByProductIdRef.current[item.id] : item.id;
+                const qty = procId ? getLineQuantity(procId) : 0;
                 const catColor = getCategoryColor(item.category_id);
                 const isInOrder = qty > 0;
 
@@ -431,20 +569,22 @@ const PurchaseOrderCreatePage = () => {
                       isInOrder
                         ? "border-[#2D7A4F] bg-[#F0FDF4] shadow-sm"
                         : "border-[#E2E8F0] bg-white hover:border-gray-300 hover:shadow-sm"
-                    }`}
-                    onClick={() => addOrUpdateItem(item, 1)}
-                    onContextMenu={e => { e.preventDefault(); openEditItem(item); }}
+                    } ${ensuringId === item.id ? "opacity-60 pointer-events-none animate-pulse" : ""}`}
+                    onClick={() => handleItemAction(item, 1)}
+                    onContextMenu={e => { e.preventDefault(); if (!isInventory) openEditItem(item); }}
                   >
                     {/* Quantity badge */}
                     {isInOrder && (
                       <div className="absolute top-1 left-1 z-10 bg-[#2D7A4F] text-white text-[10px] font-bold rounded-full w-5 h-5 flex items-center justify-center shadow">{qty}</div>
                     )}
-                    <button
-                      className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 p-0.5 rounded text-muted-foreground hover:text-primary transition-opacity"
-                      onClick={e => { e.stopPropagation(); openEditItem(item); }}
-                    >
-                      <Pencil className="h-3 w-3" />
-                    </button>
+                    {!isInventory && (
+                      <button
+                        className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 p-0.5 rounded text-muted-foreground hover:text-primary transition-opacity"
+                        onClick={e => { e.stopPropagation(); openEditItem(item); }}
+                      >
+                        <Pencil className="h-3 w-3" />
+                      </button>
+                    )}
 
                     <div className="px-2.5 py-2.5">
                       {searchQuery ? (
@@ -454,20 +594,24 @@ const PurchaseOrderCreatePage = () => {
                       )}
                       <p className="text-xs text-muted-foreground text-right">{item.unit}</p>
                       {cardSize === "large" && (
-                        <p className={`text-xs mt-0.5 text-right ${Number(item.default_price) > 0 ? "text-muted-foreground" : "text-orange-400"}`}>
-                          {Number(item.default_price) > 0 ? `${Number(item.default_price).toFixed(2)} ₪` : "بدون سعر"}
+                        <p className={`text-xs mt-0.5 text-right ${
+                          Number(isInventory ? item.buy_price : item.default_price) > 0 ? "text-muted-foreground" : "text-orange-400"
+                        }`}>
+                          {Number(isInventory ? item.buy_price : item.default_price) > 0
+                            ? `${Number(isInventory ? item.buy_price : item.default_price).toFixed(2)} ₪`
+                            : "بدون سعر"}
                         </p>
                       )}
                       {/* Inline quantity controls */}
                       {isInOrder && (
                         <div className="flex items-center justify-between mt-2 gap-1" onClick={e => e.stopPropagation()}>
                           <button className="w-7 h-7 rounded-md bg-gray-100 hover:bg-gray-200 text-gray-600 flex items-center justify-center transition-colors"
-                            onClick={() => addOrUpdateItem(item, -1)}>
+                            onClick={() => handleItemAction(item, -1)}>
                             <Minus className="h-3 w-3" />
                           </button>
                           <span className="w-8 text-center font-bold text-sm text-gray-800">{qty}</span>
                           <button className="w-7 h-7 rounded-md bg-[#2D7A4F] hover:bg-[#246B42] text-white flex items-center justify-center transition-colors"
-                            onClick={() => addOrUpdateItem(item, 1)}>
+                            onClick={() => handleItemAction(item, 1)}>
                             <Plus className="h-3 w-3" />
                           </button>
                         </div>
