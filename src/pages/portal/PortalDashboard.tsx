@@ -8,11 +8,12 @@ import {
   Home, Wallet, ClipboardList, BarChart3, MoreHorizontal,
   Settings, Bell, Sun, Moon, LogOut, Store, Factory,
   FileText, HandCoins, Send, Plus, RefreshCw, ChevronLeft,
-  X, Users, Package, CalendarClock, Megaphone, GraduationCap, Timer, Receipt, Star, MessageSquareWarning, CreditCard
+  X, Users, Package, CalendarClock, Megaphone, GraduationCap, Timer, Receipt, Star, MessageSquareWarning, CreditCard, BriefcaseBusiness
 } from 'lucide-react';
 import PortalLiquidityTab from './PortalLiquidityTab';
 import PortalChequesTab from './PortalChequesTab';
 import PortalEmployeeRequestsTab from './PortalEmployeeRequestsTab';
+import PortalJobApplicationsTab from './PortalJobApplicationsTab';
 import PortalSupplierBalancesTab from './PortalSupplierBalancesTab';
 import PortalAttendanceTab from './PortalAttendanceTab';
 import PortalTasksTab from './PortalTasksTab';
@@ -178,6 +179,7 @@ export default function PortalDashboard() {
   const [activeIndex, setActiveIndex] = useState(0);
   const [showTasksPage, setShowTasksPage] = useState(false);
   const [showEmployeeRequests, setShowEmployeeRequests] = useState(false);
+  const [showJobApplicationsPage, setShowJobApplicationsPage] = useState(false);
   const [focusFormId, setFocusFormId] = useState<string | null>(null);
   const [notifOpen, setNotifOpen] = useState(false);
   const [showRosterPage, setShowRosterPage] = useState(false);
@@ -340,7 +342,7 @@ export default function PortalDashboard() {
   const themeMode = darkMode ? 'dark' as const : 'light' as const;
   // ملاحظة: closeAllPages أدناه يشمل صفحة «مسحوباتي»
   const closeAllPages = () => {
-    setShowMore(false); setShowTasksPage(false); setShowEmployeeRequests(false);
+    setShowMore(false); setShowTasksPage(false); setShowEmployeeRequests(false); setShowJobApplicationsPage(false);
     setShowRosterPage(false); setShowBranchHoursPage(false); setShowCampaignsPage(false);
     setShowFormsPage(false); setShowTrainingPage(false); setShowOrdersPage(false);
     setShowTrackingPage(false); setShowPettyCashPage(false); setShowLoyaltyPage(false);
@@ -602,6 +604,7 @@ export default function PortalDashboard() {
       );
     }
     if (showEmployeeRequests) return <PortalEmployeeRequestsTab theme={themeMode} focusFormId={focusFormId} onBackToNotifications={() => setNotifOpen(true)} />;
+    if (showJobApplicationsPage) return <PortalJobApplicationsTab theme={themeMode} ownerId={linkedUserId || user?.user_id || undefined} />;
     if (showOrdersPage) {
       return (
         <div>
