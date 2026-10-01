@@ -104,7 +104,17 @@ export function focusNextJournalCell(
       onOverflow();
       return;
     }
-    focusCell("debit", nextId);
+    // Land on the next row's account search field first (not the amount),
+    // so rapid Enter presses walk: account → debit → credit → memo → next account.
+    setTimeout(() => {
+      const accountInput = document.querySelector<HTMLInputElement>(`[data-journal-code="${nextId}"]`);
+      if (accountInput) {
+        accountInput.focus();
+        accountInput.select?.();
+      } else {
+        focusCell("debit", nextId);
+      }
+    }, 0);
     return;
   }
   focusCell(target, currentLineId);
