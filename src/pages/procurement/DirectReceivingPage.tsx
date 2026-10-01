@@ -11,6 +11,8 @@ import { ArrowRight, Plus, RefreshCw, Send, Trash2, Camera, ScanLine, Paperclip,
 import POSBarcodeScanner from "@/components/pos/POSBarcodeScanner";
 import { normalizeBarcode, createSerialQueue, createScanBurstWatcher } from "@/lib/barcode";
 import { useAuth } from "@/hooks/useAuth";
+import { useDataOwnerId } from "@/hooks/useDataOwnerId";
+import ProductUnitSelect from "@/components/inventory/ProductUnitSelect";
 import { DShell, PaneBtn, beep } from "./ReceivingPage";
 
 /**
@@ -186,6 +188,8 @@ function LineRow({ line, editable, onSave }: { line: Line; editable: boolean; on
 function DirectSession({ orderId, ctx }: { orderId: string; ctx: Ctx }) {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { dataOwnerId } = useDataOwnerId();
+  const ownerId = dataOwnerId || user?.id;
   const [order, setOrder] = useState<Order | null>(null);
   const [code, setCode] = useState("");
   const [camOpen, setCamOpen] = useState(false);
