@@ -358,6 +358,13 @@
       "when": 1790835775635,
       "tag": "0050_pos_scales",
       "breakpoints": true
+    },
+    {
+      "idx": 51,
+      "version": "7",
+      "when": 1790837732705,
+      "tag": "0051_ensure_procurement_item_from_product",
+      "breakpoints": true
     }
   ]
 }

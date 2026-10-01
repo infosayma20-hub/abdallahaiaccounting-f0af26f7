@@ -31738,6 +31738,10 @@ export type Database = {
         Args: { p_user_id: string }
         Returns: undefined
       }
+      ensure_procurement_item_from_product: {
+        Args: { p_product_id: string }
+        Returns: string
+      }
       ensure_procurement_item_product: {
         Args: { p_item_id: string }
         Returns: string
