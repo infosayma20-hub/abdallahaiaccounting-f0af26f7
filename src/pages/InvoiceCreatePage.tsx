@@ -915,6 +915,13 @@ const InvoiceCreatePage = () => {
     return out;
   }, [products, warehouseCardedIds, stockWarehouseId, form.warehouseId, form.type]);
 
+  // فهرس فوري للأصناف حسب المعرف — بدل البحث الخطي داخل كل سطر عند كل رسم.
+  const productsById = useMemo(() => {
+    const m = new Map<string, any>();
+    for (const p of products) m.set(p.id, p);
+    return m;
+  }, [products]);
+
   const warehouseProducts = useMemo(() => {
     if (!outOfWarehouseIds || outOfWarehouseIds.size === 0) return products;
     // Stable partition: in-warehouse items first, the rest keep their order.
@@ -1706,7 +1713,7 @@ const InvoiceCreatePage = () => {
             // COGS includes bonus units (delivered = quantity + bonus_quantity).
             // VAT note: VAT is calculated only on paid quantity revenue.
             // Bonus VAT (deemed-supply) treatment may need accountant/legal review later.
-            const prod = item.productId ? products.find(p => p.id === item.productId) : null;
+            const prod = item.productId ? (productsById.get(item.productId) ?? null) : null;
             const buyPrice = Number(prod?.buy_price || 0);
             const isSalesLine = form.type === "sales";
             const cost_price = isSalesLine && buyPrice > 0 ? buyPrice : null;
@@ -2019,7 +2026,7 @@ const InvoiceCreatePage = () => {
       if (!asDraft) {
         for (const item of form.items) {
           if (!item.productId) continue;
-          const prod = products.find(p => p.id === item.productId);
+          const prod = productsById.get(item.productId);
           if (!prod) continue;
 
           // Sales: deduct delivered quantity (quantity + bonus). Purchase bonus is out of scope.
@@ -3717,7 +3724,7 @@ const InvoiceCreatePage = () => {
               </thead>
               <tbody>
                 {form.items.map((item, idx) => {
-                  const prod = item.productId ? products.find(p => p.id === item.productId) : null;
+                  const prod = item.productId ? (productsById.get(item.productId) ?? null) : null;
                   const storedPrice = prod ? Number(prod.buy_price) || 0 : 0;
                   const showWarning = form.type === "purchase" && storedPrice > 0 && item.unitPrice > storedPrice;
                   const diff = item.unitPrice - storedPrice;
@@ -4165,7 +4172,7 @@ const InvoiceCreatePage = () => {
 
       {/* Price warning summary */}
       {form.type === "purchase" && form.items.some(item => {
-        const prod = item.productId ? products.find(p => p.id === item.productId) : null;
+        const prod = item.productId ? (productsById.get(item.productId) ?? null) : null;
         const storedPrice = prod ? Number(prod.buy_price) || 0 : 0;
         return storedPrice > 0 && item.unitPrice > storedPrice;
       }) && (

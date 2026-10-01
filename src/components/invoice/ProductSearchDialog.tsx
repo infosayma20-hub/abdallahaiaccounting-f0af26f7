@@ -1,4 +1,5 @@
 import * as React from "react";
+import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import { Search, X, Package, Filter } from "lucide-react";
 
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -90,8 +91,9 @@ export default function ProductSearchDialog({
     [warehouseStock],
   );
 
-  const filtered = React.useMemo(() => {
-    const q = query.trim().toLowerCase();
+  const debouncedDialogQuery = useDebouncedValue(query, 120);
+  const filteredAll = React.useMemo(() => {
+    const q = debouncedDialogQuery.trim().toLowerCase();
     return products.filter((p) => {
       if (category !== "__all__" && p.category !== category) return false;
       if (availableOnly && p.product_type !== "service" && stockFor(p) <= 0) return false;
@@ -99,7 +101,9 @@ export default function ProductSearchDialog({
       const hay = [p.name, p.sku, p.barcode, p.category].filter(Boolean).join(" ").toLowerCase();
       return hay.includes(q);
     });
-  }, [products, query, category, availableOnly, stockFor]);
+  }, [products, debouncedDialogQuery, category, availableOnly, stockFor]);
+  // عرض أول 200 نتيجة فقط — يمنع رسم آلاف الصفوف دفعة واحدة؛ العداد يعرض الإجمالي.
+  const filtered = React.useMemo(() => filteredAll.slice(0, 200), [filteredAll]);
 
   React.useEffect(() => {
     setActiveIdx(0);
@@ -200,7 +204,7 @@ export default function ProductSearchDialog({
             </label>
           </div>
           <p className="text-[10.5px] text-muted-foreground">
-            ↑↓ للتنقل · Enter لاختيار · Double-click للاختيار · Esc للإغلاق · {filtered.length} نتيجة
+            ↑↓ للتنقل · Enter لاختيار · Double-click للاختيار · Esc للإغلاق · {filteredAll.length} نتيجة{filteredAll.length > 200 ? " (يُعرض أول 200 — ضيّق البحث)" : ""}
           </p>
         </div>
 
