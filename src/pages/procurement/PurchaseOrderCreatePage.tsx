@@ -100,6 +100,17 @@ const PurchaseOrderCreatePage = () => {
   const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
   const [mobileCartOpen, setMobileCartOpen] = useState(false);
 
+  // ── مصدر التصفح: المخزون/نقطة البيع (افتراضي) أو كتالوج المشتريات ──
+  const [itemSource, setItemSource] = useState<"inventory" | "catalog">(
+    (prefs as any).itemSource === "catalog" ? "catalog" : "inventory"
+  );
+  const [inventoryProducts, setInventoryProducts] = useState<any[]>([]);
+  const [posCats, setPosCats] = useState<any[]>([]);
+  const [activePosCategory, setActivePosCategory] = useState<string | null>(null);
+  const [ensuringId, setEnsuringId] = useState<string | null>(null);
+  const procIdByProductIdRef = useRef<Record<string, string>>({});
+  const [, bumpProcIdVersion] = useState(0);
+
   // Dialog states
   const [manualOpen, setManualOpen] = useState(false);
   const [manualItem, setManualItem] = useState({ item_name: "", unit: "قطعة", unit_price: 0, quantity: 1, notes: "" });
