@@ -1,27 +1,8 @@
-# Roadmap
+# Roadmap — Rooh restaurant English POS
 
-- [x] إضافة منيو المشروبات الساخنة للموظفين في الملكي: أول مشروبين بنصف السعر ثم السعر العادي، دون خصم مخزون.
-
-- [x] منع رجوع موظف المستودع إلى النظام الإداري، وحماية شاشة الاستلام بصلاحية موظف المستودع أو طلبية مسندة، وتحسين هويتها بشعار يونيفاي U.
-
-- [x] إضافة حالة «تم تحديد مقابلة» لمسار طلبات التوظيف والفلترة والطباعة والتصدير.
-- [x] ترتيب شاشة طلبات التوظيف واعتماد دورة المراحل الثلاث عشرة في الموارد وبوابة المالك والطباعة والتصدير.
-- [x] إضافة طباعة احترافية لطلب التوظيف تشمل صورة المتقدم وكامل بيانات الطلب.
-- [x] إضافة بطاقة «تقييم الموظفين» في «المزيد» ببوابة المالك لمصعب وكمال، مع عرض جوال وإشعار فوري عند اكتمال تقييم جديد.
-- [x] إصلاح ربط التقييمات القديمة عندما يكتب المدير اسمًا ثنائيًا والموظف مسجل باسم رباعي، مع إبقاء العدد صحيحًا وإظهار أسماء المقيّمين.
-- [ ] إصلاح فصل بصمات الورديات بين الأيام وتصحيح السجلات المشتقة المتأثرة. (المنطق وقاعدة البيانات تمّا؛ نشر الوظائف وتصحيح المشتقات قيد التحقق)
-- [x] منع فقدان موضع الشاشة عند التنقل بين تبويبات الموارد البشرية.
-- [x] دعم فتح أكثر من تبويب حضور وأكثر من ملف موظف مع حالة مستقلة لكل تبويب.
-- [ ] تدقيق خصومات الملكي غير الظاهرة حتى 8/9/2026 وتحديد ما يُرحّل لشهر 9.
-- [x] إعادة تصنيف سلفة أدهم 500 ₪ إلى حساب الموظف الصحيح وإسنادها لخصومات شهر 9 دون تعديل القيد الأصلي.
-- [x] إعداد تقييم معماري شامل قراءة فقط لـ Unify ERP تحت `docs/architecture/`، مع خرائط الكتابة والنزاهة والأمن والأداء وخارطة انتقال تدريجية، دون أي تغيير تشغيلي.
-- [x] إضافة اختيار رقم قادم فارغ لفواتير البيع والشراء مع منع إعادة استخدام أي رقم صادر واستمرار التسلسل بأمان.
-
-## Malaky cash boxes (2026-09-23)
-- [x] Fix BRV-2026-0002 (reversed + re-entered as payment)
-- [x] Branch opening balances posted (OBFIX-2026-09-23, 17 entries vs 3300)
-- [ ] POS cashier boxes (Plaza 1/2 etc.) — deferred to next meeting
-- [ ] Phase 1 (currency guard, monitor mode + POS change-out native amount) and Phase 2 (native balance function + UI) — next
-
-## Malaky celebrations (2026-09-24)
-- [x] Replace the general-manager appreciation message with Mosab Al-Qatlouni's birthday greeting on Malaky POS and employee screens, excluding Dial.
+- [x] DB: name_en on products/pos_categories, branches.receipt_language/name_en/address_en
+- [ ] Phase 1: English name fields in product card + categories, Excel import/export column
+- [ ] Phase 2: POS screen language switch (LTR + translated strings + English item names)
+- [ ] Phase 3: receipt-en-addon.js (receipt/kitchen/shift LTR) + client fallback + rebuild bridge zips
+- [ ] Phase 4: Rooh branch set to English, verification
+- Blocked on user: Rooh English name/address/VAT no., English item list, device list

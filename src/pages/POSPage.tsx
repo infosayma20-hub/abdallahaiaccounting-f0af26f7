@@ -22,6 +22,9 @@ import { usePermission } from "@/hooks/usePermission";
 import { assertPermission } from "@/lib/permissions/assertPermission";
 import { usePosMode } from "@/hooks/usePosMode";
 import { supabase } from "@/integrations/supabase/client";
+import { pt, pname, usePosLang } from "@/i18n/pos-lang";
+import { setReceiptLanguage, setEnglishReceiptHeader, registerEnglishNames } from "@/lib/print-english";
+import { getDeviceBranchId as getDeviceBranchIdForLang } from "@/lib/device-config";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -117,6 +120,7 @@ interface CartItem {
   id: string;
   product_id: string | null;
   name: string;
+  name_en?: string | null;
   qty: number;
   unit_price: number;
   /** Catalog price when the line was added — used to detect manual overrides. */
@@ -396,7 +400,7 @@ const SortableCategoryChip = ({ cat, isActive, isSortMode, isDragging, onClick, 
       style={{ ...cardStyle, minWidth: 80, height: 40, padding: "4px 14px" }}
     >
       {isSortMode && <GripVertical className="h-3 w-3 opacity-60 mb-0.5" />}
-      <span className="leading-tight text-center">{cat.name}</span>
+      <span className="leading-tight text-center">{pname(cat as any)}</span>
       {cat.count > 0 && <span className="text-[9px] opacity-70 mt-0.5">({cat.count})</span>}
     </button>
   );
@@ -422,6 +426,8 @@ const SortableProductCard = ({ id, children, isSortMode }: {
 };
 
 const POSPage = () => {
+  const posLangCtl = usePosLang();
+  const posDir = posLangCtl.dir;
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { user } = useAuth();
@@ -477,8 +483,25 @@ const POSPage = () => {
 
 
   // State
-  const [products, setProducts] = useState<Product[]>([]);
   const [posCategories, setPosCategories] = useState<POSCategory[]>([]);
+  const [products, setProducts] = useState<Product[]>([]);
+
+  // English receipts: names map + branch print language (default Arabic).
+  useEffect(() => {
+    registerEnglishNames(products as any);
+    registerEnglishNames(posCategories as any);
+  }, [products, posCategories]);
+  useEffect(() => {
+    const bid = getDeviceBranchIdForLang();
+    if (!bid) { setReceiptLanguage("ar"); return; }
+    supabase.from("branches").select("receipt_language, name_en, address_en").eq("id", bid).maybeSingle()
+      .then(({ data }) => {
+        const d: any = data || {};
+        setReceiptLanguage(d.receipt_language === "en" ? "en" : "ar");
+        setEnglishReceiptHeader({ name: d.name_en, address: d.address_en });
+      });
+  }, []);
+
   const [selectedCategory, setSelectedCategory] = useState<string>("الكل");
   const [searchQuery, setSearchQuery] = useState("");
   // Per-shift default-category guard (Malaky: default to "كرسبي فردي" on shift open)
@@ -606,7 +629,7 @@ const POSPage = () => {
       // بطاقة ولاء غير مرتبطة بملف زبون → إنشاء/ربط تلقائي
       const { data: linked, error: linkErr } = await (supabase as any)
         .rpc("pos_link_loyalty_contact", { _card_code: raw });
-      if (linkErr || !linked?.contact_id) { toast.error("تعذّر ربط البطاقة بملف زبون"); return; }
+      if (linkErr || !linked?.contact_id) { toast.error(pt("تعذّر ربط البطاقة بملف زبون")); return; }
       info = { ...info, ...(linked as any) };
     }
     // The HID reader may have had focus inside a POS search field. Clear the
@@ -640,7 +663,7 @@ const POSPage = () => {
     if (!contactId) {
       const { data: linked, error } = await (supabase as any)
         .rpc("pos_link_loyalty_contact", { _card_code: m.loyalty_card_code });
-      if (error || !linked?.contact_id) { toast.error("تعذّر ربط البطاقة بملف زبون"); return; }
+      if (error || !linked?.contact_id) { toast.error(pt("تعذّر ربط البطاقة بملف زبون")); return; }
       contactId = linked.contact_id;
       name = linked.contact_name || name;
       phone = linked.phone || phone;
@@ -662,7 +685,7 @@ const POSPage = () => {
     // discount via ManagerDiscountDialog — the cashier doesn't need the
     // permission in that case.
     if (d !== 0 && !opts?.bypassPermission && !posFeatPerm.can("sell", "discount")) {
-      toast.error("لا تملك صلاحية تطبيق الخصم");
+      toast.error(pt("لا تملك صلاحية تطبيق الخصم"));
       updateActiveOrder(o => ({ ...o, orderDiscount: 0 }));
       return;
     }
@@ -671,7 +694,7 @@ const POSPage = () => {
 
   const setOrderDiscountType = useCallback((t: "fixed" | "percent", opts?: { bypassPermission?: boolean }) => {
     if (!opts?.bypassPermission && !posFeatPerm.can("sell", "discount")) {
-      toast.error("لا تملك صلاحية تطبيق الخصم");
+      toast.error(pt("لا تملك صلاحية تطبيق الخصم"));
       return;
     }
     updateActiveOrder(o => ({ ...o, orderDiscountType: t }));
@@ -757,7 +780,7 @@ const POSPage = () => {
           );
           const res = (data as any) || {};
           if (!res.ok && res.reason === "lock_lost") {
-            toast.warning("تم تحرير قفل التعديل من جهة أخرى — الطلبية رجعت للفرع");
+            toast.warning(pt("تم تحرير قفل التعديل من جهة أخرى — الطلبية رجعت للفرع"));
             setOrders(prev => prev.map(o =>
               o.callCenterOrderId === id
                 ? { ...o, isEditingDispatch: false }
@@ -953,12 +976,12 @@ const POSPage = () => {
     const targetBox = box ?? selectedCashBox;
     if (!targetBox || targetBox.id === "__call_center__") return true;
     if (!targetBox.branch_id) {
-      toast.error("⛔ لا يمكن فتح الوردية: الصندوق غير مربوط بفرع");
+      toast.error(pt("⛔ لا يمكن فتح الوردية: الصندوق غير مربوط بفرع"));
       return false;
     }
     if (deviceConfig.branchId && targetBox.branch_id !== deviceConfig.branchId) {
       setCashBoxBranchId(targetBox.branch_id);
-      toast.error("⛔ تعارض في الفرع: هذا الجهاز مخصص لفرع آخر");
+      toast.error(pt("⛔ تعارض في الفرع: هذا الجهاز مخصص لفرع آخر"));
       return false;
     }
     return true;
@@ -1095,7 +1118,7 @@ const POSPage = () => {
   useEffect(() => {
     if (sessionRevokedFromElsewhere && session) {
       saveBlockedCart(company?.id ?? null, userId ?? null, session.id, orders);
-      toast.error("⛔ تم نقل العهدة لجهاز آخر — توقف البيع على هذا الجهاز");
+      toast.error(pt("⛔ تم نقل العهدة لجهاز آخر — توقف البيع على هذا الجهاز"));
     }
     // We deliberately omit `orders` from deps: we want to snapshot at the
     // moment of revoke, not re-save on every cart mutation afterward.
@@ -1110,7 +1133,7 @@ const POSPage = () => {
       // mutations from this point on, so this state matches what the user
       // sees on screen.
       saveBlockedCart(company?.id ?? null, userId ?? null, session?.id ?? null, orders);
-      toast.error("⛔ تم إغلاق العهدة من جهاز آخر — توقف البيع والطباعة");
+      toast.error(pt("⛔ تم إغلاق العهدة من جهاز آخر — توقف البيع والطباعة"));
     }
   }, [shiftClosedElsewhere]);
 
@@ -1126,29 +1149,29 @@ const POSPage = () => {
     // without unmounting POS — the cashier/admin can recover by clicking "إعادة الفحص"
     // in the sticky banner once the Bridge is back.
     if (!getCanSell()) {
-      if (!opts?.silent) toast.error("⛔ وضع عرض فقط — برنامج الطباعة غير متصل على هذا الجهاز");
+      if (!opts?.silent) toast.error(pt("⛔ وضع عرض فقط — برنامج الطباعة غير متصل على هذا الجهاز"));
       return false;
     }
     // 🔒 Concurrent-shift safety: if this shift was closed from another
     // device (Realtime UPDATE or 30s poll caught it), block every sensitive
     // action. The ShiftClosedElsewhereDialog is already open at this point.
     if (shiftClosedElsewhereRef.current) {
-      if (!opts?.silent) toast.error("⛔ تم إغلاق العهدة من جهاز آخر — لا يمكن إتمام البيع");
+      if (!opts?.silent) toast.error(pt("⛔ تم إغلاق العهدة من جهاز آخر — لا يمكن إتمام البيع"));
       return false;
     }
     // 🔒 Single-device lock: a second device may have taken over this session.
     if (sessionClaimState.status === "revoked") {
-      if (!opts?.silent) toast.error("⛔ تم نقل العهدة لجهاز آخر — لا يمكن إتمام البيع من هنا");
+      if (!opts?.silent) toast.error(pt("⛔ تم نقل العهدة لجهاز آخر — لا يمكن إتمام البيع من هنا"));
       return false;
     }
     if (sessionClaimState.status === "conflict") {
-      if (!opts?.silent) toast.error("⛔ هذه العهدة مفتوحة على جهاز آخر — قرّر النقل أولاً");
+      if (!opts?.silent) toast.error(pt("⛔ هذه العهدة مفتوحة على جهاز آخر — قرّر النقل أولاً"));
       return false;
     }
     // Emergency POS access: allow selling while device setup is corrected later.
     return true;
     if (!terminalBranchChecked || !cashBoxBranchChecked) {
-      if (!opts?.silent) toast.error("⏳ يتم التحقق من فرع الجهاز والصندوق، حاول مرة أخرى");
+      if (!opts?.silent) toast.error(pt("⏳ يتم التحقق من فرع الجهاز والصندوق، حاول مرة أخرى"));
       return false;
     }
     const result = assertDeviceReady({ terminalBranchId, cashBoxBranchId });
@@ -1211,7 +1234,7 @@ const POSPage = () => {
     if (!ao) return true;
     if (ao.tableId) return true; // طاولة محسوبة كاختيار صريح
     if (ao.orderTypeChosen) return true;
-    toast.error("⛔ حدد نوع الطلب أولاً: استلام أو توصيل");
+    toast.error(pt("⛔ حدد نوع الطلب أولاً: استلام أو توصيل"));
     return false;
   }, [activeOrder, restaurantFeatures, deliveryEnabled]);
 
@@ -1915,9 +1938,9 @@ const POSPage = () => {
       }
 
       if (!sessionUsable) {
-        toast.warning("لا يوجد إنترنت ولا وردية مفتوحة صالحة محفوظة — لا يمكن فتح وردية جديدة بدون اتصال");
+        toast.warning(pt("لا يوجد إنترنت ولا وردية مفتوحة صالحة محفوظة — لا يمكن فتح وردية جديدة بدون اتصال"));
       } else {
-        toast.warning("وضع بدون إنترنت — البيع يعمل محلياً وسيُزامن تلقائياً عند عودة الاتصال", { duration: 6000 });
+        toast.warning(pt("وضع بدون إنترنت — البيع يعمل محلياً وسيُزامن تلقائياً عند عودة الاتصال"), { duration: 6000 });
       }
       return true;
     } catch (e) {
@@ -2230,7 +2253,7 @@ const POSPage = () => {
       // fall back to the last known-good local snapshot so the cashier can
       // keep selling (sales queue in IndexedDB and sync when the line returns).
       const restored = await hydrateFromOfflineSnapshot();
-      if (!restored) toast.error("خطأ في تحميل نقطة البيع");
+      if (!restored) toast.error(pt("خطأ في تحميل نقطة البيع"));
     } finally {
       setLoading(false);
     }
@@ -2244,7 +2267,7 @@ const POSPage = () => {
     // Keyset paging on the primary key (unique, never NULL) fetches all rows;
     // the client-side .sort() below still decides the final display order.
     const PAGE = 1000;
-    const columns = "id, name, sell_price, buy_price, quantity, category, pos_category_id, unit, sku, barcode, tax_rate, is_pos_available, color, image_url, min_quantity, sort_order, pos_sort_order, kitchen_station_id, pos_tile_color";
+    const columns = "id, name, name_en, sell_price, buy_price, quantity, category, pos_category_id, unit, sku, barcode, tax_rate, is_pos_available, color, image_url, min_quantity, sort_order, pos_sort_order, kitchen_station_id, pos_tile_color";
     const rows: any[] = [];
     let afterId: string | null = null;
     for (let page = 0; page < 50; page++) {
@@ -2302,7 +2325,7 @@ const POSPage = () => {
     if (!dataOwnerId) return;
     const { data } = await supabase
       .from("pos_categories")
-      .select("id, name, color, display_order, is_active, restricted_cash_box_ids")
+      .select("id, name, name_en, color, display_order, is_active, restricted_cash_box_ids")
       .eq("user_id", dataOwnerId)
       .order("display_order");
     const categories = ((data as POSCategory[]) || []);
@@ -2344,7 +2367,7 @@ const POSPage = () => {
       setNewCatColor("#6B7280");
       await loadCategories();
     } catch (err: any) {
-      toast.error("خطأ: " + err.message);
+      toast.error(pt("خطأ: ") + err.message);
     } finally {
       setSavingCategory(false);
     }
@@ -2353,8 +2376,8 @@ const POSPage = () => {
   const handleDeleteCategory = async (catId: string) => {
     if (!dataOwnerId || !(isAdmin || posPerms.manage_products_categories)) return;
     const { error } = await supabase.from("pos_categories").delete().eq("id", catId).eq("user_id", dataOwnerId);
-    if (error) { toast.error("خطأ: " + error.message); return; }
-    toast.success("تم حذف التصنيف");
+    if (error) { toast.error(pt("خطأ: ") + error.message); return; }
+    toast.success(pt("تم حذف التصنيف"));
     await loadCategories();
     if (selectedCategory !== "الكل") setSelectedCategory("الكل");
   };
@@ -2413,7 +2436,7 @@ const POSPage = () => {
           if (prev.some(p => p.id === productId)) return prev;
           return [...prev, deletedProduct];
         });
-        toast.error("فشل حذف المنتج من قاعدة البيانات");
+        toast.error(pt("فشل حذف المنتج من قاعدة البيانات"));
       }
       pendingDeleteRef.current = null;
     }, 10000);
@@ -2434,7 +2457,7 @@ const POSPage = () => {
         color: newCategoryColor,
         display_order: posCategories.length,
       }).select().single();
-      if (catErr) { toast.error("خطأ في إنشاء التصنيف: " + catErr.message); return; }
+      if (catErr) { toast.error(pt("خطأ في إنشاء التصنيف: ") + catErr.message); return; }
       finalCategoryId = (newCat as any).id;
       finalCategoryName = newProduct.newCategory.trim();
     } else if (finalCategoryId) {
@@ -2467,7 +2490,7 @@ const POSPage = () => {
       setShowNewCategory(false);
       await Promise.all([loadProducts(), loadCategories()]);
     } catch (err: any) {
-      toast.error("خطأ: " + err.message);
+      toast.error(pt("خطأ: ") + err.message);
     } finally {
       setSavingProduct(false);
     }
@@ -3093,7 +3116,7 @@ const POSPage = () => {
         toast.success(`تمت إضافة الزبون "${posCustomer.name}" بنجاح`);
       }
     } catch (err: any) {
-      toast.error("فشل في إضافة الزبون: " + (err.message || "خطأ غير معروف"));
+      toast.error(pt("فشل في إضافة الزبون: ") + (err.message || "خطأ غير معروف"));
     }
     setSavingCustomer(false);
     setShowQuickAddCustomer(false);
@@ -3319,10 +3342,10 @@ const POSPage = () => {
       preference_value: { order: orderIds },
     } as any, { onConflict: "auth_user_id,preference_key" });
     if (error) {
-      toast.error("تعذّر حفظ ترتيب التصنيفات");
+      toast.error(pt("تعذّر حفظ ترتيب التصنيفات"));
       return;
     }
-    toast.success("تم حفظ ترتيب التصنيفات (خاص بك فقط)");
+    toast.success(pt("تم حفظ ترتيب التصنيفات (خاص بك فقط)"));
   }, [posCategories, userId, dataOwnerId]);
 
   const handleProductDragEnd = useCallback(async (event: DragEndEvent) => {
@@ -3361,10 +3384,10 @@ const POSPage = () => {
     } as any, { onConflict: "auth_user_id,preference_key" });
     if (prefErr) {
       console.error("[POS] save product order failed:", prefErr);
-      toast.error("تعذّر حفظ الترتيب");
+      toast.error(pt("تعذّر حفظ الترتيب"));
       return;
     }
-    toast.success("تم حفظ الترتيب (خاص بك فقط)");
+    toast.success(pt("تم حفظ الترتيب (خاص بك فقط)"));
   }, [filteredProducts, userId, selectedCategory, visiblePosCategories]);
 
   // Cart operations
@@ -3407,6 +3430,7 @@ const POSPage = () => {
           id: crypto.randomUUID(),
           product_id: product.id,
           name: product.name,
+          name_en: (product as any).name_en ?? null,
           qty: itemQty,
           unit_price: unitPrice,
           base_price: unitPrice,
@@ -3440,6 +3464,7 @@ const POSPage = () => {
           id: crypto.randomUUID(),
           product_id: product.id,
           name: product.name,
+          name_en: (product as any).name_en ?? null,
           qty: 1,
           unit_price: product.sell_price,
           base_price: product.sell_price,
@@ -3501,7 +3526,7 @@ const POSPage = () => {
     }
     qty = Math.round(qty * 1000) / 1000;
     setCart((prev) => [...prev, {
-      id: crypto.randomUUID(), product_id: product.id, name: product.name, qty,
+      id: crypto.randomUUID(), product_id: product.id, name: product.name, name_en: (product as any).name_en ?? null, qty,
       unit_price: product.sell_price, base_price: product.sell_price, cost_price: product.buy_price,
       discount_pct: 0, tax_rate: product.tax_rate, unit: product.unit, note: "",
       station_id: product.kitchen_station_id, modifiers: [],
@@ -3599,19 +3624,19 @@ const POSPage = () => {
       updated[index] = { ...item, price_reason: reason };
       return updated;
     });
-    toast.success("✅ تم تسجيل سبب تعديل السعر");
+    toast.success(pt("✅ تم تسجيل سبب تعديل السعر"));
   }, [priceReasonTarget, setCart]);
 
   const updateCartItem = useCallback((index: number, field: "qty" | "unit_price" | "discount_pct", value: number) => {
     // Enforce price editing permission (legacy posPerms + feature override)
     if (field === "unit_price") {
-      if (!posFeatPerm.can("sell", "change_price")) { toast.error("لا تملك صلاحية تغيير السعر"); return; }
+      if (!posFeatPerm.can("sell", "change_price")) { toast.error(pt("لا تملك صلاحية تغيير السعر")); return; }
       if (!isAdmin && !posPerms.can_edit_prices) return;
     }
     // Enforce discount permission and max discount
     if (field === "discount_pct") {
-      if (!posFeatPerm.can("sell", "discount")) { toast.error("لا تملك صلاحية تطبيق الخصم"); return; }
-      if (!isAdmin && !posPerms.can_apply_discount) { toast.error("ليس لديك صلاحية تطبيق الخصم"); return; }
+      if (!posFeatPerm.can("sell", "discount")) { toast.error(pt("لا تملك صلاحية تطبيق الخصم")); return; }
+      if (!isAdmin && !posPerms.can_apply_discount) { toast.error(pt("ليس لديك صلاحية تطبيق الخصم")); return; }
       if (!isAdmin && value > posPerms.max_discount_percent) { toast.error(`الحد الأقصى للخصم ${posPerms.max_discount_percent}%`); value = posPerms.max_discount_percent; }
     }
     setCart((prev) => {
@@ -3667,18 +3692,18 @@ const POSPage = () => {
   const handleOpenShift = async () => {
     if (!userId || !company) return;
     if (!terminal) {
-      toast.error("⛔ لا يوجد محطة POS مهيأة لهذا الجهاز — افتح إعداد الجهاز أولاً");
+      toast.error(pt("⛔ لا يوجد محطة POS مهيأة لهذا الجهاز — افتح إعداد الجهاز أولاً"));
       return;
     }
     if (!enforceDeviceGuard()) return;
-    if (!isAdmin && !posPerms.can_open_register) { toast.error("ليس لديك صلاحية فتح الوردية"); return; }
+    if (!isAdmin && !posPerms.can_open_register) { toast.error(pt("ليس لديك صلاحية فتح الوردية")); return; }
     if (!guardCashBoxBranchId()) return;
     const isCallCenter = selectedCashBoxId === "__call_center__";
     // Block "بدون صندوق مؤقتاً" (empty cash box) for non-admins — it bypasses
     // branch attribution and causes orders to land under "بدون فرع" in
     // owner reports. Admins keep it for one-off / debugging flows.
     if (!isAdmin && !isCallCenter && !selectedCashBoxId) {
-      toast.error("⛔ يجب اختيار صندوق نقدي لفتح الوردية");
+      toast.error(pt("⛔ يجب اختيار صندوق نقدي لفتح الوردية"));
       return;
     }
     const cash = isCallCenter ? 0 : (parseFloat(openingCash) || 0);
@@ -3704,7 +3729,7 @@ const POSPage = () => {
     // cashier. Only block when the tenant actually has boxes to pick from, so
     // setups that never configured cash boxes keep working as before.
     if (!isCallCenter && !actualCashBoxId && cashBoxes.length > 0) {
-      toast.error("⛔ اختر صندوق النقدية قبل فتح الوردية — بدونه لا يمكن مطابقة الكاش مع كشف الحساب");
+      toast.error(pt("⛔ اختر صندوق النقدية قبل فتح الوردية — بدونه لا يمكن مطابقة الكاش مع كشف الحساب"));
       return;
     }
 
@@ -3751,7 +3776,7 @@ const POSPage = () => {
       const code = (error as any).code;
       const msg = (error.message || "").toLowerCase();
       if (code === "23505" && (msg.includes("one_open_per_cashier") || msg.includes("one_open_per_auth_user"))) {
-        toast.error("⛔ لديك عهدة مفتوحة بالفعل على جهاز آخر — أغلقها أولاً ثم حاول مجدداً");
+        toast.error(pt("⛔ لديك عهدة مفتوحة بالفعل على جهاز آخر — أغلقها أولاً ثم حاول مجدداً"));
       } else {
         toast.error(`خطأ في فتح الوردية: ${error.message || "سبب غير معروف"}`);
       }
@@ -3776,7 +3801,7 @@ const POSPage = () => {
       cash_box_id: actualCashBoxId,
     });
     setShowOpenShift(false);
-    toast.success("تم فتح الوردية بنجاح");
+    toast.success(pt("تم فتح الوردية بنجاح"));
 
     // 💾 Offer to restore any cart that was auto-saved when a previous
     // shift on this device was force-closed from elsewhere.
@@ -3793,9 +3818,9 @@ const POSPage = () => {
                 setActiveOrderIndex(0);
                 orderCounter.current = (draft.orders as any[]).length || 1;
                 clearBlockedCart(company?.id ?? null, userId ?? null);
-                toast.success("تمت استعادة السلة");
+                toast.success(pt("تمت استعادة السلة"));
               } catch {
-                toast.error("تعذّر استعادة السلة");
+                toast.error(pt("تعذّر استعادة السلة"));
               }
             },
           },
@@ -3856,11 +3881,11 @@ const POSPage = () => {
   // Handle password change for first-login cashiers
   const handleChangePassword = async () => {
     if (newPassword.length < 6) {
-      toast.error("كلمة المرور يجب أن تكون 6 أحرف على الأقل");
+      toast.error(pt("كلمة المرور يجب أن تكون 6 أحرف على الأقل"));
       return;
     }
     if (newPassword !== confirmNewPassword) {
-      toast.error("كلمات المرور غير متطابقة");
+      toast.error(pt("كلمات المرور غير متطابقة"));
       return;
     }
     setChangingPassword(true);
@@ -3882,7 +3907,7 @@ const POSPage = () => {
       setShowChangePassword(false);
       setNewPassword("");
       setConfirmNewPassword("");
-      toast.success("تم تغيير كلمة المرور بنجاح ✅");
+      toast.success(pt("تم تغيير كلمة المرور بنجاح ✅"));
     } catch (err: any) {
       toast.error(err.message || "فشل تغيير كلمة المرور");
     }
@@ -4220,7 +4245,7 @@ const POSPage = () => {
       noStationItems.length === 0;
 
     if (allItemsMuted) {
-      toast.info("ما في تذاكر مطبخ — كل الأصناف مكتومة على محطاتها بحسب قواعد الطباعة");
+      toast.info(pt("ما في تذاكر مطبخ — كل الأصناف مكتومة على محطاتها بحسب قواعد الطباعة"));
       // Skip both the dialog and the bridge dispatch entirely.
       return;
     }
@@ -4385,7 +4410,7 @@ const POSPage = () => {
     // "credit" (آجل) يبقى آجل — الزبون مربوط بالطلبية (customerId) فتنزل على ذمته.
     let posPayMethod = ccPayment === "cash" ? "cash" : ccPayment === "credit" ? "credit" : "card";
     if (ccPayment === "credit" && !activeOrder.customerId) {
-      toast.error("طلب آجل بدون زبون مربوط — افتح شاشة الدفع واختر الزبون");
+      toast.error(pt("طلب آجل بدون زبون مربوط — افتح شاشة الدفع واختر الزبون"));
       return;
     }
 
@@ -4637,7 +4662,7 @@ const POSPage = () => {
     // بنبيّن تنبيه واضح مرة وحدة بالوردية ليصححوا الصندوق قبل الإغلاق.
     if (session && !session.cash_box_id && cashBoxes.length > 0 && !noCashBoxWarnedRef.current) {
       noCashBoxWarnedRef.current = true;
-      toast.warning("⚠️ هذه الوردية مفتوحة بدون صندوق نقدي — الكاش رح يظهر على الخزينة الرئيسية. راجع الإدارة لربط الوردية بصندوق الفرع.", { duration: 8000 });
+      toast.warning(pt("⚠️ هذه الوردية مفتوحة بدون صندوق نقدي — الكاش رح يظهر على الخزينة الرئيسية. راجع الإدارة لربط الوردية بصندوق الفرع."), { duration: 8000 });
     }
 
 
@@ -4703,7 +4728,7 @@ const POSPage = () => {
         const targetBr = (ccRow as any)?.target_branch_id || null;
         const targetName = (ccRow as any)?.target_branch_name || "الفرع الهدف";
         if (!sessionBranchId) {
-          toast.error("⛔ لا يمكن تنفيذ طلب كول سنتر من جلسة غير مرتبطة بفرع (فرع/محطة افتراضية). افتح وردية على الفرع الصحيح.");
+          toast.error(pt("⛔ لا يمكن تنفيذ طلب كول سنتر من جلسة غير مرتبطة بفرع (فرع/محطة افتراضية). افتح وردية على الفرع الصحيح."));
           return;
         }
         if (targetBr && targetBr !== sessionBranchId) {
@@ -4726,7 +4751,7 @@ const POSPage = () => {
     // Split-payment validation (mixed cash + card, ILS only, online only)
     if (splitMode && splitTenders.length > 1) {
       if (!offlineMode.isOnline) {
-        toast.error("الدفع المختلط غير متاح في وضع عدم الاتصال");
+        toast.error(pt("الدفع المختلط غير متاح في وضع عدم الاتصال"));
         return;
       }
       const paid = splitTenders.reduce((s, t) => s + (Number(t.amount) || 0), 0);
@@ -4738,16 +4763,16 @@ const POSPage = () => {
         return;
       }
       if (splitTenders.some((t) => !(t.amount > 0))) {
-        toast.error("كل دفعة يجب أن تكون أكبر من صفر");
+        toast.error(pt("كل دفعة يجب أن تكون أكبر من صفر"));
         return;
       }
       if (splitTenders.some((t) => t.method !== "cash" && t.method !== "card")) {
-        toast.error("الدفع المختلط يدعم النقدي والفيزا فقط");
+        toast.error(pt("الدفع المختلط يدعم النقدي والفيزا فقط"));
         return;
       }
       // Foreign-currency tenders must be cash (no foreign card swipes)
       if (splitTenders.some((t) => (t.currency && t.currency !== "ILS") && t.method !== "cash")) {
-        toast.error("الدفع بالعملة الأجنبية مسموح نقداً فقط");
+        toast.error(pt("الدفع بالعملة الأجنبية مسموح نقداً فقط"));
         return;
       }
       // Foreign tenders must carry a positive rate AND a positive foreign amount,
@@ -4765,20 +4790,20 @@ const POSPage = () => {
 
     }
     if (effectivePaymentMethod === "employee_account" && !selectedEmployee) {
-      toast.error("يرجى اختيار الموظف أولاً");
+      toast.error(pt("يرجى اختيار الموظف أولاً"));
       return;
     }
     if (effectivePaymentMethod === "wallet") {
       if (!activeOrder.customerId) {
-        toast.error("يرجى اختيار الزبون صاحب المحفظة أولاً");
+        toast.error(pt("يرجى اختيار الزبون صاحب المحفظة أولاً"));
         return;
       }
       if (walletInfo?.frozen) {
-        toast.error("محفظة هذا الزبون مجمّدة");
+        toast.error(pt("محفظة هذا الزبون مجمّدة"));
         return;
       }
       if (!walletInfo?.exists) {
-        toast.error("لا توجد محفظة لهذا الزبون — افتح له محفظة من شاشة المحافظ");
+        toast.error(pt("لا توجد محفظة لهذا الزبون — افتح له محفظة من شاشة المحافظ"));
         return;
       }
       const needed = customerDataDiscount
@@ -4795,7 +4820,7 @@ const POSPage = () => {
       !employeeHotDrinkOrder &&
       !mealDiscountType
     ) {
-      toast.error("يرجى اختيار نوع الخصم (بدون خصم / عائلي 10% / فردي 50%)");
+      toast.error(pt("يرجى اختيار نوع الخصم (بدون خصم / عائلي 10% / فردي 50%)"));
       return;
     }
 
@@ -4839,7 +4864,7 @@ const POSPage = () => {
     // Defense-in-depth: block sale if an order-level discount is present but
     // the user lacks pos.sell.discount AND no branch-manager override exists.
     if (orderDiscount > 0 && !posFeatPerm.can("sell", "discount") && !managerDiscountMeta) {
-      toast.error("لا تملك صلاحية تطبيق خصم");
+      toast.error(pt("لا تملك صلاحية تطبيق خصم"));
       return;
     }
 
@@ -4863,19 +4888,19 @@ const POSPage = () => {
       // creates a sub-account, call-center order linking, table picking).
       // Block these offline to avoid data corruption.
       if (effectivePaymentMethod === "employee_account") {
-        toast.error("⚠️ لا يمكن تنفيذ دفع 'حساب موظف' بدون إنترنت");
+        toast.error(pt("⚠️ لا يمكن تنفيذ دفع 'حساب موظف' بدون إنترنت"));
         return;
       }
       if (effectivePaymentMethod === "wallet") {
-        toast.error("⚠️ لا يمكن الدفع من المحفظة بدون إنترنت");
+        toast.error(pt("⚠️ لا يمكن الدفع من المحفظة بدون إنترنت"));
         return;
       }
       if (activeOrder.callCenterOrderId) {
-        toast.error("⚠️ لا يمكن إكمال طلب كول سنتر بدون إنترنت");
+        toast.error(pt("⚠️ لا يمكن إكمال طلب كول سنتر بدون إنترنت"));
         return;
       }
       if (activeOrder.tableId) {
-        toast.error("⚠️ لا يمكن إكمال طلب طاولة بدون إنترنت");
+        toast.error(pt("⚠️ لا يمكن إكمال طلب طاولة بدون إنترنت"));
         return;
       }
 
@@ -5403,7 +5428,7 @@ const POSPage = () => {
       //   صفوف pos_payments وقيد الصندوق، وتُبقي قيد خصم المبيعات/COGS).
       const isFreeOrder = Number(cartTotals.total) <= 0;
       if (safePaymentsPayload.length === 0 && !isFreeOrder) {
-        toast.error("لا يوجد مبلغ للدفع — تحقق من قيمة الفاتورة وطريقة الدفع");
+        toast.error(pt("لا يوجد مبلغ للدفع — تحقق من قيمة الفاتورة وطريقة الدفع"));
         return;
       }
 
@@ -6226,7 +6251,7 @@ const POSPage = () => {
               `🚚 تم إرسال الطلب إلى Wheels${price != null ? ` — التوصيل: ${price} ₪` : ""}`
             );
           } else if ((wheelsRes as any)?.skipped) {
-            toast.info("ℹ️ تم تخطّي إرسال Wheels — الطلبية موجودة أصلاً على Wheels", { duration: 4000 });
+            toast.info(pt("ℹ️ تم تخطّي إرسال Wheels — الطلبية موجودة أصلاً على Wheels"), { duration: 4000 });
           } else {
             const errMsg = String((wheelsRes as any)?.error || "");
             // Surface every failure so the cashier knows the courier wasn't
@@ -6489,13 +6514,13 @@ const POSPage = () => {
   const handleCloseShift = async () => {
     if (!session || !userId) return;
     if (!enforceDeviceGuard()) return;
-    if (!isAdmin && !posPerms.can_close_register) { toast.error("ليس لديك صلاحية إغلاق الوردية"); return; }
+    if (!isAdmin && !posPerms.can_close_register) { toast.error(pt("ليس لديك صلاحية إغلاق الوردية")); return; }
     try { await assertPermission("pos", "sell", "close_shift"); } catch { return; }
     // ⛔ Block shift close while offline OR when there are unsynced sales.
     // Closing on stale totals would create false cash variance — the cashier
     // must wait until connectivity returns and the queue drains.
     if (!offlineMode.isOnline) {
-      toast.error("⚠️ لا يمكن إغلاق الوردية بدون إنترنت — انتظر عودة الاتصال");
+      toast.error(pt("⚠️ لا يمكن إغلاق الوردية بدون إنترنت — انتظر عودة الاتصال"));
       return;
     }
     if (offlineMode.pendingCount > 0) {
@@ -6779,10 +6804,10 @@ const POSPage = () => {
     const effectiveCashUSD = hasUSDActivity ? cashUSD : 0;
     const effectiveCashJOD = hasJODActivity ? cashJOD : 0;
     if (!hasUSDActivity && cashUSD > 0) {
-      toast.warning("لا توجد حركة بالدولار في هذه الوردية — تم تجاهل المبلغ المُدخل بالدولار من حساب العهدة");
+      toast.warning(pt("لا توجد حركة بالدولار في هذه الوردية — تم تجاهل المبلغ المُدخل بالدولار من حساب العهدة"));
     }
     if (!hasJODActivity && cashJOD > 0) {
-      toast.warning("لا توجد حركة بالدينار في هذه الوردية — تم تجاهل المبلغ المُدخل بالدينار من حساب العهدة");
+      toast.warning(pt("لا توجد حركة بالدينار في هذه الوردية — تم تجاهل المبلغ المُدخل بالدينار من حساب العهدة"));
     }
 
     // Per-currency variance
@@ -6842,7 +6867,7 @@ const POSPage = () => {
     }
     const closeRow = Array.isArray(closeRes) ? closeRes[0] : closeRes;
     if (closeRow?.already_closed) {
-      toast.error("⛔ العهدة كانت مُغلقة مسبقاً من جهاز آخر — لا حاجة لتسجيل العجز/الفائض هنا");
+      toast.error(pt("⛔ العهدة كانت مُغلقة مسبقاً من جهاز آخر — لا حاجة لتسجيل العجز/الفائض هنا"));
       // Tear down local UI without writing anything else.
       setShowCloseShift(false);
       setSession(null);
@@ -7039,7 +7064,7 @@ const POSPage = () => {
     setOrders([createNewOrder(1)]);
     setActiveOrderIndex(0);
     orderCounter.current = 1;
-    toast.success("تم إغلاق الوردية بنجاح");
+    toast.success(pt("تم إغلاق الوردية بنجاح"));
     // Admins go back to the apps grid; everyone else (cashier / call-center /
     // employee+cashier) lands on the workspace chooser so they can pick again
     // (POS / Employee / Call Center) instead of being forced into one screen.
@@ -7089,7 +7114,7 @@ const POSPage = () => {
     setOrders([createNewOrder(1)]);
     setActiveOrderIndex(0);
     orderCounter.current = 1;
-    toast.success("تم إغلاق الوردية بنجاح");
+    toast.success(pt("تم إغلاق الوردية بنجاح"));
     try { if (userId) sessionStorage.removeItem(`workspace-choice:${userId}`); } catch {}
     try { clearRoleRedirectCache(userId || undefined); } catch {}
     if (isAdmin) {
@@ -7211,7 +7236,7 @@ const POSPage = () => {
         const isDelivery = activeOrder.orderType === "delivery";
         const blockReceipt = !isAdmin || isDelivery;
         if (blockReceipt && !isDelivery) {
-          toast.info("ℹ️ F8 طبع تذاكر المطبخ فقط — اضغط F12 للدفع وطباعة وصل الزبون", { duration: 3500 });
+          toast.info(pt("ℹ️ F8 طبع تذاكر المطبخ فقط — اضغط F12 للدفع وطباعة وصل الزبون"), { duration: 3500 });
         }
         printAllImage(f8Order, undefined, undefined, { skipReceipt: blockReceipt })
           .catch(() => console.warn("F8 image print failed"))
@@ -7269,7 +7294,7 @@ const POSPage = () => {
 
   if (loading) {
     return (
-      <div className="h-screen flex items-center justify-center bg-background" dir="rtl">
+      <div className="h-screen flex items-center justify-center bg-background" dir={posDir}>
         <div
           className="w-10 h-10 rounded-full border-2 border-transparent"
           style={{
@@ -7282,7 +7307,7 @@ const POSPage = () => {
   }
 
   return (
-    <div className="h-screen flex flex-col overflow-hidden pos-container pos-page-root" dir="rtl" data-pos-layout>
+    <div className="h-screen flex flex-col overflow-hidden pos-container pos-page-root" dir={posDir} lang={posLangCtl.lang} data-pos-layout>
       <GeneralManagerCelebration authUserId={userId} dataOwnerId={dataOwnerId} />
       {/* ⛔ Device-level guard — blocks selling when branch/terminal/bridge are missing or in conflict */}
       <POSDeviceGuard
@@ -7302,7 +7327,7 @@ const POSPage = () => {
           <button
             onClick={() => navigate("/apps", { replace: true })}
             className="h-9 w-9 rounded-lg flex items-center justify-center hover:bg-white/[0.08] transition-all shrink-0"
-            title="رجوع"
+            title={pt("رجوع")}
           >
             <ArrowRight className="h-[18px] w-[18px]" style={{ color: "rgba(255,255,255,0.6)" }} />
           </button>
@@ -7312,6 +7337,15 @@ const POSPage = () => {
             <WifiOff className="h-[18px] w-[18px] text-red-400 shrink-0" />
           )}
           <BridgeStatusIndicator />
+          <button
+            type="button"
+            onClick={() => posLangCtl.setLang(posLangCtl.lang === "en" ? "ar" : "en")}
+            className="h-8 px-2 rounded-lg text-[11px] font-bold shrink-0 hover:bg-white/[0.08] transition-all"
+            style={{ color: "rgba(255,255,255,0.85)", border: "1px solid rgba(255,255,255,0.2)" }}
+            title={posLangCtl.lang === "en" ? "العربية" : "English"}
+          >
+            {posLangCtl.lang === "en" ? "ع" : "EN"}
+          </button>
           {company?.logo_url ? (
             <img src={company.logo_url} alt={company.name} className="h-8 w-8 rounded-full object-cover shrink-0" style={{ border: '1.5px solid rgba(255,255,255,0.15)' }} />
           ) : (
@@ -7337,7 +7371,7 @@ const POSPage = () => {
               searchPosCustomers(val);
             }}
             onFocus={(e) => { setShowContactDropdown(true); e.currentTarget.style.borderColor = "rgba(255,255,255,0.3)"; e.currentTarget.style.background = "rgba(255,255,255,0.12)"; }}
-            placeholder="الزبون..."
+            placeholder={pt("الزبون...")}
             className="w-full h-9 rounded-lg px-3 pr-9 text-[13px] focus:outline-none transition-all"
             style={{
               background: "rgba(255,255,255,0.08)",
@@ -7440,12 +7474,12 @@ const POSPage = () => {
                   <PlusCircle className="h-3 w-3 text-primary shrink-0" />
                   <span className="text-[11px] font-medium text-primary">إضافة "{customerSearch}" كزبون جديد</span>
                 </div>
-                         <div className="flex items-center gap-1.5" dir="rtl">
+                         <div className="flex items-center gap-1.5" dir={posDir}>
                   <input
                     type="tel"
                     inputMode="numeric"
                     autoComplete="off"
-                    placeholder="رقم الهاتف (اختياري)"
+                    placeholder={pt("رقم الهاتف (اختياري)")}
                     value={newCustomerPhone}
                     onChange={e => setNewCustomerPhone(e.target.value.replace(/\D/g, ""))}
                     onMouseDown={e => e.stopPropagation()}
@@ -7501,7 +7535,7 @@ const POSPage = () => {
                   }
                 }
               }}
-              placeholder="بحث أو مسح باركود..."
+              placeholder={pt("بحث أو مسح باركود...")}
               className="w-full h-9 rounded-lg px-3 pr-9 text-[13px] focus:outline-none transition-all"
               style={{
                 background: "rgba(255,255,255,0.08)",
@@ -7517,7 +7551,7 @@ const POSPage = () => {
             onClick={() => setShowBarcodeScanner(true)}
             className="h-9 w-9 shrink-0 rounded-lg flex items-center justify-center hover:bg-white/[0.12] transition-all"
             style={{ background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.12)" }}
-            title="مسح باركود بالكاميرا"
+            title={pt("مسح باركود بالكاميرا")}
           >
             <Barcode className="h-4 w-4" style={{ color: "rgba(255,255,255,0.85)" }} />
           </button>
@@ -7536,12 +7570,12 @@ const POSPage = () => {
               <span className="font-semibold max-w-[120px] truncate">{loyaltyInfo.name}</span>
               <span style={{ color: "rgba(255,255,255,0.65)" }}>نقاط {loyaltyInfo.points}</span>
               <span style={{ color: "rgba(255,255,255,0.65)" }}>محفظة ₪{loyaltyInfo.wallet.toFixed(2)}</span>
-              {loyaltyInfo.frozen && <span style={{ color: "#f87171" }}>مجمّدة</span>}
+              {loyaltyInfo.frozen && <span style={{ color: "#f87171" }}>{pt("مجمّدة")}</span>}
               <button
                 type="button"
                 onClick={() => setLoyaltyInfo(null)}
                 className="opacity-60 hover:opacity-100"
-                title="إخفاء"
+                title={pt("إخفاء")}
               >
                 <X className="h-3.5 w-3.5" />
               </button>
@@ -7552,7 +7586,7 @@ const POSPage = () => {
           <button
             onClick={() => setShowLoyaltyPicker(true)}
             className="relative h-9 w-9 rounded-lg flex items-center justify-center hover:bg-white/[0.08] transition-all"
-            title="زبون الولاء (بحث بالاسم أو الجوال أو رقم البطاقة)"
+            title={pt("زبون الولاء (بحث بالاسم أو الجوال أو رقم البطاقة)")}
           >
             <Star className="h-5 w-5" style={{ color: "rgba(255,255,255,0.7)" }} />
           </button>
@@ -7562,7 +7596,7 @@ const POSPage = () => {
             <button
               onClick={() => setShowInvoiceHistory(true)}
               className="relative h-9 w-9 rounded-lg flex items-center justify-center hover:bg-white/[0.08] transition-all"
-              title="سجل الفواتير"
+              title={pt("سجل الفواتير")}
             >
               <FileText className="h-5 w-5" style={{ color: "rgba(255,255,255,0.7)" }} />
               {(isAdmin || posPerms.can_view_profits) && session && session.total_orders > 0 && (
@@ -7583,7 +7617,7 @@ const POSPage = () => {
               // 🛡️ Branch match — order MUST belong to this device's branch
               const expectedBranch = deviceConfig.branchId;
               if (expectedBranch && order.target_branch_id && order.target_branch_id !== expectedBranch) {
-                toast.error("⛔ هذا الطلب موجّه لفرع آخر — لا يمكن قبوله من هذا الجهاز");
+                toast.error(pt("⛔ هذا الطلب موجّه لفرع آخر — لا يمكن قبوله من هذا الجهاز"));
                 return;
               }
               orderCounter.current += 1;
@@ -7674,7 +7708,7 @@ const POSPage = () => {
 
           {/* Kitchen — hidden for Malaky (unused) */}
           {!isMalakyTenant && (
-            <button onClick={() => navigate("/pos/kitchen")} className="hidden xl:flex h-9 w-9 rounded-lg items-center justify-center hover:bg-white/[0.08] transition-all shrink-0" title="المطبخ">
+            <button onClick={() => navigate("/pos/kitchen")} className="hidden xl:flex h-9 w-9 rounded-lg items-center justify-center hover:bg-white/[0.08] transition-all shrink-0" title={pt("المطبخ")}>
               <ChefHat className="h-5 w-5" style={{ color: "rgba(255,255,255,0.7)" }} />
             </button>
           )}
@@ -7698,7 +7732,7 @@ const POSPage = () => {
 
           {/* Tables — hidden for Malaky (unused) */}
           {!isMalakyTenant && (
-            <button onClick={() => navigate("/pos/floor-plan")} className="hidden xl:flex h-9 w-9 rounded-lg items-center justify-center hover:bg-white/[0.08] transition-all shrink-0" title="الطاولات">
+            <button onClick={() => navigate("/pos/floor-plan")} className="hidden xl:flex h-9 w-9 rounded-lg items-center justify-center hover:bg-white/[0.08] transition-all shrink-0" title={pt("الطاولات")}>
               <UtensilsCrossed className="h-5 w-5" style={{ color: "rgba(255,255,255,0.7)" }} />
             </button>
           )}
@@ -7709,12 +7743,12 @@ const POSPage = () => {
               onClick={() => setShowOpsDropdown(v => !v)}
               onBlur={() => setTimeout(() => setShowOpsDropdown(false), 200)}
               className="h-9 w-9 rounded-lg flex items-center justify-center hover:bg-white/[0.08] transition-all shrink-0"
-              title="أدوات"
+              title={pt("أدوات")}
             >
               <MoreHorizontal className="h-5 w-5" style={{ color: "rgba(255,255,255,0.7)" }} />
             </button>
             {showOpsDropdown && (
-              <div className="absolute top-full mt-1 right-0 z-50 rounded-lg shadow-xl min-w-[200px] py-1 border" style={{ background: "#fff", color: "#1a1a1a" }} dir="rtl">
+              <div className="absolute top-full mt-1 right-0 z-50 rounded-lg shadow-xl min-w-[200px] py-1 border" style={{ background: "#fff", color: "#1a1a1a" }} dir={posDir}>
                 {/* Compact nav entries — visible only when the icon shortcuts above are hidden (narrow screens) */}
                 <div className={isMalakyTenant ? "hidden" : "xl:hidden"}>
                   <button className="w-full text-right px-4 py-2 text-xs flex items-center gap-2 hover:bg-gray-100 transition-colors" onClick={() => { navigate("/pos/kitchen"); setShowOpsDropdown(false); }}>
@@ -7748,7 +7782,7 @@ const POSPage = () => {
                     }}
                   >
                     <Receipt className="h-3.5 w-3.5" style={{ color: "#4A9EE8" }} /> صرف مصروف
-                    <span className="mr-auto text-[9px] bg-amber-100 text-amber-800 rounded px-1 py-0.5">مدير</span>
+                    <span className="mr-auto text-[9px] bg-amber-100 text-amber-800 rounded px-1 py-0.5">{pt("مدير")}</span>
                   </button>
                 )}
                 <div className="border-t border-gray-200 my-1" />
@@ -7843,7 +7877,7 @@ const POSPage = () => {
                   handleCallCenterCloseShift();
                 } else {
                   if (!isCallCenter && session && session.cash_box_id == null) {
-                    toast.warning("تنبيه: لا يوجد صندوق مرتبط بهذه الوردية. سيظهر مربع العد كالمعتاد — راجع الإدارة بعد الإغلاق.");
+                    toast.warning(pt("تنبيه: لا يوجد صندوق مرتبط بهذه الوردية. سيظهر مربع العد كالمعتاد — راجع الإدارة بعد الإغلاق."));
                   }
                   setShowCloseShift(true);
                 }
@@ -7886,7 +7920,7 @@ const POSPage = () => {
             {isSortMode && (
               <div className="mb-1 flex items-center gap-2 px-2 py-1 rounded border text-[10px]" style={{ borderColor: "#475569", color: posDarkMode ? "#cbd5e1" : "#475569", background: posDarkMode ? "rgba(255,255,255,0.04)" : "#f8fafc" }}>
                 <GripVertical className="h-3 w-3" />
-                <span className="font-medium">وضع الترتيب — اسحب التصنيفات أو المنتجات</span>
+                <span className="font-medium">{pt("وضع الترتيب — اسحب التصنيفات أو المنتجات")}</span>
               </div>
             )}
             <DndContext
@@ -7932,7 +7966,7 @@ const POSPage = () => {
                         boxShadow: selectedCategory === "__uncategorized__" ? '0 2px 8px rgba(13,27,46,0.25)' : 'none',
                       }}
                     >
-                      <span className="leading-tight">أخرى</span>
+                      <span className="leading-tight">{pt("أخرى")}</span>
                       <span className="text-[9px] opacity-70 mt-0.5">({categoriesWithCounts.uncategorized})</span>
                     </button>
                   )}
@@ -7957,7 +7991,7 @@ const POSPage = () => {
                       boxShadow: selectedCategory === "الكل" ? '0 2px 8px rgba(13,27,46,0.25)' : 'none',
                     }}
                   >
-                    <span className="leading-tight">الكل</span>
+                    <span className="leading-tight">{pt("الكل")}</span>
                     <span className="text-[9px] opacity-70 mt-0.5">({categoriesWithCounts.all})</span>
                   </button>
                   )}
@@ -7997,7 +8031,7 @@ const POSPage = () => {
                 strategy={rectSortingStrategy}
                 disabled={!isSortMode}
               >
-                <div dir="rtl" className={`p-2 grid ${
+                <div dir={posDir} className={`p-2 grid ${
                   filteredProducts.length <= 10 && filteredProducts.length > 0
                     ? filteredProducts.length <= 3
                       ? "grid-cols-2 sm:grid-cols-3 lg:grid-cols-3 gap-3"
@@ -8072,7 +8106,7 @@ const POSPage = () => {
                               <button
                                 className="absolute top-1 right-1 z-20 w-5 h-5 rounded-full bg-destructive/80 hover:bg-destructive text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-sm"
                                 onClick={(e) => { e.stopPropagation(); setConfirmDeleteProduct({ id: product.id, name: product.name }); }}
-                                title="حذف المنتج"
+                                title={pt("حذف المنتج")}
                               >
                                 <X className="h-3 w-3" />
                               </button>
@@ -8132,8 +8166,8 @@ const POSPage = () => {
                                   : cardSize === "S" 
                                     ? "text-[12px]" 
                                     : "text-[14px]"
-                              }`} dir="rtl" style={{ unicodeBidi: "plaintext", color: posDarkMode ? 'white' : '#1e293b', fontWeight: 500 }}>
-                                {product.name}
+                              }`} dir={posDir} style={{ unicodeBidi: "plaintext", color: posDarkMode ? 'white' : '#1e293b', fontWeight: 500 }}>
+                                {pname(product as any)}
                               </p>
 
                               {/* Addon hint */}
@@ -8178,8 +8212,8 @@ const POSPage = () => {
                   {filteredProducts.length === 0 && (
                     <div className="col-span-full py-20 text-center text-muted-foreground">
                       <ShoppingCart className="h-12 w-12 mx-auto mb-3 opacity-20" />
-                      <p className="text-sm font-medium mb-1">ابدأ بإضافة المنتجات</p>
-                      <p className="text-xs text-muted-foreground/60">لا توجد منتجات في هذا التصنيف</p>
+                      <p className="text-sm font-medium mb-1">{pt("ابدأ بإضافة المنتجات")}</p>
+                      <p className="text-xs text-muted-foreground/60">{pt("لا توجد منتجات في هذا التصنيف")}</p>
                     </div>
                   )}
                 </div>
@@ -8236,7 +8270,7 @@ const POSPage = () => {
               }}
               className="h-8 w-8 flex items-center justify-center text-white/40 hover:text-white/70 transition-colors shrink-0 rounded-lg"
               style={{ background: 'rgba(255,255,255,0.08)' }}
-              title="طلب جديد"
+              title={pt("طلب جديد")}
             >
               <Plus className="h-3.5 w-3.5" />
             </button>
@@ -8353,7 +8387,7 @@ const POSPage = () => {
                   <AlertCircle className="h-4 w-4" style={{ color: "#D97706" }} />
                   <span className="font-semibold">تعديل على فاتورة #{recallBanner.orderNumber}</span>
                 </div>
-                <button onClick={() => { setRecallBanner(null); setCart([]); }} className="text-[10px] underline hover:no-underline">إلغاء التعديل</button>
+                <button onClick={() => { setRecallBanner(null); setCart([]); }} className="text-[10px] underline hover:no-underline">{pt("إلغاء التعديل")}</button>
               </div>
               <div className="mt-1 text-[11px]">السبب: {recallBanner.reason}{recallBanner.approvedBy && ` — موافقة: ${recallBanner.approvedBy}`}</div>
             </div>
@@ -8365,20 +8399,20 @@ const POSPage = () => {
               className="flex items-center gap-1.5 px-3 py-1 text-[10px] shrink-0"
               style={{ color: 'rgba(255,255,255,0.35)', borderBottom: '1px solid rgba(255,255,255,0.08)' }}
             >
-              <span className="flex-1 min-w-0 basis-[30%]">الصنف</span>
-              <span className="w-[78px] text-center">الكمية</span>
-              <span className="w-[96px] text-center">السعر</span>
-              <span className="w-[62px] text-center">إضافات</span>
-              <span className="w-[62px] text-center">الإجمالي</span>
+              <span className="flex-1 min-w-0 basis-[30%]">{pt("الصنف")}</span>
+              <span className="w-[78px] text-center">{pt("الكمية")}</span>
+              <span className="w-[96px] text-center">{pt("السعر")}</span>
+              <span className="w-[62px] text-center">{pt("إضافات")}</span>
+              <span className="w-[62px] text-center">{pt("الإجمالي")}</span>
               {(isAdmin || posPerms.can_remove_cart_items) && <span className="w-6" />}
             </div>
           )}
-          <ScrollArea className="flex-1" dir="rtl">
+          <ScrollArea className="flex-1" dir={posDir}>
             <div className="px-3">
               {cart.length === 0 ? (
                 <div className="py-16 text-center">
                   <ShoppingCart className="h-16 w-16 mx-auto mb-4" style={{ color: 'rgba(255,255,255,0.1)' }} />
-                  <p className="text-sm" style={{ color: 'rgba(255,255,255,0.3)' }}>ابدأ بإضافة المنتجات</p>
+                  <p className="text-sm" style={{ color: 'rgba(255,255,255,0.3)' }}>{pt("ابدأ بإضافة المنتجات")}</p>
                 </div>
               ) : (
                 <div>
@@ -8404,7 +8438,7 @@ const POSPage = () => {
                       >
                         {/* Compact single-line row: name | qty | price | total | delete */}
                         <div className="flex items-center gap-1.5">
-                          <p className="text-[12.5px] font-medium leading-snug break-words whitespace-normal flex-1 min-w-0 basis-[30%]" style={{ color: 'white' }}>{item.name}</p>
+                          <p className="text-[12.5px] font-medium leading-snug break-words whitespace-normal flex-1 min-w-0 basis-[30%]" style={{ color: 'white' }}>{pname(item)}</p>
                           {(isAdmin || posPerms.can_edit_prices) ? (
                             <div
                               className="flex items-center justify-center gap-1 px-1.5 shrink-0 order-3 w-[96px]"
@@ -8526,7 +8560,7 @@ const POSPage = () => {
                               onKeyDown={(e) => { e.stopPropagation(); if (e.key === "Enter") (e.currentTarget as HTMLInputElement).blur(); }}
                               className="w-8 text-center text-[13px] tabular-nums bg-transparent border-0 outline-none focus:bg-white/15 rounded [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                               style={{ color: 'white' }}
-                              aria-label="الكمية"
+                              aria-label={pt("الكمية")}
                             />
                             <button
                               className="h-6 w-6 flex items-center justify-center rounded-md transition-colors"
@@ -8542,7 +8576,7 @@ const POSPage = () => {
                           {(isAdmin || posPerms.can_remove_cart_items) && (
                             <button
                               type="button"
-                              aria-label="حذف المنتج"
+                              aria-label={pt("حذف المنتج")}
                               className="p-1 transition-colors shrink-0 order-6 hover:text-red-400 active:text-red-500 touch-manipulation"
                               style={{ color: 'rgba(255,255,255,0.5)' }}
                               onClick={(e) => { e.stopPropagation(); e.preventDefault(); removeFromCart(index); }}
@@ -8554,7 +8588,7 @@ const POSPage = () => {
 
                         {/* Modifier sub-items */}
                         {item.modifiers && item.modifiers.length > 0 && (
-                          <div className="mr-4 mt-0.5 flex flex-wrap items-center gap-x-1.5 gap-y-1" dir="rtl">
+                          <div className="mr-4 mt-0.5 flex flex-wrap items-center gap-x-1.5 gap-y-1" dir={posDir}>
                             {item.modifiers.map((mod, mi) => (
                               <span
                                 key={mi}
@@ -8599,7 +8633,7 @@ const POSPage = () => {
                                 });
                               }}
                               onClick={(e) => e.stopPropagation()}
-                              placeholder="ملاحظة..."
+                              placeholder={pt("ملاحظة...")}
                               className="h-7 text-[11px] bg-muted/30 border-dashed border-border text-right"
                               style={{ direction: 'rtl', textAlign: 'right', unicodeBidi: 'plaintext' }}
                             />
@@ -8649,7 +8683,7 @@ const POSPage = () => {
             {restaurantFeatures && tablesEnabled && showTablePicker && (
               <div className="mx-3 mt-1 z-50 rounded-lg p-2" style={{ background: '#1a2d4a', border: '1px solid rgba(255,255,255,0.15)' }}>
                 <div className="flex items-center justify-between mb-1.5 px-1">
-                  <span className="text-[11px] font-medium" style={{ color: 'rgba(255,255,255,0.7)' }}>اختيار الطاولة</span>
+                  <span className="text-[11px] font-medium" style={{ color: 'rgba(255,255,255,0.7)' }}>{pt("اختيار الطاولة")}</span>
                   {activeOrder.tableId && (
                     <span className="text-[10px] px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-300 border border-blue-500/20">
                       نشط: {activeOrder.tableName}
@@ -8667,11 +8701,11 @@ const POSPage = () => {
                       style={{ background: 'rgba(239,68,68,0.12)', color: '#fca5a5', border: '1px solid rgba(239,68,68,0.3)' }}
                     >
                       <X className="w-4 h-4" />
-                      <span className="text-[9px] leading-none mt-0.5">إلغاء</span>
+                      <span className="text-[9px] leading-none mt-0.5">{pt("إلغاء")}</span>
                     </button>
                   )}
                   {availableTables.length === 0 && (
-                    <span className="text-[11px] p-2" style={{ color: 'rgba(255,255,255,0.4)' }}>جاري التحميل...</span>
+                    <span className="text-[11px] p-2" style={{ color: 'rgba(255,255,255,0.4)' }}>{pt("جاري التحميل...")}</span>
                   )}
                   {availableTables.map(t => {
                     const isActive = t.id === activeOrder.tableId;
@@ -8750,13 +8784,13 @@ const POSPage = () => {
                   <div className="grid grid-cols-1 gap-y-0.5">
                     {activeOrder.customerName && (
                       <div className="flex gap-2">
-                        <span style={{ color: 'rgba(255,255,255,0.55)' }}>الزبون:</span>
+                        <span style={{ color: 'rgba(255,255,255,0.55)' }}>{pt("الزبون:")}</span>
                         <span className="font-semibold" style={{ color: '#ffffff' }}>{activeOrder.customerName}</span>
                       </div>
                     )}
                     {activeOrder.customerPhone && (
                       <div className="flex gap-2">
-                        <span style={{ color: 'rgba(255,255,255,0.55)' }}>الجوال:</span>
+                        <span style={{ color: 'rgba(255,255,255,0.55)' }}>{pt("الجوال:")}</span>
                         <a
                           href={`tel:${activeOrder.customerPhone}`}
                           className="font-semibold tabular-nums"
@@ -8768,13 +8802,13 @@ const POSPage = () => {
                     )}
                     {activeOrder.deliveryAddress && (
                       <div className="flex gap-2">
-                        <span style={{ color: 'rgba(255,255,255,0.55)' }}>العنوان:</span>
+                        <span style={{ color: 'rgba(255,255,255,0.55)' }}>{pt("العنوان:")}</span>
                         <span style={{ color: '#ffffff' }}>{activeOrder.deliveryAddress}</span>
                       </div>
                     )}
                     {activeOrder.callCenterDeliveryInfo?.area && (
                       <div className="flex gap-2">
-                        <span style={{ color: 'rgba(255,255,255,0.55)' }}>المنطقة:</span>
+                        <span style={{ color: 'rgba(255,255,255,0.55)' }}>{pt("المنطقة:")}</span>
                         <span style={{ color: '#ffffff' }}>
                           {activeOrder.callCenterDeliveryInfo.city
                             ? `${activeOrder.callCenterDeliveryInfo.city} - ${activeOrder.callCenterDeliveryInfo.area}`
@@ -8787,7 +8821,7 @@ const POSPage = () => {
                     )}
                     {!!activeOrder.callCenterDeliveryFee && activeOrder.callCenterDeliveryFee > 0 && (
                       <div className="flex gap-2">
-                        <span style={{ color: 'rgba(255,255,255,0.55)' }}>رسوم التوصيل:</span>
+                        <span style={{ color: 'rgba(255,255,255,0.55)' }}>{pt("رسوم التوصيل:")}</span>
                         <span className="font-bold tabular-nums" style={{ color: '#fde68a' }}>
                           ₪{Number(activeOrder.callCenterDeliveryFee).toFixed(2)}
                           {activeOrder.callCenterDeliveryInfo?.manually_adjusted ? ' (معدّل)' : ''}
@@ -8805,7 +8839,7 @@ const POSPage = () => {
                     autoFocus={showOrderNoteInput && !orderNote}
                     value={orderNote}
                     onChange={(e) => setOrderNote(e.target.value)}
-                    placeholder="📝 ملاحظة على الفاتورة..."
+                    placeholder={pt("📝 ملاحظة على الفاتورة...")}
                     className="h-8 text-[12.5px] flex-1 font-semibold"
                     style={{
                       background: '#ffffff',
@@ -8817,7 +8851,7 @@ const POSPage = () => {
                     onClick={() => { setOrderNote(""); setShowOrderNoteInput(false); }}
                     className="h-8 w-8 rounded-md flex items-center justify-center shrink-0"
                     style={{ background: '#fee2e2', color: '#b91c1c', border: '1px solid #fecaca' }}
-                    title="مسح الملاحظة"
+                    title={pt("مسح الملاحظة")}
                   >
                     <X className="h-4 w-4" />
                   </button>
@@ -8884,7 +8918,7 @@ const POSPage = () => {
                 </div>
               )}
               <div className="flex justify-between items-baseline">
-                <span className="text-[13px]" style={{ color: 'rgba(255,255,255,0.5)' }}>الإجمالي</span>
+                <span className="text-[13px]" style={{ color: 'rgba(255,255,255,0.5)' }}>{pt("الإجمالي")}</span>
                 <motion.span
                   key={cartTotals.total}
                   initial={{ scale: 1.05 }}
@@ -8950,7 +8984,7 @@ const POSPage = () => {
                   onClick={() => setShowCartMore(v => !v)}
                   className="h-9 w-9 rounded-lg text-[12px] font-medium flex items-center justify-center shrink-0 transition-all relative"
                   style={{ background: 'rgba(255,255,255,0.08)', color: 'white' }}
-                  title="المزيد"
+                  title={pt("المزيد")}
                 >
                   ⋯
                   {!showCartMore && (pendingDispatchCount > 0 || dispatchLateCount > 0 || scheduledCount > 0) && (
@@ -8984,7 +9018,7 @@ const POSPage = () => {
                   onClick={() => setShowAppInbox(true)}
                   className="w-full h-9 rounded-lg text-[12px] font-medium flex items-center justify-center gap-1 transition-all relative"
                   style={{ background: 'rgba(255,255,255,0.08)', color: 'white' }}
-                  title="طلبات تطبيق الجوال بانتظار المراجعة"
+                  title={pt("طلبات تطبيق الجوال بانتظار المراجعة")}
                 >
                   <Smartphone className="h-3 w-3" />
                   طلبات التطبيق
@@ -9012,7 +9046,7 @@ const POSPage = () => {
                   {dispatchLateCount > 0 && (
                     <Badge
                       className="text-[8px] px-1 py-0 h-4 bg-red-600 text-white animate-pulse"
-                      title="طلبيات تأخر قبولها من الفرع أكثر من 5 دقائق"
+                      title={pt("طلبيات تأخر قبولها من الفرع أكثر من 5 دقائق")}
                     >
                       تأخر {dispatchLateCount}
                     </Badge>
@@ -9025,12 +9059,12 @@ const POSPage = () => {
               <div className="flex gap-1">
                 <button
                   onClick={() => {
-                    if (cart.length === 0) { toast.error("أضف أصناف للسلة أولاً"); return; }
+                    if (cart.length === 0) { toast.error(pt("أضف أصناف للسلة أولاً")); return; }
                     setShowScheduleOrder(true);
                   }}
                   className="flex-1 h-9 rounded-lg text-[12px] font-medium flex items-center justify-center gap-1 transition-all disabled:opacity-40"
                   style={{ background: 'rgba(255,255,255,0.08)', color: 'white' }}
-                  title="جدولة طلبية مستقبلية"
+                  title={pt("جدولة طلبية مستقبلية")}
                 >
                   <Clock className="h-3 w-3" />
                   جدولة
@@ -9039,7 +9073,7 @@ const POSPage = () => {
                   onClick={() => setShowScheduledPanel(true)}
                   className="flex-1 h-9 rounded-lg text-[12px] font-medium flex items-center justify-center gap-1 transition-all relative"
                   style={{ background: 'rgba(255,255,255,0.08)', color: 'white' }}
-                  title="الطلبيات المجدولة"
+                  title={pt("الطلبيات المجدولة")}
                 >
                   <Clock className="h-3 w-3" />
                   المجدولة
@@ -9058,9 +9092,9 @@ const POSPage = () => {
 
       {/* Open Shift Dialog */}
       <Dialog open={showOpenShift} onOpenChange={(v) => { if (!v && !session) navigate(isAdmin ? "/apps" : "/choose-workspace", { replace: true }); setShowOpenShift(v); }}>
-        <DialogContent className="sm:max-w-md" dir="rtl">
+        <DialogContent className="sm:max-w-md" dir={posDir}>
           <DialogHeader>
-            <DialogTitle className="text-xl">فتح وردية جديدة</DialogTitle>
+            <DialogTitle className="text-xl">{pt("فتح وردية جديدة")}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-4">
             {(() => {
@@ -9086,15 +9120,15 @@ const POSPage = () => {
                 <div className={`rounded-md border p-3 space-y-1.5 ${
                   blocking ? "border-destructive/40 bg-destructive/5" : "border-border bg-muted/30"
                 }`}>
-                  <div className="text-[12px] font-semibold mb-1">حالة الجهاز</div>
+                  <div className="text-[12px] font-semibold mb-1">{pt("حالة الجهاز")}</div>
                   {!hideHardwareRows && (
-                    <Row ok={bridgeOnlineDiag} label="برنامج الطباعة" value={bridgeOk ? "متصل" : bridgeOnlineDiag === false ? "غير متصل" : "جارٍ الفحص…"} />
+                    <Row ok={bridgeOnlineDiag} label={pt("برنامج الطباعة")} value={bridgeOk ? "متصل" : bridgeOnlineDiag === false ? "غير متصل" : "جارٍ الفحص…"} />
                   )}
-                  <Row ok={branchOk} label="الفرع" value={branchOk ? "معرف" : "غير معرف"} />
-                  <Row ok={terminalOk} label="محطة POS" value={terminalOk ? "معرفة" : "غير معرفة"} />
-                  <Row ok={null} label="الصندوق النقدي" value="اختياري" />
+                  <Row ok={branchOk} label={pt("الفرع")} value={branchOk ? "معرف" : "غير معرف"} />
+                  <Row ok={terminalOk} label={pt("محطة POS")} value={terminalOk ? "معرفة" : "غير معرفة"} />
+                  <Row ok={null} label={pt("الصندوق النقدي")} value="اختياري" />
                   {!hideHardwareRows && (
-                    <Row ok={printersCountDiag === null ? null : printersOk} label="الطابعات"
+                    <Row ok={printersCountDiag === null ? null : printersOk} label={pt("الطابعات")}
                          value={printersCountDiag === null ? "جارٍ الفحص…" : printersOk ? `${printersCountDiag} معرفة` : "غير معرفة"} />
                   )}
                   {blocking && (
@@ -9135,7 +9169,7 @@ const POSPage = () => {
             })()}
             {/* Cash Box Selector */}
             <div>
-              <label className="text-sm font-medium text-foreground mb-2 block">الصندوق</label>
+              <label className="text-sm font-medium text-foreground mb-2 block">{pt("الصندوق")}</label>
               <select
                 value={selectedCashBoxId}
                 onChange={(e) => {
@@ -9150,7 +9184,7 @@ const POSPage = () => {
               >
                 {/* "بدون صندوق مؤقتاً" متاح فقط للمالك/الأدمن — إخفاؤه عن الكاشير
                     يمنع المبيعات من الظهور تحت "بدون فرع" في تقارير المالك. */}
-                {isAdmin && <option value="">بدون صندوق مؤقتاً</option>}
+                {isAdmin && <option value="">{pt("بدون صندوق مؤقتاً")}</option>}
                 {[...cashBoxes].sort((a, b) => (a.name || "").localeCompare(b.name || "", "ar", { numeric: true, sensitivity: "base" })).map(box => (
                   <option key={box.id} value={box.id}>{box.name}</option>
                 ))}
@@ -9162,12 +9196,12 @@ const POSPage = () => {
                   onChange={(e) => setRememberCashBox(e.target.checked)}
                   className="rounded border-input"
                 />
-                <span className="text-xs text-muted-foreground">تذكر هذا الصندوق لهذا الجهاز</span>
+                <span className="text-xs text-muted-foreground">{pt("تذكر هذا الصندوق لهذا الجهاز")}</span>
               </label>
             </div>
             {selectedCashBoxId !== "__call_center__" && (
               <div>
-                <label className="text-sm font-medium text-foreground mb-2 block">النقدية الافتتاحية (₪)</label>
+                <label className="text-sm font-medium text-foreground mb-2 block">{pt("النقدية الافتتاحية (₪)")}</label>
                 <Input
                   type="number"
                   value={openingCash}
@@ -9194,29 +9228,29 @@ const POSPage = () => {
 
       {/* Change Password Dialog (first login) */}
       <Dialog open={showChangePassword} onOpenChange={() => {}}>
-        <DialogContent className="sm:max-w-md" dir="rtl" onPointerDownOutside={(e) => e.preventDefault()} onEscapeKeyDown={(e) => e.preventDefault()}>
+        <DialogContent className="sm:max-w-md" dir={posDir} onPointerDownOutside={(e) => e.preventDefault()} onEscapeKeyDown={(e) => e.preventDefault()}>
           <DialogHeader>
-            <DialogTitle className="text-xl">🔐 تغيير كلمة المرور</DialogTitle>
+            <DialogTitle className="text-xl">{pt("🔐 تغيير كلمة المرور")}</DialogTitle>
           </DialogHeader>
-          <p className="text-sm text-muted-foreground">يرجى تغيير كلمة المرور الافتراضية قبل المتابعة.</p>
+          <p className="text-sm text-muted-foreground">{pt("يرجى تغيير كلمة المرور الافتراضية قبل المتابعة.")}</p>
           <div className="space-y-3 py-3">
             <div>
-              <label className="text-sm font-medium text-foreground mb-1.5 block">كلمة المرور الجديدة *</label>
+              <label className="text-sm font-medium text-foreground mb-1.5 block">{pt("كلمة المرور الجديدة *")}</label>
               <Input
                 type="password"
                 value={newPassword}
                 onChange={(e) => setNewPassword(e.target.value)}
-                placeholder="6 أحرف على الأقل"
+                placeholder={pt("6 أحرف على الأقل")}
                 className="h-11"
               />
             </div>
             <div>
-              <label className="text-sm font-medium text-foreground mb-1.5 block">تأكيد كلمة المرور *</label>
+              <label className="text-sm font-medium text-foreground mb-1.5 block">{pt("تأكيد كلمة المرور *")}</label>
               <Input
                 type="password"
                 value={confirmNewPassword}
                 onChange={(e) => setConfirmNewPassword(e.target.value)}
-                placeholder="أعد إدخال كلمة المرور"
+                placeholder={pt("أعد إدخال كلمة المرور")}
                 className="h-11"
               />
             </div>
@@ -9230,7 +9264,7 @@ const POSPage = () => {
       </Dialog>
 
       <Dialog open={showDeviceBlocked} onOpenChange={async (v) => { if (!v) { await supabase.auth.signOut(); navigate("/auth", { replace: true }); } setShowDeviceBlocked(v); }}>
-        <DialogContent className="sm:max-w-md" dir="rtl" onPointerDownOutside={(e) => e.preventDefault()} onEscapeKeyDown={(e) => e.preventDefault()}>
+        <DialogContent className="sm:max-w-md" dir={posDir} onPointerDownOutside={(e) => e.preventDefault()} onEscapeKeyDown={(e) => e.preventDefault()}>
           <DialogHeader>
             <DialogTitle className="text-xl text-destructive flex items-center gap-2">
               <AlertCircle className="h-6 w-6" />
@@ -9256,7 +9290,7 @@ const POSPage = () => {
 
       {/* Shortcuts Guide Dialog */}
       <Dialog open={showShortcutsGuide} onOpenChange={setShowShortcutsGuide}>
-        <DialogContent className="sm:max-w-lg" dir="rtl">
+        <DialogContent className="sm:max-w-lg" dir={posDir}>
           <DialogHeader>
             <DialogTitle className="text-xl flex items-center gap-2">
               <Keyboard className="h-5 w-5" />
@@ -9266,7 +9300,7 @@ const POSPage = () => {
           <div className="py-2 space-y-4 max-h-[60vh] overflow-y-auto">
             {/* Action shortcuts */}
             <div>
-              <h3 className="text-sm font-bold text-foreground mb-2 flex items-center gap-1.5">⚡ الأوامر</h3>
+              <h3 className="text-sm font-bold text-foreground mb-2 flex items-center gap-1.5">{pt("⚡ الأوامر")}</h3>
               <div className="space-y-1.5">
                 {[
                   { key: "F12", desc: "تحويل إلى الفرع" },
@@ -9286,24 +9320,24 @@ const POSPage = () => {
             </div>
             {/* Category shortcuts */}
             <div>
-              <h3 className="text-sm font-bold text-foreground mb-2 flex items-center gap-1.5">📂 التصنيفات</h3>
+              <h3 className="text-sm font-bold text-foreground mb-2 flex items-center gap-1.5">{pt("📂 التصنيفات")}</h3>
               <div className="space-y-1.5">
                 <div className="flex items-center justify-between py-1.5 px-3 rounded-lg bg-muted/50">
-                  <span className="text-sm text-foreground">كل التصنيفات</span>
+                  <span className="text-sm text-foreground">{pt("كل التصنيفات")}</span>
                   <kbd className="text-xs font-mono bg-background border border-border rounded px-2 py-0.5 shadow-sm text-muted-foreground">Alt+0</kbd>
                 </div>
                 <div className="flex items-center justify-between py-1.5 px-3 rounded-lg bg-muted/50">
-                  <span className="text-sm text-foreground">التصنيف الأول إلى التاسع</span>
+                  <span className="text-sm text-foreground">{pt("التصنيف الأول إلى التاسع")}</span>
                   <kbd className="text-xs font-mono bg-background border border-border rounded px-2 py-0.5 shadow-sm text-muted-foreground">Alt+1 ... Alt+9</kbd>
                 </div>
               </div>
             </div>
             {/* Product shortcuts */}
             <div>
-              <h3 className="text-sm font-bold text-foreground mb-2 flex items-center gap-1.5">📦 المنتجات</h3>
+              <h3 className="text-sm font-bold text-foreground mb-2 flex items-center gap-1.5">{pt("📦 المنتجات")}</h3>
               <div className="space-y-1.5">
                 <div className="flex items-center justify-between py-1.5 px-3 rounded-lg bg-muted/50">
-                  <span className="text-sm text-foreground">إضافة المنتج 1-9 من الشبكة</span>
+                  <span className="text-sm text-foreground">{pt("إضافة المنتج 1-9 من الشبكة")}</span>
                   <kbd className="text-xs font-mono bg-background border border-border rounded px-2 py-0.5 shadow-sm text-muted-foreground">Ctrl+1 ... Ctrl+9</kbd>
                 </div>
               </div>
@@ -9322,7 +9356,7 @@ const POSPage = () => {
           <div
             className="w-full max-h-[95vh] overflow-hidden flex flex-col shadow-2xl"
             style={{ background: '#ffffff', borderRadius: 4, border: '1px solid #d1d5db', maxWidth: 560 }}
-            dir="rtl"
+            dir={posDir}
           >
             {/* Header — Dynamics 365 Finance style: flat, dense, accent bar */}
             <div
@@ -9336,7 +9370,7 @@ const POSPage = () => {
             >
               <div className="flex flex-col">
                 <span className="text-[10px] uppercase tracking-wider" style={{ color: '#605E5C', letterSpacing: '0.08em' }}>POS · Payment</span>
-                <span className="text-[15px] font-semibold" style={{ color: '#201F1E' }}>طريقة الدفع</span>
+                <span className="text-[15px] font-semibold" style={{ color: '#201F1E' }}>{pt("طريقة الدفع")}</span>
               </div>
               <button
                 onClick={() => {
@@ -9354,7 +9388,7 @@ const POSPage = () => {
                 style={{ background: 'transparent', color: '#605E5C', borderRadius: 2 }}
                 onMouseEnter={e => { e.currentTarget.style.background = '#F3F2F1'; }}
                 onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
-                aria-label="إغلاق"
+                aria-label={pt("إغلاق")}
               >
                 <X className="w-4 h-4" />
               </button>
@@ -9375,7 +9409,7 @@ const POSPage = () => {
               >
                 <div className="flex flex-col">
                   <span className="text-[10px] uppercase tracking-wider" style={{ color: '#605E5C', letterSpacing: '0.08em' }}>Amount due</span>
-                  <span className="text-[12px]" style={{ color: '#605E5C' }}>المبلغ المطلوب</span>
+                  <span className="text-[12px]" style={{ color: '#605E5C' }}>{pt("المبلغ المطلوب")}</span>
                   {customerDataDiscount && (
                     <span className="text-[11px] mt-0.5" style={{ color: '#107C10' }}>خصم {customerDataDiscount.discountPct}% = −₪{customerDataDiscount.discountAmount.toFixed(2)}</span>
                   )}
@@ -9387,7 +9421,7 @@ const POSPage = () => {
 
               {/* Section header */}
               <div className="mx-4 mt-4 mb-2 flex items-center justify-between">
-                <span className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: '#605E5C', letterSpacing: '0.06em' }}>Tender type · نوع الدفع</span>
+                <span className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: '#605E5C', letterSpacing: '0.06em' }}>{pt("Tender type · نوع الدفع")}</span>
                 {isPaymentLockedByCC && (
                   <span className="text-[10px] font-semibold px-2 py-0.5 rounded" style={{ background: '#FFF4CE', color: '#8A6100', border: '1px solid #F2C811' }}>
                     محددة من الكول سنتر · {ccLockedMethod === 'card' ? 'بطاقة' : ccLockedMethod === 'credit' ? 'آجل' : 'نقد'}
@@ -9434,7 +9468,7 @@ const POSPage = () => {
                             setSplitTenders([]);
                           } else {
                             if (!offlineMode.isOnline) {
-                              toast.error("الدفع المختلط غير متاح في وضع عدم الاتصال");
+                              toast.error(pt("الدفع المختلط غير متاح في وضع عدم الاتصال"));
                               return;
                             }
                             setSplitMode(true);
@@ -9452,7 +9486,7 @@ const POSPage = () => {
                             const uid = dataOwnerId || user?.id;
                             if (!uid) return;
                             const { data: cs } = await supabase.from("company_settings" as any).select("card_bank_account_id").eq("user_id", uid).maybeSingle();
-                            if (!(cs as any)?.card_bank_account_id) toast.error("⚠️ لم يتم تعريف حساب بنكي للبطاقة");
+                            if (!(cs as any)?.card_bank_account_id) toast.error(pt("⚠️ لم يتم تعريف حساب بنكي للبطاقة"));
                           })();
                         }
                       }}
@@ -9550,12 +9584,12 @@ const POSPage = () => {
                       style={{ background: '#F3F4F6', border: '1px solid #E5E7EB', color: '#374151' }}
                     >
                       <span>ℹ️</span>
-                      <span>لعملة أجنبية: اختر العملة أولاً.</span>
+                      <span>{pt("لعملة أجنبية: اختر العملة أولاً.")}</span>
                     </div>
                   )}
                   {/* Currency selector */}
                   <div>
-                    <p className="text-[12px] mb-2" style={{ color: '#6b7280' }}>العملة</p>
+                    <p className="text-[12px] mb-2" style={{ color: '#6b7280' }}>{pt("العملة")}</p>
                     <div className="grid grid-cols-5 gap-1.5">
                       {currencies.map((cur) => {
                         const isActive = paymentCurrency === cur.code;
@@ -9616,7 +9650,7 @@ const POSPage = () => {
                         {exchangeRateDetails[paymentCurrency] && (() => {
                           const rateDate = exchangeRateDetails[paymentCurrency].date;
                           const isStale = rateDate && new Date(rateDate).toDateString() !== new Date().toDateString();
-                          return isStale ? <span className="text-[10px]" style={{ color: '#d97706' }}>⚠️ لم يُحدَّث اليوم</span> : null;
+                          return isStale ? <span className="text-[10px]" style={{ color: '#d97706' }}>{pt("⚠️ لم يُحدَّث اليوم")}</span> : null;
                         })()}
                       </div>
                       <div className="flex items-center justify-between text-[11px]" style={{ color: '#6b7280' }}>
@@ -9649,10 +9683,10 @@ const POSPage = () => {
                               setExchangeRates(prev => ({ ...prev, [paymentCurrency]: exchangeRateDetails[paymentCurrency]?.posOverride || original }));
                             }}
                             className="text-[10px] whitespace-nowrap" style={{ color: '#3b82f6' }}
-                          >← الرسمي</button>
+                          >{pt("← الرسمي")}</button>
                         )}
                       </div>
-                      {rateEdited && <p className="text-[10px]" style={{ color: '#d97706' }}>⚠️ سيُسجَّل السعر المعدَّل في سجل المعاملات</p>}
+                      {rateEdited && <p className="text-[10px]" style={{ color: '#d97706' }}>{pt("⚠️ سيُسجَّل السعر المعدَّل في سجل المعاملات")}</p>}
                       <div className="flex justify-between items-center pt-1" style={{ borderTop: '1px solid #f3f4f6' }}>
                         <span className="text-xs" style={{ color: '#6b7280' }}>المطلوب بال{currencies.find(c => c.code === paymentCurrency)?.name}</span>
                         <span className="font-mono font-bold text-sm tabular-nums" style={{ color: '#111827' }}>
@@ -9660,7 +9694,7 @@ const POSPage = () => {
                         </span>
                       </div>
                       <div className="text-[10px] flex items-center gap-1 pt-1" style={{ color: '#9ca3af' }}>
-                        <span>📒 سيُسجَّل في:</span>
+                        <span>{pt("📒 سيُسجَّل في:")}</span>
                         <span className="font-medium" style={{ color: '#6b7280' }}>
                           {paymentCurrency === 'USD' ? 'صندوق الدولار (1111)' : paymentCurrency === 'JOD' ? 'صندوق الدينار (1112)' : paymentCurrency === 'EUR' ? 'صندوق اليورو (1113)' : paymentCurrency === 'EGP' ? 'صندوق الجنيه (1114)' : 'الصندوق (1110)'}
                         </span>
@@ -9685,7 +9719,7 @@ const POSPage = () => {
                       <div className="p-3 rounded-[10px] space-y-2" style={{ border: '1px solid #e5e7eb', background: '#ffffff' }}>
                         {paymentCurrency !== "ILS" && (
                           <div className="flex justify-between text-xs">
-                            <span style={{ color: '#6b7280' }}>ما يعادل بالشيكل</span>
+                            <span style={{ color: '#6b7280' }}>{pt("ما يعادل بالشيكل")}</span>
                             <span className="font-bold tabular-nums" style={{ color: '#111827' }}>₪{tenderedInILS.toFixed(2)}</span>
                           </div>
                         )}
@@ -9709,7 +9743,7 @@ const POSPage = () => {
                               </div>
                             )}
                             <div className="flex justify-between items-center p-3 rounded-[10px]" style={{ background: '#f0fdf4', border: '1.5px solid #16a34a' }}>
-                              <span className="text-sm font-bold" style={{ color: '#111827' }}>الباقي للزبون</span>
+                              <span className="text-sm font-bold" style={{ color: '#111827' }}>{pt("الباقي للزبون")}</span>
                               <div className="flex items-center gap-1">
                                 <span className="text-lg font-bold" style={{ color: '#16a34a' }}>{displaySymbol}</span>
                                 <input type="number" inputMode="decimal" step="0.01"
@@ -9727,14 +9761,14 @@ const POSPage = () => {
                                 {changeCurrency === "ILS" ? (
                                   <><span>أو بال{currencies.find(c => c.code === paymentCurrency)?.name}</span><span className="font-medium tabular-nums">{curSymbol}{changeInForeign.toFixed(2)}</span></>
                                 ) : (
-                                  <><span>أو بالشيكل</span><span className="font-medium tabular-nums">₪{changeILS.toFixed(2)}</span></>
+                                  <><span>{pt("أو بالشيكل")}</span><span className="font-medium tabular-nums">₪{changeILS.toFixed(2)}</span></>
                                 )}
                               </div>
                             )}
                           </>
                         ) : (
                           <div className="flex justify-between items-center p-2.5 rounded-lg" style={{ background: '#fef2f2' }}>
-                            <span className="text-xs" style={{ color: '#dc2626' }}>المبلغ غير كافٍ</span>
+                            <span className="text-xs" style={{ color: '#dc2626' }}>{pt("المبلغ غير كافٍ")}</span>
                             <span className="text-lg font-bold tabular-nums" style={{ color: '#dc2626' }}>-₪{Math.abs(changeILS).toFixed(2)}</span>
                           </div>
                         )}
@@ -9769,7 +9803,7 @@ const POSPage = () => {
               {!splitMode && paymentMethod === "credit" && (
                 <div className="mx-4 mt-3 space-y-2">
                   <label className="text-sm font-bold block" style={{ color: '#111827' }}>
-                    اسم الجهة <span className="text-xs font-normal text-muted-foreground">(زبون أو مورد)</span>
+                    اسم الجهة <span className="text-xs font-normal text-muted-foreground">{pt("(زبون أو مورد)")}</span>
                   </label>
                   <div className="relative">
                     <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 pointer-events-none" style={{ color: '#9ca3af' }} />
@@ -9779,7 +9813,7 @@ const POSPage = () => {
                       title={ccLockedMethod === "credit" ? "الزبون محدد من الكول سنتر" : undefined}
                       onChange={(e) => { if (ccLockedMethod === "credit") return; setCustomerSearch(e.target.value); setCustomerName(e.target.value, null); setShowContactDropdown(true); }}
                       onFocus={() => { if (ccLockedMethod !== "credit") setShowContactDropdown(true); }}
-                      placeholder="ابحث عن زبون أو مورد..."
+                      placeholder={pt("ابحث عن زبون أو مورد...")}
                       autoFocus
                       className="w-full h-11 pr-10 text-sm focus:outline-none"
                       style={{ background: '#ffffff', border: '1px solid #e5e7eb', borderRadius: 8, color: '#111827' }}
@@ -9836,7 +9870,7 @@ const POSPage = () => {
                           ))}
                         </div>
                       ) : (
-                        <div className="py-6 text-center text-sm" style={{ color: '#9ca3af' }}>لا يوجد نتائج</div>
+                        <div className="py-6 text-center text-sm" style={{ color: '#9ca3af' }}>{pt("لا يوجد نتائج")}</div>
                       )}
                     </ScrollArea>
                     <button
@@ -9845,7 +9879,7 @@ const POSPage = () => {
                       style={{ color: '#3b82f6', background: '#eff6ff', borderTop: '1px solid #e5e7eb' }}
                     >
                       <PlusCircle className="h-4 w-4 shrink-0" />
-                      <span>إضافة زبون جديد</span>
+                      <span>{pt("إضافة زبون جديد")}</span>
                     </button>
                   </div>
                   )}
@@ -9856,7 +9890,7 @@ const POSPage = () => {
               {!splitMode && paymentMethod === "wallet" && (
                 <div className="mx-4 mt-3 space-y-2">
                   <label className="text-sm font-bold block" style={{ color: '#111827' }}>
-                    زبون المحفظة <span className="text-xs font-normal text-muted-foreground">(لازم يكون معرّف في جهات الاتصال)</span>
+                    زبون المحفظة <span className="text-xs font-normal text-muted-foreground">{pt("(لازم يكون معرّف في جهات الاتصال)")}</span>
                   </label>
                   <div className="relative">
                     <input
@@ -9869,14 +9903,14 @@ const POSPage = () => {
                         const { data, error } = await (supabase as any).rpc("wallet_lookup", { _q: q });
                         if (error) { toast.error(error.message); return; }
                         const hit = (data as any[])?.[0];
-                        if (!hit) { toast.error("لا توجد محفظة بهذا الرقم"); return; }
+                        if (!hit) { toast.error(pt("لا توجد محفظة بهذا الرقم")); return; }
                         setCustomerName(hit.contact_name, hit.contact_id);
                         setCustomerSearch("");
                         setShowContactDropdown(false);
                         setWalletScan("");
                         toast.success(`محفظة ${hit.contact_name} — الرصيد ₪${Number(hit.balance).toFixed(2)}`);
                       }}
-                      placeholder="امسح بطاقة المحفظة (QR) أو اكتب رقم البطاقة ثم Enter"
+                      placeholder={pt("امسح بطاقة المحفظة (QR) أو اكتب رقم البطاقة ثم Enter")}
                       className="w-full h-10 px-3 text-sm focus:outline-none"
                       style={{ background: '#ffffff', border: '1px dashed #99f6e4', borderRadius: 8, color: '#111827' }}
                     />
@@ -9887,7 +9921,7 @@ const POSPage = () => {
                       value={customerSearch || customerName}
                       onChange={(e) => { setCustomerSearch(e.target.value); setCustomerName(e.target.value, null); setShowContactDropdown(true); }}
                       onFocus={() => setShowContactDropdown(true)}
-                      placeholder="ابحث عن الزبون..."
+                      placeholder={pt("ابحث عن الزبون...")}
                       autoFocus
                       className="w-full h-11 pr-10 text-sm focus:outline-none"
                       style={{ background: '#ffffff', border: '1px solid #e5e7eb', borderRadius: 8, color: '#111827' }}
@@ -9916,7 +9950,7 @@ const POSPage = () => {
                             ))}
                           </div>
                         ) : (
-                          <div className="py-6 text-center text-sm" style={{ color: '#9ca3af' }}>لا يوجد نتائج</div>
+                          <div className="py-6 text-center text-sm" style={{ color: '#9ca3af' }}>{pt("لا يوجد نتائج")}</div>
                         )}
                       </ScrollArea>
                     </div>
@@ -9930,19 +9964,19 @@ const POSPage = () => {
                     return (
                       <div className="p-3 rounded-[10px] space-y-1.5" style={{ background: ok ? '#f0fdfa' : '#fef2f2', border: `1px solid ${ok ? '#99f6e4' : '#fecaca'}` }}>
                         {walletLoading ? (
-                          <div className="text-xs" style={{ color: '#6b7280' }}>جاري قراءة الرصيد...</div>
+                          <div className="text-xs" style={{ color: '#6b7280' }}>{pt("جاري قراءة الرصيد...")}</div>
                         ) : !walletInfo?.exists ? (
-                          <div className="text-xs font-semibold" style={{ color: '#b91c1c' }}>لا توجد محفظة لهذا الزبون — افتحها من شاشة «المحفظة».</div>
+                          <div className="text-xs font-semibold" style={{ color: '#b91c1c' }}>{pt("لا توجد محفظة لهذا الزبون — افتحها من شاشة «المحفظة».")}</div>
                         ) : (
                           <>
-                            <div className="flex justify-between text-xs"><span style={{ color: '#6b7280' }}>الرصيد المتاح</span><span className="font-bold tabular-nums" style={{ color: '#111827' }}>₪{bal.toFixed(2)}</span></div>
-                            <div className="flex justify-between text-xs"><span style={{ color: '#6b7280' }}>قيمة الفاتورة</span><span className="font-bold tabular-nums" style={{ color: '#111827' }}>₪{needed.toFixed(2)}</span></div>
+                            <div className="flex justify-between text-xs"><span style={{ color: '#6b7280' }}>{pt("الرصيد المتاح")}</span><span className="font-bold tabular-nums" style={{ color: '#111827' }}>₪{bal.toFixed(2)}</span></div>
+                            <div className="flex justify-between text-xs"><span style={{ color: '#6b7280' }}>{pt("قيمة الفاتورة")}</span><span className="font-bold tabular-nums" style={{ color: '#111827' }}>₪{needed.toFixed(2)}</span></div>
                             <div className="flex justify-between text-xs pt-1" style={{ borderTop: '1px solid #e5e7eb' }}>
-                              <span style={{ color: '#6b7280' }}>الرصيد بعد الدفع</span>
+                              <span style={{ color: '#6b7280' }}>{pt("الرصيد بعد الدفع")}</span>
                               <span className="font-bold tabular-nums" style={{ color: after < 0 ? '#b91c1c' : '#0f766e' }}>₪{after.toFixed(2)}</span>
                             </div>
-                            {walletInfo?.frozen && <div className="text-[11px] font-semibold" style={{ color: '#b91c1c' }}>⚠️ المحفظة مجمّدة</div>}
-                            {after < -0.001 && <div className="text-[11px] font-semibold" style={{ color: '#b91c1c' }}>⚠️ الرصيد غير كافٍ — اشحن المحفظة أولاً</div>}
+                            {walletInfo?.frozen && <div className="text-[11px] font-semibold" style={{ color: '#b91c1c' }}>{pt("⚠️ المحفظة مجمّدة")}</div>}
+                            {after < -0.001 && <div className="text-[11px] font-semibold" style={{ color: '#b91c1c' }}>{pt("⚠️ الرصيد غير كافٍ — اشحن المحفظة أولاً")}</div>}
                           </>
                         )}
                       </div>
@@ -9954,14 +9988,14 @@ const POSPage = () => {
               {/* Employee account */}
               {!splitMode && paymentMethod === "employee_account" && (
                 <div className="mx-4 mt-3 space-y-2">
-                  <label className="text-sm font-medium mb-1.5 block" style={{ color: '#111827' }}>اختر الموظف</label>
+                  <label className="text-sm font-medium mb-1.5 block" style={{ color: '#111827' }}>{pt("اختر الموظف")}</label>
                   <div className="relative">
                     <UserCheck className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 pointer-events-none" style={{ color: '#9ca3af' }} />
                     <input
                       value={selectedEmployee ? selectedEmployee.full_name : employeeSearch}
                       onChange={(e) => { setEmployeeSearch(e.target.value); setSelectedEmployee(null); setShowEmployeeDropdown(true); }}
                       onFocus={() => setShowEmployeeDropdown(true)}
-                      placeholder="ابحث عن موظف..."
+                      placeholder={pt("ابحث عن موظف...")}
                       className="w-full h-10 pr-10 text-sm focus:outline-none"
                       style={{ background: '#ffffff', border: '1px solid #e5e7eb', borderRadius: 8, color: '#111827' }}
                     />
@@ -10007,7 +10041,7 @@ const POSPage = () => {
                                 border: `1px solid ${mealDiscountType === 'none' ? '#475569' : '#cbd5e1'}`,
                               }}
                             >
-                              <span>بدون خصم</span>
+                              <span>{pt("بدون خصم")}</span>
                               <span className="text-[10px] opacity-80">100%</span>
                             </button>
                             <button
@@ -10020,7 +10054,7 @@ const POSPage = () => {
                                 border: `1px solid ${mealDiscountType === 'family' ? '#8b5cf6' : '#ddd6fe'}`,
                               }}
                             >
-                              <span>خصم عائلي</span>
+                              <span>{pt("خصم عائلي")}</span>
                               <span className="text-[10px] opacity-80">10%</span>
                             </button>
                             <button
@@ -10033,7 +10067,7 @@ const POSPage = () => {
                                 border: `1px solid ${mealDiscountType === 'individual' ? '#8b5cf6' : '#ddd6fe'}`,
                               }}
                             >
-                              <span>خصم فردي</span>
+                              <span>{pt("خصم فردي")}</span>
                               <span className="text-[10px] opacity-80">50%</span>
                             </button>
                           </div>
@@ -10049,22 +10083,22 @@ const POSPage = () => {
                             const nearCap = cap > 0 && projected >= cap * (mealWarnAtPct / 100);
                             return (
                               <div className="mt-2 p-2 rounded-lg text-[11px] space-y-0.5" style={{ background: '#ffffff', border: '1px solid #ddd6fe' }}>
-                                <div className="flex justify-between"><span style={{ color: '#6b7280' }}>إجمالي الفاتورة</span><span className="font-semibold">₪{full.toFixed(2)}</span></div>
+                                <div className="flex justify-between"><span style={{ color: '#6b7280' }}>{pt("إجمالي الفاتورة")}</span><span className="font-semibold">₪{full.toFixed(2)}</span></div>
                                 <div className="flex justify-between"><span style={{ color: '#6b7280' }}>سيُخصم من حسابك ({empPct}%)</span><span className="font-semibold" style={{ color: '#dc2626' }}>₪{ded.toFixed(2)}</span></div>
-                                <div className="flex justify-between"><span style={{ color: '#6b7280' }}>تتحمّل الشركة</span><span className="font-semibold" style={{ color: '#16a34a' }}>₪{company.toFixed(2)}</span></div>
+                                <div className="flex justify-between"><span style={{ color: '#6b7280' }}>{pt("تتحمّل الشركة")}</span><span className="font-semibold" style={{ color: '#16a34a' }}>₪{company.toFixed(2)}</span></div>
                                 {(used > 0 || cap > 0) && (
                                   <div className="flex justify-between pt-1 mt-1" style={{ borderTop: '1px dashed #e5e7eb' }}>
-                                    <span style={{ color: '#6b7280' }}>إجمالي وجباتك هذا الشهر</span>
+                                    <span style={{ color: '#6b7280' }}>{pt("إجمالي وجباتك هذا الشهر")}</span>
                                     <span className="font-semibold" style={{ color: overCap ? '#dc2626' : nearCap ? '#d97706' : '#374151' }}>
                                       ₪{used.toFixed(2)}{cap > 0 ? ` / ₪${cap.toFixed(2)}` : ''}
                                     </span>
                                   </div>
                                 )}
                                 {overCap && (
-                                  <div className="text-[10px] font-semibold" style={{ color: '#dc2626' }}>⚠️ تجاوز السقف الشهري — لن يمكن التأكيد</div>
+                                  <div className="text-[10px] font-semibold" style={{ color: '#dc2626' }}>{pt("⚠️ تجاوز السقف الشهري — لن يمكن التأكيد")}</div>
                                 )}
                                 {!overCap && nearCap && cap > 0 && (
-                                  <div className="text-[10px] font-semibold" style={{ color: '#d97706' }}>⚠️ اقتربت من السقف الشهري</div>
+                                  <div className="text-[10px] font-semibold" style={{ color: '#d97706' }}>{pt("⚠️ اقتربت من السقف الشهري")}</div>
                                 )}
                               </div>
                             );
@@ -10075,7 +10109,7 @@ const POSPage = () => {
                         <input
                           value={employeeNote}
                           onChange={(e) => setEmployeeNote(e.target.value)}
-                          placeholder="ملاحظة (مثال: غداء، أكل، سلفة...)"
+                          placeholder={pt("ملاحظة (مثال: غداء، أكل، سلفة...)")}
                           className="w-full h-8 px-2 text-xs focus:outline-none"
                           style={{ background: '#ffffff', border: '1px solid #e5e7eb', borderRadius: 6, color: '#111827' }}
                         />
@@ -10097,7 +10131,7 @@ const POSPage = () => {
               >
                 <label
                   className="flex items-start gap-2 cursor-pointer"
-                  title="يستخدم فقط عندما تكون هذه الفاتورة بديلة عن فاتورة ألغيت قبل قليل."
+                  title={pt("يستخدم فقط عندما تكون هذه الفاتورة بديلة عن فاتورة ألغيت قبل قليل.")}
                 >
                   <input
                     type="checkbox"
@@ -10168,7 +10202,7 @@ const POSPage = () => {
                 }
                 className="w-full mt-2 text-[13px] font-semibold transition-all disabled:opacity-40 disabled:cursor-not-allowed"
                 style={{ height: 40, borderRadius: 10, background: '#f1f5f9', color: '#0f172a', border: '1px solid #cbd5e1' }}
-                title="حفظ وترحيل الفاتورة بدون طباعة وصل ولا تذكرة مطبخ"
+                title={pt("حفظ وترحيل الفاتورة بدون طباعة وصل ولا تذكرة مطبخ")}
               >
                 💾 حفظ بدون طباعة
               </button>
@@ -10180,18 +10214,18 @@ const POSPage = () => {
       {/* Close Shift Dialog - Employee sees only cash count input */}
 
       <Dialog open={showCloseShift} onOpenChange={setShowCloseShift}>
-        <DialogContent className="sm:max-w-md" dir="rtl">
+        <DialogContent className="sm:max-w-md" dir={posDir}>
           <DialogHeader>
-            <DialogTitle className="text-xl">تسليم العهدة</DialogTitle>
+            <DialogTitle className="text-xl">{pt("تسليم العهدة")}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="bg-muted/50 rounded-xl p-4 text-center space-y-2">
-              <div className="text-sm text-muted-foreground">قم بعد النقدية الموجودة في الصندوق وأدخل المبلغ أدناه</div>
-              <div className="text-xs text-muted-foreground/70">سيتم مقارنة المبلغ مع السجلات تلقائياً</div>
+              <div className="text-sm text-muted-foreground">{pt("قم بعد النقدية الموجودة في الصندوق وأدخل المبلغ أدناه")}</div>
+              <div className="text-xs text-muted-foreground/70">{pt("سيتم مقارنة المبلغ مع السجلات تلقائياً")}</div>
             </div>
 
             <div>
-              <label className="text-sm font-medium mb-1.5 block">النقدية — شيكل (₪)</label>
+              <label className="text-sm font-medium mb-1.5 block">{pt("النقدية — شيكل (₪)")}</label>
               <Input
                 type="number"
                 value={closingCash}
@@ -10205,7 +10239,7 @@ const POSPage = () => {
 
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="text-sm font-medium mb-1.5 block">دولار ($)</label>
+                <label className="text-sm font-medium mb-1.5 block">{pt("دولار ($)")}</label>
                 <Input
                   type="number"
                   value={closingCashUSD}
@@ -10216,7 +10250,7 @@ const POSPage = () => {
                 />
               </div>
               <div>
-                <label className="text-sm font-medium mb-1.5 block">دينار (د.أ)</label>
+                <label className="text-sm font-medium mb-1.5 block">{pt("دينار (د.أ)")}</label>
                 <Input
                   type="number"
                   value={closingCashJOD}
@@ -10254,7 +10288,7 @@ const POSPage = () => {
 
       {/* Logout after Shift Close — cashier must log out, admin can stay */}
       <Dialog open={showLogoutConfirm} onOpenChange={() => {}}>
-        <DialogContent className="sm:max-w-sm" dir="rtl" onPointerDownOutside={(e) => e.preventDefault()}>
+        <DialogContent className="sm:max-w-sm" dir={posDir} onPointerDownOutside={(e) => e.preventDefault()}>
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-lg">
               <CheckCircle className="h-5 w-5 text-green-600" />
@@ -10284,7 +10318,7 @@ const POSPage = () => {
 
       {/* ── Add Product Dialog ── */}
       <Dialog open={showAddProduct} onOpenChange={setShowAddProduct}>
-        <DialogContent className="max-w-md" dir="rtl">
+        <DialogContent className="max-w-md" dir={posDir}>
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-lg">
               <PlusCircle className="h-5 w-5 text-primary" />
@@ -10293,22 +10327,22 @@ const POSPage = () => {
           </DialogHeader>
           <div className="space-y-4 py-2">
             <div className="space-y-1.5">
-              <label className="text-xs font-medium text-muted-foreground">اسم المنتج *</label>
+              <label className="text-xs font-medium text-muted-foreground">{pt("اسم المنتج *")}</label>
               <Input
                 autoFocus
                 value={newProduct.name}
                 onChange={(e) => setNewProduct(prev => ({ ...prev, name: e.target.value }))}
-                placeholder="مثال: شوكولاته"
+                placeholder={pt("مثال: شوكولاته")}
                 className="h-10"
               />
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
-                <label className="text-xs font-medium text-muted-foreground">سعر البيع *</label>
+                <label className="text-xs font-medium text-muted-foreground">{pt("سعر البيع *")}</label>
                 <Input type="number" value={newProduct.sell_price} onChange={(e) => setNewProduct(prev => ({ ...prev, sell_price: e.target.value }))} placeholder="₪0.00" className="h-10" min={0} step={0.01} />
               </div>
               <div className="space-y-1.5">
-                <label className="text-xs font-medium text-muted-foreground">سعر الشراء</label>
+                <label className="text-xs font-medium text-muted-foreground">{pt("سعر الشراء")}</label>
                 <Input type="number" value={newProduct.buy_price} onChange={(e) => setNewProduct(prev => ({ ...prev, buy_price: e.target.value }))} placeholder="₪0.00" className="h-10" min={0} step={0.01} />
               </div>
             </div>
@@ -10328,7 +10362,7 @@ const POSPage = () => {
                     }}
                     className="flex-1 h-10 rounded-md border border-input bg-background px-3 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                   >
-                    <option value="">— بدون تصنيف —</option>
+                    <option value="">{pt("— بدون تصنيف —")}</option>
                     {posCategories.map(cat => (
                       <option key={cat.id} value={cat.id}>{cat.name}</option>
                     ))}
@@ -10340,13 +10374,13 @@ const POSPage = () => {
               ) : (
                 <div className="space-y-2">
                   <div className="flex gap-2">
-                    <Input autoFocus value={newProduct.newCategory} onChange={(e) => setNewProduct(prev => ({ ...prev, newCategory: e.target.value }))} placeholder="اسم التصنيف الجديد..." className="h-10" />
+                    <Input autoFocus value={newProduct.newCategory} onChange={(e) => setNewProduct(prev => ({ ...prev, newCategory: e.target.value }))} placeholder={pt("اسم التصنيف الجديد...")} className="h-10" />
                     <Button type="button" variant="outline" size="icon" className="h-10 w-10 shrink-0" onClick={() => { setShowNewCategory(false); setShowCustomColor(false); setNewProduct(prev => ({ ...prev, newCategory: "" })); setNewCategoryColor("#16A34A"); }}>
                       <X className="h-4 w-4" />
                     </Button>
                   </div>
                   <div>
-                    <span className="text-xs font-medium text-muted-foreground mb-1.5 block">اللون</span>
+                    <span className="text-xs font-medium text-muted-foreground mb-1.5 block">{pt("اللون")}</span>
                     <div className="flex flex-wrap gap-1.5">
                       {PRESET_COLORS.map(color => (
                         <button
@@ -10385,18 +10419,18 @@ const POSPage = () => {
               )}
             </div>
             <div className="space-y-1.5">
-              <label className="text-xs font-medium text-muted-foreground">الوحدة</label>
+              <label className="text-xs font-medium text-muted-foreground">{pt("الوحدة")}</label>
               <select
                 value={newProduct.unit}
                 onChange={(e) => setNewProduct(prev => ({ ...prev, unit: e.target.value }))}
                 className="w-full h-10 rounded-md border border-input bg-background px-3 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
-                <option value="قطعة">قطعة</option>
-                <option value="كغ">كغ</option>
-                <option value="لتر">لتر</option>
-                <option value="متر">متر</option>
-                <option value="علبة">علبة</option>
-                <option value="كرتون">كرتون</option>
+                <option value="قطعة">{pt("قطعة")}</option>
+                <option value="كغ">{pt("كغ")}</option>
+                <option value="لتر">{pt("لتر")}</option>
+                <option value="متر">{pt("متر")}</option>
+                <option value="علبة">{pt("علبة")}</option>
+                <option value="كرتون">{pt("كرتون")}</option>
               </select>
             </div>
             <div className="p-3 rounded-xl bg-muted/50 border border-border space-y-3">
@@ -10406,18 +10440,18 @@ const POSPage = () => {
               </p>
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1">
-                  <label className="text-[11px] text-muted-foreground">الكمية الافتتاحية</label>
+                  <label className="text-[11px] text-muted-foreground">{pt("الكمية الافتتاحية")}</label>
                   <Input type="number" value={newProduct.quantity} onChange={(e) => setNewProduct(prev => ({ ...prev, quantity: e.target.value }))} placeholder="0" className="h-9 text-sm" min={0} />
                 </div>
                 <div className="space-y-1">
-                  <label className="text-[11px] text-muted-foreground">الحد الأدنى للتنبيه</label>
+                  <label className="text-[11px] text-muted-foreground">{pt("الحد الأدنى للتنبيه")}</label>
                   <Input type="number" value={newProduct.min_quantity} onChange={(e) => setNewProduct(prev => ({ ...prev, min_quantity: e.target.value }))} placeholder="0" className="h-9 text-sm" min={0} />
                 </div>
               </div>
             </div>
           </div>
           <DialogFooter className="gap-2 sm:gap-2">
-            <Button variant="outline" onClick={() => setShowAddProduct(false)} className="flex-1">إلغاء</Button>
+            <Button variant="outline" onClick={() => setShowAddProduct(false)} className="flex-1">{pt("إلغاء")}</Button>
             <Button onClick={handleSaveNewProduct} disabled={!newProduct.name.trim() || savingProduct} className="flex-1 gap-1">
               {savingProduct ? "جارِ الحفظ..." : "حفظ وإضافة ✓"}
             </Button>
@@ -10427,7 +10461,7 @@ const POSPage = () => {
 
       {/* ── Category Manager Dialog ── */}
       <Dialog open={showCategoryManager} onOpenChange={setShowCategoryManager}>
-        <DialogContent className="max-w-lg" dir="rtl">
+        <DialogContent className="max-w-lg" dir={posDir}>
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-lg">
               <Tag className="h-5 w-5 text-primary" />
@@ -10437,11 +10471,11 @@ const POSPage = () => {
           <div className="space-y-4 py-2">
             <div className="space-y-3">
               <div className="space-y-1">
-                <label className="text-xs font-medium text-muted-foreground">اسم التصنيف الجديد</label>
-                <Input value={newCatName} onChange={(e) => setNewCatName(e.target.value)} onKeyDown={(e) => e.key === "Enter" && handleSaveCategory()} placeholder="مثال: حلويات" className="h-10" />
+                <label className="text-xs font-medium text-muted-foreground">{pt("اسم التصنيف الجديد")}</label>
+                <Input value={newCatName} onChange={(e) => setNewCatName(e.target.value)} onKeyDown={(e) => e.key === "Enter" && handleSaveCategory()} placeholder={pt("مثال: حلويات")} className="h-10" />
               </div>
               <div className="space-y-1.5">
-                <label className="text-xs font-medium text-muted-foreground">اللون</label>
+                <label className="text-xs font-medium text-muted-foreground">{pt("اللون")}</label>
                 <div className="flex flex-wrap gap-2 items-center">
                   {[
                     "#EF4444", "#F97316", "#F59E0B", "#EAB308", "#84CC16",
@@ -10476,7 +10510,7 @@ const POSPage = () => {
             </div>
             <div className="relative">
               <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input value={catSearchQuery} onChange={(e) => setCatSearchQuery(e.target.value)} placeholder="بحث..." className="pr-10 h-9 text-sm" />
+              <Input value={catSearchQuery} onChange={(e) => setCatSearchQuery(e.target.value)} placeholder={pt("بحث...")} className="pr-10 h-9 text-sm" />
             </div>
             <ScrollArea className="max-h-[350px]">
               <div className="space-y-1">
@@ -10490,6 +10524,20 @@ const POSPage = () => {
                           <div className="w-5 h-5 rounded-md shrink-0" style={{ backgroundColor: cat.color }} />
                           <span className="text-sm font-medium">{cat.name}</span>
                           <span className="text-xs text-muted-foreground">({count} منتج)</span>
+                          <Input
+                            dir="ltr"
+                            defaultValue={(cat as any).name_en || ""}
+                            placeholder="English name"
+                            className="h-7 w-36 text-xs"
+                            onBlur={async (e) => {
+                              const v = e.target.value.trim() || null;
+                              if (v === ((cat as any).name_en || null)) return;
+                              const { error } = await supabase.from("pos_categories").update({ name_en: v } as any).eq("id", cat.id);
+                              if (error) { toast.error(pt("خطأ: ") + error.message); return; }
+                              toast.success(pt("تم حفظ الاسم الإنجليزي"));
+                              await loadCategories();
+                            }}
+                          />
                         </div>
                         <Button
                           variant="ghost"
@@ -10505,14 +10553,14 @@ const POSPage = () => {
                 {posCategories.length === 0 && (
                   <div className="text-center py-8 text-muted-foreground">
                     <Tag className="h-8 w-8 mx-auto mb-2 opacity-30" />
-                    <p className="text-sm">لا توجد تصنيفات بعد</p>
+                    <p className="text-sm">{pt("لا توجد تصنيفات بعد")}</p>
                   </div>
                 )}
               </div>
             </ScrollArea>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowCategoryManager(false)} className="w-full">إغلاق</Button>
+            <Button variant="outline" onClick={() => setShowCategoryManager(false)} className="w-full">{pt("إغلاق")}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -10530,9 +10578,9 @@ const POSPage = () => {
 
       {/* ── Kitchen Ticket Dialog ── */}
       <Dialog open={showKitchenTicket} onOpenChange={setShowKitchenTicket}>
-        <DialogContent className="max-w-sm max-h-[80vh] overflow-y-auto" dir="rtl">
+        <DialogContent className="max-w-sm max-h-[80vh] overflow-y-auto" dir={posDir}>
           <div className="text-center space-y-1 pb-2 border-b border-dashed border-border">
-            <p className="text-lg font-bold">🍳 تذاكر المطبخ</p>
+            <p className="text-lg font-bold">{pt("🍳 تذاكر المطبخ")}</p>
             <p className="text-xs text-muted-foreground">{new Date().toLocaleDateString("ar-PS")}</p>
           </div>
           {kitchenTicketData && (
@@ -10579,7 +10627,7 @@ const POSPage = () => {
             </div>
           )}
           <DialogFooter className="gap-2">
-            <Button variant="outline" onClick={() => setShowKitchenTicket(false)} className="flex-1">إغلاق</Button>
+            <Button variant="outline" onClick={() => setShowKitchenTicket(false)} className="flex-1">{pt("إغلاق")}</Button>
             <Button onClick={() => {
               if (!enforceDeviceGuard()) return;
               if (kitchenTicketData) {
@@ -10672,7 +10720,7 @@ const POSPage = () => {
                 return next;
               });
               setEditAddonCartIndex(null);
-              toast.success("✓ تم تحديث الإضافات");
+              toast.success(pt("✓ تم تحديث الإضافات"));
             }}
             onClose={() => setEditAddonCartIndex(null)}
           />
@@ -10681,7 +10729,7 @@ const POSPage = () => {
 
       {/* Quick Add Customer Dialog */}
       <Dialog open={showQuickAddCustomer} onOpenChange={setShowQuickAddCustomer}>
-        <DialogContent className="sm:max-w-sm" dir="rtl">
+        <DialogContent className="sm:max-w-sm" dir={posDir}>
           <DialogHeader>
             <DialogTitle className="text-base font-bold flex items-center gap-2">
               <PlusCircle className="h-5 w-5 text-primary" />
@@ -10690,17 +10738,17 @@ const POSPage = () => {
           </DialogHeader>
           <div className="space-y-3 py-2">
             <div>
-              <label className="text-xs font-medium text-muted-foreground mb-1 block">اسم الزبون *</label>
+              <label className="text-xs font-medium text-muted-foreground mb-1 block">{pt("اسم الزبون *")}</label>
               <Input
                 value={newCustomerName}
                 onChange={(e) => setNewCustomerName(e.target.value)}
-                placeholder="أدخل اسم الزبون"
+                placeholder={pt("أدخل اسم الزبون")}
                 className="h-10"
                 autoFocus
               />
             </div>
             <div>
-              <label className="text-xs font-medium text-muted-foreground mb-1 block">رقم الهاتف (اختياري)</label>
+              <label className="text-xs font-medium text-muted-foreground mb-1 block">{pt("رقم الهاتف (اختياري)")}</label>
               <Input
                 value={newCustomerPhone}
                 onChange={(e) => setNewCustomerPhone(e.target.value)}
@@ -10711,17 +10759,17 @@ const POSPage = () => {
               />
             </div>
             <div>
-              <label className="text-xs font-medium text-muted-foreground mb-1 block">العنوان (اختياري)</label>
+              <label className="text-xs font-medium text-muted-foreground mb-1 block">{pt("العنوان (اختياري)")}</label>
               <Input
                 value={newCustomerAddress}
                 onChange={(e) => setNewCustomerAddress(e.target.value)}
-                placeholder="المدينة، الشارع..."
+                placeholder={pt("المدينة، الشارع...")}
                 className="h-10"
               />
             </div>
           </div>
           <DialogFooter className="flex gap-2 sm:gap-2">
-            <Button variant="outline" onClick={() => setShowQuickAddCustomer(false)}>إلغاء</Button>
+            <Button variant="outline" onClick={() => setShowQuickAddCustomer(false)}>{pt("إلغاء")}</Button>
             <Button
               onClick={() => handleQuickAddCustomer()}
               disabled={!newCustomerName.trim() || savingCustomer}
@@ -11024,7 +11072,7 @@ const POSPage = () => {
 
       {/* Confirm Delete Product Dialog */}
       <Dialog open={!!confirmDeleteProduct} onOpenChange={(v) => { if (!v) setConfirmDeleteProduct(null); }}>
-        <DialogContent className="max-w-xs z-[1200]" dir="rtl">
+        <DialogContent className="max-w-xs z-[1200]" dir={posDir}>
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-destructive text-base">
               <Trash2 className="h-5 w-5" />
@@ -11034,10 +11082,10 @@ const POSPage = () => {
           <p className="text-sm text-muted-foreground py-2">
             هل أنت متأكد من حذف "{confirmDeleteProduct?.name}"؟
             <br />
-            <span className="text-muted-foreground text-xs">يمكنك التراجع خلال 10 ثوانٍ بعد الحذف.</span>
+            <span className="text-muted-foreground text-xs">{pt("يمكنك التراجع خلال 10 ثوانٍ بعد الحذف.")}</span>
           </p>
           <DialogFooter className="gap-2">
-            <Button variant="outline" size="sm" onClick={() => setConfirmDeleteProduct(null)}>إلغاء</Button>
+            <Button variant="outline" size="sm" onClick={() => setConfirmDeleteProduct(null)}>{pt("إلغاء")}</Button>
             <Button
               variant="destructive"
               size="sm"
@@ -11133,9 +11181,9 @@ const POSPage = () => {
         onTakeover={async () => {
           const ok = await forceClaimSession();
           if (!ok) {
-            toast.error("تعذّر نقل العهدة — حاول مرة أخرى");
+            toast.error(pt("تعذّر نقل العهدة — حاول مرة أخرى"));
           } else {
-            toast.success("تم نقل العهدة لهذا الجهاز");
+            toast.success(pt("تم نقل العهدة لهذا الجهاز"));
           }
         }}
         onCancel={() => {
