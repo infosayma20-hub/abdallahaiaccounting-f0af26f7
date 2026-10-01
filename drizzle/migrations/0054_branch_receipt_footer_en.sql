@@ -1,0 +1,2 @@
+ALTER TABLE public.branches ADD COLUMN IF NOT EXISTS receipt_footer_en text;
+COMMENT ON COLUMN public.branches.receipt_language IS 'POS screen + print language for this branch: ar (default) | en. Set by admin only.';

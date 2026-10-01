@@ -2685,6 +2685,7 @@ export type Database = {
           qr_mode: string
           qr_rotation_minutes: number
           radius_meters: number
+          receipt_footer_en: string | null
           receipt_language: string
           require_attendance_selfie: boolean
           require_gps: boolean
@@ -2714,6 +2715,7 @@ export type Database = {
           qr_mode?: string
           qr_rotation_minutes?: number
           radius_meters?: number
+          receipt_footer_en?: string | null
           receipt_language?: string
           require_attendance_selfie?: boolean
           require_gps?: boolean
@@ -2743,6 +2745,7 @@ export type Database = {
           qr_mode?: string
           qr_rotation_minutes?: number
           radius_meters?: number
+          receipt_footer_en?: string | null
           receipt_language?: string
           require_attendance_selfie?: boolean
           require_gps?: boolean
