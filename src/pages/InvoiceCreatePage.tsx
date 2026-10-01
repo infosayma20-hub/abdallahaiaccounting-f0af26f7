@@ -4548,3 +4548,62 @@ const InvoiceCreatePage = () => {
 };
 
 export default InvoiceCreatePage;
+
+/**
+ * حقل إجمالي البند القابل للتحرير: المستخدم يكتب الإجمالي، ويُحسب سعر الوحدة
+ * عكسيًا (الإجمالي ÷ الكمية مع عكس الخصم والضريبة) بست خانات عشرية.
+ * يُحفظ النص أثناء الكتابة محليًا كي لا يقفز الرقم بسبب التقريب، ويعود للقيمة
+ * المحسوبة عند الخروج من الحقل. يتعطل عند الكمية صفر أو "السعر شامل الضريبة".
+ */
+function InvoiceLineTotalInput({
+  item,
+  subtotal,
+  disabled,
+  currencySymbol,
+  onTotal,
+  compact,
+}: {
+  item: InvoiceItem;
+  subtotal: number;
+  disabled: boolean;
+  currencySymbol: string;
+  onTotal: (total: number) => void;
+  compact?: boolean;
+}) {
+  const computed = Math.round(subtotal * 100) / 100;
+  const [draft, setDraft] = useState<string | null>(null);
+  return (
+    <span className={`flex items-center gap-1 ${compact ? "justify-center" : "justify-end"}`}>
+      <Input
+        type="number"
+        inputMode="decimal"
+        min={0}
+        step="any"
+        dir="ltr"
+        value={draft ?? String(computed)}
+        disabled={disabled}
+        title={
+          disabled
+            ? tt("أدخل الكمية أولًا (لا يعمل مع السعر الشامل للضريبة)")
+            : tt("اكتب الإجمالي ليُحسب سعر الوحدة تلقائيًا")
+        }
+        aria-label={tt("إجمالي البند")}
+        data-no-enter-nav="true"
+        onFocus={(e) => {
+          setDraft(String(computed));
+          e.currentTarget.select();
+        }}
+        onChange={(e) => {
+          const raw = e.target.value;
+          setDraft(raw);
+          const total = Number(raw);
+          if (raw.trim() === "" || !Number.isFinite(total) || total < 0) return;
+          onTotal(total);
+        }}
+        onBlur={() => setDraft(null)}
+        className={`${compact ? "h-8 w-24 text-[12px]" : "h-8 w-24 text-[13px]"} text-center font-bold text-primary tabular-nums px-1 bg-background/70`}
+      />
+      <span className="text-[11px] font-bold text-primary">{currencySymbol}</span>
+    </span>
+  );
+}
