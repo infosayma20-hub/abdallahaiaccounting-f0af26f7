@@ -5,7 +5,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { Plus, Minus, Trash2, Send, Save, Package, Search, Wheat, Beef, Droplets, Sparkles, CupSoda, UtensilsCrossed, Shield, X, StickyNote, LayoutGrid, Grid3X3, Grid2X2, ArrowRight, Settings, UserPlus, MapPin, FolderPlus, Pencil, Milk, Egg, SprayCan, Shirt, Boxes, FolderOpen } from "lucide-react";
+import { Plus, Minus, Trash2, Send, Save, Package, Search, Wheat, Beef, Droplets, Sparkles, CupSoda, UtensilsCrossed, Shield, X, StickyNote, LayoutGrid, Grid3X3, Grid2X2, ArrowRight, Settings, UserPlus, MapPin, FolderPlus, Pencil, Milk, Egg, SprayCan, Shirt, Boxes } from "lucide-react";
 import { useSuppliers, useItemCategories, useProcurementItems, useProcurementOrders, useBranches } from "@/hooks/useProcurement";
 import { useSuppliersCrud, useCategoriesCrud, useItemsCrud } from "@/hooks/useProcurementSettings";
 import { useNavigate } from "react-router-dom";
@@ -95,15 +95,11 @@ const PurchaseOrderCreatePage = () => {
   const [lines, setLines] = useState<OrderLine[]>([]);
   const [saving, setSaving] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
-  const [activeCategory, setActiveCategory] = useState<string | null>(null);
   const [cardSize, setCardSize] = useState<CardSize>((prefs.cardSize as CardSize) || "small");
   const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
   const [mobileCartOpen, setMobileCartOpen] = useState(false);
 
-  // ── مصدر التصفح: المخزون/نقطة البيع (افتراضي) أو كتالوج المشتريات ──
-  const [itemSource, setItemSource] = useState<"inventory" | "catalog">(
-    (prefs as any).itemSource === "catalog" ? "catalog" : "inventory"
-  );
+  // ── قائمة واحدة موحّدة: أصناف المخزون + أصناف كتالوج المشتريات غير المربوطة بالمخزون ──
   const [inventoryProducts, setInventoryProducts] = useState<any[]>([]);
   const [posCats, setPosCats] = useState<any[]>([]);
   const [activePosCategory, setActivePosCategory] = useState<string | null>(null);
@@ -163,7 +159,7 @@ const PurchaseOrderCreatePage = () => {
     return () => { cancelled = true; };
   }, [ownerId]);
 
-  useEffect(() => { searchRef.current?.focus(); }, [activeCategory, activePosCategory]);
+  useEffect(() => { searchRef.current?.focus(); }, [activePosCategory]);
 
   // ── التأكد من وجود صنف مشتريات مرتبط بالمنتج (ربط تلقائي) ──
   const ensureProcItem = useCallback(async (product: any): Promise<string | null> => {
@@ -184,44 +180,42 @@ const PurchaseOrderCreatePage = () => {
     }
   }, []);
 
-  // إضافة/تعديل بند: في وضع المخزون نربط الصنف تلقائياً بكتالوج المشتريات أولًا
+  // إضافة/تعديل بند: صنف مخزون يُربط تلقائيًا بكتالوج المشتريات أولًا، وصنف كتالوج فقط يُضاف مباشرة
   const handleItemAction = useCallback(async (item: any, delta: number) => {
-    if (itemSource === "catalog") { addOrUpdateItem(item, delta); return; }
+    if (item.__catalogOnly) {
+      addOrUpdateItem({ id: item.id, name: item.name, unit: item.unit || "قطعة", default_price: Number(item.default_price) || 0 }, delta);
+      return;
+    }
     const procId = await ensureProcItem(item);
     if (!procId) return;
     addOrUpdateItem({ id: procId, name: item.name, unit: item.unit || "قطعة", default_price: Number(item.buy_price) || 0 }, delta);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [itemSource, ensureProcItem, defaultBranchId]);
+  }, [ensureProcItem, defaultBranchId]);
+
+  const mergedItems = useMemo(() => {
+    const catalogOnly = allItems.filter((i: any) => !i.inventory_product_id).map((i: any) => ({ ...i, __catalogOnly: true }));
+    return [...inventoryProducts, ...catalogOnly];
+  }, [inventoryProducts, allItems]);
 
   const filteredItems = useMemo(() => {
-    let result: any[] = itemSource === "inventory" ? inventoryProducts : allItems;
-    if (itemSource === "inventory") {
-      if (activePosCategory === "__uncat") result = result.filter((i: any) => !i.pos_category_id);
-      else if (activePosCategory) result = result.filter((i: any) => i.pos_category_id === activePosCategory);
-    } else {
-      if (activeCategory) result = result.filter((i: any) => i.category_id === activeCategory);
-    }
+    let result: any[] = mergedItems;
+    if (activePosCategory === "__uncat") result = result.filter((i: any) => !i.pos_category_id);
+    else if (activePosCategory) result = result.filter((i: any) => i.pos_category_id === activePosCategory);
     if (searchQuery) {
       result = result.filter((i: any) => multiWordMatchAny(searchQuery, i.name));
     }
     return result;
-  }, [itemSource, inventoryProducts, allItems, activeCategory, activePosCategory, searchQuery]);
-
-  const categoryCounts = useMemo(() => {
-    const counts: Record<string, number> = {};
-    allItems.forEach((i: any) => { if (i.category_id) counts[i.category_id] = (counts[i.category_id] || 0) + 1; });
-    return counts;
-  }, [allItems]);
+  }, [mergedItems, activePosCategory, searchQuery]);
 
   const posCategoryCounts = useMemo(() => {
     const counts: Record<string, number> = {};
     let uncat = 0;
-    inventoryProducts.forEach((i: any) => {
+    mergedItems.forEach((i: any) => {
       if (i.pos_category_id) counts[i.pos_category_id] = (counts[i.pos_category_id] || 0) + 1;
       else uncat++;
     });
     return { counts, uncat };
-  }, [inventoryProducts]);
+  }, [mergedItems]);
 
   const getLineQuantity = (itemId: string) => lines.find(l => l.product_id === itemId)?.quantity || 0;
   const totalQty = lines.reduce((s, l) => s + l.quantity, 0);
@@ -471,105 +465,54 @@ const PurchaseOrderCreatePage = () => {
         <div className="flex-1 flex min-h-0">
           {/* CENTER: Categories + Items Grid */}
           <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-            {/* Category chips — source toggle + wrapping rows (all visible, no scroll) */}
+            {/* Category chips — wrapping rows (all visible, no scroll) */}
             <div className="shrink-0 border-b border-border bg-muted/20 px-3 py-1.5 max-h-40 overflow-y-auto">
               <div className="flex flex-wrap items-center gap-1.5">
-                <span className="w-px h-5 bg-border shrink-0" />
                 <button
-                  onClick={() => { setItemSource("inventory"); setActiveCategory(null); setActivePosCategory(null); savePrefs({ ...loadPrefs(), itemSource: "inventory" }); }}
-                  className={`shrink-0 flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-bold transition-colors ${
-                    itemSource === "inventory" ? "bg-primary text-primary-foreground" : "bg-background text-muted-foreground hover:text-foreground border border-border"
+                  onClick={() => setActivePosCategory(null)}
+                  className={`shrink-0 flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-semibold transition-colors ${
+                    !activePosCategory ? "bg-primary text-primary-foreground" : "bg-background text-muted-foreground hover:text-foreground border border-border"
                   }`}
                 >
-                  <Boxes className="h-3.5 w-3.5" />المخزون
+                  الكل <span className="text-[10px] opacity-80">({mergedItems.length})</span>
                 </button>
-                <button
-                  onClick={() => { setItemSource("catalog"); setActivePosCategory(null); savePrefs({ ...loadPrefs(), itemSource: "catalog" }); }}
-                  className={`shrink-0 flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-bold transition-colors ${
-                    itemSource === "catalog" ? "bg-primary text-primary-foreground" : "bg-background text-muted-foreground hover:text-foreground border border-border"
-                  }`}
-                >
-                  <FolderOpen className="h-3.5 w-3.5" />كتالوج المشتريات
-                </button>
-                <span className="w-px h-5 bg-border shrink-0" />
-
-                {itemSource === "inventory" ? (
-                  <>
+                {posCats.map((cat: any) => {
+                  const isActive = activePosCategory === cat.id;
+                  const count = posCategoryCounts.counts[cat.id] || 0;
+                  if (count === 0) return null;
+                  return (
                     <button
-                      onClick={() => setActivePosCategory(null)}
-                      className={`shrink-0 flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-semibold transition-colors ${
-                        !activePosCategory ? "bg-primary text-primary-foreground" : "bg-background text-muted-foreground hover:text-foreground border border-border"
+                      key={cat.id}
+                      onClick={() => setActivePosCategory(isActive ? null : cat.id)}
+                      className={`shrink-0 flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold transition-colors ${
+                        isActive ? "bg-primary text-primary-foreground" : "bg-background text-muted-foreground hover:text-foreground border border-border"
                       }`}
                     >
-                      الكل <span className="text-[10px] opacity-80">({inventoryProducts.length})</span>
+                      <span className="inline-block h-2 w-2 rounded-full shrink-0" style={{ backgroundColor: cat.color || "#6b7280" }} />
+                      <span>{cat.name}</span>
+                      <span className="text-[10px] opacity-80">({count})</span>
                     </button>
-                    {posCats.map((cat: any) => {
-                      const isActive = activePosCategory === cat.id;
-                      const count = posCategoryCounts.counts[cat.id] || 0;
-                      if (count === 0) return null;
-                      return (
-                        <button
-                          key={cat.id}
-                          onClick={() => setActivePosCategory(isActive ? null : cat.id)}
-                          className={`shrink-0 flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold transition-colors ${
-                            isActive ? "bg-primary text-primary-foreground" : "bg-background text-muted-foreground hover:text-foreground border border-border"
-                          }`}
-                        >
-                          <span className="inline-block h-2 w-2 rounded-full shrink-0" style={{ backgroundColor: cat.color || "#6b7280" }} />
-                          <span>{cat.name}</span>
-                          <span className="text-[10px] opacity-80">({count})</span>
-                        </button>
-                      );
-                    })}
-                    {posCategoryCounts.uncat > 0 && (
-                      <button
-                        onClick={() => setActivePosCategory(activePosCategory === "__uncat" ? null : "__uncat")}
-                        className={`shrink-0 flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-semibold transition-colors ${
-                          activePosCategory === "__uncat" ? "bg-primary text-primary-foreground" : "bg-background text-muted-foreground hover:text-foreground border border-border"
-                        }`}
-                      >
-                        <Package className="h-3.5 w-3.5" />
-                        غير مصنف <span className="text-[10px] opacity-80">({posCategoryCounts.uncat})</span>
-                      </button>
-                    )}
-                  </>
-                ) : (
-                  <>
-                    <button
-                      onClick={() => setActiveCategory(null)}
-                      className={`shrink-0 flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-semibold transition-colors ${
-                        !activeCategory ? "bg-primary text-primary-foreground" : "bg-background text-muted-foreground hover:text-foreground border border-border"
-                      }`}
-                    >
-                      الكل <span className="text-[10px] opacity-80">({allItems.length})</span>
-                    </button>
-                    {categories.map((cat: any) => {
-                      const isActive = activeCategory === cat.id;
-                      const Icon = iconMap[cat.icon || ""] || Package;
-                      const count = categoryCounts[cat.id] || 0;
-                      return (
-                        <button
-                          key={cat.id}
-                          onClick={() => setActiveCategory(isActive ? null : cat.id)}
-                          className={`shrink-0 flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-semibold transition-colors ${
-                            isActive ? "bg-primary text-primary-foreground" : "bg-background text-muted-foreground hover:text-foreground border border-border"
-                          }`}
-                        >
-                          <Icon className="h-3.5 w-3.5" />
-                          <span>{cat.name}</span>
-                          <span className="text-[10px] opacity-80">({count})</span>
-                        </button>
-                      );
-                    })}
-                  </>
+                  );
+                })}
+                {posCategoryCounts.uncat > 0 && (
+                  <button
+                    onClick={() => setActivePosCategory(activePosCategory === "__uncat" ? null : "__uncat")}
+                    className={`shrink-0 flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-semibold transition-colors ${
+                      activePosCategory === "__uncat" ? "bg-primary text-primary-foreground" : "bg-background text-muted-foreground hover:text-foreground border border-border"
+                    }`}
+                  >
+                    <Package className="h-3.5 w-3.5" />
+                    غير مصنف <span className="text-[10px] opacity-80">({posCategoryCounts.uncat})</span>
+                  </button>
                 )}
               </div>
             </div>
 
+
             {/* Grid */}
             <div className={`flex-1 overflow-y-auto p-2 grid ${gridCols} gap-1.5 auto-rows-min content-start`}>
               {filteredItems.map((item: any) => {
-                const isInventory = itemSource === "inventory";
+                const isInventory = !item.__catalogOnly;
                 const procId = isInventory ? procIdByProductIdRef.current[item.id] : item.id;
                 const qty = procId ? getLineQuantity(procId) : 0;
                 const catColor = getCategoryColor(item.category_id);
