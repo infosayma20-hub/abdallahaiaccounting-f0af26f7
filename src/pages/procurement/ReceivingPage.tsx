@@ -159,6 +159,7 @@ function ReceivingSession({ sessionId }: { sessionId: string }) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [cameraOpen, setCameraOpen] = useState(false);
   const [cameraLine, setCameraLine] = useState<Line | null>(null);
+  const [mismatch, setMismatch] = useState<{ line: Line; barcode: string } | null>(null);
   const busy = useRef(false);
 
   const today = new Date().toISOString().slice(0, 10);
@@ -296,10 +297,23 @@ function ReceivingSession({ sessionId }: { sessionId: string }) {
 
     if (!codes.includes(barcode)) {
       beep(false);
-      showFlash(false, `الباركود لا يطابق ${fresh.item_name}`);
+      setMismatch({ line: fresh, barcode });
       return;
     }
     await handleScan(barcode);
+  };
+
+  // باركود غير مطابق — الشركة الأم غيّرت الباركود: نضيفه كباركود إضافي للصنف ثم نسجّل المسحة
+  const linkMismatchBarcode = async () => {
+    if (!mismatch) return;
+    const { line, barcode } = mismatch;
+    if (!navigator.onLine) { beep(false); showFlash(false, "ربط الباركود بحاجة إنترنت"); return; }
+    const { error } = await supabase.rpc("receiving_link_barcode", { p_line_id: line.id, p_barcode: barcode } as any);
+    if (error) { beep(false); showFlash(false, error.message); return; }
+    setMismatch(null);
+    showFlash(true, `تمت إضافة الباركود الجديد للصنف ${line.item_name}`);
+    await handleScan(barcode);
+    load();
   };
 
   const submit = async () => {
@@ -483,6 +497,23 @@ function ReceivingSession({ sessionId }: { sessionId: string }) {
             </div>
           </div>
           <DialogFooter><Button onClick={saveEdit}>حفظ</Button></DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Barcode mismatch — offer to add as new barcode */}
+      <Dialog open={!!mismatch} onOpenChange={o => { if (!o) { setMismatch(null); focus(); } }}>
+        <DialogContent dir="rtl" className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>الباركود لا يطابق الصنف</DialogTitle>
+            <DialogDescription>
+              الباركود <span className="font-mono font-bold">{mismatch?.barcode}</span> مش مربوط بالصنف «{mismatch?.line.item_name}».
+              إذا الشركة الأم غيّرت الباركود، تقدر تضيفه كباركود جديد للصنف — والقديم بيضل شغال.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => { setMismatch(null); focus(); }}>إلغاء</Button>
+            <Button onClick={linkMismatchBarcode}>إضافة كباركود جديد وتسجيل المسحة</Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
 
