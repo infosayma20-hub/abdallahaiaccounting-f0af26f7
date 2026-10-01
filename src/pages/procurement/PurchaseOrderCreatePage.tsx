@@ -140,12 +140,25 @@ const PurchaseOrderCreatePage = () => {
         supabase.from("pos_categories").select("id, name, color, sort_order, display_order")
           .eq("user_id", ownerId).eq("is_active", true)
           .order("sort_order").order("display_order"),
-        supabase.from("products").select("id, name, unit, pos_category_id, category, buy_price, barcode")
-          .eq("user_id", ownerId).order("name"),
+        // جلب كل الأصناف بدون سقف (الافتراضي 1000) — دفعات متتابعة
+        (async () => {
+          const all: any[] = [];
+          const PAGE = 1000;
+          for (let from = 0; ; from += PAGE) {
+            const { data } = await supabase.from("products")
+              .select("id, name, unit, pos_category_id, category, buy_price, barcode")
+              .eq("user_id", ownerId).order("name")
+              .range(from, from + PAGE - 1);
+            if (!data || data.length === 0) break;
+            all.push(...data);
+            if (data.length < PAGE) break;
+          }
+          return all;
+        })(),
       ]);
       if (cancelled) return;
       if (cats.data) setPosCats(cats.data as any[]);
-      if (prods.data) setInventoryProducts(prods.data as any[]);
+      setInventoryProducts(prods as any[]);
     })();
     return () => { cancelled = true; };
   }, [ownerId]);
