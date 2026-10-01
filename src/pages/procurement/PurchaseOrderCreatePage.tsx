@@ -177,7 +177,8 @@ const PurchaseOrderCreatePage = () => {
     const procId = await ensureProcItem(item);
     if (!procId) return;
     addOrUpdateItem({ id: procId, name: item.name, unit: item.unit || "قطعة", default_price: Number(item.buy_price) || 0 }, delta);
-  }, [itemSource, ensureProcItem, addOrUpdateItem]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [itemSource, ensureProcItem, defaultBranchId]);
 
   const filteredItems = useMemo(() => {
     let result: any[] = itemSource === "inventory" ? inventoryProducts : allItems;
