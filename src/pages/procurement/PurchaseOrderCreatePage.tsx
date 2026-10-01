@@ -100,10 +100,7 @@ const PurchaseOrderCreatePage = () => {
   const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
   const [mobileCartOpen, setMobileCartOpen] = useState(false);
 
-  // ── مصدر التصفح: المخزون/نقطة البيع (افتراضي) أو كتالوج المشتريات ──
-  const [itemSource, setItemSource] = useState<"inventory" | "catalog">(
-    (prefs as any).itemSource === "catalog" ? "catalog" : "inventory"
-  );
+  // ── قائمة واحدة موحّدة: أصناف المخزون + أصناف كتالوج المشتريات غير المربوطة بالمخزون ──
   const [inventoryProducts, setInventoryProducts] = useState<any[]>([]);
   const [posCats, setPosCats] = useState<any[]>([]);
   const [activePosCategory, setActivePosCategory] = useState<string | null>(null);
@@ -163,7 +160,7 @@ const PurchaseOrderCreatePage = () => {
     return () => { cancelled = true; };
   }, [ownerId]);
 
-  useEffect(() => { searchRef.current?.focus(); }, [activeCategory, activePosCategory]);
+  useEffect(() => { searchRef.current?.focus(); }, [activePosCategory]);
 
   // ── التأكد من وجود صنف مشتريات مرتبط بالمنتج (ربط تلقائي) ──
   const ensureProcItem = useCallback(async (product: any): Promise<string | null> => {
