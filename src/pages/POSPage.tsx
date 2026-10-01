@@ -965,6 +965,7 @@ const POSPage = () => {
   const [terminalBranchChecked, setTerminalBranchChecked] = useState(false);
   const [cashBoxBranchId, setCashBoxBranchId] = useState<string | null>(null);
   const [cashBoxBranchChecked, setCashBoxBranchChecked] = useState(false);
+  const [activeBranchOwnerId, setActiveBranchOwnerId] = useState<string | null>(null);
   // خصم بإذن مدير الفرع (Contra-Revenue). يُمسح بعد كل بيع ناجح أو إلغاء.
   const [showManagerDiscountDialog, setShowManagerDiscountDialog] = useState(false);
   const [managerDiscountMeta, setManagerDiscountMeta] = useState<ManagerDiscountApproved | null>(null);
@@ -999,6 +1000,27 @@ const POSPage = () => {
     const off = onDeviceConfigChange(() => setDeviceConfig(getDeviceConfig()));
     return off;
   }, []);
+
+  // Price-change reasons are a Malaki workflow. Resolve ownership from the
+  // physical branch first so a stale/switchable account context cannot turn
+  // Malaki's preset reasons into the generic free-note dialog.
+  useEffect(() => {
+    const branchId = deviceConfig.branchId || terminalBranchId || cashBoxBranchId || detectedBranchId;
+    if (!branchId) {
+      setActiveBranchOwnerId(null);
+      return;
+    }
+    let cancelled = false;
+    void supabase
+      .from("branches")
+      .select("user_id")
+      .eq("id", branchId)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (!cancelled) setActiveBranchOwnerId((data as { user_id?: string } | null)?.user_id || null);
+      });
+    return () => { cancelled = true; };
+  }, [deviceConfig.branchId, terminalBranchId, cashBoxBranchId, detectedBranchId]);
 
   // Call-center accounts have no physical device binding — restore
   // branch + terminal from their pos_users record so they can open a shift.
@@ -11120,7 +11142,7 @@ const POSPage = () => {
         originalPrice={priceReasonTarget != null ? (cart[priceReasonTarget]?.base_price ?? 0) : 0}
         newPrice={priceReasonTarget != null ? (cart[priceReasonTarget]?.unit_price ?? 0) : 0}
         qty={priceReasonTarget != null ? (cart[priceReasonTarget]?.qty ?? 1) : 1}
-        variant={dataOwnerId === MALAKI_OWNER_ID ? "malaki" : "note"}
+        variant={(activeBranchOwnerId || dataOwnerId) === MALAKI_OWNER_ID ? "malaki" : "note"}
         onCancel={cancelPriceChange}
         onConfirm={confirmPriceChange}
       />
