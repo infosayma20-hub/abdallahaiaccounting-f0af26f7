@@ -152,6 +152,14 @@ const ReturnsListPage = ({ returnType }: Props) => {
       ]);
       if (itemsErr) throw itemsErr;
 
+      // الوحدة مصدرها بطاقة الصنف (كيلو/قطعة...) — بنود المردود لا تخزن وحدة
+      const productIds = Array.from(new Set(((items as any[]) || []).map((it) => it.product_id).filter(Boolean)));
+      const unitByProduct = new Map<string, string>();
+      if (productIds.length) {
+        const { data: prods } = await supabase.from("products").select("id, unit").in("id", productIds);
+        ((prods as any[]) || []).forEach((p) => { if (p.unit) unitByProduct.set(p.id, p.unit); });
+      }
+
       const invoiceItems = ((items as any[]) || []).map((it) => {
         const qty = Number(it.quantity) || 0;
         const price = Number(it.unit_price) || 0;
@@ -161,6 +169,7 @@ const ReturnsListPage = ({ returnType }: Props) => {
         return {
           description: it.description || "—",
           quantity: qty,
+          unitOfMeasure: (it.product_id && unitByProduct.get(it.product_id)) || undefined,
           unitPrice: price,
           discount: disc,
           discountType: "amount" as const,
