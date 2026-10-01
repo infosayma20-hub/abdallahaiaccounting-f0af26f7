@@ -259,30 +259,16 @@ function ReceivingSession({ sessionId }: { sessionId: string }) {
     setUnknown(null); setLastLineId(line.id); load();
   };
 
-  const generateBarcode = async (line: Line) => {
-    const { data, error } = await supabase.rpc("receiving_generate_barcode", { p_line_id: line.id } as any);
-    if (error) { toast.error(error.message); return; }
-    toast.success(`باركود الصنف: ${data}`);
-    printLabel(line.item_name, String(data));
-    load();
-  };
-
-  const saveEdit = async () => {
-    if (!editLine) return;
-    const qty = Number(editQty);
-    if (!Number.isFinite(qty) || qty < 0) { toast.error("كمية غير صحيحة"); return; }
-    const { error } = await supabase.rpc("receiving_set_line", { p_line_id: editLine.id, p_qty: qty, p_note: editNote || null, p_expiry: editExpiry || null } as any);
-    if (error) { toast.error(error.message); return; }
-    setEditLine(null); load();
-  };
-
-  const bump = async (line: Line, delta: number) => {
-    const qty = Math.max(0, Number(line.scanned_qty) + delta);
+  const setQty = async (line: Line, qty: number) => {
+    if (!Number.isFinite(qty) || qty < 0) { toast.error("كمية غير صحيحة"); load(); return; }
+    qty = Math.round(qty * 1000) / 1000;
+    if (qty === Number(line.scanned_qty)) return;
     setSession(s => s ? { ...s, lines: s.lines.map(l => l.id === line.id ? { ...l, scanned_qty: qty } : l) } : s);
     const { error } = await supabase.rpc("receiving_set_line", { p_line_id: line.id, p_qty: qty, p_note: line.note, p_expiry: line.expiry_date } as any);
-      if (error) { toast.error(error.message); load(); }
-    focus();
+    if (error) { toast.error(error.message); load(); }
   };
+
+  const bump = (line: Line, delta: number) => { void setQty(line, Math.max(0, Number(line.scanned_qty) + delta)); focus(); };
 
   // مسح بالكاميرا من زر صنف محدد — لازم الباركود يطابق نفس الصنف
   const cameraScanLine = async (line: Line, raw: string) => {
