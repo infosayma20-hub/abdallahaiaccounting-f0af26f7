@@ -15,6 +15,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useDataOwnerId } from "@/hooks/useDataOwnerId";
 import { SupplierPicker } from "@/components/procurement/SupplierPicker";
+import ProductUnitSelect from "@/components/inventory/ProductUnitSelect";
 import { multiWordMatchAny } from "@/lib/utils";
 
 const iconMap: Record<string, any> = {
@@ -25,10 +26,7 @@ const iconMap: Record<string, any> = {
 
 const ICON_OPTIONS = ["wheat", "egg", "beef", "droplets", "sparkles", "cup-soda", "package", "utensils", "spray-can", "shirt", "milk", "shield"];
 const COLOR_OPTIONS = ["#4A9EE8", "#FFFFFF", "#E74C3C", "#E67E22", "#9B59B6", "#3498DB", "#27AE60", "#1ABC9C", "#2ECC71", "#95A5A6"];
-const DEFAULT_UNITS = ["كيلو", "كرتون", "علبة", "رول", "لتر", "قطعة", "شوال", "رزمة", "عدد", "جالون", "سطل", "عبوة", "ألف حبة", "دفتر", "كرتون 30", "عدد 30", "عدد 100"];
-const CUSTOM_UNITS_KEY = "po-custom-units";
-function loadCustomUnits(): string[] { try { return JSON.parse(localStorage.getItem(CUSTOM_UNITS_KEY) || "[]"); } catch { return []; } }
-function saveCustomUnit(u: string) { const arr = loadCustomUnits(); if (!arr.includes(u)) { arr.push(u); localStorage.setItem(CUSTOM_UNITS_KEY, JSON.stringify(arr)); } }
+// قوائم الوحدات صارت من قاعدة البيانات عبر ProductUnitSelect (وحدات المستأجر + إضافة مخصصة)
 
 function highlightSearchWords(text: string, query: string): string {
   const escapeHtml = (s: string) =>
@@ -94,9 +92,6 @@ const PurchaseOrderCreatePage = () => {
   const prefs = loadPrefs();
   const [supplierId, setSupplierId] = useState("");
   const [defaultBranchId, setDefaultBranchId] = useState(prefs.branchId || "");
-  const UNIT_OPTIONS = useMemo(() => [...new Set([...DEFAULT_UNITS, ...loadCustomUnits()])], []);
-  const [unitOptions, setUnitOptions] = useState(UNIT_OPTIONS);
-  const [customUnitInput, setCustomUnitInput] = useState("");
   const [orderDate, setOrderDate] = useState(new Date().toISOString().split("T")[0]);
   const [expectedDate, setExpectedDate] = useState("");
   const [notes, setNotes] = useState("");
@@ -109,6 +104,7 @@ const PurchaseOrderCreatePage = () => {
 
   // ── قائمة واحدة موحّدة: أصناف المخزون + أصناف كتالوج المشتريات غير المربوطة بالمخزون ──
   const [inventoryProducts, setInventoryProducts] = useState<any[]>([]);
+  const [purchaseUnitByProduct, setPurchaseUnitByProduct] = useState<Record<string, string>>({});
   const [posCats, setPosCats] = useState<any[]>([]);
   const [activePosCategory, setActivePosCategory] = useState<string | null>(null);
   const [ensuringId, setEnsuringId] = useState<string | null>(null);
@@ -232,6 +228,17 @@ const PurchaseOrderCreatePage = () => {
       if (cancelled) return;
       if (cats.data) setPosCats(cats.data as any[]);
       setInventoryProducts(prods as any[]);
+      // وحدات الشراء المعرفة ببطاقة الصنف (product_units) — وحدة الشراء الافتراضية لكل منتج
+      const { data: pu } = await supabase.from("product_units" as any)
+        .select("product_id, unit_name, is_purchase, is_default")
+        .eq("user_id", ownerId).eq("is_active", true);
+      if (cancelled) return;
+      const map: Record<string, string> = {};
+      ((pu as any[]) || []).forEach(u => {
+        const cur = map[u.product_id];
+        if (!cur || u.is_purchase || u.is_default) map[u.product_id] = u.unit_name;
+      });
+      setPurchaseUnitByProduct(map);
     })();
     return () => { cancelled = true; };
   }, [ownerId]);
@@ -265,7 +272,9 @@ const PurchaseOrderCreatePage = () => {
     }
     const procId = await ensureProcItem(item);
     if (!procId) return;
-    addOrUpdateItem({ id: procId, name: item.name, unit: item.unit || "قطعة", default_price: Number(item.buy_price) || 0 }, delta);
+    // وحدة الشراء من بطاقة الصنف (product_units) لها الأولوية على الوحدة العامة
+    const unit = purchaseUnitByProduct[item.id] || item.unit || "قطعة";
+    addOrUpdateItem({ id: procId, name: item.name, unit, default_price: Number(item.buy_price) || 0 }, delta);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ensureProcItem, defaultBranchId]);
 
@@ -448,7 +457,6 @@ const PurchaseOrderCreatePage = () => {
     if (!newItem.name.trim()) { toast({ title: "أدخل اسم الصنف", variant: "destructive" }); return; }
     if (!newItem.unit.trim()) { toast({ title: "أدخل الوحدة", variant: "destructive" }); return; }
     if (!newItem.category_id) { toast({ title: "اختر التصنيف", variant: "destructive" }); return; }
-    if (!DEFAULT_UNITS.includes(newItem.unit)) { saveCustomUnit(newItem.unit); setUnitOptions(prev => [...new Set([...prev, newItem.unit])]); }
     setSavingDialog(true);
     const ok = await itemsCrud.create({
       name: newItem.name, category_id: newItem.category_id,
@@ -476,7 +484,6 @@ const PurchaseOrderCreatePage = () => {
   const handleEditItem = async () => {
     if (!editItem) return;
     if (!editItem.unit?.trim()) { toast({ title: "أدخل الوحدة", variant: "destructive" }); return; }
-    if (!DEFAULT_UNITS.includes(editItem.unit)) { saveCustomUnit(editItem.unit); setUnitOptions(prev => [...new Set([...prev, editItem.unit])]); }
     setSavingDialog(true);
     const ok = await itemsCrud.update(editItem.id, {
       name: editItem.name, category_id: editItem.category_id,
@@ -845,7 +852,7 @@ const PurchaseOrderCreatePage = () => {
             <div className="space-y-3">
               <div><Label className="text-xs">اسم الصنف *</Label><Input value={manualItem.item_name} onChange={e => setManualItem({...manualItem, item_name: e.target.value})} placeholder="اسم الصنف" className="text-sm" /></div>
               <div className="grid grid-cols-3 gap-2">
-                <div><Label className="text-xs">الوحدة</Label><Input value={manualItem.unit} onChange={e => setManualItem({...manualItem, unit: e.target.value})} className="text-sm" /></div>
+                <div><Label className="text-xs">الوحدة</Label><ProductUnitSelect value={manualItem.unit} onChange={v => setManualItem({...manualItem, unit: v})} ownerId={ownerId} /></div>
                 <div><Label className="text-xs">الكمية</Label><Input type="number" value={manualItem.quantity} onChange={e => setManualItem({...manualItem, quantity: Number(e.target.value)})} className="text-sm" /></div>
                 <div><Label className="text-xs">السعر</Label><Input type="number" value={manualItem.unit_price || ""} onChange={e => setManualItem({...manualItem, unit_price: Number(e.target.value)})} className="text-sm" /></div>
               </div>
@@ -899,16 +906,7 @@ const PurchaseOrderCreatePage = () => {
               <div className="grid grid-cols-2 gap-2">
                 <div>
                   <Label className="text-xs">الوحدة *</Label>
-                  <Select value={unitOptions.includes(newItem.unit) ? newItem.unit : "__custom"} onValueChange={v => { if (v === "__custom") { setCustomUnitInput(""); setNewItem({...newItem, unit: ""}); } else { setNewItem({...newItem, unit: v}); } }}>
-                    <SelectTrigger className="text-sm"><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      {unitOptions.map(u => <SelectItem key={u} value={u} className="text-sm">{u}</SelectItem>)}
-                      <SelectItem value="__custom" className="text-sm text-primary">+ وحدة مخصصة</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  {(!unitOptions.includes(newItem.unit)) && (
-                    <Input value={newItem.unit} onChange={e => setNewItem({...newItem, unit: e.target.value})} placeholder="اكتب اسم الوحدة..." className="text-sm mt-1" autoFocus />
-                  )}
+                  <ProductUnitSelect value={newItem.unit} onChange={v => setNewItem({...newItem, unit: v})} ownerId={ownerId} />
                 </div>
                 <div><Label className="text-xs">السعر الافتراضي</Label><Input type="number" value={newItem.default_price || ""} onChange={e => setNewItem({...newItem, default_price: Number(e.target.value)})} placeholder="0.00" className="text-sm" /></div>
               </div>
@@ -1002,16 +1000,7 @@ const PurchaseOrderCreatePage = () => {
                 <div className="grid grid-cols-2 gap-2">
                   <div>
                     <Label className="text-xs">الوحدة</Label>
-                    <Select value={unitOptions.includes(editItem.unit) ? editItem.unit : "__custom"} onValueChange={v => { if (v === "__custom") { setEditItem({...editItem, unit: ""}); } else { setEditItem({...editItem, unit: v}); } }}>
-                      <SelectTrigger className="text-sm"><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        {unitOptions.map(u => <SelectItem key={u} value={u} className="text-sm">{u}</SelectItem>)}
-                        <SelectItem value="__custom" className="text-sm text-primary">+ وحدة مخصصة</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    {(!unitOptions.includes(editItem.unit)) && (
-                      <Input value={editItem.unit} onChange={e => setEditItem({...editItem, unit: e.target.value})} placeholder="اكتب اسم الوحدة..." className="text-sm mt-1" autoFocus />
-                    )}
+                    <ProductUnitSelect value={editItem.unit} onChange={v => setEditItem({...editItem, unit: v})} ownerId={ownerId} />
                   </div>
                   <div><Label className="text-xs">السعر الافتراضي</Label><Input type="number" value={editItem.default_price || ""} onChange={e => setEditItem({...editItem, default_price: Number(e.target.value)})} className="text-sm" /></div>
                 </div>

@@ -1,0 +1,1 @@
+CREATE POLICY "Team can view product units" ON public.product_units FOR SELECT TO authenticated USING ((user_id = (SELECT auth.uid())) OR (user_id = (SELECT public.get_team_owner_id())));

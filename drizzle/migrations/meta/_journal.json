@@ -449,6 +449,13 @@
       "when": 1790852368959,
       "tag": "0063_barcode_scan_variants",
       "breakpoints": true
+    },
+    {
+      "idx": 64,
+      "version": "7",
+      "when": 1790853190529,
+      "tag": "0064_product_units_team_read",
+      "breakpoints": true
     }
   ]
 }

@@ -11,6 +11,8 @@ import { ArrowRight, Plus, RefreshCw, Send, Trash2, Camera, ScanLine, Paperclip,
 import POSBarcodeScanner from "@/components/pos/POSBarcodeScanner";
 import { normalizeBarcode, createSerialQueue, createScanBurstWatcher } from "@/lib/barcode";
 import { useAuth } from "@/hooks/useAuth";
+import { useDataOwnerId } from "@/hooks/useDataOwnerId";
+import ProductUnitSelect from "@/components/inventory/ProductUnitSelect";
 import { DShell, PaneBtn, beep } from "./ReceivingPage";
 
 /**
@@ -186,6 +188,8 @@ function LineRow({ line, editable, onSave }: { line: Line; editable: boolean; on
 function DirectSession({ orderId, ctx }: { orderId: string; ctx: Ctx }) {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { dataOwnerId } = useDataOwnerId();
+  const ownerId = dataOwnerId || user?.id;
   const [order, setOrder] = useState<Order | null>(null);
   const [code, setCode] = useState("");
   const [camOpen, setCamOpen] = useState(false);
@@ -391,7 +395,7 @@ function DirectSession({ orderId, ctx }: { orderId: string; ctx: Ctx }) {
               <div><label className="mb-1 block text-xs font-semibold">اسم الصنف *</label>
                 <Input autoFocus value={temp.name} maxLength={200} onChange={e => setTemp({ ...temp, name: e.target.value })} /></div>
               <div><label className="mb-1 block text-xs font-semibold">الوحدة</label>
-                <Input value={temp.unit} maxLength={30} onChange={e => setTemp({ ...temp, unit: e.target.value })} /></div>
+                <ProductUnitSelect value={temp.unit} onChange={v => setTemp({ ...temp, unit: v })} ownerId={ownerId} /></div>
               <label className="flex h-11 cursor-pointer items-center justify-center gap-2 rounded-md border border-dashed text-sm">
                 <Camera className="h-4 w-4" />{temp.file ? "تم اختيار صورة ✓" : "صورة الصنف (اختياري)"}
                 <input type="file" accept="image/*" capture="environment" className="hidden" onChange={e => setTemp({ ...temp, file: e.target.files?.[0] || null })} />
