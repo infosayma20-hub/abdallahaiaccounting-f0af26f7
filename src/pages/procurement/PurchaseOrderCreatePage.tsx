@@ -110,6 +110,7 @@ const PurchaseOrderCreatePage = () => {
 
   // ── قائمة واحدة موحّدة: أصناف المخزون + أصناف كتالوج المشتريات غير المربوطة بالمخزون ──
   const [inventoryProducts, setInventoryProducts] = useState<any[]>([]);
+  const [purchaseUnitByProduct, setPurchaseUnitByProduct] = useState<Record<string, string>>({});
   const [posCats, setPosCats] = useState<any[]>([]);
   const [activePosCategory, setActivePosCategory] = useState<string | null>(null);
   const [ensuringId, setEnsuringId] = useState<string | null>(null);
@@ -277,7 +278,9 @@ const PurchaseOrderCreatePage = () => {
     }
     const procId = await ensureProcItem(item);
     if (!procId) return;
-    addOrUpdateItem({ id: procId, name: item.name, unit: item.unit || "قطعة", default_price: Number(item.buy_price) || 0 }, delta);
+    // وحدة الشراء من بطاقة الصنف (product_units) لها الأولوية على الوحدة العامة
+    const unit = purchaseUnitByProduct[item.id] || item.unit || "قطعة";
+    addOrUpdateItem({ id: procId, name: item.name, unit, default_price: Number(item.buy_price) || 0 }, delta);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ensureProcItem, defaultBranchId]);
 
