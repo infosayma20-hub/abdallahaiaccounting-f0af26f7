@@ -197,6 +197,8 @@ const PurchaseOrderCreatePage = () => {
     return [...inventoryProducts, ...catalogOnly];
   }, [inventoryProducts, allItems]);
 
+  const GRID_PAGE = 240;
+  const [gridLimit, setGridLimit] = useState(GRID_PAGE);
   const filteredItems = useMemo(() => {
     let result: any[] = mergedItems;
     if (activePosCategory === "__uncat") result = result.filter((i: any) => !i.pos_category_id);
