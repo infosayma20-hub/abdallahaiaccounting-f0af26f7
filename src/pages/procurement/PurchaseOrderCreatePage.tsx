@@ -210,12 +210,12 @@ const PurchaseOrderCreatePage = () => {
   const posCategoryCounts = useMemo(() => {
     const counts: Record<string, number> = {};
     let uncat = 0;
-    inventoryProducts.forEach((i: any) => {
+    mergedItems.forEach((i: any) => {
       if (i.pos_category_id) counts[i.pos_category_id] = (counts[i.pos_category_id] || 0) + 1;
       else uncat++;
     });
     return { counts, uncat };
-  }, [inventoryProducts]);
+  }, [mergedItems]);
 
   const getLineQuantity = (itemId: string) => lines.find(l => l.product_id === itemId)?.quantity || 0;
   const totalQty = lines.reduce((s, l) => s + l.quantity, 0);
