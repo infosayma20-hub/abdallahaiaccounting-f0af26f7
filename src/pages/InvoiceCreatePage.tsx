@@ -1360,6 +1360,29 @@ const InvoiceCreatePage = () => {
     }));
   };
 
+  // ─── إجمالي البند قابل للتحرير ───
+  // المستخدم يكتب إجمالي البند، ويُحسب سعر الوحدة عكسيًا = الإجمالي ÷ الكمية
+  // مع عكس أثر الخصم والضريبة. يُحفظ السعر بست خانات عشرية حتى يعود الإجمالي
+  // كما كتبه المستخدم بالضبط (مثل 400 ÷ 230 = 1.739130).
+  // يتعطل عند الكمية صفر أو عند "السعر شامل الضريبة" (المعادلة غير قابلة للعكس حينها).
+  const setItemTotal = (itemId: string, total: number) => {
+    setForm(prev => ({
+      ...prev,
+      items: prev.items.map(item => {
+        if (item.id !== itemId) return item;
+        if (!(item.quantity > 0) || !Number.isFinite(total) || total < 0 || prev.taxInclusive) return item;
+        const discountFactor = item.discountType === "percent" ? Math.max(0, 1 - item.discount / 100) : 1;
+        const taxFactor = taxEnabled && item.taxCategory !== "exempt" ? 1 + item.taxRate / 100 : 1;
+        const divisor = item.quantity * discountFactor * taxFactor;
+        if (!(divisor > 0)) return item;
+        const unitPrice = Math.round((total / divisor) * 1e6) / 1e6;
+        const updated = { ...item, unitPrice };
+        updated.subtotal = calcItemSubtotal(updated);
+        return updated;
+      }),
+    }));
+  };
+
   const selectProduct = (itemId: string, productId: string) => {
     const prod = products.find(p => p.id === productId);
     if (!prod) return;
@@ -3999,30 +4022,15 @@ const InvoiceCreatePage = () => {
                         </td>
                       )}
 
-                       {/* Subtotal */}
+                       {/* Subtotal — editable: typing the total back-computes the unit price */}
                        <td className="py-2 px-3 text-left align-middle bg-primary/5 min-w-[140px] whitespace-nowrap">
-                        {(() => {
-                          const sub = calcItemSubtotal(item);
-                          const formatted = fmtCurrency(sub);
-                          const sizeClass =
-                            formatted.length <= 10
-                              ? "text-[13px]"
-                              : formatted.length <= 14
-                              ? "text-[12px]"
-                              : formatted.length <= 18
-                              ? "text-[11px]"
-                              : "text-[10px]";
-                          return (
-                            <span
-                              dir="ltr"
-                              title={formatted}
-                              aria-label={formatted}
-                              className={`block whitespace-nowrap font-bold text-primary tabular-nums ${sizeClass}`}
-                            >
-                              {formatted}
-                            </span>
-                          );
-                        })()}
+                        <InvoiceLineTotalInput
+                          item={item}
+                          subtotal={calcItemSubtotal(item)}
+                          disabled={!(item.quantity > 0) || form.taxInclusive}
+                          currencySymbol={currSymbol}
+                          onTotal={(total) => setItemTotal(item.id, total)}
+                        />
                       </td>
 
                       {/* Delete */}
@@ -4095,7 +4103,14 @@ const InvoiceCreatePage = () => {
                   </div>
                   <div>
                     <Label className="text-[9px] text-muted-foreground">{tt("الإجمالي")}</Label>
-                    <div className="h-8 flex items-center justify-center text-[12px] font-bold tabular-nums">{fmtCurrency(calcItemSubtotal(item))}</div>
+                    <InvoiceLineTotalInput
+                      item={item}
+                      subtotal={calcItemSubtotal(item)}
+                      disabled={!(item.quantity > 0) || form.taxInclusive}
+                      currencySymbol={currSymbol}
+                      onTotal={(total) => setItemTotal(item.id, total)}
+                      compact
+                    />
                   </div>
                 </div>
               </div>
@@ -4533,3 +4548,63 @@ const InvoiceCreatePage = () => {
 };
 
 export default InvoiceCreatePage;
+
+/**
+ * حقل إجمالي البند القابل للتحرير: المستخدم يكتب الإجمالي، ويُحسب سعر الوحدة
+ * عكسيًا (الإجمالي ÷ الكمية مع عكس الخصم والضريبة) بست خانات عشرية.
+ * يُحفظ النص أثناء الكتابة محليًا كي لا يقفز الرقم بسبب التقريب، ويعود للقيمة
+ * المحسوبة عند الخروج من الحقل. يتعطل عند الكمية صفر أو "السعر شامل الضريبة".
+ */
+function InvoiceLineTotalInput({
+  item,
+  subtotal,
+  disabled,
+  currencySymbol,
+  onTotal,
+  compact,
+}: {
+  item: InvoiceItem;
+  subtotal: number;
+  disabled: boolean;
+  currencySymbol: string;
+  onTotal: (total: number) => void;
+  compact?: boolean;
+}) {
+  const tt = useTT();
+  const computed = Math.round(subtotal * 100) / 100;
+  const [draft, setDraft] = useState<string | null>(null);
+  return (
+    <span className={`flex items-center gap-1 ${compact ? "justify-center" : "justify-end"}`}>
+      <Input
+        type="number"
+        inputMode="decimal"
+        min={0}
+        step="any"
+        dir="ltr"
+        value={draft ?? String(computed)}
+        disabled={disabled}
+        title={
+          disabled
+            ? tt("أدخل الكمية أولًا (لا يعمل مع السعر الشامل للضريبة)")
+            : tt("اكتب الإجمالي ليُحسب سعر الوحدة تلقائيًا")
+        }
+        aria-label={tt("إجمالي البند")}
+        data-no-enter-nav="true"
+        onFocus={(e) => {
+          setDraft(String(computed));
+          e.currentTarget.select();
+        }}
+        onChange={(e) => {
+          const raw = e.target.value;
+          setDraft(raw);
+          const total = Number(raw);
+          if (raw.trim() === "" || !Number.isFinite(total) || total < 0) return;
+          onTotal(total);
+        }}
+        onBlur={() => setDraft(null)}
+        className={`${compact ? "h-8 w-24 text-[12px]" : "h-8 w-24 text-[13px]"} text-center font-bold text-primary tabular-nums px-1 bg-background/70`}
+      />
+      <span className="text-[11px] font-bold text-primary">{currencySymbol}</span>
+    </span>
+  );
+}
