@@ -15,7 +15,7 @@ import { withLocalNetworkAccess, localNetworkTimeoutSignal } from "@/lib/local-n
 export type ReceiptLang = "ar" | "en";
 
 let receiptLang: ReceiptLang = "ar";
-let header: { name?: string | null; address?: string | null; phone?: string | null; taxNumber?: string | null } = {};
+let header: { name?: string | null; address?: string | null; phone?: string | null; taxNumber?: string | null; footer?: string | null } = {};
 const enNames = new Map<string, string>();
 
 export function setReceiptLanguage(lang: ReceiptLang) { receiptLang = lang === "en" ? "en" : "ar"; }
@@ -147,7 +147,7 @@ export function buildEnglishReceiptText(o: any): string {
   const note = safe(o.customerNote || o.orderNote);
   if (note) { L.push(line("-")); wrap(`Note: ${note}`, W).forEach((l) => L.push(l)); }
   L.push("");
-  L.push(center("Thank you for your visit!"));
+  L.push(center(safe(header.footer) || "Thank you for your visit!"));
   L.push(center("Powered by UNIFY"));
   return L.join("\n") + "\n";
 }
@@ -203,16 +203,60 @@ export function buildEnglishShiftText(s: any): string {
 }
 
 // ── printer resolution (bridge /health, cached) ─────────────────────────
-let printersCache: { at: number; list: any[] } | null = null;
-async function getPrinters(): Promise<any[]> {
-  if (printersCache && Date.now() - printersCache.at < 60_000) return printersCache.list;
+let healthCache: { at: number; list: any[]; bilingual: boolean } | null = null;
+async function getHealth() {
+  if (healthCache && Date.now() - healthCache.at < 60_000) return healthCache;
   const base = getBridgeUrl();
-  if (!base) return [];
+  if (!base) return { at: Date.now(), list: [], bilingual: false };
   const res = await fetch(`${base}/health`, withLocalNetworkAccess({ signal: localNetworkTimeoutSignal(5000) }));
   const json = await res.json();
-  const list = Array.isArray(json?.printers) ? json.printers : [];
-  printersCache = { at: Date.now(), list };
-  return list;
+  healthCache = {
+    at: Date.now(),
+    list: Array.isArray(json?.printers) ? json.printers : [],
+    bilingual: Array.isArray(json?.capabilities) && json.capabilities.includes("lang-en"),
+  };
+  return healthCache;
+}
+async function getPrinters(): Promise<any[]> { return (await getHealth()).list; }
+
+/** True when the device bridge is v6.4.0-bilingual (or newer with lang-en). */
+export async function bridgeSupportsEnglish(): Promise<boolean> {
+  try { return (await getHealth()).bilingual; } catch { return false; }
+}
+
+const PRINT_PATHS = new Set(["/print-receipt", "/print-kitchen", "/print-shift"]);
+function localizeOrder(o: any): any {
+  if (!o || typeof o !== "object") return o;
+  const out: any = { ...o, lang: "en" };
+  if (Array.isArray(o.items)) {
+    out.items = o.items.map((it: any) => ({
+      ...it,
+      name: en(it.name),
+      notes: it.notes ? String(it.notes).split(/[،,]/).map((p) => en(p.trim())).filter(Boolean).join(", ") : it.notes,
+    }));
+  }
+  if (o.orderType) {
+    const base = ORDER_TYPE[o.orderType] || "Takeaway";
+    const cust = safe(o.customerName);
+    out.orderTypeLabel = o.orderType === "delivery" && cust ? `${base} - ${cust}` : base;
+  }
+  if (o.paymentMethod) out.paymentMethod = paymentLabel(o.paymentMethod);
+  if (o.cashierName) out.cashierName = String(o.cashierName).replace(/وردية\s*(\d+)/, "Shift $1");
+  if (header.name) out.companyName = header.name;
+  if (o.deliveryNote) out.deliveryNote = undefined;
+  return out;
+}
+
+/**
+ * When the branch prints in English AND the device bridge is bilingual,
+ * return the request body tagged lang:"en" with English names/labels.
+ * Otherwise return null (body is sent unchanged).
+ */
+export async function localizeBridgeBody(path: string, body: any): Promise<any | null> {
+  if (receiptLang !== "en" || !PRINT_PATHS.has(path)) return null;
+  if (!(await bridgeSupportsEnglish())) return null;
+  if (path === "/print-shift") return { ...body, session: { ...(body?.session || {}), lang: "en" } };
+  return { ...body, order: localizeOrder(body?.order) };
 }
 
 /**

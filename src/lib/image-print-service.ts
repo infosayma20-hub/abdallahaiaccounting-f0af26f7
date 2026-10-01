@@ -15,7 +15,7 @@ import type { ShiftSummaryPrintData } from "@/components/pos/print-templates/Shi
 import { logPrintStart, logPrintFinish, type PrintMode } from "@/lib/print-diagnostics";
 import { getBridgeUrl, getDeviceBranchId, getDeviceTerminalId } from "@/lib/device-config";
 import { supabase } from "@/integrations/supabase/client";
-import { tryPrintEnglish } from "@/lib/print-english";
+import { tryPrintEnglish, localizeBridgeBody } from "@/lib/print-english";
 import { getLocalNetworkBlockedMessage, localNetworkTimeoutSignal, withLocalNetworkAccess } from "@/lib/local-network-fetch";
 
 // ──────────────────────────────────────────
@@ -301,7 +301,9 @@ async function bridgeFetch(
   const t0 = performance.now();
   try {
     // English receipts (branch setting) → raw text on network printers; null = use Arabic path.
-    const enResult = await tryPrintEnglish(path, body);
+    const enBody = await localizeBridgeBody(path, body);
+    if (enBody) body = enBody;
+    const enResult = enBody ? null : await tryPrintEnglish(path, body);
     if (enResult) {
       logPrintFinish(logId, enResult.success ? 'sent' : 'failed', {
         durationMs: Math.round(performance.now() - t0),

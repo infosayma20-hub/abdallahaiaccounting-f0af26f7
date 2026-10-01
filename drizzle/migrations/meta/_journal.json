@@ -379,6 +379,13 @@
       "when": 1790840597502,
       "tag": "0053_pos_english_support",
       "breakpoints": true
+    },
+    {
+      "idx": 54,
+      "version": "7",
+      "when": 1790841370368,
+      "tag": "0054_branch_receipt_footer_en",
+      "breakpoints": true
     }
   ]
 }
