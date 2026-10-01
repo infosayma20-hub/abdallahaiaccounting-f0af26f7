@@ -13,6 +13,7 @@ import { receivingStatusLabel } from "@/components/procurement/ReceivingAssignDi
 import POSBarcodeScanner from "@/components/pos/POSBarcodeScanner";
 import { normalizeBarcode, createSerialQueue, createScanBurstWatcher } from "@/lib/barcode";
 import { useAuth } from "@/hooks/useAuth";
+import { useCompany } from "@/hooks/useCompanyContext";
 import { BRAND } from "@/constants/brand";
 
 type Line = {
@@ -44,11 +45,19 @@ const writeQueue = (sid: string, q: string[]) => localStorage.setItem(QKEY(sid),
 
 /* ───────── Dynamics-style finance shell ───────── */
 export function DShell({ title, crumb, actions, children, onClick }: { title: string; crumb: string; actions: ReactNode; children: ReactNode; onClick?: () => void }) {
+  const { company } = useCompany();
   return (
     <div dir="rtl" className="flex min-h-[100dvh] flex-col bg-muted/30" onClick={onClick}>
       <header className="flex h-16 shrink-0 items-center gap-3 bg-primary px-3 text-primary-foreground shadow-md sm:px-5">
-        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-md bg-card p-1.5 shadow-sm">
-          <img src={BRAND.logos.icon} alt="يونيفاي" className="h-full w-full object-contain" />
+        <div className="flex shrink-0 items-center gap-1.5">
+          <div className="flex h-11 w-11 items-center justify-center rounded-md bg-card p-1.5 shadow-sm">
+            <img src={BRAND.logos.icon} alt="يونيفاي" className="h-full w-full object-contain" />
+          </div>
+          {company.logo_url && (
+            <div className="flex h-11 w-11 items-center justify-center rounded-md bg-card p-1 shadow-sm">
+              <img src={company.logo_url} alt={company.name || "شعار الشركة"} className="h-full w-full rounded-sm object-contain" />
+            </div>
+          )}
         </div>
         <div className="min-w-0">
           <div className="flex items-center gap-2">
