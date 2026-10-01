@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
-import { ArrowRight, ScanLine, Minus, Plus, CheckCircle2, Package, RefreshCw, Barcode, Printer, StickyNote, ClipboardList, Camera } from "lucide-react";
+import { ArrowRight, ScanLine, Minus, Plus, CheckCircle2, Package, RefreshCw, ClipboardList, Camera } from "lucide-react";
 import { receivingStatusLabel } from "@/components/procurement/ReceivingAssignDialog";
 import POSBarcodeScanner from "@/components/pos/POSBarcodeScanner";
 import { normalizeBarcode, createSerialQueue, createScanBurstWatcher } from "@/lib/barcode";
@@ -183,7 +183,8 @@ function ReceivingSession({ sessionId }: { sessionId: string }) {
     setTimeout(() => {
       const a = document.activeElement as HTMLElement | null;
       if (a && a !== inputRef.current && (a.tagName === "INPUT" || a.tagName === "TEXTAREA" || a.tagName === "SELECT")) return;
-      inputRef.current?.focus();
+      // preventScroll: بدونها التابلت بيقفز لأعلى الصفحة عند كل تركيز
+      inputRef.current?.focus({ preventScroll: true });
     }, 30);
   }, [dialogOpen]);
   useEffect(() => { focus(); }, [focus, session]);
