@@ -230,9 +230,11 @@ function ReceivingSession({ sessionId }: { sessionId: string }) {
 
   const scanQueue = useRef(createSerialQueue()).current;
   const burstRef = useRef<ReturnType<typeof createScanBurstWatcher>>();
-  if (!burstRef.current) burstRef.current = createScanBurstWatcher(v => { setCode(""); handleScan(v); });
+  if (!burstRef.current) burstRef.current = createScanBurstWatcher(v => { setCode(""); handleScanRef.current(v); });
   const burst = burstRef.current;
   const handleScan = (raw: string) => scanQueue(() => handleScanNow(raw));
+  const handleScanRef = useRef(handleScan);
+  handleScanRef.current = handleScan;
   const handleScanNow = async (raw: string) => {
     const barcode = normalizeBarcode(raw);
     if (!barcode || !editable) return;

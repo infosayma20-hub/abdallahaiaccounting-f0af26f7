@@ -360,7 +360,7 @@ function DirectSession({ orderId, ctx }: { orderId: string; ctx: Ctx }) {
           <div className="flex items-center gap-2 rounded-md border bg-card p-3">
             <ScanLine className="h-5 w-5 shrink-0 text-muted-foreground" />
             <Input ref={inputRef} autoFocus value={code} onChange={e => { setCode(e.target.value); burstRef.current!.onChange(e.target.value); }} dir="ltr"
-              inputMode="none" autoComplete="off"
+              autoComplete="off"
               onKeyDown={e => { if (e.key === "Enter" || e.key === "Tab") { e.preventDefault(); burstRef.current!.reset(); handleScan(code); } }}
               placeholder="امسح الباركود…" className="h-11 text-base" />
             <Button variant="outline" size="icon" className="h-11 w-11 shrink-0" aria-label="الكاميرا" onClick={() => setCamOpen(true)}><Camera className="h-5 w-5" /></Button>
