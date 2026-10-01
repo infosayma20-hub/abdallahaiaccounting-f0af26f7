@@ -13,6 +13,8 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
+import { FinanceShell } from "@/components/finance/shell";
+import type { ActionTab } from "@/components/finance/shell";
 import {
   Plus, Save, Upload, RefreshCw, Wifi, Search, Scale, Trash2, Loader2, ListPlus, Radar,
 } from "lucide-react";
@@ -192,32 +194,34 @@ export default function ScalesPage() {
   const refreshPrices = () => loadItems(current?.id).then(() => toast.success("تم تحديث الأسعار من الأصناف"));
 
   const shown = items.map((r, idx) => ({ r, idx })).filter(({ r }) => !q || r.name.includes(q) || String(r.plu) === q || r.barcode === q);
-  const Cmd = ({ icon: I, label, onClick, k, disabled }: any) => (
-    <Button variant="ghost" size="sm" className="h-8 gap-1.5 text-xs" onClick={onClick} disabled={!!busy || disabled}>
-      {busy === k ? <Loader2 className="h-4 w-4 animate-spin" /> : <I className="h-4 w-4 text-primary" />}{label}
-    </Button>
-  );
+  const actionTabs: ActionTab[] = [{
+    key: "general",
+    label: "عام",
+    groups: [
+      { key: "new", label: "جديد", items: [
+        { key: "new-scale", label: "ميزان جديد", icon: Plus, variant: "primary", disabled: !!busy, onClick: () => { setCurrent(emptyScale()); setItems([]); } },
+      ]},
+      { key: "record", label: "السجل", items: [
+        { key: "save", label: busy === "save" ? "جاري الحفظ…" : "حفظ", icon: Save, disabled: !!busy || !current, onClick: save },
+        { key: "delete", label: "حذف", icon: Trash2, variant: "danger", disabled: !!busy || !current?.id, onClick: remove },
+      ]},
+      { key: "scale", label: "الميزان", items: [
+        { key: "export", label: busy === "export" ? "جاري التصدير…" : "تصدير للميزان", icon: Upload, disabled: !!busy || !current?.id, onClick: exportToScale },
+        { key: "prices", label: "تحديث الأسعار", icon: RefreshCw, disabled: !!busy || !current?.id, onClick: refreshPrices },
+        { key: "ping", label: busy === "ping" ? "جاري الفحص…" : "فحص الاتصال", icon: Wifi, disabled: !!busy || !current, onClick: ping },
+        { key: "discover", label: busy === "discover" ? "جاري البحث…" : "بحث عن موازين", icon: Radar, disabled: !!busy, onClick: discover },
+      ]},
+    ],
+  }];
 
   return (
-    <div dir="rtl" className="min-h-[100dvh] bg-muted/30">
-      {/* شريط الأوامر */}
-      <div className="sticky top-0 z-10 flex flex-wrap items-center gap-0.5 border-b bg-background px-2 py-1">
-        <Cmd icon={Plus} label="جديد" onClick={() => { setCurrent(emptyScale()); setItems([]); }} />
-        <Cmd icon={Save} label="حفظ" k="save" onClick={save} disabled={!current} />
-        <Cmd icon={Trash2} label="حذف" onClick={remove} disabled={!current?.id} />
-        <span className="mx-1 h-5 w-px bg-border" />
-        <Cmd icon={Upload} label="تصدير للميزان" k="export" onClick={exportToScale} disabled={!current?.id} />
-        <Cmd icon={RefreshCw} label="تحديث الأسعار" onClick={refreshPrices} disabled={!current?.id} />
-        <Cmd icon={Wifi} label="فحص الاتصال" k="ping" onClick={ping} disabled={!current} />
-        <Cmd icon={Radar} label="بحث عن موازين" k="discover" onClick={discover} />
-      </div>
-
-      <div className="px-4 pt-3 pb-2">
-        <div className="text-[11px] text-muted-foreground">نقطة البيع › الموازين الإلكترونية</div>
-        <h1 className="text-lg font-semibold">{current ? current.name : "الموازين الإلكترونية"}</h1>
-      </div>
-
-      <div className="grid gap-3 px-4 pb-6 lg:grid-cols-[280px_1fr]">
+    <FinanceShell
+      title={current ? current.name : "الموازين الإلكترونية"}
+      breadcrumb={[{ label: "نقطة البيع", href: "/pos" }, { label: "الموازين الإلكترونية" }]}
+      actionTabs={actionTabs}
+      rightSlot={busy ? <Loader2 className="h-4 w-4 animate-spin text-primary" /> : undefined}
+    >
+      <div className="grid gap-3 lg:grid-cols-[280px_1fr]">
         {/* القائمة */}
         <div className="rounded-md border bg-background">
           <div className="border-b px-3 py-2 text-xs font-semibold text-muted-foreground">الموازين ({scales.length})</div>
@@ -335,7 +339,7 @@ export default function ScalesPage() {
           </div>
         ) : <div className="rounded-md border bg-background p-10 text-center text-sm text-muted-foreground">اختر ميزانًا أو اكبس «جديد»</div>}
       </div>
-    </div>
+    </FinanceShell>
   );
 }
 
