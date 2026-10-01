@@ -12,7 +12,7 @@ export function ScheduledBackupReminder() {
 
   useEffect(() => {
     if (!user?.id || pathname.startsWith("/pos") || pathname.startsWith("/auth")) return;
-    const t = setTimeout(() => {
+    const check = () => {
       if (!isDue(getSchedule(user.id))) return;
       snooze(user.id, 4);
       toast("حان موعد النسخة الاحتياطية على جهازك", {
@@ -20,8 +20,11 @@ export function ScheduledBackupReminder() {
         duration: 20000,
         action: { label: "نزّلها الآن", onClick: () => navigate("/settings?section=backup&auto=1") },
       });
-    }, 8000);
-    return () => clearTimeout(t);
+    };
+    const t = setTimeout(check, 8000);
+    // إذا كان البرنامج مفتوح وقت الموعد (مثلًا 5 الصبح) بينبّه لحاله
+    const interval = setInterval(check, 60_000);
+    return () => { clearTimeout(t); clearInterval(interval); };
   }, [user?.id, pathname, navigate]);
 
   return null;
