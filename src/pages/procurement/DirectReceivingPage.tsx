@@ -9,6 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { ArrowRight, Plus, RefreshCw, Send, Trash2, Camera, ScanLine, Paperclip, ClipboardList, PackagePlus } from "lucide-react";
 import POSBarcodeScanner from "@/components/pos/POSBarcodeScanner";
+import { normalizeBarcode, createSerialQueue, createScanBurstWatcher } from "@/lib/barcode";
 import { useAuth } from "@/hooks/useAuth";
 import { DShell, PaneBtn, beep } from "./ReceivingPage";
 
@@ -233,10 +234,15 @@ function DirectSession({ orderId, ctx }: { orderId: string; ctx: Ctx }) {
   }, [orderId, load]);
   useEffect(() => { flush(); const on = () => flush(); window.addEventListener("online", on); return () => window.removeEventListener("online", on); }, [flush]);
 
-  const handleScan = async (raw: string) => {
-    const barcode = raw.trim();
+  const scanQueue = useRef(createSerialQueue()).current;
+  const handleScan = (raw: string) => { setCode(""); return scanQueue(() => handleScanNow(raw)); };
+  const burstRef = useRef<ReturnType<typeof createScanBurstWatcher>>();
+  if (!burstRef.current) burstRef.current = createScanBurstWatcher(v => handleScanRef.current(v));
+  const handleScanRef = useRef(handleScan);
+  handleScanRef.current = handleScan;
+  const handleScanNow = async (raw: string) => {
+    const barcode = normalizeBarcode(raw);
     if (!barcode || !editable) return;
-    setCode("");
     const r = await scanOnce(barcode);
     if (r === "ok") { beep(true); load(); }
     else if (r === "queued") { beep(true); toast.message("انحفظت المسحة وبتنبعت لما يرجع الإنترنت"); }
@@ -353,8 +359,9 @@ function DirectSession({ orderId, ctx }: { orderId: string; ctx: Ctx }) {
         {editable && (
           <div className="flex items-center gap-2 rounded-md border bg-card p-3">
             <ScanLine className="h-5 w-5 shrink-0 text-muted-foreground" />
-            <Input ref={inputRef} autoFocus value={code} onChange={e => setCode(e.target.value)} dir="ltr"
-              onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); handleScan(code); } }}
+            <Input ref={inputRef} autoFocus value={code} onChange={e => { setCode(e.target.value); burstRef.current!.onChange(e.target.value); }} dir="ltr"
+              autoComplete="off"
+              onKeyDown={e => { if (e.key === "Enter" || e.key === "Tab") { e.preventDefault(); burstRef.current!.reset(); handleScan(code); } }}
               placeholder="امسح الباركود…" className="h-11 text-base" />
             <Button variant="outline" size="icon" className="h-11 w-11 shrink-0" aria-label="الكاميرا" onClick={() => setCamOpen(true)}><Camera className="h-5 w-5" /></Button>
             <Button variant="outline" className="h-11 shrink-0 gap-1" onClick={() => setTemp({ barcode: "", name: "", unit: "قطعة", file: null })}><PackagePlus className="h-4 w-4" />بدون باركود</Button>

@@ -11,6 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogD
 import { ArrowRight, ScanLine, Minus, Plus, CheckCircle2, Package, RefreshCw, Barcode, Printer, StickyNote, ClipboardList, Camera } from "lucide-react";
 import { receivingStatusLabel } from "@/components/procurement/ReceivingAssignDialog";
 import POSBarcodeScanner from "@/components/pos/POSBarcodeScanner";
+import { normalizeBarcode, createSerialQueue, createScanBurstWatcher } from "@/lib/barcode";
 import { useAuth } from "@/hooks/useAuth";
 import { BRAND } from "@/constants/brand";
 
@@ -227,9 +228,16 @@ function ReceivingSession({ sessionId }: { sessionId: string }) {
     return () => window.removeEventListener("online", on);
   }, [flush]);
 
-  const handleScan = async (raw: string) => {
-    const barcode = raw.trim();
-    if (!barcode || !editable || busy.current) return;
+  const scanQueue = useRef(createSerialQueue()).current;
+  const burstRef = useRef<ReturnType<typeof createScanBurstWatcher>>();
+  if (!burstRef.current) burstRef.current = createScanBurstWatcher(v => { setCode(""); handleScanRef.current(v); });
+  const burst = burstRef.current;
+  const handleScan = (raw: string) => scanQueue(() => handleScanNow(raw));
+  const handleScanRef = useRef(handleScan);
+  handleScanRef.current = handleScan;
+  const handleScanNow = async (raw: string) => {
+    const barcode = normalizeBarcode(raw);
+    if (!barcode || !editable) return;
     busy.current = true;
     try {
       if (!navigator.onLine) {
@@ -281,7 +289,7 @@ function ReceivingSession({ sessionId }: { sessionId: string }) {
 
   // مسح بالكاميرا من زر صنف محدد — لازم الباركود يطابق نفس الصنف
   const cameraScanLine = async (line: Line, raw: string) => {
-    const barcode = (raw || "").trim();
+    const barcode = normalizeBarcode(raw);
     if (!barcode || !editable) return;
     const fresh = session?.lines.find(x => x.id === line.id) || line;
     const codes = [fresh.barcode, ...(fresh.extra_barcodes || [])].filter(Boolean).map(c => String(c).trim());
@@ -362,10 +370,10 @@ function ReceivingSession({ sessionId }: { sessionId: string }) {
         {session.order_notes && <div className="border-r-4 border-primary bg-card px-3 py-2 text-sm font-medium text-foreground">📝 {session.order_notes}</div>}
         {/* Scan bar — compact */}
         {editable ? (
-          <form onSubmit={e => { e.preventDefault(); const v = code; setCode(""); handleScan(v); }}
+          <form onSubmit={e => { e.preventDefault(); burst.reset(); const v = code; setCode(""); handleScan(v); }}
             className={`flex flex-wrap items-center gap-2 border bg-card px-3 py-2 transition-colors ${flash ? (flash.ok ? "border-primary" : "border-destructive") : "border-border"}`}>
             <ScanLine className="h-4 w-4 shrink-0 text-primary" />
-            <Input ref={inputRef} value={code} onChange={e => setCode(e.target.value)} onBlur={focus}
+            <Input ref={inputRef} value={code} onChange={e => { setCode(e.target.value); burst.onChange(e.target.value); }} onBlur={focus}
               inputMode="none" autoComplete="off" placeholder="امسح الباركود…"
               className="h-9 min-w-36 flex-1 font-mono text-sm" />
             <Button type="button" size="icon" variant="outline" className="h-9 w-9 shrink-0" title="مسح بالكاميرا"
