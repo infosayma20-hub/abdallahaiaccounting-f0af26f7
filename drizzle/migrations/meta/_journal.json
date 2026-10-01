@@ -442,6 +442,13 @@
       "when": 1790851950031,
       "tag": "0062_direct_receiving_fix_columns",
       "breakpoints": true
+    },
+    {
+      "idx": 63,
+      "version": "7",
+      "when": 1790852368959,
+      "tag": "0063_barcode_scan_variants",
+      "breakpoints": true
     }
   ]
 }

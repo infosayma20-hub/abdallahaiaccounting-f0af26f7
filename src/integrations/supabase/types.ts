@@ -30785,6 +30785,7 @@ export type Database = {
         Args: { p_changes: Json; p_order_id: string }
         Returns: undefined
       }
+      _barcode_variants: { Args: { p_code: string }; Returns: string[] }
       _capture_client_request_info: { Args: never; Returns: Json }
       _currency_code_label: { Args: { _c: string }; Returns: string }
       _currency_label_to_code: { Args: { _c: string }; Returns: string }
