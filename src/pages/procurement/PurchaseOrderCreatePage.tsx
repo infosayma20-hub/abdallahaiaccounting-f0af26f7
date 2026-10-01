@@ -112,6 +112,7 @@ const PurchaseOrderCreatePage = () => {
   const [manualItem, setManualItem] = useState({ item_name: "", unit: "قطعة", unit_price: 0, quantity: 1, notes: "" });
   const [supplierOpen, setSupplierOpen] = useState(false);
   const [newSupplier, setNewSupplier] = useState({ name: "", phone: "" });
+  const [supplierPickerKey, setSupplierPickerKey] = useState(0);
   const [branchOpen, setBranchOpen] = useState(false);
   const [newBranch, setNewBranch] = useState({ name: "", address: "", latitude: 31.9, longitude: 35.2 });
   const [itemOpen, setItemOpen] = useState(false);
@@ -294,32 +295,49 @@ const PurchaseOrderCreatePage = () => {
   };
 
   const handleAddSupplier = async () => {
-    if (!newSupplier.name.trim()) { toast({ title: "أدخل اسم المورد", variant: "destructive" }); return; }
+    const name = newSupplier.name.trim();
+    const phone = newSupplier.phone.trim() || null;
+    if (!name) { toast({ title: "أدخل اسم المورد", variant: "destructive" }); return; }
+    if (!ownerId) return;
     setSavingDialog(true);
-    const ok = await suppliersCrud.create({ name: newSupplier.name, phone: newSupplier.phone || null });
-    if (ok && user) {
-      const { data: existing } = await supabase.from("contacts")
-        .select("id").eq("user_id", ownerId).eq("contact_name", newSupplier.name.trim()).eq("contact_type", "مورد").maybeSingle();
-      if (!existing) {
-        const { data: newC } = await supabase.from("contacts").insert({
-          user_id: ownerId, contact_name: newSupplier.name.trim(), contact_type: "مورد",
-          phone: newSupplier.phone || null, is_active: true, linked_account_code: null,
-        } as any).select("id").single();
-        if (newC) {
-          const { ensureContactSubAccount } = await import("@/lib/contactAccountResolver");
-          try {
-            await ensureContactSubAccount({
-              ownerId: ownerId!,
-              contactId: (newC as any).id,
-              contactType: "مورد",
-              contactName: newSupplier.name.trim(),
-            });
-          } catch (e) { console.error("ensureContactSubAccount failed:", e); }
-        }
+    try {
+      // 1) سجل المورد في دليل المشتريات (procurement_orders.supplier_id يشير إليه) — بدون تكرار بالاسم
+      const { data: existingSup } = await supabase.from("pos_suppliers")
+        .select("id").eq("user_id", ownerId).eq("name", name).limit(1).maybeSingle();
+      let supId = (existingSup as any)?.id as string | undefined;
+      if (!supId) {
+        const { data: created, error } = await supabase.from("pos_suppliers")
+          .insert({ user_id: ownerId, name, phone } as any).select("id").single();
+        if (error) throw error;
+        supId = (created as any).id;
       }
+
+      // 2) جهة الاتصال (هي ما تعرضه قائمة اختيار المورد) + الحساب الفرعي للمورد
+      const { data: existingC } = await supabase.from("contacts")
+        .select("id").eq("user_id", ownerId).eq("contact_name", name).eq("contact_type", "مورد").limit(1).maybeSingle();
+      if (!existingC) {
+        const { data: newC, error: cErr } = await supabase.from("contacts").insert({
+          user_id: ownerId, contact_name: name, contact_type: "مورد",
+          phone, is_active: true, linked_account_code: null,
+        } as any).select("id").single();
+        if (cErr) throw cErr;
+        const { ensureContactSubAccount } = await import("@/lib/contactAccountResolver");
+        try {
+          await ensureContactSubAccount({ ownerId, contactId: (newC as any).id, contactType: "مورد", contactName: name });
+        } catch (e) { console.error("ensureContactSubAccount failed:", e); }
+      }
+
+      toast({ title: "✅ تم حفظ المورد واختياره" });
+      setSupplierId(supId!);
+      setSupplierOpen(false);
+      setNewSupplier({ name: "", phone: "" });
+      setSupplierPickerKey(k => k + 1);
+      refetchSuppliers(); suppliersCrud.refetch();
+    } catch (e: any) {
+      toast({ title: "تعذر حفظ المورد", description: e?.message, variant: "destructive" });
+    } finally {
+      setSavingDialog(false);
     }
-    setSavingDialog(false);
-    if (ok) { setSupplierOpen(false); setNewSupplier({ name: "", phone: "" }); refetchSuppliers(); suppliersCrud.refetch(); }
   };
 
   const handleAddBranch = async () => {
@@ -452,7 +470,7 @@ const PurchaseOrderCreatePage = () => {
             </div>
             <div className="flex items-center gap-1.5">
               <Label className="text-xs text-muted-foreground whitespace-nowrap">المورد:</Label>
-              <SupplierPicker suppliers={allSuppliers as any} value={supplierId} onChange={setSupplierId} ownerId={ownerId} onSuppliersChanged={() => { refetchSuppliers(); suppliersCrud.refetch(); }} />
+              <SupplierPicker refreshKey={supplierPickerKey} suppliers={allSuppliers as any} value={supplierId} onChange={setSupplierId} ownerId={ownerId} onSuppliersChanged={() => { refetchSuppliers(); suppliersCrud.refetch(); }} />
               <Tooltip><TooltipTrigger asChild>
                 <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0 text-muted-foreground hover:text-primary" onClick={() => setSupplierOpen(true)} aria-label="إضافة مورد جديد">
                   <UserPlus className="h-3.5 w-3.5" />

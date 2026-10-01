@@ -29,9 +29,11 @@ const FILTERS = [
  * (created if missing) — same name-matching convention used by the
  * purchase-invoice triggers.
  */
-export function SupplierPicker({ suppliers, value, onChange, ownerId, onSuppliersChanged, className }: {
+export function SupplierPicker({ suppliers, value, onChange, ownerId, onSuppliersChanged, className, refreshKey = 0 }: {
   suppliers: Supplier[]; value: string; onChange: (id: string) => void; ownerId?: string | null;
   onSuppliersChanged?: () => void; className?: string;
+  /** يتغير عند إضافة جهة من خارج القائمة لإعادة تحميل جهات الاتصال */
+  refreshKey?: number;
 }) {
   const [open, setOpen] = useState(false);
   const [contacts, setContacts] = useState<Contact[]>([]);
@@ -41,6 +43,9 @@ export function SupplierPicker({ suppliers, value, onChange, ownerId, onSupplier
   const [favs, setFavs] = useState<string[]>(() => readFavs(ownerId));
 
   useEffect(() => { setFavs(readFavs(ownerId)); }, [ownerId]);
+
+  // إضافة جهة جديدة من خارج القائمة تُبطل النسخة المحمّلة
+  useEffect(() => { setContacts([]); }, [refreshKey, ownerId]);
 
   useEffect(() => {
     if (!open || !ownerId || contacts.length) return;
