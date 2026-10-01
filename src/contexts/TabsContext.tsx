@@ -196,6 +196,7 @@ const ROUTE_META: Record<string, { title: string; icon: string }> = {
   "/procurement/invoices/new": { title: "فاتورة مشتريات جديدة", icon: "file" },
   "/procurement/supplier-statement": { title: "كشف حساب مورد", icon: "chart" },
   "/procurement/weekly-report": { title: "التقرير الأسبوعي", icon: "chart" },
+  "/procurement/supplier-items": { title: "أصناف الموردين", icon: "chart" },
   "/procurement/settings": { title: "إعدادات المشتريات", icon: "settings" },
   "/print-preview": { title: "معاينة الطباعة", icon: "file" },
   "/print-templates": { title: "قوالب الطباعة", icon: "file" },

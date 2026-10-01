@@ -309,6 +309,7 @@ const PurchaseOrdersPage = lazy(() => import("./pages/procurement/PurchaseOrders
 const ProcurementInvoicesPage = lazy(() => import("./pages/procurement/ProcurementInvoicesPage"));
 const ProcurementInvoiceCreatePage = lazy(() => import("./pages/procurement/ProcurementInvoiceCreatePage"));
 const SupplierStatementPage = lazy(() => import("./pages/procurement/SupplierStatementPage"));
+const SupplierItemsReportPage = lazy(() => import("./pages/procurement/SupplierItemsReportPage"));
 const WeeklyProcurementReportPage = lazy(() => import("./pages/procurement/WeeklyProcurementReportPage"));
 const ProcurementSettingsPage = lazy(() => import("./pages/procurement/ProcurementSettingsPage"));
 const ImportWizardPage = lazy(() => import("./pages/ImportWizardPage"));
@@ -1223,6 +1224,7 @@ const App = () => (
                       <Route path="/procurement/invoices/new" element={<FeatureGuard app="purchases" feature="purchase_invoices" perm="create" label="فاتورة مشتريات جديدة"><ProcurementInvoiceCreatePage /></FeatureGuard>} />
                       <Route path="/procurement/supplier-statement" element={<SupplierStatementPage />} />
                       <Route path="/procurement/weekly-report" element={<WeeklyProcurementReportPage />} />
+                      <Route path="/procurement/supplier-items" element={<SupplierItemsReportPage />} />
                       <Route path="/procurement/settings" element={<ProcurementSettingsPage />} />
                       <Route path="/reports/import-cost-analysis" element={<GenericReportPage reportKey="import-cost-analysis" />} />
                       <Route path="/print-preview" element={<PrintPreviewPage />} />
