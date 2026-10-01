@@ -864,6 +864,7 @@ const POSPage = () => {
 
   // Category management
   const [newCatName, setNewCatName] = useState("");
+  const [newCatNameEn, setNewCatNameEn] = useState("");
   const [newCatColor, setNewCatColor] = useState("#6B7280");
   const [savingCategory, setSavingCategory] = useState(false);
   const [catSearchQuery, setCatSearchQuery] = useState("");
@@ -2364,12 +2365,14 @@ const POSPage = () => {
       const { error } = await supabase.from("pos_categories").insert({
         user_id: dataOwnerId,
         name: newCatName.trim(),
+        name_en: newCatNameEn.trim() || null,
         color: newCatColor,
         display_order: posCategories.length,
-      });
+      } as any);
       if (error) throw error;
       toast.success(`✅ تم إنشاء تصنيف "${newCatName}"`);
       setNewCatName("");
+      setNewCatNameEn("");
       setNewCatColor("#6B7280");
       await loadCategories();
     } catch (err: any) {
@@ -10470,6 +10473,7 @@ const POSPage = () => {
               <div className="space-y-1">
                 <label className="text-xs font-medium text-muted-foreground">{pt("اسم التصنيف الجديد")}</label>
                 <Input value={newCatName} onChange={(e) => setNewCatName(e.target.value)} onKeyDown={(e) => e.key === "Enter" && handleSaveCategory()} placeholder={pt("مثال: حلويات")} className="h-10" />
+                <Input dir="ltr" value={newCatNameEn} onChange={(e) => setNewCatNameEn(e.target.value)} placeholder="English name (optional)" className="h-10" />
               </div>
               <div className="space-y-1.5">
                 <label className="text-xs font-medium text-muted-foreground">{pt("اللون")}</label>
