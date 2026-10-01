@@ -18,3 +18,23 @@ export function createSerialQueue() {
     return run;
   };
 }
+
+/**
+ * بعض أجهزة المسح ما بتبعت Enter بعد الباركود. نكشف الإدخال السريع جدًا (جهاز لا إنسان)
+ * ونرسله تلقائيًا بعد توقف قصير. الكتابة اليدوية العادية ما بتتأثر.
+ */
+export function createScanBurstWatcher(submit: (value: string) => void, opts: { minLength?: number; maxAvgMs?: number; idleMs?: number } = {}) {
+  const minLength = opts.minLength ?? 6, maxAvgMs = opts.maxAvgMs ?? 45, idleMs = opts.idleMs ?? 140;
+  let firstAt = 0, prevLen = 0, timer: number | undefined;
+  const cancel = () => { if (timer) window.clearTimeout(timer); timer = undefined; };
+  const onChange = (value: string) => {
+    cancel();
+    const now = performance.now();
+    if (value.length <= 1 || value.length < prevLen) firstAt = now;
+    prevLen = value.length;
+    if (value.length >= minLength && (now - firstAt) / (value.length - 1) <= maxAvgMs) {
+      timer = window.setTimeout(() => { timer = undefined; prevLen = 0; submit(value); }, idleMs);
+    }
+  };
+  return { onChange, cancel, reset: () => { cancel(); prevLen = 0; } };
+}
