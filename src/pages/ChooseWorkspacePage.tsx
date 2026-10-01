@@ -213,7 +213,7 @@ export default function ChooseWorkspacePage() {
           </Card>
           )}
 
-          {isCallCenter && !sharedCallCenterOnly && (
+          {isCallCenter && canComplaintsView && (
           <Card
             role="button"
             tabIndex={0}
@@ -232,7 +232,7 @@ export default function ChooseWorkspacePage() {
           </Card>
           )}
 
-          {isCallCenter && !sharedCallCenterOnly && (
+          {isCallCenter && canCompensationsView && (
           <Card
             role="button"
             tabIndex={0}
