@@ -1643,7 +1643,9 @@ const InvoiceCreatePage = () => {
         return;
       }
 
-      let contactId = form.contactId;
+      // عند التحويل التلقائي للجهة النقدية العامة نتجاهل أي معرّف جهة قديم عالق
+      // (مثلاً جهة اختيرت ثم مُسح اسمها) حتى لا تُسجَّل الفاتورة على جهة خاطئة.
+      let contactId = (contactNameEff !== form.contactName) ? null : form.contactId;
 
 
       if (contactNameEff.trim() && !contactId) {
