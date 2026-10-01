@@ -204,12 +204,6 @@ const PurchaseOrderCreatePage = () => {
     return result;
   }, [itemSource, inventoryProducts, allItems, activeCategory, activePosCategory, searchQuery]);
 
-  const categoryCounts = useMemo(() => {
-    const counts: Record<string, number> = {};
-    allItems.forEach((i: any) => { if (i.category_id) counts[i.category_id] = (counts[i.category_id] || 0) + 1; });
-    return counts;
-  }, [allItems]);
-
   const posCategoryCounts = useMemo(() => {
     const counts: Record<string, number> = {};
     let uncat = 0;
