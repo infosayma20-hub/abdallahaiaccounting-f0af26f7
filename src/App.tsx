@@ -16,6 +16,7 @@ import PendingSyncDocuments from "@/components/PendingSyncDocuments";
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
+import { ScheduledBackupReminder } from "@/components/settings/ScheduledBackupReminder";
 import { WatchlistTracker } from "@/components/WatchlistTracker";
 import LiveNotificationToaster from "@/components/notifications/LiveNotificationToaster";
 import { AuthProvider, useAuth } from "@/hooks/useAuth";
@@ -632,6 +633,7 @@ const App = () => (
             <WatchlistTracker />
             {/* تنبيه فوري (أسفل يمين) + صوت لكل إشعار جديد يصل للمستخدم */}
             <LiveNotificationToaster />
+            <ScheduledBackupReminder />
             <Suspense fallback={<AuthCheckSpinner />}>
             <Routes>
               <Route path="/auth" element={<AuthRoute><AuthPage /></AuthRoute>} />
