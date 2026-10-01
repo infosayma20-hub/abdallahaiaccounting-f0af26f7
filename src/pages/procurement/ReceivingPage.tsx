@@ -342,6 +342,7 @@ function ReceivingSession({ sessionId }: { sessionId: string }) {
             {session.status === "submitted" ? "تم إرسال الاستلام — بانتظار اعتماد المحاسب" : "الاستلام مغلق"}
           </div>
         )}
+        <POSBarcodeScanner open={cameraOpen} onClose={() => setCameraOpen(false)} onScan={c => handleScan(c)} />
 
         {/* Lines */}
         <div className="overflow-hidden border bg-card">
