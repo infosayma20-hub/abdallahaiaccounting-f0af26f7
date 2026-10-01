@@ -152,10 +152,6 @@ function ReceivingSession({ sessionId }: { sessionId: string }) {
   const [flash, setFlash] = useState<{ ok: boolean; text: string } | null>(null);
   const [lastLineId, setLastLineId] = useState<string | null>(null);
   const [unknown, setUnknown] = useState<string | null>(null);
-  const [editLine, setEditLine] = useState<Line | null>(null);
-  const [editQty, setEditQty] = useState("0");
-  const [editNote, setEditNote] = useState("");
-  const [editExpiry, setEditExpiry] = useState("");
   const [confirmSubmit, setConfirmSubmit] = useState(false);
   const [submitNotes, setSubmitNotes] = useState("");
   const [pending, setPending] = useState<number>(readQueue(sessionId).length);
@@ -167,7 +163,7 @@ function ReceivingSession({ sessionId }: { sessionId: string }) {
 
   const today = new Date().toISOString().slice(0, 10);
   const editable = session?.status === "assigned" || session?.status === "in_progress";
-  const dialogOpen = !!unknown || !!editLine || confirmSubmit;
+  const dialogOpen = !!unknown || confirmSubmit;
 
   const load = useCallback(async () => {
     const { data, error } = await supabase.rpc("get_receiving_session", { p_session_id: sessionId } as any);
