@@ -138,8 +138,8 @@ export default function PortalJobApplicationsTab({ theme = 'light', ownerId }: {
   const newCount = rows.filter((r) => (r.status || 'new') === 'new').length;
 
   const cellStyle: React.CSSProperties = {
-    padding: '7px 10px', fontSize: 11.5, color: t.text, whiteSpace: 'nowrap',
-    overflow: 'hidden', textOverflow: 'ellipsis', borderLeft: `1px solid ${t.border}`,
+    padding: '7px 10px', fontSize: 11.5, color: t.text, wordBreak: 'break-word',
+    verticalAlign: 'top', borderLeft: `1px solid ${t.border}`,
   };
 
   return (
@@ -228,7 +228,7 @@ export default function PortalJobApplicationsTab({ theme = 'light', ownerId }: {
               <tr>
                 <th style={{ ...cellStyle, background: t.headBg, fontWeight: 800, width: 40, textAlign: 'center' }}>#</th>
                 {COLUMNS.map((col) => (
-                  <th key={col.key} style={{ ...cellStyle, background: t.headBg, fontWeight: 800, minWidth: col.width, maxWidth: col.width, textAlign: 'right' }}>
+                  <th key={col.key} style={{ ...cellStyle, background: t.headBg, fontWeight: 800, minWidth: col.width, textAlign: 'right' }}>
                     {col.label}
                   </th>
                 ))}
@@ -239,7 +239,7 @@ export default function PortalJobApplicationsTab({ theme = 'light', ownerId }: {
                 <tr key={r.id} style={{ borderTop: `1px solid ${t.border}` }}>
                   <td style={{ ...cellStyle, textAlign: 'center', color: t.textMuted }}>{i + 1}</td>
                   {COLUMNS.map((col) => (
-                    <td key={col.key} style={{ ...cellStyle, minWidth: col.width, maxWidth: col.width, fontWeight: col.key === 'full_name' ? 700 : 400 }} title={col.get(r)}>
+                    <td key={col.key} style={{ ...cellStyle, minWidth: col.width, maxWidth: col.key === 'full_name' ? 260 : col.width * 1.6, fontWeight: col.key === 'full_name' ? 700 : 400 }} title={col.get(r)}>
                       {col.get(r)}
                     </td>
                   ))}
