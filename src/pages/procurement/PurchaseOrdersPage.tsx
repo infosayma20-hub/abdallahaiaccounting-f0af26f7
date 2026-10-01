@@ -781,7 +781,7 @@ const PurchaseOrdersPage = () => {
               {detailOrder.notes && <div className="p-2 rounded bg-muted/50 text-sm"><strong>ملاحظات:</strong> {detailOrder.notes}</div>}
 
               {detailOrder.source === "direct_receiving" && (
-                <DirectReceivingReviewPanel order={detailOrder} onChanged={() => { fetchOrders?.(); openDetail(detailOrder); }} />
+                <DirectReceivingReviewPanel order={detailOrder} onChanged={() => { refetch(); openDetail(detailOrder); }} />
               )}
 
               {detailOrder.linked_invoice && (
