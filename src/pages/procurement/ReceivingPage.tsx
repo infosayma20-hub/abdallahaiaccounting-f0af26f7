@@ -318,10 +318,14 @@ function ReceivingSession({ sessionId }: { sessionId: string }) {
     load();
   };
 
+  const [submitting, setSubmitting] = useState(false);
   const submit = async () => {
+    if (submitting) return;
     if (pending > 0) { toast.error("في مسحات محفوظة بدون نت — استنى لحد ما تنرفع"); return; }
     if (missingExpiry.length) { toast.error(`تاريخ الانتهاء إجباري: ${missingExpiry.map(l => l.item_name).join("، ")}`); return; }
-    const { error } = await supabase.rpc("receiving_submit", { p_session_id: sessionId, p_notes: submitNotes || null } as any);
+    setSubmitting(true);
+    const { error } = await supabase.rpc("receiving_submit", { p_session_id: sessionId, p_notes: submitNotes.trim() || null } as any);
+    setSubmitting(false);
     if (error) { toast.error(error.message); return; }
     toast.success("تم إرسال الاستلام للمحاسب");
     setConfirmSubmit(false); load();
@@ -350,7 +354,7 @@ function ReceivingSession({ sessionId }: { sessionId: string }) {
       actions={<>
         <PaneBtn icon={ArrowRight} label="رجوع" onClick={() => navigate("/worker/receiving")} />
         <PaneBtn icon={RefreshCw} label="تحديث" onClick={load} />
-        {editable && <PaneBtn icon={CheckCircle2} label="إنهاء وإرسال" primary onClick={() => setConfirmSubmit(true)} />}
+        {editable && <PaneBtn icon={CheckCircle2} label="إنهاء وإرسال" primary onClick={submit} />}
         <div className="flex flex-1 items-center justify-end gap-4 px-3 text-xs text-muted-foreground">
           <span>مستلم <b className="text-base text-foreground">{totals.scanned}</b></span>
           <span>مطلوب <b className="text-base text-foreground">{totals.ordered}</b></span>
@@ -449,9 +453,12 @@ function ReceivingSession({ sessionId }: { sessionId: string }) {
         </div>
 
         {editable && (
-          <Button size="lg" className="h-14 w-full text-lg md:hidden" onClick={() => setConfirmSubmit(true)}>
-            <CheckCircle2 className="ml-2 h-6 w-6" />إنهاء الاستلام وإرساله للمحاسب
-          </Button>
+          <div className="space-y-2">
+            <Textarea placeholder="ملاحظات للمحاسب (اختياري)" value={submitNotes} onChange={e => setSubmitNotes(e.target.value)} rows={2} className="text-sm" />
+            <Button size="lg" className="h-12 w-full text-base" disabled={submitting} onClick={submit}>
+              <CheckCircle2 className="ml-2 h-5 w-5" />{submitting ? "جاري الإرسال..." : "إنهاء الاستلام وإرساله للمحاسب"}
+            </Button>
+          </div>
         )}
       </div>
       {/* Unknown barcode */}
