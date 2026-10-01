@@ -428,6 +428,13 @@ const PurchaseOrdersPage = () => {
     );
   };
 
+  // يطابق شرط الدالة procurement_order_edit_block_reason (القرار النهائي في قاعدة البيانات)
+  const editBlockReason = (o: any): string | null => {
+    const st = receivingByOrder[o.id]?.status;
+    if (st && st !== "cancelled" && st !== "approved") return "الاستلام بالمستودع جارٍ أو مُرسل — لا يمكن التعديل";
+    return null;
+  };
+
   const rowActions = (o: any) => (
     <div className="flex gap-0.5 items-center" onClick={e => e.stopPropagation()}>
       <Button size="sm" variant="ghost" className="h-7 w-7 p-0" title="عرض" onClick={() => openDetail(o)}><Eye className="h-3.5 w-3.5" /></Button>
@@ -438,9 +445,17 @@ const PurchaseOrdersPage = () => {
       {(o.status === "sent" || o.status === "partially_received" || o.status === "received") && (
         <Button size="sm" variant="ghost" className="h-7 w-7 p-0" title="سند صرف" onClick={() => openPaymentVoucher(o)}><HandCoins className="h-3.5 w-3.5" /></Button>
       )}
+      {["draft", "sent", "partially_received"].includes(o.status) && (() => {
+        const reason = editBlockReason(o);
+        return (
+          <Button size="sm" variant="ghost" className="h-7 w-7 p-0 disabled:opacity-30" disabled={!!reason}
+            title={reason || "تعديل الطلبية"} onClick={() => navigate(`/procurement/orders/${o.id}/edit`)}>
+            <Pencil className="h-3.5 w-3.5" />
+          </Button>
+        );
+      })()}
       {o.status === "draft" && (
         <>
-          <Button size="sm" variant="ghost" className="h-7 w-7 p-0" title="تعديل" onClick={() => navigate(`/procurement/orders/new?editId=${o.id}`)}><Pencil className="h-3.5 w-3.5" /></Button>
           <Button size="sm" variant="ghost" className="h-7 w-7 p-0" title="إرسال للمورد (واتساب)" onClick={() => handleSend(o)}><Send className="h-3.5 w-3.5" /></Button>
         </>
       )}
@@ -797,6 +812,11 @@ const PurchaseOrdersPage = () => {
               <div className="flex gap-2 pt-4 flex-wrap">
                 <Button variant="outline" className="flex-1" onClick={() => handlePrint(detailOrder)}><Printer className="h-4 w-4 ml-1" />طباعة</Button>
                 <Button variant="outline" className="flex-1" onClick={() => handleWhatsApp(detailOrder)}><Share2 className="h-4 w-4 ml-1" />WhatsApp</Button>
+                {["draft", "sent", "partially_received"].includes(detailOrder.status) && !editBlockReason(detailOrder) && (
+                  <Button variant="outline" className="flex-1" onClick={() => { const id = detailOrder.id; setDetailOrder(null); navigate(`/procurement/orders/${id}/edit`); }}>
+                    <Pencil className="h-4 w-4 ml-1" />تعديل
+                  </Button>
+                )}
                 {detailOrder.status === "draft" && (
                   <Button className="flex-1 bg-[hsl(152,60%,35%)] hover:bg-[hsl(152,60%,28%)] text-white" onClick={() => { const o = detailOrder; setDetailOrder(null); handleSend(o); }}>
                     <Send className="h-4 w-4 ml-1" />إرسال للمورد

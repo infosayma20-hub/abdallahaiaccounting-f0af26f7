@@ -1222,6 +1222,7 @@ const App = () => (
                       <Route path="/purchases/import/:id" element={<ImportDetailPage />} />
                       <Route path="/procurement/orders" element={<PurchaseOrdersPage />} />
                       <Route path="/procurement/orders/new" element={<PurchaseOrderCreatePage />} />
+                      <Route path="/procurement/orders/:id/edit" element={<PurchaseOrderCreatePage />} />
                       <Route path="/procurement/invoices" element={<ProcurementInvoicesPage />} />
                       <Route path="/procurement/invoices/new" element={<FeatureGuard app="purchases" feature="purchase_invoices" perm="create" label="فاتورة مشتريات جديدة"><ProcurementInvoiceCreatePage /></FeatureGuard>} />
                       <Route path="/procurement/supplier-statement" element={<SupplierStatementPage />} />
