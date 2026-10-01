@@ -19696,6 +19696,63 @@ export type Database = {
           },
         ]
       }
+      product_supplier_links: {
+        Row: {
+          created_at: string
+          first_order_date: string | null
+          id: string
+          last_order_date: string | null
+          last_unit_price: number | null
+          orders_count: number
+          product_id: string
+          supplier_id: string
+          total_qty: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          first_order_date?: string | null
+          id?: string
+          last_order_date?: string | null
+          last_unit_price?: number | null
+          orders_count?: number
+          product_id: string
+          supplier_id: string
+          total_qty?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          first_order_date?: string | null
+          id?: string
+          last_order_date?: string | null
+          last_unit_price?: number | null
+          orders_count?: number
+          product_id?: string
+          supplier_id?: string
+          total_qty?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_supplier_links_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_supplier_links_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "pos_suppliers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       product_units: {
         Row: {
           barcode: string | null
@@ -33379,6 +33436,10 @@ export type Database = {
       refresh_procurement_order_receipt_status: {
         Args: { p_order_id: string }
         Returns: string
+      }
+      refresh_product_supplier_link: {
+        Args: { p_product: string; p_supplier: string }
+        Returns: undefined
       }
       register_employee_hot_drink_order: {
         Args: { p_employee_id: string; p_order_id: string; p_user_id: string }
