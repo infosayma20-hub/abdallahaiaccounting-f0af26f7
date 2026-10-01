@@ -5,7 +5,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { Plus, Minus, Trash2, Send, Save, Package, Search, Wheat, Beef, Droplets, Sparkles, CupSoda, UtensilsCrossed, Shield, X, StickyNote, LayoutGrid, Grid3X3, Grid2X2, ArrowRight, Settings, UserPlus, MapPin, FolderPlus, Pencil, Milk, Egg, SprayCan, Shirt } from "lucide-react";
+import { Plus, Minus, Trash2, Send, Save, Package, Search, Wheat, Beef, Droplets, Sparkles, CupSoda, UtensilsCrossed, Shield, X, StickyNote, LayoutGrid, Grid3X3, Grid2X2, ArrowRight, Settings, UserPlus, MapPin, FolderPlus, Pencil, Milk, Egg, SprayCan, Shirt, Boxes, FolderOpen } from "lucide-react";
 import { useSuppliers, useItemCategories, useProcurementItems, useProcurementOrders, useBranches } from "@/hooks/useProcurement";
 import { useSuppliersCrud, useCategoriesCrud, useItemsCrud } from "@/hooks/useProcurementSettings";
 import { useNavigate } from "react-router-dom";
