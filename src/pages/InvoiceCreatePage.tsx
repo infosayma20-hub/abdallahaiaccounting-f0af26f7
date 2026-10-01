@@ -4570,6 +4570,7 @@ function InvoiceLineTotalInput({
   onTotal: (total: number) => void;
   compact?: boolean;
 }) {
+  const tt = useTT();
   const computed = Math.round(subtotal * 100) / 100;
   const [draft, setDraft] = useState<string | null>(null);
   return (
