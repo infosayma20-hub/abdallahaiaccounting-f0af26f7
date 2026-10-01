@@ -18,7 +18,7 @@ export default function HrCommandCenter() {
       if (isAdmin) return true;
       return isHRManager && can(...i.perms);
     });
-    // نفس ترتيب الأقسام، لكن كل البطاقات متلاصقة ب сетورة واحدة متواصلة
+    // نفس ترتيب الأقسام، لكن كل البطاقات متلاصقة بصف واحد متواصل
     return HR_APP_GROUP_ORDER.flatMap((g) => visible.filter((i) => i.group === g));
   }, [isAdmin, isHRManager, can]);
 
