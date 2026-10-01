@@ -158,6 +158,7 @@ function ReceivingSession({ sessionId }: { sessionId: string }) {
   const [pending, setPending] = useState<number>(readQueue(sessionId).length);
   const inputRef = useRef<HTMLInputElement>(null);
   const [cameraOpen, setCameraOpen] = useState(false);
+  const [cameraLine, setCameraLine] = useState<Line | null>(null);
   const busy = useRef(false);
 
   const today = new Date().toISOString().slice(0, 10);
@@ -271,8 +272,23 @@ function ReceivingSession({ sessionId }: { sessionId: string }) {
     const qty = Math.max(0, Number(line.scanned_qty) + delta);
     setSession(s => s ? { ...s, lines: s.lines.map(l => l.id === line.id ? { ...l, scanned_qty: qty } : l) } : s);
     const { error } = await supabase.rpc("receiving_set_line", { p_line_id: line.id, p_qty: qty, p_note: line.note, p_expiry: line.expiry_date } as any);
-    if (error) { toast.error(error.message); load(); }
+      if (error) { toast.error(error.message); load(); }
     focus();
+  };
+
+  // مسح بالكاميرا من زر صنف محدد — بيزيد الكمية لذاك الصنف مباشرة
+  const cameraScanLine = async (line: Line) => {
+    if (!editable || busy.current) return;
+    busy.current = true;
+    try {
+      const current = Number(session?.lines.find(x => x.id === line.id)?.scanned_qty ?? line.scanned_qty);
+      const qty = current + 1;
+      setSession(s => s ? { ...s, status: "in_progress", lines: s.lines.map(x => x.id === line.id ? { ...x, scanned_qty: qty } : x) } : s);
+      setLastLineId(line.id);
+      const { error } = await supabase.rpc("receiving_set_line", { p_line_id: line.id, p_qty: qty, p_note: line.note, p_expiry: line.expiry_date } as any);
+      if (error) { showFlash(false, error.message); load(); return; }
+      showFlash(true, `${line.item_name} — ${qty}`);
+    } finally { busy.current = false; }
   };
 
   const submit = async () => {
@@ -317,32 +333,28 @@ function ReceivingSession({ sessionId }: { sessionId: string }) {
       </>}>
       <div className="space-y-3 p-3 md:p-6">
         {session.order_notes && <div className="border-r-4 border-primary bg-card px-3 py-2 text-sm font-medium text-foreground">📝 {session.order_notes}</div>}
-        {/* Scan box */}
+        {/* Scan bar — compact */}
         {editable ? (
           <form onSubmit={e => { e.preventDefault(); const v = code; setCode(""); handleScan(v); }}
-            className={`border-2 bg-card p-4 transition-colors ${flash ? (flash.ok ? "border-primary" : "border-destructive") : "border-dashed border-border"}`}>
-            <div className="flex items-center gap-3">
-              <ScanLine className="h-8 w-8 text-primary" />
-              <Input ref={inputRef} value={code} onChange={e => setCode(e.target.value)} onBlur={focus}
-                inputMode="none" autoComplete="off" placeholder="امسح الباركود…"
-                className="h-14 flex-1 text-xl font-mono" />
-              <Button type="button" size="lg" variant="outline" className="h-14 w-14 shrink-0" title="مسح بالكاميرا"
-                onClick={e => { e.stopPropagation(); setCameraOpen(true); }}>
-                <Camera className="h-6 w-6" />
-              </Button>
-              <Button type="submit" size="lg" className="h-14">إضافة</Button>
-            </div>
-            <div className={`mt-3 min-h-[1.75rem] text-center text-lg font-bold ${flash ? (flash.ok ? "text-primary" : "text-destructive") : "text-muted-foreground"}`}>
-              {flash ? flash.text : "الماسح جاهز"}
-            </div>
-            {pending > 0 && <div className="text-center text-sm text-destructive">{pending} مسحة محفوظة بانتظار النت</div>}
+            className={`flex flex-wrap items-center gap-2 border bg-card px-3 py-2 transition-colors ${flash ? (flash.ok ? "border-primary" : "border-destructive") : "border-border"}`}>
+            <ScanLine className="h-4 w-4 shrink-0 text-primary" />
+            <Input ref={inputRef} value={code} onChange={e => setCode(e.target.value)} onBlur={focus}
+              inputMode="none" autoComplete="off" placeholder="امسح الباركود…"
+              className="h-9 min-w-36 flex-1 font-mono text-sm" />
+            <Button type="button" size="icon" variant="outline" className="h-9 w-9 shrink-0" title="مسح بالكاميرا"
+              onClick={e => { e.stopPropagation(); setCameraLine(null); setCameraOpen(true); }}>
+              <Camera className="h-4 w-4" />
+            </Button>
+            {flash && <span className={`text-sm font-bold ${flash.ok ? "text-primary" : "text-destructive"}`}>{flash.text}</span>}
+            {pending > 0 && <span className="text-xs text-destructive">{pending} مسحة محفوظة بانتظار النت</span>}
           </form>
         ) : (
           <div className="rounded-xl border bg-card p-4 text-center text-muted-foreground">
             {session.status === "submitted" ? "تم إرسال الاستلام — بانتظار اعتماد المحاسب" : "الاستلام مغلق"}
           </div>
         )}
-        <POSBarcodeScanner open={cameraOpen} onClose={() => setCameraOpen(false)} onScan={c => handleScan(c)} />
+        <POSBarcodeScanner open={cameraOpen} onClose={() => { setCameraOpen(false); setCameraLine(null); }}
+          onScan={c => { if (cameraLine) cameraScanLine(cameraLine); else handleScan(c); }} />
 
         {/* Lines */}
         <div className="overflow-hidden border bg-card">
@@ -373,6 +385,10 @@ function ReceivingSession({ sessionId }: { sessionId: string }) {
                   </div>
                   {editable && (
                     <div className="flex items-center gap-1">
+                      <Button variant="ghost" size="icon" className="h-11 w-11" title="مسح بالكاميرا لهذا الصنف"
+                        onClick={e => { e.stopPropagation(); setCameraLine(l); setCameraOpen(true); }}>
+                        <Camera className="h-5 w-5" />
+                      </Button>
                       <Button variant="outline" size="icon" className="h-11 w-11" onClick={e => { e.stopPropagation(); bump(l, -1); }}><Minus className="h-5 w-5" /></Button>
                       <Button variant="outline" size="icon" className="h-11 w-11" onClick={e => { e.stopPropagation(); bump(l, 1); }}><Plus className="h-5 w-5" /></Button>
                       <Button variant="ghost" size="icon" className="h-11 w-11" title="كمية وملاحظة"
