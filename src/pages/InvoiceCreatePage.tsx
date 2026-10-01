@@ -1493,7 +1493,16 @@ const InvoiceCreatePage = () => {
   };
 
   const validate = (): boolean => {
-    if (!form.contactName.trim()) { toast({ title: tt("يرجى اختيار جهة الاتصال"), variant: "destructive" }); return false; }
+    const nameTrim = form.contactName.trim();
+    const genericParty = !nameTrim || isGenericCashPartyName(nameTrim);
+    if (form.invoiceKind !== "cash" && genericParty) {
+      toast({
+        title: nameTrim ? tt("لا يمكن تسجيل فاتورة آجلة على جهة نقدية عامة") : tt("يرجى اختيار جهة الاتصال"),
+        description: tt("الفاتورة الآجلة دين ولازم تكون على زبون أو مورد معروف"),
+        variant: "destructive",
+      });
+      return false;
+    }
     if (form.items.some(i => !i.productId && !i.description.trim())) { toast({ title: tt("يرجى اختيار منتج لكل بند"), variant: "destructive" }); return false; }
     if (form.items.some(i => i.unitPrice <= 0)) { toast({ title: tt("لا يمكن إنشاء فاتورة ببند سعره 0"), variant: "destructive" }); return false; }
     if (form.items.some(i => i.quantity <= 0)) { toast({ title: tt("الكمية يجب أن تكون أكبر من 0"), variant: "destructive" }); return false; }
@@ -1513,6 +1522,19 @@ const InvoiceCreatePage = () => {
         return false;
       }
     }
+    // فاتورة نقدية على الجهة النقدية العامة: لازم تُسدَّد بالكامل فوراً حتى يبقى
+    // رصيد الجهة العامة صفراً دائماً (لا ذمة متبقية ولا رصيد زائد على "زبون/مورد نقدي").
+    if (form.invoiceKind === "cash" && genericParty) {
+      const total = Math.round(summary.total * 100) / 100;
+      if (Math.abs(cashPaidAmount - total) > 0.009) {
+        toast({
+          title: tt("الفاتورة النقدية بدون جهة لازم تكون مدفوعة بالكامل"),
+          description: tt("المدفوع فعلياً لازم يساوي إجمالي الفاتورة، أو اختر زبون/مورد معروف"),
+          variant: "destructive",
+        });
+        return false;
+      }
+    }
     return true;
   };
 
@@ -1522,6 +1544,12 @@ const InvoiceCreatePage = () => {
     if (creatingRef.current) return;
     if (!asDraft && !validate()) return;
     if (!user) return;
+    // جهة نقدية عامة: فاتورة نقدية (غير مسودة) بدون جهة تُسجَّل على "زبون نقدي"/"مورد نقدي"
+    // عبر نفس مسار البحث/الإنشاء الحالي للجهات، فيبقى القيد والسند والكشف كما هي.
+    const contactNameEff = (!asDraft && form.invoiceKind === "cash" && !form.contactName.trim())
+      ? (form.type === "sales" ? GENERIC_CASH_CUSTOMER : GENERIC_CASH_SUPPLIER)
+      : form.contactName;
+    const isGenericParty = isGenericCashPartyName(contactNameEff);
     creatingRef.current = true;
     setCreating(true);
 
@@ -1580,7 +1608,7 @@ const InvoiceCreatePage = () => {
           payload: {
             p_user_id: ownerId,
             p_contact_id: form.contactId,
-            p_contact_name: form.contactName,
+            p_contact_name: contactNameEff,
             p_invoice_date: form.date,
             p_payment_method: paymentMethodDb,
             p_currency: "شيكل",
@@ -1595,8 +1623,8 @@ const InvoiceCreatePage = () => {
             p_source: "offline",
           },
           summary: {
-            title: `فاتورة مبيعات — ${form.contactName}`,
-            contact_name: form.contactName,
+            title: `فاتورة مبيعات — ${contactNameEff}`,
+            contact_name: contactNameEff,
             amount: summary.total,
             currency: "شيكل",
             doc_date: form.date,
@@ -1615,11 +1643,13 @@ const InvoiceCreatePage = () => {
         return;
       }
 
-      let contactId = form.contactId;
+      // عند التحويل التلقائي للجهة النقدية العامة نتجاهل أي معرّف جهة قديم عالق
+      // (مثلاً جهة اختيرت ثم مُسح اسمها) حتى لا تُسجَّل الفاتورة على جهة خاطئة.
+      let contactId = (contactNameEff !== form.contactName) ? null : form.contactId;
 
 
-      if (form.contactName.trim() && !contactId) {
-        const trimmedName = form.contactName.trim();
+      if (contactNameEff.trim() && !contactId) {
+        const trimmedName = contactNameEff.trim();
         // Lookup first — contact may already exist (e.g. created from another flow
         // or stale local state). Avoid INSERT to prevent unique-constraint errors.
         const { data: existing } = await supabase
@@ -1657,7 +1687,7 @@ const InvoiceCreatePage = () => {
 
       const invoicePayload = {
         invoice_type: form.type === "sales" ? "sale" : "purchase",
-        contact_name: form.contactName,
+        contact_name: contactNameEff,
         contact_id: contactId,
         invoice_date: form.date,
         due_date: form.dueDate || null,
@@ -1818,7 +1848,7 @@ const InvoiceCreatePage = () => {
           const txPayload = {
             user_id: ownerId,
             transaction_date: form.date,
-            description: `فاتورة ${form.type === "sales" ? "مبيعات" : "مشتريات"} ${originalInvoiceRef.current?.invoiceNumber || nextInvoiceNumber} - ${form.contactName}`,
+            description: `فاتورة ${form.type === "sales" ? "مبيعات" : "مشتريات"} ${originalInvoiceRef.current?.invoiceNumber || nextInvoiceNumber} - ${contactNameEff}`,
             debit_account_code: form.type === "sales" ? salesDebitCode : purchaseDebitCode,
             credit_account_code: form.type === "sales" ? salesCreditCode : purchaseCreditCode,
             amount: amountILS,
@@ -1955,7 +1985,7 @@ const InvoiceCreatePage = () => {
               if (entry.price > 0 && form.currency === "شيكل") {
                 productUpdate.buy_price = entry.price;
               }
-              if (contactId && !prod.default_supplier_id) {
+              if (contactId && !isGenericParty && !prod.default_supplier_id) {
                 productUpdate.default_supplier_id = contactId;
               }
             }
@@ -1986,7 +2016,7 @@ const InvoiceCreatePage = () => {
             p_is_cash: !asDraft && useVoucherAutoFlow && !!contactId,
             p_invoice_type: form.type === "sales" ? "sales" : "purchase",
             p_contact_id: contactId || null,
-            p_contact_name: form.contactName,
+            p_contact_name: contactNameEff,
             p_amount: cashPaid,
             p_date: form.date,
             p_cash_account_code: cashCode,
@@ -2071,7 +2101,7 @@ const InvoiceCreatePage = () => {
             if (linePrice > 0 && form.currency === "شيكل") {
               productUpdate.buy_price = linePrice;
             }
-            if (contactId && !prod.default_supplier_id) {
+            if (contactId && !isGenericParty && !prod.default_supplier_id) {
               productUpdate.default_supplier_id = contactId;
             }
           }
@@ -2101,9 +2131,9 @@ const InvoiceCreatePage = () => {
           const rpcRes = await callCreateInvoiceLedgerRpc({
             userId: user.id,
             contactId: contactId || null,
-            contactName: form.contactName,
+            contactName: contactNameEff,
             amount: amountILS,
-            description: `فاتورة ${form.type === "sales" ? "مبيعات" : "مشتريات"} ${dbInv.invoice_number} - ${form.contactName}`,
+            description: `فاتورة ${form.type === "sales" ? "مبيعات" : "مشتريات"} ${dbInv.invoice_number} - ${contactNameEff}`,
             // ─── إصلاح: عندما يكون مسار السند التلقائي مفعّلاً للفواتير النقدية،
             // نُجبر الـ RPC على تقييد الفاتورة على الذمم (AR/AP) بتمرير 'آجل'،
             // حتى يستطيع سند القبض/الصرف التلقائي أدناه إقفالها بشكل صحيح.
@@ -2128,7 +2158,7 @@ const InvoiceCreatePage = () => {
         const { data: txData, error: txError } = await supabase.from("transactions").insert({
           user_id: ownerId,
           transaction_date: form.date,
-          description: `فاتورة ${form.type === "sales" ? "مبيعات" : "مشتريات"} ${dbInv.invoice_number} - ${form.contactName}`,
+          description: `فاتورة ${form.type === "sales" ? "مبيعات" : "مشتريات"} ${dbInv.invoice_number} - ${contactNameEff}`,
           debit_account_code: form.type === "sales" ? salesDebitCode : purchaseDebitCode,
           credit_account_code: form.type === "sales" ? salesCreditCode : purchaseCreditCode,
           amount: amountILS,
@@ -2184,7 +2214,7 @@ const InvoiceCreatePage = () => {
             const voucherParams = {
               userId: ownerId,
               contactId,
-              contactName: form.contactName,
+              contactName: contactNameEff,
               amount: voucherAmount,
               paymentMethod: "نقدي",
               description: `${isSales ? tt("سند قبض تلقائي") : tt("سند صرف تلقائي")} — فاتورة ${dbInv.invoice_number}`,
@@ -2215,7 +2245,7 @@ const InvoiceCreatePage = () => {
                   user_id: ownerId,
                   receipt_number: null,
                   contact_id: contactId,
-                  contact_name: form.contactName,
+                  contact_name: contactNameEff,
                   payment_date: form.date,
                   amount: voucherAmount,
                   payment_method: "نقدي",
@@ -2293,7 +2323,7 @@ const InvoiceCreatePage = () => {
           reference_type: form.type === "sales" ? "invoice" : "purchase",
           reference_id: dbInv.id,
           reference_number: dbInv.invoice_number,
-          contact_name: form.contactName,
+          contact_name: contactNameEff,
           description: `فاتورة ${form.type === "sales" ? "مبيعات" : "مشتريات"} ${dbInv.invoice_number}`,
           transaction_date: form.date,
           period_year: invoiceDate.getFullYear(),
@@ -4545,6 +4575,14 @@ const InvoiceCreatePage = () => {
     </AccountingShell>
     </>
   );
+};
+
+
+const GENERIC_CASH_CUSTOMER = "زبون نقدي";
+const GENERIC_CASH_SUPPLIER = "مورد نقدي";
+const isGenericCashPartyName = (name: string | null | undefined) => {
+  const n = (name || "").trim();
+  return n === GENERIC_CASH_CUSTOMER || n === GENERIC_CASH_SUPPLIER;
 };
 
 export default InvoiceCreatePage;
