@@ -9297,6 +9297,7 @@ export type Database = {
           bank_name: string | null
           base_salary: number
           branch_id: string | null
+          can_direct_receive: boolean
           can_manage_attendance: boolean
           can_manage_schedule: boolean
           can_view_team: boolean
@@ -9375,6 +9376,7 @@ export type Database = {
           bank_name?: string | null
           base_salary?: number
           branch_id?: string | null
+          can_direct_receive?: boolean
           can_manage_attendance?: boolean
           can_manage_schedule?: boolean
           can_view_team?: boolean
@@ -9453,6 +9455,7 @@ export type Database = {
           bank_name?: string | null
           base_salary?: number
           branch_id?: string | null
+          can_direct_receive?: boolean
           can_manage_attendance?: boolean
           can_manage_schedule?: boolean
           can_view_team?: boolean
@@ -19133,6 +19136,8 @@ export type Database = {
           order_id: string
           product_id: string | null
           quantity: number | null
+          temp_barcode: string | null
+          temp_photo_path: string | null
           total_price: number | null
           unit: string | null
           unit_price: number | null
@@ -19145,6 +19150,8 @@ export type Database = {
           order_id: string
           product_id?: string | null
           quantity?: number | null
+          temp_barcode?: string | null
+          temp_photo_path?: string | null
           total_price?: number | null
           unit?: string | null
           unit_price?: number | null
@@ -19157,6 +19164,8 @@ export type Database = {
           order_id?: string
           product_id?: string | null
           quantity?: number | null
+          temp_barcode?: string | null
+          temp_photo_path?: string | null
           total_price?: number | null
           unit?: string | null
           unit_price?: number | null
@@ -19194,6 +19203,7 @@ export type Database = {
       }
       procurement_orders: {
         Row: {
+          attachment_path: string | null
           branch_id: string | null
           created_at: string | null
           created_by: string | null
@@ -19202,14 +19212,20 @@ export type Database = {
           notes: string | null
           order_date: string | null
           order_number: string | null
+          reject_reason: string | null
+          review_status: string | null
           sales_order_id: string | null
+          source: string
           status: string | null
+          submitted_by_employee_id: string | null
           supplier_id: string
+          supplier_invoice_no: string | null
           total_amount: number | null
           updated_at: string | null
           user_id: string
         }
         Insert: {
+          attachment_path?: string | null
           branch_id?: string | null
           created_at?: string | null
           created_by?: string | null
@@ -19218,14 +19234,20 @@ export type Database = {
           notes?: string | null
           order_date?: string | null
           order_number?: string | null
+          reject_reason?: string | null
+          review_status?: string | null
           sales_order_id?: string | null
+          source?: string
           status?: string | null
+          submitted_by_employee_id?: string | null
           supplier_id: string
+          supplier_invoice_no?: string | null
           total_amount?: number | null
           updated_at?: string | null
           user_id: string
         }
         Update: {
+          attachment_path?: string | null
           branch_id?: string | null
           created_at?: string | null
           created_by?: string | null
@@ -19234,9 +19256,14 @@ export type Database = {
           notes?: string | null
           order_date?: string | null
           order_number?: string | null
+          reject_reason?: string | null
+          review_status?: string | null
           sales_order_id?: string | null
+          source?: string
           status?: string | null
+          submitted_by_employee_id?: string | null
           supplier_id?: string
+          supplier_invoice_no?: string | null
           total_amount?: number | null
           updated_at?: string | null
           user_id?: string
@@ -19261,6 +19288,20 @@ export type Database = {
             columns: ["sales_order_id"]
             isOneToOne: false
             referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "procurement_orders_submitted_by_employee_id_fkey"
+            columns: ["submitted_by_employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "procurement_orders_submitted_by_employee_id_fkey"
+            columns: ["submitted_by_employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees_safe"
             referencedColumns: ["id"]
           },
           {
@@ -30747,6 +30788,126 @@ export type Database = {
       _capture_client_request_info: { Args: never; Returns: Json }
       _currency_code_label: { Args: { _c: string }; Returns: string }
       _currency_label_to_code: { Args: { _c: string }; Returns: string }
+      _direct_recv_employee: {
+        Args: never
+        Returns: {
+          address: string | null
+          admin_allowance: number | null
+          annual_leave_balance: number | null
+          annual_leave_days: number
+          auth_disabled: boolean
+          auth_disabled_at: string | null
+          auth_disabled_by: string | null
+          auth_user_id: string | null
+          bank_account: string | null
+          bank_name: string | null
+          base_salary: number
+          branch_id: string | null
+          can_direct_receive: boolean
+          can_manage_attendance: boolean
+          can_manage_schedule: boolean
+          can_view_team: boolean
+          child_allowance_per_child: number | null
+          children_count: number | null
+          company_id: string
+          contract_type: string | null
+          created_at: string
+          date_of_birth: string | null
+          department: string | null
+          department_id: string | null
+          email: string | null
+          emergency_contact: string | null
+          emergency_phone: string | null
+          employee_number: string | null
+          end_date: string | null
+          fingerprint_id: number | null
+          food_transport_override: number | null
+          full_name: string
+          gender: string | null
+          hourly_rate: number
+          id: string
+          id_number: string | null
+          is_active: boolean
+          is_hr_manager: boolean
+          is_manager: boolean
+          is_receiver: boolean
+          is_terminated: boolean | null
+          job_title: string | null
+          job_title_id: string | null
+          local_id: string | null
+          manager_employee_id: string | null
+          marital_status: string | null
+          meal_allowance_per_day: number | null
+          nationality: string | null
+          notes: string | null
+          opening_balance: number | null
+          opening_balance_date: string | null
+          opening_balance_type: string | null
+          other_allowances: number | null
+          payroll_overrides: Json
+          payroll_policy_id: string | null
+          phone: string | null
+          photo_url: string | null
+          position: string | null
+          previous_year_balance: number | null
+          salary_type: string
+          shift_end: string | null
+          shift_id: string | null
+          shift_start: string | null
+          show_in_employee_team_schedule: boolean
+          sick_leave_days: number
+          special_work_allowance: number | null
+          spouse_allowance_amount: number | null
+          start_date: string
+          terminated_at: string | null
+          termination_reason: string | null
+          transfer_allowance: number | null
+          transportation_allowance_per_day: number | null
+          updated_at: string
+          user_id: string
+          wives_count: number | null
+          work_days_per_week: number
+          work_hours_per_day: number
+        }
+        SetofOptions: {
+          from: "*"
+          to: "employees"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      _direct_recv_my_draft: {
+        Args: { p_order_id: string }
+        Returns: {
+          attachment_path: string | null
+          branch_id: string | null
+          created_at: string | null
+          created_by: string | null
+          expected_delivery_date: string | null
+          id: string
+          notes: string | null
+          order_date: string | null
+          order_number: string | null
+          reject_reason: string | null
+          review_status: string | null
+          sales_order_id: string | null
+          source: string
+          status: string | null
+          submitted_by_employee_id: string | null
+          supplier_id: string
+          supplier_invoice_no: string | null
+          total_amount: number | null
+          updated_at: string | null
+          user_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "procurement_orders"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      _direct_recv_recalc: { Args: { p_order_id: string }; Returns: undefined }
       _fc_validate_postable_account: {
         Args: { p_account_code: string; p_user_id: string }
         Returns: undefined
@@ -30804,6 +30965,10 @@ export type Database = {
         Returns: boolean
       }
       _pos_vat_output_account: { Args: { p_user_id: string }; Returns: string }
+      _proc_item_for_product: {
+        Args: { p_product_id: string }
+        Returns: string
+      }
       _procurement_item_received_qty: {
         Args: { _order_item_id: string }
         Returns: number
@@ -31867,6 +32032,68 @@ export type Database = {
           opening_cash: number
           session_id: string
         }[]
+      }
+      direct_receiving_add_temp: {
+        Args: {
+          p_barcode: string
+          p_name: string
+          p_order_id: string
+          p_photo_path?: string
+          p_unit?: string
+        }
+        Returns: string
+      }
+      direct_receiving_context: { Args: never; Returns: Json }
+      direct_receiving_discard: {
+        Args: { p_order_id: string }
+        Returns: undefined
+      }
+      direct_receiving_get: { Args: { p_order_id: string }; Returns: Json }
+      direct_receiving_link_temp_line: {
+        Args: { p_line_id: string; p_product_id: string }
+        Returns: undefined
+      }
+      direct_receiving_my_orders: { Args: never; Returns: Json }
+      direct_receiving_reject: {
+        Args: { p_order_id: string; p_reason: string }
+        Returns: undefined
+      }
+      direct_receiving_scan: {
+        Args: { p_barcode: string; p_order_id: string }
+        Returns: Json
+      }
+      direct_receiving_set_line: {
+        Args: {
+          p_line_id: string
+          p_notes?: string
+          p_quantity: number
+          p_unit_price: number
+        }
+        Returns: undefined
+      }
+      direct_receiving_start: {
+        Args: {
+          p_branch_id: string
+          p_notes?: string
+          p_supplier_id: string
+          p_supplier_invoice_no?: string
+        }
+        Returns: string
+      }
+      direct_receiving_submit: {
+        Args: { p_order_id: string }
+        Returns: undefined
+      }
+      direct_receiving_update_header: {
+        Args: {
+          p_attachment_path: string
+          p_branch_id: string
+          p_notes: string
+          p_order_id: string
+          p_supplier_id: string
+          p_supplier_invoice_no: string
+        }
+        Returns: undefined
       }
       discard_empty_purchase_invoice: {
         Args: { p_invoice_id: string }

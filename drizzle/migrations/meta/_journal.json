@@ -428,6 +428,20 @@
       "when": 1790851298483,
       "tag": "0060_update_procurement_order_rpc",
       "breakpoints": true
+    },
+    {
+      "idx": 61,
+      "version": "7",
+      "when": 1790851907776,
+      "tag": "0061_direct_receiving",
+      "breakpoints": true
+    },
+    {
+      "idx": 62,
+      "version": "7",
+      "when": 1790851950031,
+      "tag": "0062_direct_receiving_fix_columns",
+      "breakpoints": true
     }
   ]
 }

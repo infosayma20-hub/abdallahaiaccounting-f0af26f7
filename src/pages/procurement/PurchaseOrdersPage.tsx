@@ -3,6 +3,7 @@ import ReceivingAssignDialog, { receivingStatusLabel, type ReceivingSessionSumma
 import { ScanLine } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import DirectReceivingReviewPanel from "@/components/procurement/DirectReceivingReviewPanel";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
@@ -644,7 +645,9 @@ const PurchaseOrdersPage = () => {
                             <td style={{ padding: "8px 12px", fontWeight: "600", color: NAVY, fontSize: "13px", fontFamily: F, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: "200px" }}>{o.supplier?.name || "—"}</td>
                             <td style={{ padding: "8px 12px", fontSize: "12px", color: "#64748B", fontFamily: F, whiteSpace: "nowrap" }}>{o.branch?.name || "—"}</td>
                             <td style={{ padding: "8px 12px", fontWeight: "700", color: NAVY, fontSize: "14px", fontFamily: F, direction: "ltr", textAlign: "left", whiteSpace: "nowrap" }}>{Number(o.total_amount).toLocaleString()} ₪</td>
-                            <td style={{ padding: "8px 12px" }}>{statusPill(displayStatus(o))}{receivingByOrder[o.id] && receivingByOrder[o.id].status !== "submitted" && (
+                            <td style={{ padding: "8px 12px" }}>{statusPill(displayStatus(o))}{o.source === "direct_receiving" && (
+                              <div className="mt-0.5 whitespace-nowrap text-[10px] font-semibold text-primary">استلام مباشر{o.review_status === "pending_review" ? " · بانتظار التدقيق" : o.review_status === "in_progress" ? " · الموظف يستلم" : ""}</div>
+                            )}{receivingByOrder[o.id] && receivingByOrder[o.id].status !== "submitted" && (
                               <div className="mt-0.5 text-[10px] text-muted-foreground cursor-pointer whitespace-nowrap" onClick={e => { e.stopPropagation(); setAssignOrder(o); }}>
                                 {receivingStatusLabel[receivingByOrder[o.id].status]}{receivingByOrder[o.id].employee_name ? ` · ${receivingByOrder[o.id].employee_name}` : ""}
                               </div>
@@ -776,6 +779,10 @@ const PurchaseOrdersPage = () => {
               </div>
 
               {detailOrder.notes && <div className="p-2 rounded bg-muted/50 text-sm"><strong>ملاحظات:</strong> {detailOrder.notes}</div>}
+
+              {detailOrder.source === "direct_receiving" && (
+                <DirectReceivingReviewPanel order={detailOrder} onChanged={() => { refetch(); openDetail(detailOrder); }} />
+              )}
 
               {detailOrder.linked_invoice && (
                 <div className="p-2 rounded bg-accent/10 border border-accent/30">

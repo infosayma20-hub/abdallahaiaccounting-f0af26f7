@@ -70,6 +70,7 @@ const ReceivePOInvoicePage = ({ orderId }: { orderId: string }) => {
   const [orderNumber, setOrderNumber] = useState("");
   const [invoiceDate, setInvoiceDate] = useState(new Date().toISOString().split("T")[0]);
   const [supplierInvoiceNumber, setSupplierInvoiceNumber] = useState("");
+  const [tempLinesCount, setTempLinesCount] = useState(0);
   const [paymentStatus, setPaymentStatus] = useState("unpaid");
   const [discount, setDiscount] = useState(0);
   const [tax, setTax] = useState(0);
@@ -134,6 +135,12 @@ const ReceivePOInvoicePage = ({ orderId }: { orderId: string }) => {
         setSupplierName(o.pos_suppliers?.name || "");
         setBranchId(o.branch_id || "");
         setOrderNumber(o.order_number || "");
+        if (o.supplier_invoice_no) setSupplierInvoiceNumber((prev: string) => prev || o.supplier_invoice_no);
+        // استلام مباشر: لا فوترة قبل ربط البنود المؤقتة بأصناف المخزون
+        const { count: tempCount } = await supabase.from("procurement_order_items" as any)
+          .select("id", { count: "exact", head: true }).eq("order_id", orderId).is("product_id", null).not("temp_barcode", "is", null);
+        setTempLinesCount(tempCount || 0);
+        if (tempCount) toast.error(`في ${tempCount} بند مؤقت من الاستلام المباشر لازم تربطه بصنف من تفاصيل الطلبية قبل الفوترة`);
         // بنود الطلبية: المتبقي بعد الاستلامات السابقة + صنف المخزون المرتبط (يُنشأ مرة واحدة إذا ناقص)
         const { data: items, error: itemsErr } = await supabase.rpc("get_procurement_order_receipt_lines", { p_order_id: orderId });
         if (itemsErr) toast.error(itemsErr.message);
@@ -280,6 +287,7 @@ const ReceivePOInvoicePage = ({ orderId }: { orderId: string }) => {
   };
 
   const handleSave = async () => {
+    if (tempLinesCount > 0) { toast.error(`اربط ${tempLinesCount} بند مؤقت بأصناف المخزون أولاً (من تفاصيل الطلبية)`); return; }
     if (!supplierId || lines.length === 0) {
       toast.error("اختر المورد وأضف بنوداً");
       return;
