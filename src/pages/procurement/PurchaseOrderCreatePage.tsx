@@ -510,8 +510,21 @@ const PurchaseOrderCreatePage = () => {
 
 
             {/* Grid */}
-            <div className={`flex-1 overflow-y-auto p-2 grid ${gridCols} gap-1.5 auto-rows-min content-start`}>
-              {filteredItems.map((item: any) => {
+            <div
+              key={`grid-${filteredItems.length}-${filteredItems[0]?.id ?? ""}`}
+              className={`flex-1 overflow-y-auto p-2 grid ${gridCols} gap-1.5 auto-rows-min content-start`}
+              onScroll={e => {
+                const el = e.currentTarget;
+                if (el.scrollTop + el.clientHeight > el.scrollHeight - 600) {
+                  const cur = Number(el.dataset.limit || GRID_PAGE);
+                  if (cur < filteredItems.length) {
+                    el.dataset.limit = String(cur + GRID_PAGE);
+                    setGridLimit(cur + GRID_PAGE);
+                  }
+                }
+              }}
+            >
+              {filteredItems.slice(0, gridLimit).map((item: any) => {
                 const isInventory = !item.__catalogOnly;
                 const procId = isInventory ? procIdByProductIdRef.current[item.id] : item.id;
                 const qty = procId ? getLineQuantity(procId) : 0;
