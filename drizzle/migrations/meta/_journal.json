@@ -414,6 +414,13 @@
       "when": 1790845198239,
       "tag": "0058_cloud_backup_runs_state",
       "breakpoints": true
+    },
+    {
+      "idx": 59,
+      "version": "7",
+      "when": 1790845767851,
+      "tag": "0059_cloud_backup_runs_superadmin_only",
+      "breakpoints": true
     }
   ]
 }
