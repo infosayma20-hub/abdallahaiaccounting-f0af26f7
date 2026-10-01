@@ -860,7 +860,7 @@ const PurchaseOrderCreatePage = () => {
             <div className="space-y-3">
               <div><Label className="text-xs">اسم الصنف *</Label><Input value={manualItem.item_name} onChange={e => setManualItem({...manualItem, item_name: e.target.value})} placeholder="اسم الصنف" className="text-sm" /></div>
               <div className="grid grid-cols-3 gap-2">
-                <div><Label className="text-xs">الوحدة</Label><Input value={manualItem.unit} onChange={e => setManualItem({...manualItem, unit: e.target.value})} className="text-sm" /></div>
+                <div><Label className="text-xs">الوحدة</Label><ProductUnitSelect value={manualItem.unit} onChange={v => setManualItem({...manualItem, unit: v})} ownerId={ownerId} /></div>
                 <div><Label className="text-xs">الكمية</Label><Input type="number" value={manualItem.quantity} onChange={e => setManualItem({...manualItem, quantity: Number(e.target.value)})} className="text-sm" /></div>
                 <div><Label className="text-xs">السعر</Label><Input type="number" value={manualItem.unit_price || ""} onChange={e => setManualItem({...manualItem, unit_price: Number(e.target.value)})} className="text-sm" /></div>
               </div>
