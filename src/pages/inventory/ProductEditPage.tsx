@@ -571,6 +571,9 @@ export default function ProductEditPage() {
               <Field label="اسم الصنف *">
                 <Input value={product.name ?? ""} onChange={e => patch({ name: e.target.value })} placeholder="مثال: قميص أبيض" />
               </Field>
+              <Field label="الاسم بالإنجليزي">
+                <Input dir="ltr" value={product.name_en ?? ""} onChange={e => patch({ name_en: e.target.value || null })} placeholder="English name (POS & receipt)" />
+              </Field>
               <Field label="اسم الطباعة">
                 <Input value={product.print_name ?? ""} onChange={e => patch({ print_name: e.target.value })} placeholder="يُطبع على الفواتير/الملصقات" />
               </Field>
