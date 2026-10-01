@@ -523,8 +523,8 @@ const PurchaseOrderCreatePage = () => {
                     key={item.id}
                     className={`relative rounded-xl overflow-hidden cursor-pointer transition-all duration-200 select-none group hover:shadow-md active:scale-[0.97] border-2 ${
                       isInOrder
-                        ? "border-[#2D7A4F] bg-[#F0FDF4] shadow-sm"
-                        : "border-[#E2E8F0] bg-white hover:border-gray-300 hover:shadow-sm"
+                        ? "border-[#2D7A4F] bg-[#2D7A4F]/10 dark:bg-[#2D7A4F]/20 shadow-sm"
+                        : "border-border bg-card hover:border-primary/40 hover:shadow-sm"
                     } ${ensuringId === item.id ? "opacity-60 pointer-events-none animate-pulse" : ""}`}
                     onClick={() => handleItemAction(item, 1)}
                     onContextMenu={e => { e.preventDefault(); if (!isInventory) openEditItem(item); }}
@@ -561,11 +561,11 @@ const PurchaseOrderCreatePage = () => {
                       {/* Inline quantity controls */}
                       {isInOrder && (
                         <div className="flex items-center justify-between mt-2 gap-1" onClick={e => e.stopPropagation()}>
-                          <button className="w-7 h-7 rounded-md bg-gray-100 hover:bg-gray-200 text-gray-600 flex items-center justify-center transition-colors"
+                          <button className="w-7 h-7 rounded-md bg-muted hover:bg-muted/70 text-muted-foreground hover:text-foreground flex items-center justify-center transition-colors"
                             onClick={() => handleItemAction(item, -1)}>
                             <Minus className="h-3 w-3" />
                           </button>
-                          <span className="w-8 text-center font-bold text-sm text-gray-800">{qty}</span>
+                          <span className="w-8 text-center font-bold text-sm text-foreground">{qty}</span>
                           <button className="w-7 h-7 rounded-md bg-[#2D7A4F] hover:bg-[#246B42] text-white flex items-center justify-center transition-colors"
                             onClick={() => handleItemAction(item, 1)}>
                             <Plus className="h-3 w-3" />
