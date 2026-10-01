@@ -67,7 +67,34 @@ export default function InlineProductAutocomplete({
   inputProps,
 }: InlineProductAutocompleteProps) {
   const [open, setOpen] = React.useState(false);
-  const debouncedQuery = useDebouncedValue(value.trim(), 150);
+  // الكتابة تُمسك محليًا: الحرف يظهر فورًا دون إعادة رسم الفاتورة كاملة.
+  // الفاتورة تُحدَّث بعد توقف قصير، أو عند مغادرة الخانة، أو عند اختيار صنف.
+  const [text, setText] = React.useState(value);
+  const lastEmittedRef = React.useRef(value);
+  const pendingRef = React.useRef<{ timer: ReturnType<typeof setTimeout>; v: string } | null>(null);
+  const onChangeRef = React.useRef(onChange);
+  onChangeRef.current = onChange;
+  React.useEffect(() => {
+    if (value !== lastEmittedRef.current) {
+      lastEmittedRef.current = value;
+      if (pendingRef.current) { clearTimeout(pendingRef.current.timer); pendingRef.current = null; }
+      setText(value);
+    }
+  }, [value]);
+  const flush = React.useCallback(() => {
+    const p = pendingRef.current;
+    if (!p) return;
+    clearTimeout(p.timer);
+    pendingRef.current = null;
+    lastEmittedRef.current = p.v;
+    onChangeRef.current(p.v);
+  }, []);
+  const schedule = React.useCallback((v: string) => {
+    if (pendingRef.current) clearTimeout(pendingRef.current.timer);
+    pendingRef.current = { v, timer: setTimeout(flush, 250) };
+  }, [flush]);
+  React.useEffect(() => () => flush(), [flush]);
+  const debouncedQuery = useDebouncedValue(text.trim(), 120);
   const wrapperRef = React.useRef<HTMLDivElement>(null);
   const [popover, setPopover] = React.useState<{
     top: number;
@@ -131,28 +158,22 @@ export default function InlineProductAutocomplete({
       : products;
 
 
-    // For purchase invoices with a chosen supplier: surface products linked to
-    // that supplier first (stable order preserved within each group). This
-    // never hides unrelated products — keeps Enter-selects-first-match UX.
-    const supplierFiltered =
-      invoiceType === "purchase" && supplierId
-        ? [...base].sort((a, b) => {
-            const aMatch = a.default_supplier_id === supplierId ? 0 : 1;
-            const bMatch = b.default_supplier_id === supplierId ? 0 : 1;
-            return aMatch - bMatch;
-          })
-        : base;
-
-    // Items that are not stocked in the chosen warehouse sink to the bottom —
-    // still reachable, just de-prioritised.
+    // ترتيب واحد مستقر: مورد الفاتورة أولًا، ثم أصناف المستودع، مع حفظ ترتيب الصلة.
+    const useSupplier = invoiceType === "purchase" && !!supplierId;
+    const useWarehouse = !!outOfWarehouseIds && outOfWarehouseIds.size > 0;
     const warehouseSorted =
-      outOfWarehouseIds && outOfWarehouseIds.size > 0
-        ? [...supplierFiltered].sort((a, b) => {
-            const aOut = outOfWarehouseIds.has(a.id) ? 1 : 0;
-            const bOut = outOfWarehouseIds.has(b.id) ? 1 : 0;
-            return aOut - bOut;
-          })
-        : supplierFiltered;
+      useSupplier || useWarehouse
+        ? base
+            .map((p, i) => ({
+              p,
+              i,
+              k:
+                (useWarehouse && outOfWarehouseIds!.has(p.id) ? 2 : 0) +
+                (useSupplier && p.default_supplier_id !== supplierId ? 1 : 0),
+            }))
+            .sort((a, b) => a.k - b.k || a.i - b.i)
+            .map((r) => r.p)
+        : base;
 
     return warehouseSorted.slice(0, 40);
   }, [debouncedQuery, products, invoiceType, supplierId, outOfWarehouseIds]);
@@ -168,6 +189,9 @@ export default function InlineProductAutocomplete({
     headerOptionCount: 0,
     autoHighlightFirstItem: true,
     onSelect: (product) => {
+      if (pendingRef.current) { clearTimeout(pendingRef.current.timer); pendingRef.current = null; }
+      lastEmittedRef.current = product.name;
+      setText(product.name);
       onSelect(product.id);
     },
   });
@@ -177,14 +201,15 @@ export default function InlineProductAutocomplete({
       <Search className="absolute right-3 top-[18px] h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground pointer-events-none" />
       <Input
         ref={dd.inputRef}
-        value={value}
+        value={text}
         disabled={disabled}
         placeholder={placeholder}
         autoComplete="off"
         data-no-enter-nav="true"
         {...inputProps}
         onChange={(e) => {
-          onChange(e.target.value);
+          setText(e.target.value);
+          schedule(e.target.value);
           dd.open();
           dd.reset();
           // Reposition after content (and therefore container size) changes.
@@ -194,7 +219,7 @@ export default function InlineProductAutocomplete({
           dd.open();
           requestAnimationFrame(recomputePosition);
         }}
-        onBlur={() => dd.closeDelayed()}
+        onBlur={() => { flush(); dd.closeDelayed(); }}
         onKeyDown={dd.onKeyDown}
         className={cn(
           "h-9 rounded-md border border-input bg-background pr-9 pl-3 text-[12px] shadow-sm",
