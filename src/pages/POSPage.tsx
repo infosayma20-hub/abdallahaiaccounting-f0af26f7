@@ -483,6 +483,7 @@ const POSPage = () => {
 
 
   // State
+  const [posCategories, setPosCategories] = useState<POSCategory[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
 
   // English receipts: names map + branch print language (default Arabic).
@@ -500,7 +501,6 @@ const POSPage = () => {
         setEnglishReceiptHeader({ name: d.name_en, address: d.address_en, phone: d.phone });
       });
   }, []);
-  const [posCategories, setPosCategories] = useState<POSCategory[]>([]);
 
   const [selectedCategory, setSelectedCategory] = useState<string>("الكل");
   const [searchQuery, setSearchQuery] = useState("");
