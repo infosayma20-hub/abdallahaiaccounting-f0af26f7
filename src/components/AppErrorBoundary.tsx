@@ -43,7 +43,7 @@ export default class AppErrorBoundary extends React.Component<Props, State> {
       return (
         <div className="fixed inset-0 z-[10001] flex items-center justify-center bg-[#0D1B2E] p-6 font-[Cairo] text-white" dir="rtl">
           <div className="w-full max-w-md text-center space-y-4">
-            <img src="/logos/unify-mark-navy.png" alt="Unify ERP" className="mx-auto h-16 w-16 object-contain" />
+            <img src="/logos/unify-mark-white.png" alt="Unify ERP" className="mx-auto h-16 w-16 object-contain" />
             <h1 className="text-xl font-bold">جارٍ تحميل أحدث نسخة…</h1>
             <p className="text-sm text-white/70">بدون فقدان تسجيل الدخول</p>
           </div>
@@ -54,7 +54,7 @@ export default class AppErrorBoundary extends React.Component<Props, State> {
     return (
       <div className="fixed inset-0 z-[10001] flex items-center justify-center bg-[#0D1B2E] p-6 font-[Cairo] text-white" dir="rtl">
         <div className="w-full max-w-md text-center space-y-5">
-          <img src="/logos/unify-mark-navy.png" alt="Unify ERP" className="mx-auto h-16 w-16 object-contain" />
+          <img src="/logos/unify-mark-white.png" alt="Unify ERP" className="mx-auto h-16 w-16 object-contain" />
           <div className="space-y-2">
             <h1 className="text-2xl font-bold">تعذّر فتح الشاشة</h1>
             <p className="text-sm leading-7 text-white/80">
