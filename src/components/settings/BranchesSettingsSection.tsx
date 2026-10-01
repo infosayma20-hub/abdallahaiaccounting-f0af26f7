@@ -23,6 +23,10 @@ interface Branch {
   is_active: boolean;
   created_at: string;
   qr_mode?: string;
+  receipt_language?: string | null;
+  name_en?: string | null;
+  address_en?: string | null;
+  receipt_footer_en?: string | null;
 }
 
 export default function BranchesSettingsSection() {
@@ -41,6 +45,10 @@ export default function BranchesSettingsSection() {
   const [radius, setRadius] = useState(100);
   const [requireGps, setRequireGps] = useState(false);
   const [qrMode, setQrMode] = useState("static");
+  const [posLang, setPosLang] = useState<"ar" | "en">("ar");
+  const [nameEn, setNameEn] = useState("");
+  const [addressEn, setAddressEn] = useState("");
+  const [footerEn, setFooterEn] = useState("");
   const [locating, setLocating] = useState(false);
 
   const detectLocation = () => {
@@ -99,6 +107,7 @@ export default function BranchesSettingsSection() {
     setRadius(100);
     setRequireGps(false);
     setQrMode("static");
+    setPosLang("ar"); setNameEn(""); setAddressEn(""); setFooterEn("");
     setEditing(null);
   };
 
@@ -116,6 +125,8 @@ export default function BranchesSettingsSection() {
     setRadius(b.radius_meters);
     setRequireGps(!!b.require_gps);
     setQrMode(b.qr_mode || "static");
+    setPosLang(b.receipt_language === "en" ? "en" : "ar");
+    setNameEn(b.name_en || ""); setAddressEn(b.address_en || ""); setFooterEn(b.receipt_footer_en || "");
     setShowDialog(true);
   };
 
@@ -131,6 +142,10 @@ export default function BranchesSettingsSection() {
       radius_meters: radius,
       require_gps: requireGps,
       qr_mode: qrMode,
+      receipt_language: posLang,
+      name_en: nameEn.trim() || null,
+      address_en: addressEn.trim() || null,
+      receipt_footer_en: footerEn.trim() || null,
     };
 
     if (editing) {
@@ -376,6 +391,28 @@ export default function BranchesSettingsSection() {
                   ? 'رمز ثابت يمكن طباعته وتعليقه — مناسب للمطاعم والمحلات'
                   : 'يتجدد تلقائياً كل 5 دقائق — أمان أعلى ضد التزوير'}
               </p>
+            </div>
+
+            {/* POS language (admin only) */}
+            <div className="p-3 rounded-lg border border-border bg-muted/30 space-y-2">
+              <Label className="text-xs font-medium">لغة نقطة البيع والطباعة</Label>
+              <Select dir="rtl" value={posLang} onValueChange={(v) => setPosLang(v as "ar" | "en")}>
+                <SelectTrigger className="h-10"><SelectValue /></SelectTrigger>
+                <SelectContent dir="rtl">
+                  <SelectItem value="ar">عربي (الافتراضي)</SelectItem>
+                  <SelectItem value="en">English</SelectItem>
+                </SelectContent>
+              </Select>
+              <p className="text-[10px] text-muted-foreground">
+                تتغير شاشة الكاشير والإيصال وتذاكر المطبخ لكل أجهزة هذا الفرع. الطباعة الإنجليزية الكاملة تحتاج جسر الطباعة ثنائي اللغة على جهاز الفرع.
+              </p>
+              {posLang === "en" && (
+                <div className="space-y-2 pt-1">
+                  <Input dir="ltr" value={nameEn} onChange={e => setNameEn(e.target.value)} placeholder="Restaurant name (English)" className="h-10" />
+                  <Input dir="ltr" value={addressEn} onChange={e => setAddressEn(e.target.value)} placeholder="Address (English)" className="h-10" />
+                  <Input dir="ltr" value={footerEn} onChange={e => setFooterEn(e.target.value)} placeholder="Receipt footer, e.g. Thank you for your visit!" className="h-10" />
+                </div>
+              )}
             </div>
 
             {/* Actions */}
