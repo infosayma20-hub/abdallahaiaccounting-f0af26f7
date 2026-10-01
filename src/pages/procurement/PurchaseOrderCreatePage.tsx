@@ -843,6 +843,34 @@ const PurchaseOrderCreatePage = () => {
           </DialogContent>
         </Dialog>
 
+        {/* تغيير تصنيف صنف مخزون بسرعة */}
+        <Dialog open={editProdCatOpen} onOpenChange={setEditProdCatOpen}>
+          <DialogContent className="sm:max-w-md" dir="rtl">
+            <DialogHeader><DialogTitle>تغيير تصنيف: {editProdCat?.name}</DialogTitle></DialogHeader>
+            <div className="space-y-3">
+              <div>
+                <Label className="text-xs">التصنيف</Label>
+                <Select value={editProdCat?.pos_category_id || "__none"} onValueChange={v => setEditProdCat(prev => prev ? { ...prev, pos_category_id: v === "__none" ? "" : v } : prev)}>
+                  <SelectTrigger className="text-sm" dir="rtl"><SelectValue placeholder="اختر التصنيف" /></SelectTrigger>
+                  <SelectContent dir="rtl">
+                    <SelectItem value="__none">بدون تصنيف</SelectItem>
+                    {posCats.map((c: any) => (
+                      <SelectItem key={c.id} value={c.id}>
+                        <span className="flex items-center gap-2">
+                          <span className="w-2.5 h-2.5 rounded-full inline-block" style={{ backgroundColor: c.color || "#888" }} />
+                          {c.name}
+                        </span>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <Button className="w-full" onClick={handleSaveProductCategory} disabled={savingDialog}>{savingDialog ? "جاري الحفظ..." : "حفظ التصنيف"}</Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+
+
         {/* Edit Existing Item */}
         <Dialog open={editItemOpen} onOpenChange={setEditItemOpen}>
           <DialogContent className="sm:max-w-md" dir="rtl">
