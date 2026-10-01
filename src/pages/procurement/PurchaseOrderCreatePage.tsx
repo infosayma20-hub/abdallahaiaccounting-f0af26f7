@@ -939,7 +939,8 @@ function LineTotalInput({ quantity, unitPrice, onPrice }: { quantity: number; un
           setDraft(raw);
           const total = Number(raw);
           if (raw.trim() === "" || !Number.isFinite(total) || total < 0 || !canSplit) return;
-          onPrice(Math.round((total / quantity) * 10000) / 10000);
+          // سعر الوحدة يُخزَّن بخانتين عشريتين، لذا نقرّب هنا؛ عند الخروج يظهر المجموع الفعلي بعد التقريب
+          onPrice(Math.round((total / quantity) * 100) / 100);
         }}
         onBlur={() => setDraft(null)}
         className="h-6 w-20 text-center text-xs font-bold px-1"
