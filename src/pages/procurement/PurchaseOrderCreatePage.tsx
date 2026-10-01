@@ -123,6 +123,26 @@ const PurchaseOrderCreatePage = () => {
   const [editItemOpen, setEditItemOpen] = useState(false);
   const [editItem, setEditItem] = useState<any>(null);
 
+  // تعديل سريع لتصنيف صنف مخزون من نفس الشاشة
+  const [editProdCatOpen, setEditProdCatOpen] = useState(false);
+  const [editProdCat, setEditProdCat] = useState<{ id: string; name: string; pos_category_id: string } | null>(null);
+  const openEditProductCategory = (item: any) => {
+    setEditProdCat({ id: item.id, name: item.name, pos_category_id: item.pos_category_id || "" });
+    setEditProdCatOpen(true);
+  };
+  const handleSaveProductCategory = async () => {
+    if (!editProdCat) return;
+    setSavingDialog(true);
+    const { error } = await supabase.from("products")
+      .update({ pos_category_id: editProdCat.pos_category_id || null })
+      .eq("id", editProdCat.id);
+    setSavingDialog(false);
+    if (error) { toast({ title: "فشل حفظ التصنيف", description: error.message, variant: "destructive" }); return; }
+    setInventoryProducts(prev => prev.map((p: any) => p.id === editProdCat.id ? { ...p, pos_category_id: editProdCat.pos_category_id || null } : p));
+    setEditProdCatOpen(false);
+    toast({ title: "تم تحديث تصنيف الصنف" });
+  };
+
   useEffect(() => {
     if (supplierId || defaultBranchId) savePrefs({ ...loadPrefs(), supplierId, branchId: defaultBranchId, cardSize });
   }, [supplierId, defaultBranchId, cardSize]);
@@ -549,14 +569,13 @@ const PurchaseOrderCreatePage = () => {
                     {isInOrder && (
                       <div className="absolute top-1 left-1 z-10 bg-[#2D7A4F] text-white text-[10px] font-bold rounded-full w-5 h-5 flex items-center justify-center shadow">{qty}</div>
                     )}
-                    {!isInventory && (
-                      <button
-                        className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 p-0.5 rounded text-muted-foreground hover:text-primary transition-opacity"
-                        onClick={e => { e.stopPropagation(); openEditItem(item); }}
-                      >
-                        <Pencil className="h-3 w-3" />
-                      </button>
-                    )}
+                    <button
+                      className="absolute top-1 right-1 z-10 opacity-0 group-hover:opacity-100 p-0.5 rounded text-muted-foreground hover:text-primary transition-opacity"
+                      title={isInventory ? "تغيير التصنيف" : "تعديل الصنف"}
+                      onClick={e => { e.stopPropagation(); isInventory ? openEditProductCategory(item) : openEditItem(item); }}
+                    >
+                      <Pencil className="h-3 w-3" />
+                    </button>
 
                     <div className="px-2.5 py-2.5">
                       {searchQuery ? (
