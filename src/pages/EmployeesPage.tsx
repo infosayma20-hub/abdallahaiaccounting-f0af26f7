@@ -1477,6 +1477,21 @@ const EmployeesPage = () => {
                     <ScanLine className="h-3.5 w-3.5 text-teal-600" /> موظف مستودع
                   </label>
                 </div>
+                <div className="flex items-center gap-2">
+                  <Switch
+                    checked={!!(selectedEmployee as any).can_direct_receive}
+                    onCheckedChange={async (checked) => {
+                      const { error } = await supabase.from("employees").update({ can_direct_receive: checked } as any).eq("id", selectedEmployee.id);
+                      if (error) { toast.error(error.message); return; }
+                      setSelectedEmployee({ ...selectedEmployee, can_direct_receive: checked } as any);
+                      fetchEmployees();
+                      toast.success(checked ? "تم تفعيل الاستلام المباشر بالباركود" : "تم إيقاف الاستلام المباشر");
+                    }}
+                  />
+                  <label className="text-xs font-medium flex items-center gap-1">
+                    <ScanLine className="h-3.5 w-3.5 text-primary" /> إنشاء طلبية واستلام مباشر بالباركود
+                  </label>
+                </div>
                 <SalesRepToggleSection
                   employeeId={selectedEmployee.id}
                   employeeName={selectedEmployee.full_name}

@@ -25,7 +25,7 @@ type Session = {
 
 /* ───────── Feedback sounds (no external assets) ───────── */
 let audioCtx: AudioContext | null = null;
-function beep(ok: boolean) {
+export function beep(ok: boolean) {
   try {
     audioCtx = audioCtx || new (window.AudioContext || (window as any).webkitAudioContext)();
     const o = audioCtx.createOscillator(); const g = audioCtx.createGain();
@@ -42,7 +42,7 @@ const readQueue = (sid: string): string[] => { try { return JSON.parse(localStor
 const writeQueue = (sid: string, q: string[]) => localStorage.setItem(QKEY(sid), JSON.stringify(q));
 
 /* ───────── Dynamics-style finance shell ───────── */
-function DShell({ title, crumb, actions, children, onClick }: { title: string; crumb: string; actions: ReactNode; children: ReactNode; onClick?: () => void }) {
+export function DShell({ title, crumb, actions, children, onClick }: { title: string; crumb: string; actions: ReactNode; children: ReactNode; onClick?: () => void }) {
   return (
     <div dir="rtl" className="flex min-h-[100dvh] flex-col bg-muted/30" onClick={onClick}>
       <header className="flex h-16 shrink-0 items-center gap-3 bg-primary px-3 text-primary-foreground shadow-md sm:px-5">
@@ -71,7 +71,7 @@ function DShell({ title, crumb, actions, children, onClick }: { title: string; c
     </div>
   );
 }
-function PaneBtn({ icon: Icon, label, onClick, primary, disabled }: { icon: any; label: string; onClick: () => void; primary?: boolean; disabled?: boolean }) {
+export function PaneBtn({ icon: Icon, label, onClick, primary, disabled }: { icon: any; label: string; onClick: () => void; primary?: boolean; disabled?: boolean }) {
   return (
     <Button type="button" variant="ghost" disabled={disabled} onClick={e => { e.stopPropagation(); onClick(); }}
       className={`h-auto min-w-[84px] rounded-none flex-col gap-1 px-3 py-2 text-xs font-semibold ${primary ? "text-primary hover:bg-primary/10 hover:text-primary" : "text-foreground"}`}>
@@ -85,6 +85,8 @@ function MyReceivingList() {
   const navigate = useNavigate();
   const [rows, setRows] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [canDirect, setCanDirect] = useState(false);
+  useEffect(() => { supabase.rpc("direct_receiving_context" as any).then(({ error }) => setCanDirect(!error)); }, []);
   const load = useCallback(async () => {
     setLoading(true);
     const { data, error } = await supabase.rpc("get_my_receiving_sessions");
@@ -96,7 +98,7 @@ function MyReceivingList() {
 
   return (
     <DShell title="استلام البضاعة" crumb="طلبيات الاستلام"
-      actions={<><PaneBtn icon={ArrowRight} label="مساحات العمل" onClick={() => navigate("/choose-workspace", { replace: true })} /><PaneBtn icon={RefreshCw} label="تحديث" onClick={load} /></>}>
+      actions={<><PaneBtn icon={ArrowRight} label="مساحات العمل" onClick={() => navigate("/choose-workspace", { replace: true })} /><PaneBtn icon={RefreshCw} label="تحديث" onClick={load} />{canDirect && <PaneBtn icon={Plus} label="استلام مباشر" primary onClick={() => navigate("/worker/direct-receiving")} />}</>}>
       <main className="mx-auto w-full max-w-[1500px] p-3 sm:p-5 lg:p-7">
         {loading ? <div className="p-10 text-center text-muted-foreground">جارِ التحميل…</div> : rows.length === 0 ? (
           <div className="flex min-h-[45vh] flex-col items-center justify-center border border-dashed bg-card px-5 py-12 text-center">
@@ -562,13 +564,13 @@ export default function ReceivingPage() {
     }
     let active = true;
     void Promise.all([
-      supabase.from("employees").select("is_receiver, is_active, is_terminated").eq("auth_user_id", user.id).maybeSingle(),
+      supabase.from("employees").select("is_receiver, can_direct_receive, is_active, is_terminated").eq("auth_user_id", user.id).maybeSingle(),
       supabase.rpc("get_my_receiving_sessions"),
     ]).then(([employeeResult, sessionsResult]) => {
       if (!active) return;
-      const employee = employeeResult.data as { is_receiver?: boolean | null; is_active?: boolean | null; is_terminated?: boolean | null } | null;
+      const employee = employeeResult.data as { is_receiver?: boolean | null; can_direct_receive?: boolean | null; is_active?: boolean | null; is_terminated?: boolean | null } | null;
       const sessions = (sessionsResult.data as Array<{ id?: string }> | null) || [];
-      const isWarehouseEmployee = employee?.is_receiver === true && employee.is_active === true && employee.is_terminated !== true;
+      const isWarehouseEmployee = (employee?.is_receiver === true || employee?.can_direct_receive === true) && employee.is_active === true && employee.is_terminated !== true;
       setAccess(isWarehouseEmployee || sessions.length > 0 ? "allowed" : "denied");
     }).catch(() => {
       if (active) setAccess("denied");

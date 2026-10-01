@@ -21,13 +21,13 @@ export default function ReceivingPortalCard() {
       const [{ data: sessions }, empRes] = await Promise.all([
         supabase.rpc("get_my_receiving_sessions"),
         user?.id
-          ? supabase.from("employees").select("is_receiver").eq("auth_user_id", user.id).maybeSingle()
+          ? supabase.from("employees").select("is_receiver, can_direct_receive").eq("auth_user_id", user.id).maybeSingle()
           : Promise.resolve({ data: null } as any),
       ]);
       if (!alive) return;
       const rows = (sessions as any[]) || [];
       setCount(rows.filter(r => r.status === "assigned" || r.status === "in_progress" || r.status === "available").length);
-      setIsReceiver(!!(empRes as any)?.data?.is_receiver);
+      setIsReceiver(!!(empRes as any)?.data?.is_receiver || !!(empRes as any)?.data?.can_direct_receive);
     })();
     return () => { alive = false; };
   }, [user?.id]);
@@ -46,7 +46,7 @@ export default function ReceivingPortalCard() {
         <div className="flex-1">
           <div className="font-bold text-foreground">استلام البضاعة</div>
           <div className="text-sm text-muted-foreground">
-            {count > 0 ? `${count} طلبية بانتظار استلامك بالباركود` : "ما في طلبيات مسندة إلك حالياً"}
+            {count > 0 ? `${count} طلبية بانتظار استلامك بالباركود` : "استلام بالباركود وإنشاء استلام مباشر"}
           </div>
         </div>
         <ChevronLeft className="h-5 w-5 text-muted-foreground" />

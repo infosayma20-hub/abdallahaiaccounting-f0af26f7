@@ -52,7 +52,7 @@ export default function ChooseWorkspacePage() {
           supabase.from("pos_users").select("is_call_center, is_waiter, hide_employee_workspace").eq("auth_user_id", user.id).maybeSingle(),
           supabase
             .from("employees")
-            .select("id, is_active, is_terminated, is_receiver")
+            .select("id, is_active, is_terminated, is_receiver, can_direct_receive")
             .eq("auth_user_id", user.id)
             .maybeSingle(),
         ]);
@@ -70,7 +70,7 @@ export default function ChooseWorkspacePage() {
         // are unaffected — this flag is set per pos_users row, not per role.
         const hideEmployee = !!linkedPosUser && !!linkedPosUser.hide_employee_workspace;
         setSharedCallCenterOnly(hideEmployee && !!linkedPosUser?.is_call_center);
-        setHasReceiver(!!(empRow as any)?.is_receiver && !!linkedEmployee?.is_active && !linkedEmployee?.is_terminated);
+        setHasReceiver((!!(empRow as any)?.is_receiver || !!(empRow as any)?.can_direct_receive) && !!linkedEmployee?.is_active && !linkedEmployee?.is_terminated);
         setHasEmployee(
           !hideEmployee &&
           !!linkedEmployee &&
