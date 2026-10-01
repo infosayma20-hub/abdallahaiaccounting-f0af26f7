@@ -2302,7 +2302,7 @@ const POSPage = () => {
     if (!dataOwnerId) return;
     const { data } = await supabase
       .from("pos_categories")
-      .select("id, name, color, display_order, is_active, restricted_cash_box_ids")
+      .select("id, name, name_en, color, display_order, is_active, restricted_cash_box_ids")
       .eq("user_id", dataOwnerId)
       .order("display_order");
     const categories = ((data as POSCategory[]) || []);
@@ -10490,6 +10490,20 @@ const POSPage = () => {
                           <div className="w-5 h-5 rounded-md shrink-0" style={{ backgroundColor: cat.color }} />
                           <span className="text-sm font-medium">{cat.name}</span>
                           <span className="text-xs text-muted-foreground">({count} منتج)</span>
+                          <Input
+                            dir="ltr"
+                            defaultValue={(cat as any).name_en || ""}
+                            placeholder="English name"
+                            className="h-7 w-36 text-xs"
+                            onBlur={async (e) => {
+                              const v = e.target.value.trim() || null;
+                              if (v === ((cat as any).name_en || null)) return;
+                              const { error } = await supabase.from("pos_categories").update({ name_en: v } as any).eq("id", cat.id);
+                              if (error) { toast.error("خطأ: " + error.message); return; }
+                              toast.success("تم حفظ الاسم الإنجليزي");
+                              await loadCategories();
+                            }}
+                          />
                         </div>
                         <Button
                           variant="ghost"
