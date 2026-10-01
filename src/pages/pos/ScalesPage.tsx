@@ -238,7 +238,7 @@ export default function ScalesPage() {
         {/* التفاصيل */}
         {current ? (
           <div className="rounded-md border bg-background p-3">
-            <Tabs defaultValue="general">
+            <Tabs defaultValue="general" dir="rtl">
               <TabsList className="h-8">
                 <TabsTrigger value="general" className="text-xs">عام</TabsTrigger>
                 <TabsTrigger value="barcode" className="text-xs">صيغة الباركود</TabsTrigger>
@@ -248,7 +248,7 @@ export default function ScalesPage() {
               <TabsContent value="general" className="grid gap-3 pt-3 sm:grid-cols-2 lg:grid-cols-3">
                 <F label="الاسم"><Input value={current.name} onChange={(e) => set({ name: e.target.value })} /></F>
                 <F label="الفرع">
-                  <Select value={current.branch_id || "none"} onValueChange={(v) => set({ branch_id: v === "none" ? null : v })}>
+                  <Select dir="rtl" value={current.branch_id || "none"} onValueChange={(v) => set({ branch_id: v === "none" ? null : v })}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent><SelectItem value="none">بدون فرع</SelectItem>{branches.map((b) => <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>)}</SelectContent>
                   </Select>
@@ -264,7 +264,7 @@ export default function ScalesPage() {
                   <F label="البادئة"><Input dir="ltr" value={current.barcode_prefix} onChange={(e) => set({ barcode_prefix: e.target.value.replace(/\D/g, "").slice(0, 3) })} /></F>
                   <F label="خانات رقم الصنف"><Input dir="ltr" type="number" min={3} max={6} value={current.plu_digits} onChange={(e) => set({ plu_digits: Number(e.target.value) || 5 })} /></F>
                   <F label="الباركود يحمل">
-                    <Select value={current.value_mode} onValueChange={(v) => set({ value_mode: v, value_decimals: v === "price" ? 2 : 3 })}>
+                    <Select dir="rtl" value={current.value_mode} onValueChange={(v) => set({ value_mode: v, value_decimals: v === "price" ? 2 : 3 })}>
                       <SelectTrigger><SelectValue /></SelectTrigger>
                       <SelectContent><SelectItem value="weight">الوزن (كغ)</SelectItem><SelectItem value="price">السعر (₪)</SelectItem></SelectContent>
                     </Select>
