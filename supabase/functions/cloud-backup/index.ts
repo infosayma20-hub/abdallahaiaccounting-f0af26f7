@@ -15,6 +15,7 @@ const B2_ENDPOINT = 'https://s3.ca-east-006.backblazeb2.com'
 const B2_REGION = 'ca-east-006'
 const B2_BUCKET = 'unifyerp-storage'
 const PAGE = 1000
+const RETENTION_DAYS = 30 // keep one month of daily backups
 
 // Child tables with no tenant column: exported via their parent's ids.
 const CHILDREN: Record<string, { fk: string; parent: string }> = {
@@ -101,7 +102,7 @@ Deno.serve(async (req) => {
     body: JSON.stringify({ owner_id: ownerId, run_id: runId }),
   })
 
-  type Task = { t: string; q: string; kind: 'rows' } | { kind: 'files' }
+  type Task = { t: string; q: string; kind: 'rows' } | { kind: 'files' } | { kind: 'prune' }
   let runId: string = body.run_id
   let st: any
   if (!runId) {
@@ -131,6 +132,7 @@ Deno.serve(async (req) => {
       tasks.push({ kind: 'rows', t, q: `select=*,__p:${parent}!${fk}!inner(${pc})&__p.${pc}=${val}` })
     }
     tasks.push({ kind: 'files' })
+    tasks.push({ kind: 'prune' })
     st = { root, folder, companyName, tasks, i: 0, from: 0, part: 0, rows: 0, fileIdx: 0,
       records: 0, bytes: 0, files: 0, manifest: [], errors: [] }
     const { data: run } = await sb.from('cloud_backup_runs')
@@ -170,6 +172,32 @@ Deno.serve(async (req) => {
           }
           if (st.rows) st.manifest.push({ table: task.t, category: cat, rows: st.rows, files: st.part })
           st.i++; st.from = 0; st.part = 0; st.rows = 0
+        } else if (task.kind === 'prune') {
+          // Keep the last RETENTION_DAYS daily folders; delete older dated folders (files/ is never pruned).
+          const base = `${st.root}/النسخ-الاحتياطية/`
+          let finished = true
+          for (let back = RETENTION_DAYS + 1; back <= RETENTION_DAYS + 45 && finished; back++) {
+            const dt = new Date(Date.now() - back * 86400_000)
+            const p = dt.toLocaleDateString('en-CA', { timeZone: 'Asia/Hebron' }).split('-')
+            const prefix = `${base}${p[0]}/${p[1]}/${p[2]}/`
+            while (true) {
+              if (Date.now() > deadline) { finished = false; break }
+              const lr = await s3.fetch(`${B2_ENDPOINT}/${B2_BUCKET}?list-type=2&max-keys=1000&prefix=${encodeURIComponent(prefix)}`,
+                { headers: { 'X-Amz-Content-Sha256': 'UNSIGNED-PAYLOAD' } })
+              if (!lr.ok) { st.errors.push(`prune list ${lr.status}`); break }
+              const xml = await lr.text()
+              const keys = [...xml.matchAll(/<Key>([^<]+)<\/Key>/g)].map((m) => m[1]
+                .replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&apos;/g, "'"))
+              if (!keys.length) break
+              for (const k of keys) {
+                const dr = await s3.fetch(`${B2_ENDPOINT}/${B2_BUCKET}/${enc(k)}`, { method: 'DELETE', headers: { 'X-Amz-Content-Sha256': 'UNSIGNED-PAYLOAD' } })
+                if (dr.ok) st.pruned = (st.pruned || 0) + 1
+                else st.errors.push(`prune ${dr.status}`)
+                await dr.body?.cancel()
+              }
+            }
+          }
+          if (finished) st.i++
         } else {
           const { data: objs, error: fErr } = await sb.rpc('cloud_backup_list_files', { _owner: ownerId })
           if (fErr) { st.errors.push(`files: ${fErr.message}`); st.i++; continue }
@@ -203,7 +231,7 @@ Deno.serve(async (req) => {
     try {
       await put(`${st.folder}/manifest.json`, JSON.stringify({
         app: 'UNIFY', owner_id: ownerId, company: st.companyName, generated_at: new Date().toISOString(),
-        records: st.records, new_files: st.files, tables: st.manifest, errors: st.errors,
+        records: st.records, new_files: st.files, pruned_old_files: st.pruned || 0, retention_days: RETENTION_DAYS, tables: st.manifest, errors: st.errors,
       }, null, 2))
     } catch (e: any) { st.errors.push(`manifest: ${e.message}`) }
     await sb.from('cloud_backup_runs').update({
