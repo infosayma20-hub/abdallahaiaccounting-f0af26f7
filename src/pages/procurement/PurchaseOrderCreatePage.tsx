@@ -507,8 +507,7 @@ const PurchaseOrderCreatePage = () => {
                 )}
               </div>
             </div>
-              </div>
-            </div>
+
 
             {/* Grid */}
             <div className={`flex-1 overflow-y-auto p-2 grid ${gridCols} gap-1.5 auto-rows-min content-start`}>
