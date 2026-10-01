@@ -22,7 +22,7 @@ import { usePermission } from "@/hooks/usePermission";
 import { assertPermission } from "@/lib/permissions/assertPermission";
 import { usePosMode } from "@/hooks/usePosMode";
 import { supabase } from "@/integrations/supabase/client";
-import { pt, pname, usePosLang } from "@/i18n/pos-lang";
+import { pt, pname, usePosLang, setPosLang } from "@/i18n/pos-lang";
 import { setReceiptLanguage, setEnglishReceiptHeader, registerEnglishNames } from "@/lib/print-english";
 import { getDeviceBranchId as getDeviceBranchIdForLang } from "@/lib/device-config";
 import { toast } from "sonner";
@@ -493,12 +493,13 @@ const POSPage = () => {
   }, [products, posCategories]);
   useEffect(() => {
     const bid = getDeviceBranchIdForLang();
-    if (!bid) { setReceiptLanguage("ar"); return; }
-    supabase.from("branches").select("receipt_language, name_en, address_en").eq("id", bid).maybeSingle()
+    if (!bid) { setReceiptLanguage("ar"); setPosLang("ar"); return; }
+    supabase.from("branches").select("receipt_language, name_en, address_en, receipt_footer_en").eq("id", bid).maybeSingle()
       .then(({ data }) => {
         const d: any = data || {};
         setReceiptLanguage(d.receipt_language === "en" ? "en" : "ar");
-        setEnglishReceiptHeader({ name: d.name_en, address: d.address_en });
+        setPosLang(d.receipt_language === "en" ? "en" : "ar");
+        setEnglishReceiptHeader({ name: d.name_en, address: d.address_en, footer: d.receipt_footer_en });
       });
   }, []);
 
@@ -7337,15 +7338,6 @@ const POSPage = () => {
             <WifiOff className="h-[18px] w-[18px] text-red-400 shrink-0" />
           )}
           <BridgeStatusIndicator />
-          <button
-            type="button"
-            onClick={() => posLangCtl.setLang(posLangCtl.lang === "en" ? "ar" : "en")}
-            className="h-8 px-2 rounded-lg text-[11px] font-bold shrink-0 hover:bg-white/[0.08] transition-all"
-            style={{ color: "rgba(255,255,255,0.85)", border: "1px solid rgba(255,255,255,0.2)" }}
-            title={posLangCtl.lang === "en" ? "العربية" : "English"}
-          >
-            {posLangCtl.lang === "en" ? "ع" : "EN"}
-          </button>
           {company?.logo_url ? (
             <img src={company.logo_url} alt={company.name} className="h-8 w-8 rounded-full object-cover shrink-0" style={{ border: '1.5px solid rgba(255,255,255,0.15)' }} />
           ) : (
