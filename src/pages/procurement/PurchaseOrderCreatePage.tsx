@@ -458,35 +458,98 @@ const PurchaseOrderCreatePage = () => {
         <div className="flex-1 flex min-h-0">
           {/* CENTER: Categories + Items Grid */}
           <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-            {/* Category chips — single scrollable row */}
+            {/* Category chips — source toggle + single scrollable row (POS-style) */}
             <div className="shrink-0 border-b border-border bg-muted/20 px-3 py-1.5">
               <div className="flex items-center gap-1.5 overflow-x-auto">
+                <span className="w-px h-5 bg-border shrink-0" />
                 <button
-                  onClick={() => setActiveCategory(null)}
-                  className={`shrink-0 flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-semibold transition-colors ${
-                    !activeCategory ? "bg-primary text-primary-foreground" : "bg-background text-muted-foreground hover:text-foreground border border-border"
+                  onClick={() => { setItemSource("inventory"); setActiveCategory(null); setActivePosCategory(null); savePrefs({ ...loadPrefs(), itemSource: "inventory" }); }}
+                  className={`shrink-0 flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-bold transition-colors ${
+                    itemSource === "inventory" ? "bg-primary text-primary-foreground" : "bg-background text-muted-foreground hover:text-foreground border border-border"
                   }`}
                 >
-                  الكل <span className="text-[10px] opacity-80">({allItems.length})</span>
+                  <Boxes className="h-3.5 w-3.5" />المخزون
                 </button>
-                {categories.map((cat: any) => {
-                  const isActive = activeCategory === cat.id;
-                  const Icon = iconMap[cat.icon || ""] || Package;
-                  const count = categoryCounts[cat.id] || 0;
-                  return (
+                <button
+                  onClick={() => { setItemSource("catalog"); setActivePosCategory(null); savePrefs({ ...loadPrefs(), itemSource: "catalog" }); }}
+                  className={`shrink-0 flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-bold transition-colors ${
+                    itemSource === "catalog" ? "bg-primary text-primary-foreground" : "bg-background text-muted-foreground hover:text-foreground border border-border"
+                  }`}
+                >
+                  <FolderOpen className="h-3.5 w-3.5" />كتالوج المشتريات
+                </button>
+                <span className="w-px h-5 bg-border shrink-0" />
+
+                {itemSource === "inventory" ? (
+                  <>
                     <button
-                      key={cat.id}
-                      onClick={() => setActiveCategory(isActive ? null : cat.id)}
+                      onClick={() => setActivePosCategory(null)}
                       className={`shrink-0 flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-semibold transition-colors ${
-                        isActive ? "bg-primary text-primary-foreground" : "bg-background text-muted-foreground hover:text-foreground border border-border"
+                        !activePosCategory ? "bg-primary text-primary-foreground" : "bg-background text-muted-foreground hover:text-foreground border border-border"
                       }`}
                     >
-                      <Icon className="h-3.5 w-3.5" />
-                      <span>{cat.name}</span>
-                      <span className="text-[10px] opacity-80">({count})</span>
+                      الكل <span className="text-[10px] opacity-80">({inventoryProducts.length})</span>
                     </button>
-                  );
-                })}
+                    {posCats.map((cat: any) => {
+                      const isActive = activePosCategory === cat.id;
+                      const count = posCategoryCounts.counts[cat.id] || 0;
+                      if (count === 0) return null;
+                      return (
+                        <button
+                          key={cat.id}
+                          onClick={() => setActivePosCategory(isActive ? null : cat.id)}
+                          className={`shrink-0 flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold transition-colors ${
+                            isActive ? "bg-primary text-primary-foreground" : "bg-background text-muted-foreground hover:text-foreground border border-border"
+                          }`}
+                        >
+                          <span className="inline-block h-2 w-2 rounded-full shrink-0" style={{ backgroundColor: cat.color || "#6b7280" }} />
+                          <span>{cat.name}</span>
+                          <span className="text-[10px] opacity-80">({count})</span>
+                        </button>
+                      );
+                    })}
+                    {posCategoryCounts.uncat > 0 && (
+                      <button
+                        onClick={() => setActivePosCategory(activePosCategory === "__uncat" ? null : "__uncat")}
+                        className={`shrink-0 flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-semibold transition-colors ${
+                          activePosCategory === "__uncat" ? "bg-primary text-primary-foreground" : "bg-background text-muted-foreground hover:text-foreground border border-border"
+                        }`}
+                      >
+                        <Package className="h-3.5 w-3.5" />
+                        غير مصنف <span className="text-[10px] opacity-80">({posCategoryCounts.uncat})</span>
+                      </button>
+                    )}
+                  </>
+                ) : (
+                  <>
+                    <button
+                      onClick={() => setActiveCategory(null)}
+                      className={`shrink-0 flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-semibold transition-colors ${
+                        !activeCategory ? "bg-primary text-primary-foreground" : "bg-background text-muted-foreground hover:text-foreground border border-border"
+                      }`}
+                    >
+                      الكل <span className="text-[10px] opacity-80">({allItems.length})</span>
+                    </button>
+                    {categories.map((cat: any) => {
+                      const isActive = activeCategory === cat.id;
+                      const Icon = iconMap[cat.icon || ""] || Package;
+                      const count = categoryCounts[cat.id] || 0;
+                      return (
+                        <button
+                          key={cat.id}
+                          onClick={() => setActiveCategory(isActive ? null : cat.id)}
+                          className={`shrink-0 flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-semibold transition-colors ${
+                            isActive ? "bg-primary text-primary-foreground" : "bg-background text-muted-foreground hover:text-foreground border border-border"
+                          }`}
+                        >
+                          <Icon className="h-3.5 w-3.5" />
+                          <span>{cat.name}</span>
+                          <span className="text-[10px] opacity-80">({count})</span>
+                        </button>
+                      );
+                    })}
+                  </>
+                )}
               </div>
             </div>
 
