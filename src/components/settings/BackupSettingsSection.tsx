@@ -1,4 +1,7 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { useSearchParams } from "react-router-dom";
+import { useUserRoles } from "@/hooks/useUserRoles";
+import { getSchedule, saveSchedule, markBackupDone, nextDue, type BackupFrequency } from "@/lib/local-backup-schedule";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
@@ -405,6 +408,18 @@ async function fetchTable(
 const BackupSettingsSection = () => {
   const { user } = useAuth();
   const { toast } = useToast();
+  const { roles } = useUserRoles();
+  const isSuperAdmin = roles.includes("super_admin");
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [schedule, setSchedule] = useState(() => (user?.id ? getSchedule(user.id) : { frequency: "off" as BackupFrequency, lastRun: null }));
+  useEffect(() => { if (user?.id) setSchedule(getSchedule(user.id)); }, [user?.id]);
+  const changeFrequency = (f: BackupFrequency) => {
+    if (!user?.id) return;
+    const next = { ...getSchedule(user.id), frequency: f, snoozedUntil: null };
+    saveSchedule(user.id, next);
+    setSchedule(next);
+  };
+  const autoStarted = useRef(false);
   const [loading, setLoading] = useState(false);
   const [progress, setProgress] = useState<{ table: string; done: boolean }[]>([]);
   const [phase, setPhase] = useState<string>("");
@@ -419,6 +434,7 @@ const BackupSettingsSection = () => {
 
   // تنزيل الملف كما هو، أو مضغوطاً داخل ZIP يحمل نفس الاسم
   const deliver = async (blob: Blob, fileName: string) => {
+    if (user?.id) { markBackupDone(user.id); setSchedule(getSchedule(user.id)); }
     if (!zipOutput) {
       saveAs(blob, fileName);
       return;
@@ -629,7 +645,7 @@ const BackupSettingsSection = () => {
 
   return (
     <div className="p-6 space-y-8">
-      <CloudBackupStatusCard />
+      {isSuperAdmin && <CloudBackupStatusCard />}
       {/* Header */}
       <div>
         <h3 className="text-base font-semibold text-foreground mb-2 flex items-center gap-2">
@@ -643,6 +659,30 @@ const BackupSettingsSection = () => {
       </div>
 
       <Separator />
+
+      {/* جدولة النسخ الاحتياطي على الجهاز (اختياري) */}
+      <div className="space-y-2 border rounded-lg p-4">
+        <p className="text-sm font-medium">نسخ احتياطي دوري على جهازي (اختياري)</p>
+        <p className="text-xs text-muted-foreground">
+          عند حلول الموعد يظهر لك تنبيه عند فتح البرنامج، وبضغطة واحدة تنزل النسخة على هذا الجهاز.
+        </p>
+        <div className="flex flex-wrap gap-2">
+          {([
+            { v: "off", l: "متوقف" },
+            { v: "daily", l: "يوميًا" },
+            { v: "weekly", l: "أسبوعيًا" },
+            { v: "monthly", l: "شهريًا" },
+          ] as { v: BackupFrequency; l: string }[]).map(o => (
+            <Button key={o.v} type="button" size="sm" variant={schedule.frequency === o.v ? "default" : "outline"} onClick={() => changeFrequency(o.v)}>
+              {o.l}
+            </Button>
+          ))}
+        </div>
+        <p className="text-xs text-muted-foreground">
+          آخر نسخة: {schedule.lastRun ? new Date(schedule.lastRun).toLocaleString("ar-EG") : "لا يوجد"}
+          {schedule.frequency !== "off" && nextDue(schedule) && ` · الموعد القادم: ${nextDue(schedule)!.toLocaleDateString("ar-EG")}`}
+        </p>
+      </div>
 
       {/* فترة التصدير */}
       <div className="space-y-2">
