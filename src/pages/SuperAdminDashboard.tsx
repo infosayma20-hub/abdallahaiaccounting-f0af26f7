@@ -176,6 +176,7 @@ const SA_TABS = [
   { value: "leads", icon: UserPlus, label: "زبائن سامي" },
   { value: "revenue", icon: BarChart3, label: "الإيرادات" },
   { value: "notifications", icon: Bell, label: "الإشعارات" },
+  { value: "cloud_backup", icon: HardDrive, label: "النسخ الاحتياطي" },
 ];
 
 const API_BASE = `https://${import.meta.env.VITE_SUPABASE_PROJECT_ID}.supabase.co/functions/v1/super-admin-api`;
@@ -1720,7 +1721,7 @@ export default function SuperAdminDashboard() {
     if (tab && [
       "dashboard", "users", "database", "live", "audit", "user_security",
       "settings", "tools", "subscriptions", "leads", "revenue", "notifications",
-      "finance_integrity",
+      "finance_integrity", "cloud_backup",
     ].includes(tab)) {
       setActiveTab(tab);
     }
@@ -2689,6 +2690,9 @@ export default function SuperAdminDashboard() {
           </TabsContent>
           <TabsContent value="notifications">
             <NotificationsQueuePanel />
+          </TabsContent>
+          <TabsContent value="cloud_backup" className="space-y-4">
+            <CloudBackupStatusCard />
           </TabsContent>
 
           <TabsContent value="finance_integrity" className="space-y-4">
