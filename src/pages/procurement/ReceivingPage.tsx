@@ -505,21 +505,6 @@ function ReceivingSession({ sessionId }: { sessionId: string }) {
   );
 }
 
-/* ───────── Label printing (Code128 via JsBarcode CDN-free SVG fallback: EAN text) ───────── */
-function printLabel(name: string, barcode: string) {
-  const w = window.open("", "_blank", "width=420,height=320");
-  if (!w) return;
-  const esc = (s: string) => s.replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]!));
-  w.document.write(`<html dir="rtl"><head><title>${esc(barcode)}</title>
-    <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.6/dist/JsBarcode.all.min.js"></script>
-    <style>@page{size:50mm 30mm;margin:2mm}body{margin:0;font-family:Cairo,Arial,sans-serif;text-align:center}
-    .n{font-size:11px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}svg{width:100%;height:18mm}</style></head>
-    <body><div class="n">${esc(name)}</div><svg id="b"></svg>
-    <script>window.onload=function(){try{JsBarcode("#b","${esc(barcode)}",{format:${/^\d{13}$/.test(barcode) ? '"EAN13"' : '"CODE128"'},height:50,fontSize:14,margin:0});}catch(e){JsBarcode("#b","${esc(barcode)}",{format:"CODE128"});}setTimeout(function(){window.print()},300)}</script>
-    </body></html>`);
-  w.document.close();
-}
-
 export default function ReceivingPage() {
   const { user, loading: authLoading } = useAuth();
   const { sessionId } = useParams();
