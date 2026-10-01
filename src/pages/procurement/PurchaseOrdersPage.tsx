@@ -436,6 +436,15 @@ const PurchaseOrdersPage = () => {
     return null;
   };
 
+  // فتح الطلبية بالضغط: القابلة للتعديل تفتح شاشة كاملة مثل فاتورة المشتريات
+  const openOrder = (o: any) => {
+    if (["draft", "sent", "partially_received"].includes(o.status) && !editBlockReason(o)) {
+      navigate(`/procurement/orders/${o.id}/edit`);
+    } else {
+      openDetail(o);
+    }
+  };
+
   const rowActions = (o: any) => (
     <div className="flex gap-0.5 items-center" onClick={e => e.stopPropagation()}>
       <Button size="sm" variant="ghost" className="h-7 w-7 p-0" title="عرض" onClick={() => openDetail(o)}><Eye className="h-3.5 w-3.5" /></Button>
@@ -628,7 +637,7 @@ const PurchaseOrdersPage = () => {
                             key={o.id}
                             onMouseEnter={() => setHoveredRow(o.id)}
                             onMouseLeave={() => setHoveredRow(null)}
-                            onClick={() => openDetail(o)}
+                            onClick={() => openOrder(o)}
                             style={{
                               background: hoveredRow === o.id ? "#F8FAFF" : (i % 2 === 0 ? "#FFFFFF" : "#FAFBFC"),
                               transition: "background 0.15s ease", borderBottom: "1px solid #F1F5F9",
@@ -692,7 +701,7 @@ const PurchaseOrdersPage = () => {
                     return (
                       <div
                         key={o.id}
-                        onClick={() => openDetail(o)}
+                        onClick={() => openOrder(o)}
                         style={{
                           background: "white", borderRadius: "12px", border: "1px solid #EDEBE9",
                           borderTop: `3px solid ${sc.dot}`, padding: "14px 16px", cursor: "pointer",
