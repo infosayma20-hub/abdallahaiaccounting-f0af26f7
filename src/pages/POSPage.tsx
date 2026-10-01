@@ -494,11 +494,11 @@ const POSPage = () => {
   useEffect(() => {
     const bid = getDeviceBranchIdForLang();
     if (!bid) { setReceiptLanguage("ar"); return; }
-    supabase.from("branches").select("receipt_language, name_en, address_en, phone").eq("id", bid).maybeSingle()
+    supabase.from("branches").select("receipt_language, name_en, address_en").eq("id", bid).maybeSingle()
       .then(({ data }) => {
         const d: any = data || {};
         setReceiptLanguage(d.receipt_language === "en" ? "en" : "ar");
-        setEnglishReceiptHeader({ name: d.name_en, address: d.address_en, phone: d.phone });
+        setEnglishReceiptHeader({ name: d.name_en, address: d.address_en });
       });
   }, []);
 
