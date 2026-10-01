@@ -622,6 +622,168 @@ const ReceivePOInvoicePage = ({ orderId }: { orderId: string }) => {
   );
 };
 
+// ─── عرض فاتورة مشتريات محفوظة (للقراءة فقط) ─────────────────────────────
+// تُفتح من كشف الحساب عبر ?invoiceId=. الفاتورة المرحّلة لا تُعدَّل مباشرة —
+// أي تعديل يتم عبر إلغاء/عكس مدقق ثم إعادة إنشاء (سياسة سلامة المحاسبة).
+const PurchaseInvoiceView = ({ invoiceId }: { invoiceId: string }) => {
+  const [loading, setLoading] = useState(true);
+  const [invoice, setInvoice] = useState<any>(null);
+  const [items, setItems] = useState<any[]>([]);
+  const [showPreview, setShowPreview] = useState(false);
+
+  useEffect(() => {
+    (async () => {
+      const { data: inv, error } = await supabase
+        .from("purchase_invoices" as any)
+        .select("*")
+        .eq("id", invoiceId)
+        .single();
+      if (error || !inv) {
+        toast.error("تعذر تحميل الفاتورة");
+        setLoading(false);
+        return;
+      }
+      setInvoice(inv);
+      const { data: rows } = await supabase
+        .from("purchase_invoice_items" as any)
+        .select("*")
+        .eq("invoice_id", invoiceId)
+        .order("created_at", { ascending: true });
+      setItems((rows as any[]) || []);
+      setLoading(false);
+    })();
+  }, [invoiceId]);
+
+  if (loading) return <div className="p-6"><Skeleton className="h-64 w-full" /></div>;
+  if (!invoice) return null;
+
+  const subtotal = items.reduce((s, i) => s + Number(i.quantity) * Number(i.unit_price), 0);
+  const discount = Number(invoice.discount) || 0;
+  const tax = Number(invoice.tax) || 0;
+  const total = Number(invoice.total_amount) || subtotal - discount + tax;
+  const statusLabel: Record<string, string> = { pending: "معلّقة", approved: "معتمدة", cancelled: "ملغاة" };
+  const paymentLabel: Record<string, string> = { paid: "مدفوعة نقداً", unpaid: "غير مدفوعة (آجل)", partial: "مدفوعة جزئياً" };
+
+  return (
+    <AccountingShell>
+    <div className="mx-auto max-w-[1180px] p-4 md:p-6 space-y-4" dir="rtl">
+      <div className="flex items-center gap-3 flex-wrap">
+        <BackButton />
+        <h1 className="text-xl font-bold text-foreground">فاتورة مشتريات</h1>
+        {invoice.invoice_number && <Badge variant="outline" className="font-mono">{invoice.invoice_number}</Badge>}
+        <Badge variant="secondary">{statusLabel[invoice.status] || invoice.status}</Badge>
+        <div className="flex-1" />
+      </div>
+
+      <div className="grid md:grid-cols-3 gap-3">
+        <Card>
+          <CardContent className="p-4 space-y-2 text-sm">
+            <div className="text-muted-foreground text-xs">المورد</div>
+            <div className="font-bold">{invoice.supplier_name || "—"}</div>
+            {invoice.supplier_invoice_number && (
+              <div className="text-xs text-muted-foreground">رقم فاتورة المورد: <span className="font-mono">{invoice.supplier_invoice_number}</span></div>
+            )}
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4 space-y-2 text-sm">
+            <div className="text-muted-foreground text-xs">التاريخ والدفع</div>
+            <div className="font-bold tabular-nums">{invoice.invoice_date || "—"}</div>
+            <div className="text-xs text-muted-foreground">{paymentLabel[invoice.payment_status] || invoice.payment_status || "—"}</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4 space-y-2 text-sm">
+            <div className="text-muted-foreground text-xs">صورة المستند</div>
+            {invoice.image_url ? (
+              <img
+                src={invoice.image_url}
+                alt="صورة الفاتورة"
+                className="w-full h-20 object-cover rounded-xl border cursor-pointer"
+                onClick={() => setShowPreview(true)}
+              />
+            ) : (
+              <div className="text-xs text-muted-foreground">لا توجد صورة مرفقة</div>
+            )}
+            {invoice.notes && <div className="text-xs text-muted-foreground">ملاحظات: {invoice.notes}</div>}
+          </CardContent>
+        </Card>
+      </div>
+
+      <Card className="overflow-hidden">
+        <CardHeader className="pb-2">
+          <CardTitle className="text-sm">بنود الفاتورة</CardTitle>
+        </CardHeader>
+        <CardContent className="p-0">
+          <div className="overflow-x-auto">
+            <Table className="min-w-[820px] [&_th]:text-center [&_td]:align-middle">
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="w-[320px] text-right">الصنف</TableHead>
+                  <TableHead className="w-[90px]">الوحدة</TableHead>
+                  <TableHead className="w-[110px]">الكمية</TableHead>
+                  <TableHead className="w-[120px]">السعر</TableHead>
+                  <TableHead className="w-[130px]">الإجمالي</TableHead>
+                  <TableHead className="w-[140px]">تاريخ الانتهاء</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {items.map((it) => (
+                  <TableRow key={it.id}>
+                    <TableCell className="font-medium text-right">
+                      <div className="break-words text-sm font-bold leading-snug">{it.product_name}</div>
+                    </TableCell>
+                    <TableCell className="text-center">{it.unit || "—"}</TableCell>
+                    <TableCell className="text-center tabular-nums">{Number(it.quantity)}</TableCell>
+                    <TableCell className="text-center tabular-nums">{Number(it.unit_price).toLocaleString("en", { minimumFractionDigits: 2 })}</TableCell>
+                    <TableCell className="text-center font-bold tabular-nums">{Number(it.total_amount ?? Number(it.quantity) * Number(it.unit_price)).toLocaleString("en", { minimumFractionDigits: 2 })}</TableCell>
+                    <TableCell className="text-center tabular-nums text-xs">{it.expiry_date || "—"}</TableCell>
+                  </TableRow>
+                ))}
+                {items.length === 0 && (
+                  <TableRow><TableCell colSpan={6} className="p-8 text-center text-muted-foreground text-sm">لا توجد بنود</TableCell></TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardContent className="p-4">
+          <div className="flex flex-col items-end gap-1 text-sm max-w-xs mr-auto">
+            <div className="flex justify-between w-full">
+              <span className="text-muted-foreground">المجموع الفرعي</span>
+              <span>{subtotal.toLocaleString("en", { minimumFractionDigits: 2 })} ₪</span>
+            </div>
+            <div className="flex justify-between w-full">
+              <span className="text-muted-foreground">خصم</span>
+              <span>{discount.toLocaleString("en", { minimumFractionDigits: 2 })} ₪</span>
+            </div>
+            <div className="flex justify-between w-full">
+              <span className="text-muted-foreground">ضريبة</span>
+              <span>{tax.toLocaleString("en", { minimumFractionDigits: 2 })} ₪</span>
+            </div>
+            <div className="flex justify-between w-full border-t pt-2 text-base font-bold">
+              <span>الإجمالي النهائي</span>
+              <span>{total.toLocaleString("en", { minimumFractionDigits: 2 })} ₪</span>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Dialog open={showPreview} onOpenChange={setShowPreview}>
+        <DialogContent className="max-w-3xl max-h-[90vh] p-2">
+          {invoice.image_url && (
+            <img src={invoice.image_url} alt="صورة الفاتورة" className="w-full h-auto rounded-lg" />
+          )}
+        </DialogContent>
+      </Dialog>
+    </div>
+    </AccountingShell>
+  );
+};
+
 export default ProcurementInvoiceCreatePage;
 
 // ─── Expiry Date Cell ──────────────────────────────────────────────────────
