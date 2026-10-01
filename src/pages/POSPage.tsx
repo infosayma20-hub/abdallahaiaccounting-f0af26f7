@@ -118,6 +118,7 @@ interface CartItem {
   id: string;
   product_id: string | null;
   name: string;
+  name_en?: string | null;
   qty: number;
   unit_price: number;
   /** Catalog price when the line was added — used to detect manual overrides. */
@@ -397,7 +398,7 @@ const SortableCategoryChip = ({ cat, isActive, isSortMode, isDragging, onClick, 
       style={{ ...cardStyle, minWidth: 80, height: 40, padding: "4px 14px" }}
     >
       {isSortMode && <GripVertical className="h-3 w-3 opacity-60 mb-0.5" />}
-      <span className="leading-tight text-center">{cat.name}</span>
+      <span className="leading-tight text-center">{pname(cat as any)}</span>
       {cat.count > 0 && <span className="text-[9px] opacity-70 mt-0.5">({cat.count})</span>}
     </button>
   );
@@ -423,6 +424,8 @@ const SortableProductCard = ({ id, children, isSortMode }: {
 };
 
 const POSPage = () => {
+  const posLangCtl = usePosLang();
+  const posDir = posLangCtl.dir;
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { user } = useAuth();
@@ -2245,7 +2248,7 @@ const POSPage = () => {
     // Keyset paging on the primary key (unique, never NULL) fetches all rows;
     // the client-side .sort() below still decides the final display order.
     const PAGE = 1000;
-    const columns = "id, name, sell_price, buy_price, quantity, category, pos_category_id, unit, sku, barcode, tax_rate, is_pos_available, color, image_url, min_quantity, sort_order, pos_sort_order, kitchen_station_id, pos_tile_color";
+    const columns = "id, name, name_en, sell_price, buy_price, quantity, category, pos_category_id, unit, sku, barcode, tax_rate, is_pos_available, color, image_url, min_quantity, sort_order, pos_sort_order, kitchen_station_id, pos_tile_color";
     const rows: any[] = [];
     let afterId: string | null = null;
     for (let page = 0; page < 50; page++) {
@@ -3408,6 +3411,7 @@ const POSPage = () => {
           id: crypto.randomUUID(),
           product_id: product.id,
           name: product.name,
+          name_en: (product as any).name_en ?? null,
           qty: itemQty,
           unit_price: unitPrice,
           base_price: unitPrice,
@@ -3441,6 +3445,7 @@ const POSPage = () => {
           id: crypto.randomUUID(),
           product_id: product.id,
           name: product.name,
+          name_en: (product as any).name_en ?? null,
           qty: 1,
           unit_price: product.sell_price,
           base_price: product.sell_price,
@@ -3502,7 +3507,7 @@ const POSPage = () => {
     }
     qty = Math.round(qty * 1000) / 1000;
     setCart((prev) => [...prev, {
-      id: crypto.randomUUID(), product_id: product.id, name: product.name, qty,
+      id: crypto.randomUUID(), product_id: product.id, name: product.name, name_en: (product as any).name_en ?? null, qty,
       unit_price: product.sell_price, base_price: product.sell_price, cost_price: product.buy_price,
       discount_pct: 0, tax_rate: product.tax_rate, unit: product.unit, note: "",
       station_id: product.kitchen_station_id, modifiers: [],
@@ -7283,7 +7288,7 @@ const POSPage = () => {
   }
 
   return (
-    <div className="h-screen flex flex-col overflow-hidden pos-container pos-page-root" dir="rtl" data-pos-layout>
+    <div className="h-screen flex flex-col overflow-hidden pos-container pos-page-root" dir={posDir} lang={posLangCtl.lang} data-pos-layout>
       <GeneralManagerCelebration authUserId={userId} dataOwnerId={dataOwnerId} />
       {/* ⛔ Device-level guard — blocks selling when branch/terminal/bridge are missing or in conflict */}
       <POSDeviceGuard
@@ -7313,6 +7318,15 @@ const POSPage = () => {
             <WifiOff className="h-[18px] w-[18px] text-red-400 shrink-0" />
           )}
           <BridgeStatusIndicator />
+          <button
+            type="button"
+            onClick={() => posLangCtl.setLang(posLangCtl.lang === "en" ? "ar" : "en")}
+            className="h-8 px-2 rounded-lg text-[11px] font-bold shrink-0 hover:bg-white/[0.08] transition-all"
+            style={{ color: "rgba(255,255,255,0.85)", border: "1px solid rgba(255,255,255,0.2)" }}
+            title={posLangCtl.lang === "en" ? "العربية" : "English"}
+          >
+            {posLangCtl.lang === "en" ? "ع" : "EN"}
+          </button>
           {company?.logo_url ? (
             <img src={company.logo_url} alt={company.name} className="h-8 w-8 rounded-full object-cover shrink-0" style={{ border: '1.5px solid rgba(255,255,255,0.15)' }} />
           ) : (
@@ -8134,7 +8148,7 @@ const POSPage = () => {
                                     ? "text-[12px]" 
                                     : "text-[14px]"
                               }`} dir="rtl" style={{ unicodeBidi: "plaintext", color: posDarkMode ? 'white' : '#1e293b', fontWeight: 500 }}>
-                                {product.name}
+                                {pname(product as any)}
                               </p>
 
                               {/* Addon hint */}
@@ -8405,7 +8419,7 @@ const POSPage = () => {
                       >
                         {/* Compact single-line row: name | qty | price | total | delete */}
                         <div className="flex items-center gap-1.5">
-                          <p className="text-[12.5px] font-medium leading-snug break-words whitespace-normal flex-1 min-w-0 basis-[30%]" style={{ color: 'white' }}>{item.name}</p>
+                          <p className="text-[12.5px] font-medium leading-snug break-words whitespace-normal flex-1 min-w-0 basis-[30%]" style={{ color: 'white' }}>{pname(item)}</p>
                           {(isAdmin || posPerms.can_edit_prices) ? (
                             <div
                               className="flex items-center justify-center gap-1 px-1.5 shrink-0 order-3 w-[96px]"
