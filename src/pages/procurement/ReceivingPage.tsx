@@ -396,7 +396,22 @@ function ReceivingSession({ sessionId }: { sessionId: string }) {
                     {l.item_notes && <div className="mt-1 text-sm font-medium text-accent-foreground bg-accent/40 rounded px-2 py-0.5">📝 {l.item_notes}</div>}
                   </div>
                   <div className="text-center">
-                    <div className="text-2xl font-bold">{Number(l.scanned_qty)}<span className="text-base text-muted-foreground"> / {Number(l.target_qty)}</span></div>
+                    {editable ? (
+                      <div className="flex items-center justify-center gap-1">
+                        <Input
+                          key={`${l.id}:${Number(l.scanned_qty)}`}
+                          type="number" inputMode="decimal" min={0} step="any"
+                          defaultValue={Number(l.scanned_qty)}
+                          onFocus={e => e.target.select()}
+                          onKeyDown={e => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); }}
+                          onBlur={e => { void setQty(l, Number(e.target.value)); }}
+                          className="h-12 w-24 text-center text-2xl font-bold"
+                        />
+                        <span className="text-base text-muted-foreground">/ {Number(l.target_qty)}</span>
+                      </div>
+                    ) : (
+                      <div className="text-2xl font-bold">{Number(l.scanned_qty)}<span className="text-base text-muted-foreground"> / {Number(l.target_qty)}</span></div>
+                    )}
                     <div className={`text-xs font-bold ${state === "done" ? "text-primary" : state === "over" ? "text-destructive" : "text-muted-foreground"}`}>
                       {state === "done" ? "مكتمل" : state === "over" ? `زايد ${diff}` : `ناقص ${-diff}`}
                     </div>
@@ -409,22 +424,6 @@ function ReceivingSession({ sessionId }: { sessionId: string }) {
                       </Button>
                       <Button variant="outline" size="icon" className="h-11 w-11" onClick={e => { e.stopPropagation(); bump(l, -1); }}><Minus className="h-5 w-5" /></Button>
                       <Button variant="outline" size="icon" className="h-11 w-11" onClick={e => { e.stopPropagation(); bump(l, 1); }}><Plus className="h-5 w-5" /></Button>
-                      <Button variant="ghost" size="icon" className="h-11 w-11" title="كمية وملاحظة"
-                        onClick={e => { e.stopPropagation(); setEditLine(l); setEditQty(String(l.scanned_qty)); setEditNote(l.note || ""); setEditExpiry(l.expiry_date || ""); }}>
-                        <StickyNote className="h-5 w-5" />
-                      </Button>
-                      {!l.barcode && l.product_id && (
-                        <Button variant="ghost" size="icon" className="h-11 w-11" title="توليد وطباعة باركود"
-                          onClick={e => { e.stopPropagation(); generateBarcode(l); }}>
-                          <Barcode className="h-5 w-5" />
-                        </Button>
-                      )}
-                      {l.barcode && (
-                        <Button variant="ghost" size="icon" className="h-11 w-11" title="طباعة ملصق"
-                          onClick={e => { e.stopPropagation(); printLabel(l.item_name, l.barcode!); }}>
-                          <Printer className="h-5 w-5" />
-                        </Button>
-                      )}
                     </div>
                   )}
                 </div>
