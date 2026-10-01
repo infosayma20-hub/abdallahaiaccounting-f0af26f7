@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Html5Qrcode } from "html5-qrcode";
+import { Html5Qrcode, Html5QrcodeSupportedFormats as F } from "html5-qrcode";
 import { X, Camera, Keyboard, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -21,6 +21,7 @@ export default function POSBarcodeScanner({ open, onClose, onScan }: Props) {
   const [starting, setStarting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const scannerRef = useRef<Html5Qrcode | null>(null);
+  const doneRef = useRef(false);
   const divId = "pos-barcode-reader";
 
   const stop = async () => {
@@ -39,16 +40,36 @@ export default function POSBarcodeScanner({ open, onClose, onScan }: Props) {
     setError(null);
     setStarting(true);
     try {
-      const reader = new Html5Qrcode(divId, { verbose: false } as any);
+      // حصر الصيغ بباركودات المنتجات يسرّع الفك كثيرًا، والماسح الأصلي للجهاز (BarcodeDetector) أسرع وأدق بمراحل
+      const reader = new Html5Qrcode(divId, {
+        verbose: false,
+        formatsToSupport: [F.EAN_13, F.EAN_8, F.UPC_A, F.UPC_E, F.CODE_128, F.CODE_39, F.ITF, F.QR_CODE],
+        experimentalFeatures: { useBarCodeScannerIfSupported: true },
+      } as any);
       scannerRef.current = reader;
+      doneRef.current = false;
       await reader.start(
         { facingMode: "environment" },
         {
-          fps: 15,
-          qrbox: { width: 280, height: 160 },
-          aspectRatio: 1.6,
-        },
+          fps: 25,
+          // منطقة مسح عريضة نسبية لحجم الصورة (الباركود الخطي طويل)
+          qrbox: (w: number, h: number) => ({
+            width: Math.max(200, Math.floor(w * 0.9)),
+            height: Math.max(120, Math.floor(h * 0.6)),
+          }),
+          disableFlip: true,
+          videoConstraints: {
+            facingMode: "environment",
+            width: { ideal: 1920 },
+            height: { ideal: 1080 },
+            // @ts-ignore تركيز تلقائي مستمر على الأجهزة الداعمة
+            advanced: [{ focusMode: "continuous" }],
+          },
+        } as any,
         (decoded) => {
+          if (doneRef.current) return;
+          doneRef.current = true;
+          try { navigator.vibrate?.(60); } catch { /* ignore */ }
           // وصلنا لباركود — أرسله وأغلق
           onScan(decoded);
           stop().finally(() => onClose());
@@ -66,7 +87,7 @@ export default function POSBarcodeScanner({ open, onClose, onScan }: Props) {
 
   useEffect(() => {
     if (open && mode === "camera") {
-      const t = setTimeout(start, 200);
+      const t = setTimeout(start, 50);
       return () => { clearTimeout(t); stop(); };
     }
     if (!open) stop();
