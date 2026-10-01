@@ -276,19 +276,30 @@ function ReceivingSession({ sessionId }: { sessionId: string }) {
     focus();
   };
 
-  // مسح بالكاميرا من زر صنف محدد — بيزيد الكمية لذاك الصنف مباشرة
-  const cameraScanLine = async (line: Line) => {
-    if (!editable || busy.current) return;
-    busy.current = true;
-    try {
-      const current = Number(session?.lines.find(x => x.id === line.id)?.scanned_qty ?? line.scanned_qty);
-      const qty = current + 1;
-      setSession(s => s ? { ...s, status: "in_progress", lines: s.lines.map(x => x.id === line.id ? { ...x, scanned_qty: qty } : x) } : s);
-      setLastLineId(line.id);
-      const { error } = await supabase.rpc("receiving_set_line", { p_line_id: line.id, p_qty: qty, p_note: line.note, p_expiry: line.expiry_date } as any);
-      if (error) { showFlash(false, error.message); load(); return; }
-      showFlash(true, `${line.item_name} — ${qty}`);
-    } finally { busy.current = false; }
+  // مسح بالكاميرا من زر صنف محدد — لازم الباركود يطابق نفس الصنف
+  const cameraScanLine = async (line: Line, raw: string) => {
+    const barcode = (raw || "").trim();
+    if (!barcode || !editable) return;
+    const fresh = session?.lines.find(x => x.id === line.id) || line;
+    const codes = [fresh.barcode, ...(fresh.extra_barcodes || [])].filter(Boolean).map(c => String(c).trim());
+
+    // صنف بدون باركود — نربط الباركود المقروء فيه ثم نسجّل المسحة
+    if (codes.length === 0) {
+      if (!navigator.onLine) { beep(false); showFlash(false, "ربط الباركود بحاجة إنترنت"); return; }
+      const { error } = await supabase.rpc("receiving_link_barcode", { p_line_id: fresh.id, p_barcode: barcode } as any);
+      if (error) { beep(false); showFlash(false, error.message); return; }
+      showFlash(true, `تم ربط الباركود بالصنف ${fresh.item_name}`);
+      await handleScan(barcode);
+      load();
+      return;
+    }
+
+    if (!codes.includes(barcode)) {
+      beep(false);
+      showFlash(false, `الباركود لا يطابق ${fresh.item_name}`);
+      return;
+    }
+    await handleScan(barcode);
   };
 
   const submit = async () => {
