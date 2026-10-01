@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
-import { ArrowRight, ScanLine, Minus, Plus, CheckCircle2, Package, RefreshCw, Barcode, Printer, StickyNote, ClipboardList, Camera } from "lucide-react";
+import { ArrowRight, ScanLine, Minus, Plus, CheckCircle2, Package, RefreshCw, ClipboardList, Camera } from "lucide-react";
 import { receivingStatusLabel } from "@/components/procurement/ReceivingAssignDialog";
 import POSBarcodeScanner from "@/components/pos/POSBarcodeScanner";
 import { normalizeBarcode, createSerialQueue, createScanBurstWatcher } from "@/lib/barcode";
@@ -152,10 +152,6 @@ function ReceivingSession({ sessionId }: { sessionId: string }) {
   const [flash, setFlash] = useState<{ ok: boolean; text: string } | null>(null);
   const [lastLineId, setLastLineId] = useState<string | null>(null);
   const [unknown, setUnknown] = useState<string | null>(null);
-  const [editLine, setEditLine] = useState<Line | null>(null);
-  const [editQty, setEditQty] = useState("0");
-  const [editNote, setEditNote] = useState("");
-  const [editExpiry, setEditExpiry] = useState("");
   const [confirmSubmit, setConfirmSubmit] = useState(false);
   const [submitNotes, setSubmitNotes] = useState("");
   const [pending, setPending] = useState<number>(readQueue(sessionId).length);
@@ -167,7 +163,7 @@ function ReceivingSession({ sessionId }: { sessionId: string }) {
 
   const today = new Date().toISOString().slice(0, 10);
   const editable = session?.status === "assigned" || session?.status === "in_progress";
-  const dialogOpen = !!unknown || !!editLine || confirmSubmit;
+  const dialogOpen = !!unknown || confirmSubmit;
 
   const load = useCallback(async () => {
     const { data, error } = await supabase.rpc("get_receiving_session", { p_session_id: sessionId } as any);
@@ -183,7 +179,8 @@ function ReceivingSession({ sessionId }: { sessionId: string }) {
     setTimeout(() => {
       const a = document.activeElement as HTMLElement | null;
       if (a && a !== inputRef.current && (a.tagName === "INPUT" || a.tagName === "TEXTAREA" || a.tagName === "SELECT")) return;
-      inputRef.current?.focus();
+      // preventScroll: بدونها التابلت بيقفز لأعلى الصفحة عند كل تركيز
+      inputRef.current?.focus({ preventScroll: true });
     }, 30);
   }, [dialogOpen]);
   useEffect(() => { focus(); }, [focus, session]);
@@ -262,30 +259,16 @@ function ReceivingSession({ sessionId }: { sessionId: string }) {
     setUnknown(null); setLastLineId(line.id); load();
   };
 
-  const generateBarcode = async (line: Line) => {
-    const { data, error } = await supabase.rpc("receiving_generate_barcode", { p_line_id: line.id } as any);
-    if (error) { toast.error(error.message); return; }
-    toast.success(`باركود الصنف: ${data}`);
-    printLabel(line.item_name, String(data));
-    load();
-  };
-
-  const saveEdit = async () => {
-    if (!editLine) return;
-    const qty = Number(editQty);
-    if (!Number.isFinite(qty) || qty < 0) { toast.error("كمية غير صحيحة"); return; }
-    const { error } = await supabase.rpc("receiving_set_line", { p_line_id: editLine.id, p_qty: qty, p_note: editNote || null, p_expiry: editExpiry || null } as any);
-    if (error) { toast.error(error.message); return; }
-    setEditLine(null); load();
-  };
-
-  const bump = async (line: Line, delta: number) => {
-    const qty = Math.max(0, Number(line.scanned_qty) + delta);
+  const setQty = async (line: Line, qty: number) => {
+    if (!Number.isFinite(qty) || qty < 0) { toast.error("كمية غير صحيحة"); load(); return; }
+    qty = Math.round(qty * 1000) / 1000;
+    if (qty === Number(line.scanned_qty)) return;
     setSession(s => s ? { ...s, lines: s.lines.map(l => l.id === line.id ? { ...l, scanned_qty: qty } : l) } : s);
     const { error } = await supabase.rpc("receiving_set_line", { p_line_id: line.id, p_qty: qty, p_note: line.note, p_expiry: line.expiry_date } as any);
-      if (error) { toast.error(error.message); load(); }
-    focus();
+    if (error) { toast.error(error.message); load(); }
   };
+
+  const bump = (line: Line, delta: number) => { void setQty(line, Math.max(0, Number(line.scanned_qty) + delta)); focus(); };
 
   // مسح بالكاميرا من زر صنف محدد — لازم الباركود يطابق نفس الصنف
   const cameraScanLine = async (line: Line, raw: string) => {
@@ -413,7 +396,22 @@ function ReceivingSession({ sessionId }: { sessionId: string }) {
                     {l.item_notes && <div className="mt-1 text-sm font-medium text-accent-foreground bg-accent/40 rounded px-2 py-0.5">📝 {l.item_notes}</div>}
                   </div>
                   <div className="text-center">
-                    <div className="text-2xl font-bold">{Number(l.scanned_qty)}<span className="text-base text-muted-foreground"> / {Number(l.target_qty)}</span></div>
+                    {editable ? (
+                      <div className="flex items-center justify-center gap-1">
+                        <Input
+                          key={`${l.id}:${Number(l.scanned_qty)}`}
+                          type="number" inputMode="decimal" min={0} step="any"
+                          defaultValue={Number(l.scanned_qty)}
+                          onFocus={e => e.target.select()}
+                          onKeyDown={e => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); }}
+                          onBlur={e => { void setQty(l, Number(e.target.value)); }}
+                          className="h-12 w-24 text-center text-2xl font-bold"
+                        />
+                        <span className="text-base text-muted-foreground">/ {Number(l.target_qty)}</span>
+                      </div>
+                    ) : (
+                      <div className="text-2xl font-bold">{Number(l.scanned_qty)}<span className="text-base text-muted-foreground"> / {Number(l.target_qty)}</span></div>
+                    )}
                     <div className={`text-xs font-bold ${state === "done" ? "text-primary" : state === "over" ? "text-destructive" : "text-muted-foreground"}`}>
                       {state === "done" ? "مكتمل" : state === "over" ? `زايد ${diff}` : `ناقص ${-diff}`}
                     </div>
@@ -426,22 +424,6 @@ function ReceivingSession({ sessionId }: { sessionId: string }) {
                       </Button>
                       <Button variant="outline" size="icon" className="h-11 w-11" onClick={e => { e.stopPropagation(); bump(l, -1); }}><Minus className="h-5 w-5" /></Button>
                       <Button variant="outline" size="icon" className="h-11 w-11" onClick={e => { e.stopPropagation(); bump(l, 1); }}><Plus className="h-5 w-5" /></Button>
-                      <Button variant="ghost" size="icon" className="h-11 w-11" title="كمية وملاحظة"
-                        onClick={e => { e.stopPropagation(); setEditLine(l); setEditQty(String(l.scanned_qty)); setEditNote(l.note || ""); setEditExpiry(l.expiry_date || ""); }}>
-                        <StickyNote className="h-5 w-5" />
-                      </Button>
-                      {!l.barcode && l.product_id && (
-                        <Button variant="ghost" size="icon" className="h-11 w-11" title="توليد وطباعة باركود"
-                          onClick={e => { e.stopPropagation(); generateBarcode(l); }}>
-                          <Barcode className="h-5 w-5" />
-                        </Button>
-                      )}
-                      {l.barcode && (
-                        <Button variant="ghost" size="icon" className="h-11 w-11" title="طباعة ملصق"
-                          onClick={e => { e.stopPropagation(); printLabel(l.item_name, l.barcode!); }}>
-                          <Printer className="h-5 w-5" />
-                        </Button>
-                      )}
                     </div>
                   )}
                 </div>
@@ -488,27 +470,6 @@ function ReceivingSession({ sessionId }: { sessionId: string }) {
         </DialogContent>
       </Dialog>
 
-      {/* Edit line */}
-      <Dialog open={!!editLine} onOpenChange={o => { if (!o) { setEditLine(null); focus(); } }}>
-        <DialogContent dir="rtl" className="max-w-md">
-          <DialogHeader><DialogTitle>{editLine?.item_name}</DialogTitle></DialogHeader>
-          <div className="space-y-3">
-            <div>
-              <div className="mb-1 text-sm">الكمية المستلمة</div>
-              <Input type="number" inputMode="decimal" min={0} value={editQty} onChange={e => setEditQty(e.target.value)} className="h-12 text-lg" />
-            </div>
-            <div>
-              <div className="mb-1 text-sm">تاريخ الانتهاء *</div>
-              <Input type="date" min={today} value={editExpiry} onChange={e => setEditExpiry(e.target.value)} className="h-12 text-lg" />
-            </div>
-            <div>
-              <div className="mb-1 text-sm">ملاحظة (تالف، ناقص…)</div>
-              <Textarea value={editNote} onChange={e => setEditNote(e.target.value)} rows={3} />
-            </div>
-          </div>
-          <DialogFooter><Button onClick={saveEdit}>حفظ</Button></DialogFooter>
-        </DialogContent>
-      </Dialog>
 
       {/* Barcode mismatch — offer to add as new barcode */}
       <Dialog open={!!mismatch} onOpenChange={o => { if (!o) { setMismatch(null); focus(); } }}>
@@ -542,21 +503,6 @@ function ReceivingSession({ sessionId }: { sessionId: string }) {
       </Dialog>
     </DShell>
   );
-}
-
-/* ───────── Label printing (Code128 via JsBarcode CDN-free SVG fallback: EAN text) ───────── */
-function printLabel(name: string, barcode: string) {
-  const w = window.open("", "_blank", "width=420,height=320");
-  if (!w) return;
-  const esc = (s: string) => s.replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]!));
-  w.document.write(`<html dir="rtl"><head><title>${esc(barcode)}</title>
-    <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.6/dist/JsBarcode.all.min.js"></script>
-    <style>@page{size:50mm 30mm;margin:2mm}body{margin:0;font-family:Cairo,Arial,sans-serif;text-align:center}
-    .n{font-size:11px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}svg{width:100%;height:18mm}</style></head>
-    <body><div class="n">${esc(name)}</div><svg id="b"></svg>
-    <script>window.onload=function(){try{JsBarcode("#b","${esc(barcode)}",{format:${/^\d{13}$/.test(barcode) ? '"EAN13"' : '"CODE128"'},height:50,fontSize:14,margin:0});}catch(e){JsBarcode("#b","${esc(barcode)}",{format:"CODE128"});}setTimeout(function(){window.print()},300)}</script>
-    </body></html>`);
-  w.document.close();
 }
 
 export default function ReceivingPage() {
