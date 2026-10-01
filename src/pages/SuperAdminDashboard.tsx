@@ -12,6 +12,7 @@ import {
   Sun, Moon, LayoutDashboard, UserPlus, ArrowUp, ArrowDown, ArrowUpDown, MailCheck, MailWarning,
 } from "lucide-react";
 import SamiLeadsPanel from "@/components/superadmin/SamiLeadsPanel";
+import { CloudBackupStatusCard } from "@/components/settings/CloudBackupStatusCard";
 import { SignupNotificationsBell } from "@/components/super-admin/SignupNotificationsBell";
 import UserSecurityAuditTab from "@/components/super-admin/UserSecurityAuditTab";
 import WatchlistTab from "@/components/super-admin/WatchlistTab";
@@ -1513,29 +1514,8 @@ function PlatformSettings() {
               </Button>
             </div>
 
-            <div className="rounded-2xl p-5 space-y-4" style={{ background: "var(--sa-card-bg)", border: "1px solid var(--sa-card-border)" }}>
-              <h3 className="text-sm font-semibold flex items-center gap-2" style={{ color: "var(--sa-text-primary)" }}>
-                <HardDrive className="h-4 w-4 text-amber-400" /> النسخ الاحتياطي
-              </h3>
-              <div className="space-y-2">
-                {[
-                  { label: "آخر نسخة", value: "منذ ساعتين" },
-                  { label: "الحجم الكلي", value: "~45 MB" },
-                ].map(i => (
-                  <div key={i.label} className="flex justify-between text-sm">
-                    <span style={{ color: "var(--sa-text-muted)" }}>{i.label}</span>
-                    <span className="text-xs" style={{ color: "var(--sa-text-secondary)" }}>{i.value}</span>
-                  </div>
-                ))}
-                <div className="flex justify-between text-sm">
-                  <span style={{ color: "var(--sa-text-muted)" }}>تكرار تلقائي</span>
-                  <Badge className="bg-emerald-500/10 text-emerald-400 border-0 text-[10px]">كل 6 ساعات</Badge>
-                </div>
-              </div>
-              <Button className="w-full" style={{ background: "var(--sa-surface)", color: "var(--sa-text-primary)" }}
-                onClick={() => toast.success("جاري إنشاء نسخة احتياطية...")}>
-                <HardDrive className="h-4 w-4 ml-1" /> نسخة احتياطية الآن
-              </Button>
+            <div className="rounded-2xl p-5 space-y-4 md:col-span-2" style={{ background: "var(--sa-card-bg)", border: "1px solid var(--sa-card-border)" }}>
+              <CloudBackupStatusCard />
             </div>
 
             <div className="rounded-2xl p-5 space-y-4 md:col-span-2" style={{ background: "var(--sa-card-bg)", border: "1px solid var(--sa-card-border)" }}>
