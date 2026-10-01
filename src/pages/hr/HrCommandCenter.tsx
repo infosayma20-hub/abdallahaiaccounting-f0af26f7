@@ -11,17 +11,15 @@ import { cn } from "@/lib/utils";
 export default function HrCommandCenter() {
   const { isAdmin, isHRManager, can } = useHRManagerPermissions();
 
-  const groups = useMemo(() => {
+  const items = useMemo(() => {
     const visible = HR_APP_ITEMS.filter((i) => {
       if (i.to === "/hr") return false;
       if (!i.perms || i.perms.length === 0) return true;
       if (isAdmin) return true;
       return isHRManager && can(...i.perms);
     });
-    return HR_APP_GROUP_ORDER.map((g) => ({
-      group: g,
-      list: visible.filter((i) => i.group === g),
-    })).filter((g) => g.list.length > 0);
+    // نفس ترتيب الأقسام، لكن كل البطاقات متلاصقة ب сетورة واحدة متواصلة
+    return HR_APP_GROUP_ORDER.flatMap((g) => visible.filter((i) => i.group === g));
   }, [isAdmin, isHRManager, can]);
 
   return (
@@ -31,25 +29,20 @@ export default function HrCommandCenter() {
         <p className="text-sm text-muted-foreground mt-1">اختر التطبيق</p>
       </div>
 
-      {groups.map(({ group, list }) => (
-        <section key={group} className="space-y-3">
-          <h2 className="text-sm font-semibold text-muted-foreground text-right">{group}</h2>
-          <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-3">
-            {list.map(({ to, label, Icon, chip }) => (
-              <Link
-                key={to}
-                to={to}
-                className="group flex flex-col items-center gap-2 rounded-2xl border border-border bg-card p-3 text-center shadow-sm transition hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-              >
-                <span className={cn("flex h-12 w-12 items-center justify-center rounded-2xl", chip)}>
-                  <Icon className="h-6 w-6" />
-                </span>
-                <span className="text-xs font-medium leading-tight text-foreground">{label}</span>
-              </Link>
-            ))}
-          </div>
-        </section>
-      ))}
+      <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-10 gap-2">
+        {items.map(({ to, label, Icon, chip }) => (
+          <Link
+            key={to}
+            to={to}
+            className="group flex flex-col items-center gap-1.5 rounded-2xl border border-border bg-card p-2.5 text-center shadow-sm transition hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            <span className={cn("flex h-10 w-10 items-center justify-center rounded-xl", chip)}>
+              <Icon className="h-5 w-5" />
+            </span>
+            <span className="text-[11px] font-medium leading-tight text-foreground">{label}</span>
+          </Link>
+        ))}
+      </div>
     </div>
   );
 }
