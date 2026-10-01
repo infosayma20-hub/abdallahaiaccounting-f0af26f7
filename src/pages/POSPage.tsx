@@ -23,6 +23,8 @@ import { assertPermission } from "@/lib/permissions/assertPermission";
 import { usePosMode } from "@/hooks/usePosMode";
 import { supabase } from "@/integrations/supabase/client";
 import { pt, pname, usePosLang } from "@/i18n/pos-lang";
+import { setReceiptLanguage, setEnglishReceiptHeader, registerEnglishNames } from "@/lib/print-english";
+import { getDeviceBranchId as getDeviceBranchIdForLang } from "@/lib/device-config";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -483,6 +485,22 @@ const POSPage = () => {
   // State
   const [products, setProducts] = useState<Product[]>([]);
   const [posCategories, setPosCategories] = useState<POSCategory[]>([]);
+
+  // English receipts: names map + branch print language (default Arabic).
+  useEffect(() => {
+    registerEnglishNames(products as any);
+    registerEnglishNames(posCategories as any);
+  }, [products, posCategories]);
+  useEffect(() => {
+    const bid = getDeviceBranchIdForLang();
+    if (!bid) { setReceiptLanguage("ar"); return; }
+    supabase.from("branches").select("receipt_language, name_en, address_en, phone").eq("id", bid).maybeSingle()
+      .then(({ data }) => {
+        const d: any = data || {};
+        setReceiptLanguage(d.receipt_language === "en" ? "en" : "ar");
+        setEnglishReceiptHeader({ name: d.name_en, address: d.address_en, phone: d.phone });
+      });
+  }, []);
   const [selectedCategory, setSelectedCategory] = useState<string>("الكل");
   const [searchQuery, setSearchQuery] = useState("");
   // Per-shift default-category guard (Malaky: default to "كرسبي فردي" on shift open)
