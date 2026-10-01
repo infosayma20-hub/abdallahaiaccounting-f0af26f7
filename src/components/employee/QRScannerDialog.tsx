@@ -54,6 +54,7 @@ export default function QRScannerDialog({ open, onOpenChange, action, onSuccess,
    * pick up the right value.
    */
   const branchGpsRequirementCacheRef = useRef<Map<string, boolean>>(new Map());
+  const lastGpsAccuracyRef = useRef<number>(0);
   const [gpsAcquiring, setGpsAcquiring] = useState(false);
   const scannerRef = useRef<Html5QrcodeType | null>(null);
   const processingRef = useRef(false);
@@ -659,7 +660,7 @@ export default function QRScannerDialog({ open, onOpenChange, action, onSuccess,
             ) : (
               <XCircle className="h-16 w-16 text-destructive mx-auto" />
             )}
-            <p className="font-bold text-lg text-foreground">{result.message}</p>
+            <p className="font-bold text-lg text-foreground whitespace-pre-line">{result.message}</p>
             {!result.success && result.authError && (
               <Button
                 className="rounded-xl active:scale-95 transition-transform w-full"
