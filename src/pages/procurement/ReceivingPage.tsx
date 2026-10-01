@@ -8,8 +8,9 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
-import { ArrowRight, ScanLine, Minus, Plus, CheckCircle2, Package, RefreshCw, Barcode, Printer, StickyNote, ClipboardList } from "lucide-react";
+import { ArrowRight, ScanLine, Minus, Plus, CheckCircle2, Package, RefreshCw, Barcode, Printer, StickyNote, ClipboardList, Camera } from "lucide-react";
 import { receivingStatusLabel } from "@/components/procurement/ReceivingAssignDialog";
+import POSBarcodeScanner from "@/components/pos/POSBarcodeScanner";
 import { useAuth } from "@/hooks/useAuth";
 import { BRAND } from "@/constants/brand";
 
