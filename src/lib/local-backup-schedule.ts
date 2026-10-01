@@ -26,10 +26,23 @@ export function snooze(userId: string, hours = 4) {
   saveSchedule(userId, { ...getSchedule(userId), snoozedUntil: new Date(Date.now() + hours * 3600_000).toISOString() });
 }
 
+// المواعيد تنطلق الساعة 5 صباحًا بتوقيت الجهاز
+function todayAt5(now = new Date()): Date {
+  const d = new Date(now);
+  d.setHours(5, 0, 0, 0);
+  return d;
+}
+
 export function nextDue(s: BackupSchedule): Date | null {
-  if (s.frequency === "off") return null;
+  if (s.frequency === "off") null;
   if (!s.lastRun) return new Date();
-  return new Date(new Date(s.lastRun).getTime() + DAYS[s.frequency] * 86400_000);
+  const last = new Date(s.lastRun);
+  if (s.frequency === "daily") {
+    const today5 = todayAt5();
+    if (last >= today5) return new Date(today5.getTime() + 86400_000); // خلاص عمل اليوم، الجاي بكرة 5 صباحًا
+    return today5; // الموعد اليوم 5 صباحًا (إذا فتح البرنامج بعدها بينذكّره)
+  }
+  return new Date(last.getTime() + DAYS[s.frequency] * 86400_000);
 }
 
 export function isDue(s: BackupSchedule): boolean {
