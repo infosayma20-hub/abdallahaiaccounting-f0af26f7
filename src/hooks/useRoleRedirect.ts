@@ -106,7 +106,7 @@ export function useRoleRedirect() {
             .maybeSingle(),
           supabase
             .from("employees")
-            .select("id, auth_user_id, user_id, is_active, is_terminated, is_manager, is_hr_manager, can_view_team, can_manage_schedule, can_manage_attendance")
+            .select("id, auth_user_id, user_id, is_active, is_terminated, is_manager, is_hr_manager, can_view_team, can_manage_schedule, can_manage_attendance, is_receiver, can_direct_receive")
             .eq("auth_user_id", user.id)
             .maybeSingle(),
           supabase
@@ -213,7 +213,9 @@ export function useRoleRedirect() {
               .eq("app_key", "call_center_feedback")
               .eq("access_state", "allow")
               .limit(1);
-            if (fbPerms && fbPerms.length > 0) {
+            // موظف مستودع (استلام بضاعة / استلام مباشر) عنده مساحتين: الموظف والمستودع
+            const isWarehouse = !!(empRow as any)?.is_receiver || !!(empRow as any)?.can_direct_receive;
+            if ((fbPerms && fbPerms.length > 0) || isWarehouse) {
               const chosen = readWorkspaceChoice(user.id);
               const resolved = resolvePosWorkspaceChoice(chosen);
               if (isCancelled) return;
