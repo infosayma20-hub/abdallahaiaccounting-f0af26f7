@@ -372,6 +372,13 @@
       "when": 1790839808870,
       "tag": "0052_product_supplier_links",
       "breakpoints": true
+    },
+    {
+      "idx": 53,
+      "version": "7",
+      "when": 1790840597502,
+      "tag": "0053_pos_english_support",
+      "breakpoints": true
     }
   ]
 }

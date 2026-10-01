@@ -2665,6 +2665,7 @@ export type Database = {
       branches: {
         Row: {
           address: string | null
+          address_en: string | null
           allow_manual_code: boolean
           attendance_mobile_only: boolean
           attendance_selfie_retention_days: number
@@ -2678,11 +2679,13 @@ export type Database = {
           latitude: number
           longitude: number
           name: string
+          name_en: string | null
           public_slug: string | null
           qr_menu_enabled: boolean | null
           qr_mode: string
           qr_rotation_minutes: number
           radius_meters: number
+          receipt_language: string
           require_attendance_selfie: boolean
           require_gps: boolean
           secret_key: string
@@ -2691,6 +2694,7 @@ export type Database = {
         }
         Insert: {
           address?: string | null
+          address_en?: string | null
           allow_manual_code?: boolean
           attendance_mobile_only?: boolean
           attendance_selfie_retention_days?: number
@@ -2704,11 +2708,13 @@ export type Database = {
           latitude: number
           longitude: number
           name: string
+          name_en?: string | null
           public_slug?: string | null
           qr_menu_enabled?: boolean | null
           qr_mode?: string
           qr_rotation_minutes?: number
           radius_meters?: number
+          receipt_language?: string
           require_attendance_selfie?: boolean
           require_gps?: boolean
           secret_key?: string
@@ -2717,6 +2723,7 @@ export type Database = {
         }
         Update: {
           address?: string | null
+          address_en?: string | null
           allow_manual_code?: boolean
           attendance_mobile_only?: boolean
           attendance_selfie_retention_days?: number
@@ -2730,11 +2737,13 @@ export type Database = {
           latitude?: number
           longitude?: number
           name?: string
+          name_en?: string | null
           public_slug?: string | null
           qr_menu_enabled?: boolean | null
           qr_mode?: string
           qr_rotation_minutes?: number
           radius_meters?: number
+          receipt_language?: string
           require_attendance_selfie?: boolean
           require_gps?: boolean
           secret_key?: string
@@ -15788,6 +15797,7 @@ export type Database = {
           id: string
           is_active: boolean
           name: string
+          name_en: string | null
           parent_id: string | null
           restricted_cash_box_ids: string[] | null
           show_in_qr_menu: boolean | null
@@ -15802,6 +15812,7 @@ export type Database = {
           id?: string
           is_active?: boolean
           name: string
+          name_en?: string | null
           parent_id?: string | null
           restricted_cash_box_ids?: string[] | null
           show_in_qr_menu?: boolean | null
@@ -15816,6 +15827,7 @@ export type Database = {
           id?: string
           is_active?: boolean
           name?: string
+          name_en?: string | null
           parent_id?: string | null
           restricted_cash_box_ids?: string[] | null
           show_in_qr_menu?: boolean | null
@@ -20424,6 +20436,7 @@ export type Database = {
           min_shelf_life_days: number | null
           model: string | null
           name: string
+          name_en: string | null
           net_weight: number | null
           notes: string | null
           original_number: string | null
@@ -20515,6 +20528,7 @@ export type Database = {
           min_shelf_life_days?: number | null
           model?: string | null
           name: string
+          name_en?: string | null
           net_weight?: number | null
           notes?: string | null
           original_number?: string | null
@@ -20606,6 +20620,7 @@ export type Database = {
           min_shelf_life_days?: number | null
           model?: string | null
           name?: string
+          name_en?: string | null
           net_weight?: number | null
           notes?: string | null
           original_number?: string | null
