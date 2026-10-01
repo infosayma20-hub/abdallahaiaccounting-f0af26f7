@@ -128,25 +128,86 @@ const PurchaseOrderCreatePage = () => {
   const [editItem, setEditItem] = useState<any>(null);
 
   useEffect(() => {
-    if (supplierId || defaultBranchId) savePrefs({ supplierId, branchId: defaultBranchId, cardSize });
+    if (supplierId || defaultBranchId) savePrefs({ ...loadPrefs(), supplierId, branchId: defaultBranchId, cardSize });
   }, [supplierId, defaultBranchId, cardSize]);
 
-  useEffect(() => { searchRef.current?.focus(); }, [activeCategory]);
+  // تحميل أصناف المخزون وتصنيفات نقطة البيع للتصفح بنمط نقطة البيع
+  useEffect(() => {
+    if (!ownerId) return;
+    let cancelled = false;
+    (async () => {
+      const [cats, prods] = await Promise.all([
+        supabase.from("pos_categories").select("id, name, color, sort_order, display_order")
+          .eq("user_id", ownerId).eq("is_active", true)
+          .order("sort_order").order("display_order"),
+        supabase.from("products").select("id, name, unit, pos_category_id, category, buy_price, barcode")
+          .eq("user_id", ownerId).order("name"),
+      ]);
+      if (cancelled) return;
+      if (cats.data) setPosCats(cats.data as any[]);
+      if (prods.data) setInventoryProducts(prods.data as any[]);
+    })();
+    return () => { cancelled = true; };
+  }, [ownerId]);
+
+  useEffect(() => { searchRef.current?.focus(); }, [activeCategory, activePosCategory]);
+
+  // ── التأكد من وجود صنف مشتريات مرتبط بالمنتج (ربط تلقائي) ──
+  const ensureProcItem = useCallback(async (product: any): Promise<string | null> => {
+    const cached = procIdByProductIdRef.current[product.id];
+    if (cached) return cached;
+    setEnsuringId(product.id);
+    try {
+      const { data, error } = await supabase.rpc("ensure_procurement_item_from_product", { p_product_id: product.id });
+      if (error || !data) throw error || new Error("تعذر ربط الصنف");
+      procIdByProductIdRef.current[product.id] = data as string;
+      bumpProcIdVersion(v => v + 1);
+      return data as string;
+    } catch (e: any) {
+      toast({ title: "تعذر إضافة الصنف للطلبية", description: e?.message || "", variant: "destructive" });
+      return null;
+    } finally {
+      setEnsuringId(null);
+    }
+  }, []);
+
+  // إضافة/تعديل بند: في وضع المخزون نربط الصنف تلقائياً بكتالوج المشتريات أولًا
+  const handleItemAction = useCallback(async (item: any, delta: number) => {
+    if (itemSource === "catalog") { addOrUpdateItem(item, delta); return; }
+    const procId = await ensureProcItem(item);
+    if (!procId) return;
+    addOrUpdateItem({ id: procId, name: item.name, unit: item.unit || "قطعة", default_price: Number(item.buy_price) || 0 }, delta);
+  }, [itemSource, ensureProcItem, addOrUpdateItem]);
 
   const filteredItems = useMemo(() => {
-    let result = allItems;
-    if (activeCategory) result = result.filter((i: any) => i.category_id === activeCategory);
+    let result: any[] = itemSource === "inventory" ? inventoryProducts : allItems;
+    if (itemSource === "inventory") {
+      if (activePosCategory === "__uncat") result = result.filter((i: any) => !i.pos_category_id);
+      else if (activePosCategory) result = result.filter((i: any) => i.pos_category_id === activePosCategory);
+    } else {
+      if (activeCategory) result = result.filter((i: any) => i.category_id === activeCategory);
+    }
     if (searchQuery) {
       result = result.filter((i: any) => multiWordMatchAny(searchQuery, i.name));
     }
     return result;
-  }, [allItems, activeCategory, searchQuery]);
+  }, [itemSource, inventoryProducts, allItems, activeCategory, activePosCategory, searchQuery]);
 
   const categoryCounts = useMemo(() => {
     const counts: Record<string, number> = {};
     allItems.forEach((i: any) => { if (i.category_id) counts[i.category_id] = (counts[i.category_id] || 0) + 1; });
     return counts;
   }, [allItems]);
+
+  const posCategoryCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    let uncat = 0;
+    inventoryProducts.forEach((i: any) => {
+      if (i.pos_category_id) counts[i.pos_category_id] = (counts[i.pos_category_id] || 0) + 1;
+      else uncat++;
+    });
+    return { counts, uncat };
+  }, [inventoryProducts]);
 
   const getLineQuantity = (itemId: string) => lines.find(l => l.product_id === itemId)?.quantity || 0;
   const totalQty = lines.reduce((s, l) => s + l.quantity, 0);
