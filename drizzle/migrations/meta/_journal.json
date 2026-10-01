@@ -386,6 +386,34 @@
       "when": 1790841370368,
       "tag": "0054_branch_receipt_footer_en",
       "breakpoints": true
+    },
+    {
+      "idx": 55,
+      "version": "7",
+      "when": 1790844763718,
+      "tag": "0055_cloud_backup_b2",
+      "breakpoints": true
+    },
+    {
+      "idx": 56,
+      "version": "7",
+      "when": 1790844799527,
+      "tag": "0056_cloud_backup_list_files",
+      "breakpoints": true
+    },
+    {
+      "idx": 57,
+      "version": "7",
+      "when": 1790844941313,
+      "tag": "0057_cloud_backup_cron_token",
+      "breakpoints": true
+    },
+    {
+      "idx": 58,
+      "version": "7",
+      "when": 1790845198239,
+      "tag": "0058_cloud_backup_runs_state",
+      "breakpoints": true
     }
   ]
 }

@@ -3562,6 +3562,72 @@ export type Database = {
           },
         ]
       }
+      cloud_backup_config: {
+        Row: {
+          cron_token: string
+          id: number
+        }
+        Insert: {
+          cron_token?: string
+          id?: number
+        }
+        Update: {
+          cron_token?: string
+          id?: number
+        }
+        Relationships: []
+      }
+      cloud_backup_runs: {
+        Row: {
+          backup_date: string
+          company_name: string | null
+          errors: Json
+          files_count: number
+          finished_at: string | null
+          folder: string
+          id: string
+          owner_id: string
+          records_count: number
+          size_bytes: number
+          started_at: string
+          state: Json
+          status: string
+          tables_count: number
+        }
+        Insert: {
+          backup_date?: string
+          company_name?: string | null
+          errors?: Json
+          files_count?: number
+          finished_at?: string | null
+          folder: string
+          id?: string
+          owner_id: string
+          records_count?: number
+          size_bytes?: number
+          started_at?: string
+          state?: Json
+          status?: string
+          tables_count?: number
+        }
+        Update: {
+          backup_date?: string
+          company_name?: string | null
+          errors?: Json
+          files_count?: number
+          finished_at?: string | null
+          folder?: string
+          id?: string
+          owner_id?: string
+          records_count?: number
+          size_bytes?: number
+          started_at?: string
+          state?: Json
+          status?: string
+          tables_count?: number
+        }
+        Relationships: []
+      }
       commissions: {
         Row: {
           base_amount: number
@@ -31113,6 +31179,22 @@ export type Database = {
           p_day_id: string
         }
         Returns: Json
+      }
+      cloud_backup_list_files: {
+        Args: { _owner: string }
+        Returns: {
+          bucket_id: string
+          mimetype: string
+          name: string
+          size: number
+        }[]
+      }
+      cloud_backup_table_catalog: {
+        Args: never
+        Returns: {
+          filter_column: string
+          table_name: string
+        }[]
       }
       complete_employee_hot_drink_order: {
         Args: {
