@@ -208,6 +208,7 @@ const PurchaseOrderCreatePage = () => {
     }
     return result;
   }, [mergedItems, activePosCategory, searchQuery]);
+  useEffect(() => { setGridLimit(GRID_PAGE); }, [filteredItems]);
 
   const posCategoryCounts = useMemo(() => {
     const counts: Record<string, number> = {};
