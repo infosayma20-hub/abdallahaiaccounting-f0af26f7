@@ -183,6 +183,7 @@ export const navigationSections: NavSection[] = [
             children: [
               { label: "كشف حساب مورد", path: "/procurement/supplier-statement" },
               { label: "التقرير الأسبوعي", path: "/procurement/weekly-report" },
+              { label: "أصناف الموردين", path: "/procurement/supplier-items" },
             ],
           },
           {
