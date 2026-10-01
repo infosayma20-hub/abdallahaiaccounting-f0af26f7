@@ -23,7 +23,7 @@ import { assertPermission } from "@/lib/permissions/assertPermission";
 import { usePosMode } from "@/hooks/usePosMode";
 import { supabase } from "@/integrations/supabase/client";
 import { pt, pname, usePosLang, setPosLang } from "@/i18n/pos-lang";
-import { setReceiptLanguage, setEnglishReceiptHeader, registerEnglishNames } from "@/lib/print-english";
+import { setReceiptLanguage, setEnglishReceiptHeader, registerEnglishNames, bridgeSupportsEnglish } from "@/lib/print-english";
 import { getDeviceBranchId as getDeviceBranchIdForLang } from "@/lib/device-config";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
@@ -499,6 +499,11 @@ const POSPage = () => {
         const d: any = data || {};
         setReceiptLanguage(d.receipt_language === "en" ? "en" : "ar");
         setPosLang(d.receipt_language === "en" ? "en" : "ar");
+        if (d.receipt_language === "en") {
+          bridgeSupportsEnglish().then((ok) => {
+            if (!ok) toast.warning("This device's print bridge is Arabic-only. Install the bilingual print bridge for full English printing.", { duration: 8000 });
+          });
+        }
         setEnglishReceiptHeader({ name: d.name_en, address: d.address_en, footer: d.receipt_footer_en });
       });
   }, []);
