@@ -1048,8 +1048,8 @@ function LineTotalInput({ quantity, unitPrice, onPrice }: { quantity: number; un
           setDraft(raw);
           const total = Number(raw);
           if (raw.trim() === "" || !Number.isFinite(total) || total < 0 || !canSplit) return;
-          // سعر الوحدة يُخزَّن بخانتين عشريتين، لذا نقرّب هنا؛ عند الخروج يظهر المجموع الفعلي بعد التقريب
-          onPrice(Math.round((total / quantity) * 100) / 100);
+          // سعر الوحدة بست خانات عشرية حتى يرجع المجموع كما كتبه المستخدم بالضبط (400 ÷ 230 = 1.739130)
+          onPrice(Math.round((total / quantity) * 1e6) / 1e6);
         }}
         onBlur={() => setDraft(null)}
         className="h-6 w-20 text-center text-xs font-bold px-1"
