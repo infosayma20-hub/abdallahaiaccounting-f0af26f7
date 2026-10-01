@@ -42,12 +42,16 @@ interface InvoiceLine {
 const ProcurementInvoiceCreatePage = () => {
   const [searchParams] = useSearchParams();
   const orderId = searchParams.get("orderId");
+  const invoiceId = searchParams.get("invoiceId");
 
   // ─── Unification: direct purchase invoice creation now uses the unified
   // /invoices/new?type=purchase page (same UI/UX as sales). This page is kept
   // ONLY for the "receive from Purchase Order" flow which has unique logic
   // (received vs ordered quantity, supplier invoice image upload + AI extract,
   // writes to purchase_invoices with stock movements).
+  if (invoiceId) {
+    return <PurchaseInvoiceView invoiceId={invoiceId} />;
+  }
   if (!orderId) {
     return <Navigate to="/invoices/new?type=purchase" replace />;
   }
