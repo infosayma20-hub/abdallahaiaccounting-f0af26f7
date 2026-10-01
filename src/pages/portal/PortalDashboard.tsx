@@ -8,11 +8,12 @@ import {
   Home, Wallet, ClipboardList, BarChart3, MoreHorizontal,
   Settings, Bell, Sun, Moon, LogOut, Store, Factory,
   FileText, HandCoins, Send, Plus, RefreshCw, ChevronLeft,
-  X, Users, Package, CalendarClock, Megaphone, GraduationCap, Timer, Receipt, Star, MessageSquareWarning, CreditCard
+  X, Users, Package, CalendarClock, Megaphone, GraduationCap, Timer, Receipt, Star, MessageSquareWarning, CreditCard, BriefcaseBusiness
 } from 'lucide-react';
 import PortalLiquidityTab from './PortalLiquidityTab';
 import PortalChequesTab from './PortalChequesTab';
 import PortalEmployeeRequestsTab from './PortalEmployeeRequestsTab';
+import PortalJobApplicationsTab from './PortalJobApplicationsTab';
 import PortalSupplierBalancesTab from './PortalSupplierBalancesTab';
 import PortalAttendanceTab from './PortalAttendanceTab';
 import PortalTasksTab from './PortalTasksTab';
@@ -178,6 +179,7 @@ export default function PortalDashboard() {
   const [activeIndex, setActiveIndex] = useState(0);
   const [showTasksPage, setShowTasksPage] = useState(false);
   const [showEmployeeRequests, setShowEmployeeRequests] = useState(false);
+  const [showJobApplicationsPage, setShowJobApplicationsPage] = useState(false);
   const [focusFormId, setFocusFormId] = useState<string | null>(null);
   const [notifOpen, setNotifOpen] = useState(false);
   const [showRosterPage, setShowRosterPage] = useState(false);
@@ -340,7 +342,7 @@ export default function PortalDashboard() {
   const themeMode = darkMode ? 'dark' as const : 'light' as const;
   // ملاحظة: closeAllPages أدناه يشمل صفحة «مسحوباتي»
   const closeAllPages = () => {
-    setShowMore(false); setShowTasksPage(false); setShowEmployeeRequests(false);
+    setShowMore(false); setShowTasksPage(false); setShowEmployeeRequests(false); setShowJobApplicationsPage(false);
     setShowRosterPage(false); setShowBranchHoursPage(false); setShowCampaignsPage(false);
     setShowFormsPage(false); setShowTrainingPage(false); setShowOrdersPage(false);
     setShowTrackingPage(false); setShowPettyCashPage(false); setShowLoyaltyPage(false);
@@ -368,6 +370,7 @@ export default function PortalDashboard() {
   const moreItems: { label: string; icon: any; color: string; group: string; action: () => void }[] = [
     { label: 'المهام', icon: ClipboardList, color: '#F59E0B', group: 'العمليات', action: () => { setShowMore(false); setShowEmployeeRequests(false); setShowRosterPage(false); setActiveTab('home'); setShowTasksPage(true); } },
     { label: 'طلبات الموظفين', icon: FileText, color: '#2563EB', group: 'الموارد البشرية', action: () => { setShowMore(false); setShowTasksPage(false); setShowRosterPage(false); setActiveTab('home'); setShowEmployeeRequests(true); } },
+    { label: 'طلبات التوظيف', icon: BriefcaseBusiness, color: '#0D9488', group: 'الموارد البشرية', action: () => { setShowMore(false); setShowTasksPage(false); setShowEmployeeRequests(false); setActiveTab('home'); setShowJobApplicationsPage(true); } },
     { label: 'النماذج المُسندة', icon: FileText, color: '#0EA5E9', group: 'الموارد البشرية', action: () => { setShowMore(false); setShowTasksPage(false); setShowEmployeeRequests(false); setShowRosterPage(false); setShowBranchHoursPage(false); setShowCampaignsPage(false); setActiveTab('home'); setShowFormsPage(true); } },
     ...(canViewEvaluations ? [{ label: 'تقييم الموظفين', icon: Star, color: '#B45309', group: 'الموارد البشرية', action: () => { closeAllPages(); setActiveTab('home'); setFocusEvaluationId(null); setShowEvaluationsPage(true); } }] : []),
     { label: 'جداول الدوام', icon: CalendarClock, color: '#7C3AED', group: 'الموارد البشرية', action: () => { setShowMore(false); setShowTasksPage(false); setShowEmployeeRequests(false); setActiveTab('home'); setShowRosterPage(true); } },
@@ -602,6 +605,7 @@ export default function PortalDashboard() {
       );
     }
     if (showEmployeeRequests) return <PortalEmployeeRequestsTab theme={themeMode} focusFormId={focusFormId} onBackToNotifications={() => setNotifOpen(true)} />;
+    if (showJobApplicationsPage) return <PortalJobApplicationsTab theme={themeMode} ownerId={linkedUserId || user?.user_id || undefined} />;
     if (showOrdersPage) {
       return (
         <div>
