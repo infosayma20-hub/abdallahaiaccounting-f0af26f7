@@ -64,12 +64,22 @@ const EN_LABELS = [
 ];
 
 function enTranslateText(raw) {
-  let s = String(raw);
-  if (!/[\u0600-\u06FF]/.test(s)) return s;
+  // Only static labels are translated: exact match, or a label used as a
+  // prefix ("طاولة: 5", "عجز - ₪3", "ملاحظة: ..."). Free text such as item
+  // or customer names is never partially rewritten.
+  const s = String(raw);
+  const t = s.trim();
+  if (!/[\u0600-\u06FF]/.test(t)) return s;
   for (const [ar, en] of EN_LABELS) {
-    if (s.indexOf(ar) !== -1) s = s.split(ar).join(en);
+    if (t === ar) return en;
   }
-  return s.replace(/\s{2,}/g, ' ').trim();
+  for (const [ar, en] of EN_LABELS) {
+    if (t.startsWith(ar + ' ') || (ar.endsWith(':') && t.startsWith(ar))) {
+      return (en + ' ' + t.slice(ar.length).trim()).trim();
+    }
+  }
+  // "₪5 وردية 2" style suffixes (cashier · shift N)
+  return t.replace(/(^|\s)وردية(\s+\d+)/g, '$1Shift$2');
 }
 
 /** Mirror a finished SVG left↔right and translate the Arabic labels. */
