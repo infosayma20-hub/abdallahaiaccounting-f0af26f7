@@ -1,0 +1,1 @@
+ALTER TABLE public.cloud_backup_runs ADD COLUMN IF NOT EXISTS state jsonb NOT NULL DEFAULT '{}'::jsonb;
