@@ -110,7 +110,6 @@ import {
 import { CSS } from "@dnd-kit/utilities";
 import { multiWordMatchAny, normalizeArabicSearch } from "@/lib/utils";
 import GeneralManagerCelebration from "@/components/pos/GeneralManagerCelebration";
-import EmployeeHotDrinksMenu, { type EmployeeHotDrinkSelection } from "@/components/pos/EmployeeHotDrinksMenu";
 
 // Types
 interface CartItem {
@@ -525,7 +524,6 @@ const POSPage = () => {
   const [mealWarnAtPct, setMealWarnAtPct] = useState<number>(80);
   // Monthly meal totals for currently selected employee
   const [employeeMealMonthly, setEmployeeMealMonthly] = useState<{ family: number; individual: number }>({ family: 0, individual: 0 });
-  const [showEmployeeHotDrinks, setShowEmployeeHotDrinks] = useState(false);
   const [employeeHotDrinkOrder, setEmployeeHotDrinkOrder] = useState(false);
   const [posDayCutoffHour, setPosDayCutoffHour] = useState(DEFAULT_POS_CUTOFF_HOUR);
   // زبائن بدون ميزة وجبات الموظفين (وضع تجزئة مثلاً): نتجاهل النمط الثنائي تماماً
@@ -2799,45 +2797,6 @@ const POSPage = () => {
     loadEmployeeBalance(emp.id);
   }, [setCustomerName]);
 
-  const hotDrinkCategory = useMemo(
-    () => posCategories.find((category) => category.name.trim() === "مشروبات ساخنة"),
-    [posCategories]
-  );
-
-  const employeeHotDrinks = useMemo(() => {
-    if (!hotDrinkCategory) return [];
-    return products.filter((product) => product.is_pos_available && product.pos_category_id === hotDrinkCategory.id);
-  }, [hotDrinkCategory, products]);
-
-  const startEmployeeHotDrinkOrder = useCallback((selection: EmployeeHotDrinkSelection) => {
-    const nextCart: CartItem[] = selection.items.map(({ product, quantity, discountedQuantity, regularQuantity, chargedAmount }) => ({
-      id: crypto.randomUUID(),
-      product_id: product.id,
-      name: product.name,
-      qty: quantity,
-      unit_price: quantity > 0 ? chargedAmount / quantity : product.sell_price,
-      base_price: product.sell_price,
-      cost_price: 0,
-      discount_pct: 0,
-      tax_rate: product.tax_rate,
-      unit: product.unit,
-      total: chargedAmount,
-      note: `[EMPLOYEE_HOT_DRINK] مخفض ${discountedQuantity} | عادي ${regularQuantity}`,
-      station_id: product.kitchen_station_id,
-      modifiers: [],
-      employee_hot_drink: true,
-    }));
-
-    setCart(nextCart);
-    setOrderDiscount(0);
-    setManagerDiscountMeta(null);
-    setOrderNote("منيو مشروبات الموظفين");
-    setEmployeeHotDrinkOrder(true);
-    setMealDiscountType("none");
-    selectEmployeeForPayment(selection.employee);
-    setShowEmployeeHotDrinks(false);
-    setShowPayment(true);
-  }, [selectEmployeeForPayment]);
 
   const filteredContacts = useMemo(() => {
     if (!customerSearch) return contacts;
@@ -7683,25 +7642,6 @@ const POSPage = () => {
             <StockoutAlertsBanner dataOwnerId={dataOwnerId} mode="icon" />
           )}
 
-          {isMalakyTenant && employeeMealsEnabled && (
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              className="h-9 gap-2 text-primary-foreground hover:bg-primary-foreground/10 hover:text-primary-foreground"
-              disabled={!session || employeeHotDrinks.length === 0}
-              onClick={() => {
-                if (cart.length > 0) {
-                  toast.error("أنه طلبك الحالي أولاً قبل فتح منيو مشروبات الموظفين");
-                  return;
-                }
-                setShowEmployeeHotDrinks(true);
-              }}
-            >
-              <Coffee className="h-4 w-4" />
-              <span className="hidden sm:inline">مشروبات الموظفين</span>
-            </Button>
-          )}
 
           {/* Tables — hidden for Malaky (unused) */}
           {!isMalakyTenant && (
@@ -10185,15 +10125,6 @@ const POSPage = () => {
       )}
 
       {/* Close Shift Dialog - Employee sees only cash count input */}
-      <EmployeeHotDrinksMenu
-        open={showEmployeeHotDrinks}
-        onOpenChange={setShowEmployeeHotDrinks}
-        dataOwnerId={dataOwnerId}
-        employees={employees}
-        drinks={employeeHotDrinks}
-        cutoffHour={posDayCutoffHour}
-        onConfirm={startEmployeeHotDrinkOrder}
-      />
 
       <Dialog open={showCloseShift} onOpenChange={setShowCloseShift}>
         <DialogContent className="sm:max-w-md" dir="rtl">
