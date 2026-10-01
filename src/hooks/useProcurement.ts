@@ -123,16 +123,25 @@ export function useProcurementItems() {
   const { dataOwnerId } = useDataOwnerId();
   useEffect(() => {
     if (!dataOwnerId) return;
-    supabase
-      .from("procurement_items")
-      .select("*")
-      .eq("user_id", dataOwnerId)
-      .eq("is_active", true)
-      .order("sort_order")
-      .then(({ data }) => {
-        setItems((data as any) || []);
-        setLoading(false);
-      });
+    // جلب كل الأصناف بدون سقف (افتراضي PostgREST 1000) — دفعات متتابعة
+    (async () => {
+      const all: any[] = [];
+      const PAGE = 1000;
+      for (let from = 0; ; from += PAGE) {
+        const { data } = await supabase
+          .from("procurement_items")
+          .select("*")
+          .eq("user_id", dataOwnerId)
+          .eq("is_active", true)
+          .order("sort_order")
+          .range(from, from + PAGE - 1);
+        if (!data || data.length === 0) break;
+        all.push(...data);
+        if (data.length < PAGE) break;
+      }
+      setItems(all);
+      setLoading(false);
+    })();
   }, [dataOwnerId]);
 
   return { items, loading };
