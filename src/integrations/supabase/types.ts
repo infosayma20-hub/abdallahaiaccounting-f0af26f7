@@ -19083,6 +19083,47 @@ export type Database = {
           },
         ]
       }
+      procurement_order_edits: {
+        Row: {
+          after_data: Json
+          before_data: Json
+          edited_at: string
+          edited_by: string | null
+          id: string
+          order_id: string
+          owner_id: string
+          status_at_edit: string | null
+        }
+        Insert: {
+          after_data: Json
+          before_data: Json
+          edited_at?: string
+          edited_by?: string | null
+          id?: string
+          order_id: string
+          owner_id: string
+          status_at_edit?: string | null
+        }
+        Update: {
+          after_data?: Json
+          before_data?: Json
+          edited_at?: string
+          edited_by?: string | null
+          id?: string
+          order_id?: string
+          owner_id?: string
+          status_at_edit?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "procurement_order_edits_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "procurement_orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       procurement_order_items: {
         Row: {
           branch_id: string | null
@@ -33415,6 +33456,10 @@ export type Database = {
         }
         Returns: Json
       }
+      procurement_order_edit_block_reason: {
+        Args: { p_order_id: string }
+        Returns: string
+      }
       provision_branch_fx_boxes: {
         Args: { p_user_id: string }
         Returns: {
@@ -34056,6 +34101,10 @@ export type Database = {
         Returns: undefined
       }
       update_last_seen: { Args: never; Returns: undefined }
+      update_procurement_order: {
+        Args: { p_header: Json; p_items: Json; p_order_id: string }
+        Returns: Json
+      }
       update_voucher_atomic: {
         Args: {
           p_allocations?: Json
