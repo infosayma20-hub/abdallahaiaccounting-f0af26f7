@@ -344,6 +344,13 @@
       "when": 1790761743707,
       "tag": "0048_branches_mobile_only_attendance",
       "breakpoints": true
+    },
+    {
+      "idx": 49,
+      "version": "7",
+      "when": 1790833948893,
+      "tag": "0049_attendance_unified_rules_atomic_dismissals",
+      "breakpoints": true
     }
   ]
 }
