@@ -791,7 +791,10 @@ const PurchaseOrderCreatePage = () => {
                           onClick={() => updateLine(line.id, "quantity", line.quantity + 1)}>
                           <Plus className="h-3 w-3" />
                         </button>
-                        <span className="text-[10px] text-muted-foreground shrink-0">{line.unit} ×</span>
+                        <div className="w-20 shrink-0 [&_button]:h-6 [&_button]:text-[10px] [&_button]:px-1">
+                          <ProductUnitSelect value={line.unit} onChange={v => updateLine(line.id, "unit", v)} ownerId={ownerId} />
+                        </div>
+                        <span className="text-[10px] text-muted-foreground shrink-0">×</span>
                         <Input type="number" value={line.unit_price} min={0} step="any"
                           onChange={e => updateLine(line.id, "unit_price", Number(e.target.value))}
                           className={`h-6 w-16 text-center text-xs px-0 ${line.unit_price === 0 ? "border-[#D97706] bg-[#D97706]/10" : ""}`}
