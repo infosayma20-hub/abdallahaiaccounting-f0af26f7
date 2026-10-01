@@ -7275,7 +7275,7 @@ const POSPage = () => {
 
   if (loading) {
     return (
-      <div className="h-screen flex items-center justify-center bg-background" dir="rtl">
+      <div className="h-screen flex items-center justify-center bg-background" dir={posDir}>
         <div
           className="w-10 h-10 rounded-full border-2 border-transparent"
           style={{
@@ -7455,7 +7455,7 @@ const POSPage = () => {
                   <PlusCircle className="h-3 w-3 text-primary shrink-0" />
                   <span className="text-[11px] font-medium text-primary">إضافة "{customerSearch}" كزبون جديد</span>
                 </div>
-                         <div className="flex items-center gap-1.5" dir="rtl">
+                         <div className="flex items-center gap-1.5" dir={posDir}>
                   <input
                     type="tel"
                     inputMode="numeric"
@@ -7729,7 +7729,7 @@ const POSPage = () => {
               <MoreHorizontal className="h-5 w-5" style={{ color: "rgba(255,255,255,0.7)" }} />
             </button>
             {showOpsDropdown && (
-              <div className="absolute top-full mt-1 right-0 z-50 rounded-lg shadow-xl min-w-[200px] py-1 border" style={{ background: "#fff", color: "#1a1a1a" }} dir="rtl">
+              <div className="absolute top-full mt-1 right-0 z-50 rounded-lg shadow-xl min-w-[200px] py-1 border" style={{ background: "#fff", color: "#1a1a1a" }} dir={posDir}>
                 {/* Compact nav entries — visible only when the icon shortcuts above are hidden (narrow screens) */}
                 <div className={isMalakyTenant ? "hidden" : "xl:hidden"}>
                   <button className="w-full text-right px-4 py-2 text-xs flex items-center gap-2 hover:bg-gray-100 transition-colors" onClick={() => { navigate("/pos/kitchen"); setShowOpsDropdown(false); }}>
@@ -8012,7 +8012,7 @@ const POSPage = () => {
                 strategy={rectSortingStrategy}
                 disabled={!isSortMode}
               >
-                <div dir="rtl" className={`p-2 grid ${
+                <div dir={posDir} className={`p-2 grid ${
                   filteredProducts.length <= 10 && filteredProducts.length > 0
                     ? filteredProducts.length <= 3
                       ? "grid-cols-2 sm:grid-cols-3 lg:grid-cols-3 gap-3"
@@ -8147,7 +8147,7 @@ const POSPage = () => {
                                   : cardSize === "S" 
                                     ? "text-[12px]" 
                                     : "text-[14px]"
-                              }`} dir="rtl" style={{ unicodeBidi: "plaintext", color: posDarkMode ? 'white' : '#1e293b', fontWeight: 500 }}>
+                              }`} dir={posDir} style={{ unicodeBidi: "plaintext", color: posDarkMode ? 'white' : '#1e293b', fontWeight: 500 }}>
                                 {pname(product as any)}
                               </p>
 
@@ -8388,7 +8388,7 @@ const POSPage = () => {
               {(isAdmin || posPerms.can_remove_cart_items) && <span className="w-6" />}
             </div>
           )}
-          <ScrollArea className="flex-1" dir="rtl">
+          <ScrollArea className="flex-1" dir={posDir}>
             <div className="px-3">
               {cart.length === 0 ? (
                 <div className="py-16 text-center">
@@ -8569,7 +8569,7 @@ const POSPage = () => {
 
                         {/* Modifier sub-items */}
                         {item.modifiers && item.modifiers.length > 0 && (
-                          <div className="mr-4 mt-0.5 flex flex-wrap items-center gap-x-1.5 gap-y-1" dir="rtl">
+                          <div className="mr-4 mt-0.5 flex flex-wrap items-center gap-x-1.5 gap-y-1" dir={posDir}>
                             {item.modifiers.map((mod, mi) => (
                               <span
                                 key={mi}
@@ -9073,7 +9073,7 @@ const POSPage = () => {
 
       {/* Open Shift Dialog */}
       <Dialog open={showOpenShift} onOpenChange={(v) => { if (!v && !session) navigate(isAdmin ? "/apps" : "/choose-workspace", { replace: true }); setShowOpenShift(v); }}>
-        <DialogContent className="sm:max-w-md" dir="rtl">
+        <DialogContent className="sm:max-w-md" dir={posDir}>
           <DialogHeader>
             <DialogTitle className="text-xl">{pt("فتح وردية جديدة")}</DialogTitle>
           </DialogHeader>
@@ -9209,7 +9209,7 @@ const POSPage = () => {
 
       {/* Change Password Dialog (first login) */}
       <Dialog open={showChangePassword} onOpenChange={() => {}}>
-        <DialogContent className="sm:max-w-md" dir="rtl" onPointerDownOutside={(e) => e.preventDefault()} onEscapeKeyDown={(e) => e.preventDefault()}>
+        <DialogContent className="sm:max-w-md" dir={posDir} onPointerDownOutside={(e) => e.preventDefault()} onEscapeKeyDown={(e) => e.preventDefault()}>
           <DialogHeader>
             <DialogTitle className="text-xl">{pt("🔐 تغيير كلمة المرور")}</DialogTitle>
           </DialogHeader>
@@ -9245,7 +9245,7 @@ const POSPage = () => {
       </Dialog>
 
       <Dialog open={showDeviceBlocked} onOpenChange={async (v) => { if (!v) { await supabase.auth.signOut(); navigate("/auth", { replace: true }); } setShowDeviceBlocked(v); }}>
-        <DialogContent className="sm:max-w-md" dir="rtl" onPointerDownOutside={(e) => e.preventDefault()} onEscapeKeyDown={(e) => e.preventDefault()}>
+        <DialogContent className="sm:max-w-md" dir={posDir} onPointerDownOutside={(e) => e.preventDefault()} onEscapeKeyDown={(e) => e.preventDefault()}>
           <DialogHeader>
             <DialogTitle className="text-xl text-destructive flex items-center gap-2">
               <AlertCircle className="h-6 w-6" />
@@ -9271,7 +9271,7 @@ const POSPage = () => {
 
       {/* Shortcuts Guide Dialog */}
       <Dialog open={showShortcutsGuide} onOpenChange={setShowShortcutsGuide}>
-        <DialogContent className="sm:max-w-lg" dir="rtl">
+        <DialogContent className="sm:max-w-lg" dir={posDir}>
           <DialogHeader>
             <DialogTitle className="text-xl flex items-center gap-2">
               <Keyboard className="h-5 w-5" />
@@ -9337,7 +9337,7 @@ const POSPage = () => {
           <div
             className="w-full max-h-[95vh] overflow-hidden flex flex-col shadow-2xl"
             style={{ background: '#ffffff', borderRadius: 4, border: '1px solid #d1d5db', maxWidth: 560 }}
-            dir="rtl"
+            dir={posDir}
           >
             {/* Header — Dynamics 365 Finance style: flat, dense, accent bar */}
             <div
@@ -10195,7 +10195,7 @@ const POSPage = () => {
       {/* Close Shift Dialog - Employee sees only cash count input */}
 
       <Dialog open={showCloseShift} onOpenChange={setShowCloseShift}>
-        <DialogContent className="sm:max-w-md" dir="rtl">
+        <DialogContent className="sm:max-w-md" dir={posDir}>
           <DialogHeader>
             <DialogTitle className="text-xl">{pt("تسليم العهدة")}</DialogTitle>
           </DialogHeader>
@@ -10269,7 +10269,7 @@ const POSPage = () => {
 
       {/* Logout after Shift Close — cashier must log out, admin can stay */}
       <Dialog open={showLogoutConfirm} onOpenChange={() => {}}>
-        <DialogContent className="sm:max-w-sm" dir="rtl" onPointerDownOutside={(e) => e.preventDefault()}>
+        <DialogContent className="sm:max-w-sm" dir={posDir} onPointerDownOutside={(e) => e.preventDefault()}>
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-lg">
               <CheckCircle className="h-5 w-5 text-green-600" />
@@ -10299,7 +10299,7 @@ const POSPage = () => {
 
       {/* ── Add Product Dialog ── */}
       <Dialog open={showAddProduct} onOpenChange={setShowAddProduct}>
-        <DialogContent className="max-w-md" dir="rtl">
+        <DialogContent className="max-w-md" dir={posDir}>
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-lg">
               <PlusCircle className="h-5 w-5 text-primary" />
@@ -10442,7 +10442,7 @@ const POSPage = () => {
 
       {/* ── Category Manager Dialog ── */}
       <Dialog open={showCategoryManager} onOpenChange={setShowCategoryManager}>
-        <DialogContent className="max-w-lg" dir="rtl">
+        <DialogContent className="max-w-lg" dir={posDir}>
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-lg">
               <Tag className="h-5 w-5 text-primary" />
@@ -10559,7 +10559,7 @@ const POSPage = () => {
 
       {/* ── Kitchen Ticket Dialog ── */}
       <Dialog open={showKitchenTicket} onOpenChange={setShowKitchenTicket}>
-        <DialogContent className="max-w-sm max-h-[80vh] overflow-y-auto" dir="rtl">
+        <DialogContent className="max-w-sm max-h-[80vh] overflow-y-auto" dir={posDir}>
           <div className="text-center space-y-1 pb-2 border-b border-dashed border-border">
             <p className="text-lg font-bold">{pt("🍳 تذاكر المطبخ")}</p>
             <p className="text-xs text-muted-foreground">{new Date().toLocaleDateString("ar-PS")}</p>
@@ -10710,7 +10710,7 @@ const POSPage = () => {
 
       {/* Quick Add Customer Dialog */}
       <Dialog open={showQuickAddCustomer} onOpenChange={setShowQuickAddCustomer}>
-        <DialogContent className="sm:max-w-sm" dir="rtl">
+        <DialogContent className="sm:max-w-sm" dir={posDir}>
           <DialogHeader>
             <DialogTitle className="text-base font-bold flex items-center gap-2">
               <PlusCircle className="h-5 w-5 text-primary" />
@@ -11053,7 +11053,7 @@ const POSPage = () => {
 
       {/* Confirm Delete Product Dialog */}
       <Dialog open={!!confirmDeleteProduct} onOpenChange={(v) => { if (!v) setConfirmDeleteProduct(null); }}>
-        <DialogContent className="max-w-xs z-[1200]" dir="rtl">
+        <DialogContent className="max-w-xs z-[1200]" dir={posDir}>
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-destructive text-base">
               <Trash2 className="h-5 w-5" />
