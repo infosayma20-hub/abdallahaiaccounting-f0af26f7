@@ -23,6 +23,7 @@ import { useAllowedWarehouses } from "@/hooks/useAllowedWarehouses";
 import { useToast } from "@/hooks/use-toast";
 import { useCompanySettings } from "@/hooks/useCompanySettings";
 import { supabase } from "@/integrations/supabase/client";
+import { exportEnglishNames, importEnglishNames } from "@/lib/english-names-excel";
 import { multiWordMatchAny } from "@/lib/utils";
 import {
   FinanceShell, ColumnVisibilityMenu, useColumnVisibility, applyFilters,
@@ -983,6 +984,21 @@ const negStock = displayProducts.filter(p => Number(p.quantity) < 0).length;
         key: "actions", label: "إجراءات", items: [
           { key: "refresh", label: "تحديث",  icon: RefreshCw, onClick: fetchProducts, disabled: loading },
           { key: "import",  label: "استيراد", icon: Upload,    disabled: true, tooltip: "غير مفعّل حالياً" },
+          { key: "en-export", label: "تصدير الأسماء الإنجليزية", icon: Download, disabled: !ownerId,
+            onClick: async () => { try { const n = await exportEnglishNames(ownerId!); toast.success(`تم تصدير ${n} صنف`); } catch (e: any) { toast.error(e.message); } } },
+          { key: "en-import", label: "استيراد الأسماء الإنجليزية", icon: Upload, disabled: !ownerId,
+            onClick: () => {
+              const inp = document.createElement("input"); inp.type = "file"; inp.accept = ".xlsx,.xls";
+              inp.onchange = async () => {
+                const f = inp.files?.[0]; if (!f || !ownerId) return;
+                try {
+                  const r = await importEnglishNames(f, ownerId);
+                  toast.success(`تم تحديث ${r.updated} اسم إنجليزي${r.notFound ? ` — ${r.notFound} سطر غير مطابق` : ""}${r.failed ? ` — فشل ${r.failed}` : ""}`);
+                  fetchProducts();
+                } catch (e: any) { toast.error(e.message); }
+              };
+              inp.click();
+            } },
         ],
       },
       {
