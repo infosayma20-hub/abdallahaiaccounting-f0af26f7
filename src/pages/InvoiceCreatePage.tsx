@@ -3097,9 +3097,9 @@ const InvoiceCreatePage = () => {
                 <p className="text-[10px] text-primary mt-1 font-medium">{tt("✨ سيتم إنشاء جهة اتصال جديدة تلقائياً")}</p>
               )}
               {/* رقم المشتغل المرخص + المستودع + نوع الفاتورة — كلها بصف واحد لتسريع الإدخال */}
-              <div className="mt-2 flex items-end gap-2">
-                <div className="flex-1 min-w-0">
-                  <label className="text-[10px] text-muted-foreground mb-0.5 block font-medium">
+              <div className="mt-2 flex flex-wrap items-end gap-2">
+                <div className="flex-1 min-w-[160px]">
+                  <label className="text-[10px] text-muted-foreground mb-0.5 block font-medium whitespace-nowrap">
                     {tt("رقم المشتغل المرخص")}
                   </label>
                   <Input
