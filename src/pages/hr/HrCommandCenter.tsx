@@ -29,17 +29,17 @@ export default function HrCommandCenter() {
         <p className="text-sm text-muted-foreground mt-1">اختر التطبيق</p>
       </div>
 
-      <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-10 gap-2">
+      <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-7 gap-3">
         {items.map(({ to, label, Icon, chip }) => (
           <Link
             key={to}
             to={to}
-            className="group flex flex-col items-center gap-1.5 rounded-2xl border border-border bg-card p-2.5 text-center shadow-sm transition hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            className="group flex flex-col items-center gap-2.5 rounded-2xl border border-border bg-card px-3 py-5 text-center shadow-sm transition hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
-            <span className={cn("flex h-10 w-10 items-center justify-center rounded-xl", chip)}>
-              <Icon className="h-5 w-5" />
+            <span className={cn("flex h-14 w-14 items-center justify-center rounded-2xl", chip)}>
+              <Icon className="h-7 w-7" />
             </span>
-            <span className="text-[11px] font-medium leading-tight text-foreground">{label}</span>
+            <span className="text-sm font-medium leading-tight text-foreground">{label}</span>
           </Link>
         ))}
       </div>
