@@ -349,17 +349,17 @@ function ReceivingSession({ sessionId }: { sessionId: string }) {
           <Badge variant={session.status === "submitted" ? "default" : "outline"}>{receivingStatusLabel[session.status]}</Badge>
         </div>
       </>}>
-      <div className="space-y-3 p-3 md:p-6">
+      <div className="space-y-2 p-2 md:p-6">
         {session.order_notes && <div className="border-r-4 border-primary bg-card px-3 py-2 text-sm font-medium text-foreground">📝 {session.order_notes}</div>}
         {/* Scan bar — compact */}
         {editable ? (
           <form onSubmit={e => { e.preventDefault(); burst.reset(); const v = code; setCode(""); handleScan(v); }}
-            className={`flex flex-wrap items-center gap-2 border bg-card px-3 py-2 transition-colors ${flash ? (flash.ok ? "border-primary" : "border-destructive") : "border-border"}`}>
+            className={`flex flex-wrap items-center gap-2 border bg-card px-2 py-1.5 transition-colors ${flash ? (flash.ok ? "border-primary" : "border-destructive") : "border-border"}`}>
             <ScanLine className="h-4 w-4 shrink-0 text-primary" />
             <Input ref={inputRef} value={code} onChange={e => { setCode(e.target.value); burst.onChange(e.target.value); }} onBlur={focus}
               inputMode="none" autoComplete="off" placeholder="امسح الباركود…"
-              className="h-9 min-w-36 flex-1 font-mono text-sm" />
-            <Button type="button" size="icon" variant="outline" className="h-9 w-9 shrink-0" title="مسح بالكاميرا"
+              className="h-8 min-w-32 flex-1 font-mono text-sm" />
+            <Button type="button" size="icon" variant="outline" className="h-8 w-8 shrink-0" title="مسح بالكاميرا"
               onClick={e => { e.stopPropagation(); setCameraLine(null); setCameraOpen(true); }}>
               <Camera className="h-4 w-4" />
             </Button>
@@ -376,65 +376,62 @@ function ReceivingSession({ sessionId }: { sessionId: string }) {
 
         {/* Lines */}
         <div className="overflow-hidden border bg-card">
-          <div className="border-b bg-muted/60 px-4 py-2 text-xs font-semibold text-muted-foreground">بنود الطلبية ({totals.count})</div>
+          <div className="border-b bg-muted/60 px-2 py-1.5 text-[11px] font-semibold text-muted-foreground">بنود الطلبية ({totals.count})</div>
           {session.lines.map(l => {
             const diff = Number(l.scanned_qty) - Number(l.target_qty);
             const state = diff === 0 ? "done" : diff > 0 ? "over" : Number(l.scanned_qty) > 0 ? "partial" : "none";
             const cls = state === "done" ? "bg-primary/5" : state === "over" ? "bg-destructive/5" : state === "partial" ? "bg-accent/20" : "";
+            const barcodes = [l.barcode, ...(l.extra_barcodes || [])].filter(Boolean) as string[];
             return (
-              <div key={l.id} className={`border-b p-3 last:border-b-0 ${cls} ${lastLineId === l.id ? "ring-2 ring-inset ring-primary" : ""}`}>
-                <div className="flex flex-wrap items-center gap-3">
+              <div key={l.id} className={`border-b px-2 py-1 last:border-b-0 ${cls} ${lastLineId === l.id ? "ring-2 ring-inset ring-primary" : ""}`}>
+                <div className="flex items-center gap-1.5">
                   <div className="min-w-0 flex-1">
-                    <div className="break-words text-sm font-bold leading-snug text-foreground">{l.item_name}</div>
-                    <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-                      <span className="font-mono">{l.barcode || (l.extra_barcodes?.[0]) || "بدون باركود"}</span>
-                      {l.unit && <span>· {l.unit}</span>}
-                      {l.branch_name && <span>· 📍 {l.branch_name}</span>}
-                      {l.note && <span className="text-destructive">· {l.note}</span>}
-                      {Number(l.received_before) > 0 && <span>· مستلم سابقاً {Number(l.received_before)} من {Number(l.ordered_qty)}</span>}
+                    <div className="truncate text-xs font-bold leading-tight text-foreground" title={l.item_name}>{l.item_name}</div>
+                    <div className="truncate text-[10px] leading-tight text-muted-foreground">
+                      {barcodes.length > 0
+                        ? barcodes.map((b, i) => <span key={`${b}-${i}`} className="font-mono">{i > 0 && <span className="px-0.5">+</span>}{b}</span>)
+                        : "بدون باركود"}
+                      {l.unit && <span> · {l.unit}</span>}
+                      {l.branch_name && <span> · {l.branch_name}</span>}
+                      {l.note && <span className="text-destructive"> · {l.note}</span>}
+                      {Number(l.received_before) > 0 && <span> · سابقاً {Number(l.received_before)}/{Number(l.ordered_qty)}</span>}
+                      <span className={`font-bold ${state === "done" ? "text-primary" : state === "over" ? "text-destructive" : state === "partial" ? "text-accent-foreground" : ""}`}>
+                        {state === "done" ? " · مكتمل" : state === "over" ? ` · زايد ${diff}` : state === "partial" ? ` · ناقص ${-diff}` : ""}
+                      </span>
                     </div>
-                    {l.item_notes && <div className="mt-1 text-sm font-medium text-accent-foreground bg-accent/40 rounded px-2 py-0.5">📝 {l.item_notes}</div>}
+                    {l.item_notes && <div className="truncate text-[10px] font-medium text-accent-foreground" title={l.item_notes}>📝 {l.item_notes}</div>}
                   </div>
-                  <div className="text-center">
-                    {editable ? (
-                      <div className="flex items-center justify-center gap-1">
-                        <Input
-                          key={`${l.id}:${Number(l.scanned_qty)}`}
-                          type="number" inputMode="decimal" min={0} step="any"
-                          defaultValue={Number(l.scanned_qty)}
-                          onFocus={e => e.target.select()}
-                          onKeyDown={e => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); }}
-                          onBlur={e => { void setQty(l, Number(e.target.value)); }}
-                          className="h-12 w-24 text-center text-2xl font-bold"
-                        />
-                        <span className="text-base text-muted-foreground">/ {Number(l.target_qty)}</span>
-                      </div>
-                    ) : (
-                      <div className="text-2xl font-bold">{Number(l.scanned_qty)}<span className="text-base text-muted-foreground"> / {Number(l.target_qty)}</span></div>
-                    )}
-                    <div className={`text-xs font-bold ${state === "done" ? "text-primary" : state === "over" ? "text-destructive" : "text-muted-foreground"}`}>
-                      {state === "done" ? "مكتمل" : state === "over" ? `زايد ${diff}` : `ناقص ${-diff}`}
-                    </div>
-                  </div>
-                  {editable && (
-                    <div className="flex items-center gap-1">
-                      <Button variant="ghost" size="icon" className="h-11 w-11" title="مسح بالكاميرا لهذا الصنف"
+                  {editable ? (
+                    <div className="flex shrink-0 items-center gap-0.5">
+                      <Input
+                        key={`${l.id}:${Number(l.scanned_qty)}`}
+                        type="number" inputMode="decimal" min={0} step="any"
+                        defaultValue={Number(l.scanned_qty)}
+                        onFocus={e => e.target.select()}
+                        onKeyDown={e => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); }}
+                        onBlur={e => { void setQty(l, Number(e.target.value)); }}
+                        className="h-8 w-11 px-0 text-center text-sm font-bold"
+                      />
+                      <span className="w-7 shrink-0 text-[10px] text-muted-foreground">/ {Number(l.target_qty)}</span>
+                      <Button variant="outline" size="icon" className="h-7 w-7" onClick={e => { e.stopPropagation(); bump(l, -1); }}><Minus className="h-3 w-3" /></Button>
+                      <Button variant="outline" size="icon" className="h-7 w-7" onClick={e => { e.stopPropagation(); bump(l, 1); }}><Plus className="h-3 w-3" /></Button>
+                      <Button variant="ghost" size="icon" className="h-7 w-7" title="مسح بالكاميرا لهذا الصنف"
                         onClick={e => { e.stopPropagation(); setCameraLine(l); setCameraOpen(true); }}>
-                        <Camera className="h-5 w-5" />
+                        <Camera className="h-3.5 w-3.5" />
                       </Button>
-                      <Button variant="outline" size="icon" className="h-11 w-11" onClick={e => { e.stopPropagation(); bump(l, -1); }}><Minus className="h-5 w-5" /></Button>
-                      <Button variant="outline" size="icon" className="h-11 w-11" onClick={e => { e.stopPropagation(); bump(l, 1); }}><Plus className="h-5 w-5" /></Button>
                     </div>
+                  ) : (
+                    <div className="shrink-0 text-sm font-bold">{Number(l.scanned_qty)}<span className="text-[10px] text-muted-foreground"> / {Number(l.target_qty)}</span></div>
                   )}
                 </div>
                 {Number(l.scanned_qty) > 0 && (
-                  <div className="mt-2 flex items-center gap-2 border-t pt-2" onClick={e => e.stopPropagation()}>
-                    <span className={`text-sm font-bold ${l.expiry_date ? "text-foreground" : "text-destructive"}`}>تاريخ الانتهاء *</span>
+                  <div className="mt-1 flex items-center gap-1.5 border-t pt-1" onClick={e => e.stopPropagation()}>
+                    <span className={`shrink-0 text-[10px] font-bold ${l.expiry_date ? "text-muted-foreground" : "text-destructive"}`}>تاريخ الانتهاء *</span>
                     {editable ? (
                       <Input type="date" min={today} value={l.expiry_date || ""} onChange={e => setExpiry(l, e.target.value)}
                         onBlur={focus}
-                        className={`h-11 flex-1 sm:flex-none sm:w-48 ${l.expiry_date ? "" : "border-destructive"}`} />
-                    ) : <span className="text-sm">{l.expiry_date || "—"}</span>}
+                        className={`h-7 flex-1 text-xs ${l.expiry_date ? "" : "border-destructive"}`} />
+                    ) : <span className="text-xs">{l.expiry_date || "—"}</span>}
                   </div>
                 )}
               </div>
