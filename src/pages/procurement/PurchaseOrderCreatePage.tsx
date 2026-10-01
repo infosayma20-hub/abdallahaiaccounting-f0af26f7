@@ -33,13 +33,12 @@ function highlightSearchWords(text: string, query: string): string {
     s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]!));
   const safe = escapeHtml(text ?? "");
   if (!query.trim()) return safe;
-  const words = query.trim().split(/\s+/).filter(Boolean);
-  let result = safe;
-  words.forEach(w => {
-    const escaped = escapeHtml(w).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    result = result.replace(new RegExp(`(${escaped})`, 'gi'), '<mark class="bg-amber-200/70 dark:bg-amber-500/30 rounded-sm px-0.5">$1</mark>');
-  });
-  return result;
+  // تمرير واحد بنمط مجمّع حتى لا تُطابَق كلمة بحث (مثل "2") داخل وسم <mark> المُدرج سابقًا
+  const words = query.trim().split(/\s+/).filter(Boolean)
+    .map(w => escapeHtml(w).replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
+    .sort((a, b) => b.length - a.length);
+  if (!words.length) return safe;
+  return safe.replace(new RegExp(`(${words.join('|')})`, 'gi'), '<mark class="bg-amber-200/70 dark:bg-amber-500/30 rounded-sm px-0.5">$1</mark>');
 }
 
 type CardSize = "small" | "medium" | "large";
