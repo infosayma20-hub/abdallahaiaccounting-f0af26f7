@@ -181,28 +181,32 @@ const PurchaseOrderCreatePage = () => {
     }
   }, []);
 
-  // إضافة/تعديل بند: في وضع المخزون نربط الصنف تلقائياً بكتالوج المشتريات أولًا
+  // إضافة/تعديل بند: صنف مخزون يُربط تلقائيًا بكتالوج المشتريات أولًا، وصنف كتالوج فقط يُضاف مباشرة
   const handleItemAction = useCallback(async (item: any, delta: number) => {
-    if (itemSource === "catalog") { addOrUpdateItem(item, delta); return; }
+    if (item.__catalogOnly) {
+      addOrUpdateItem({ id: item.id, name: item.name, unit: item.unit || "قطعة", default_price: Number(item.default_price) || 0 }, delta);
+      return;
+    }
     const procId = await ensureProcItem(item);
     if (!procId) return;
     addOrUpdateItem({ id: procId, name: item.name, unit: item.unit || "قطعة", default_price: Number(item.buy_price) || 0 }, delta);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [itemSource, ensureProcItem, defaultBranchId]);
+  }, [ensureProcItem, defaultBranchId]);
+
+  const mergedItems = useMemo(() => {
+    const catalogOnly = allItems.filter((i: any) => !i.inventory_product_id).map((i: any) => ({ ...i, __catalogOnly: true }));
+    return [...inventoryProducts, ...catalogOnly];
+  }, [inventoryProducts, allItems]);
 
   const filteredItems = useMemo(() => {
-    let result: any[] = itemSource === "inventory" ? inventoryProducts : allItems;
-    if (itemSource === "inventory") {
-      if (activePosCategory === "__uncat") result = result.filter((i: any) => !i.pos_category_id);
-      else if (activePosCategory) result = result.filter((i: any) => i.pos_category_id === activePosCategory);
-    } else {
-      if (activeCategory) result = result.filter((i: any) => i.category_id === activeCategory);
-    }
+    let result: any[] = mergedItems;
+    if (activePosCategory === "__uncat") result = result.filter((i: any) => !i.pos_category_id);
+    else if (activePosCategory) result = result.filter((i: any) => i.pos_category_id === activePosCategory);
     if (searchQuery) {
       result = result.filter((i: any) => multiWordMatchAny(searchQuery, i.name));
     }
     return result;
-  }, [itemSource, inventoryProducts, allItems, activeCategory, activePosCategory, searchQuery]);
+  }, [mergedItems, activePosCategory, searchQuery]);
 
   const posCategoryCounts = useMemo(() => {
     const counts: Record<string, number> = {};
