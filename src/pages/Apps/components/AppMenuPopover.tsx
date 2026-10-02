@@ -26,11 +26,14 @@ export default function AppMenuPopover({
   const popRef = useRef<HTMLDivElement>(null);
   const [pos, setPos] = useState<{ top: number; left: number; width: number; maxHeight: number } | null>(null);
   const [isMobile, setIsMobile] = useState<boolean>(
-    () => typeof window !== "undefined" && window.matchMedia("(max-width: 767px)").matches
+    () =>
+      typeof window !== "undefined" &&
+      (window.matchMedia("(max-width: 767px)").matches ||
+        window.matchMedia("(pointer: coarse)").matches)
   );
 
   useEffect(() => {
-    const mq = window.matchMedia("(max-width: 767px)");
+    const mq = window.matchMedia("(max-width: 767px), (pointer: coarse)");
     const onChange = () => setIsMobile(mq.matches);
     onChange();
     mq.addEventListener("change", onChange);
@@ -50,17 +53,9 @@ export default function AppMenuPopover({
       const rawLeft = rect.left + rect.width / 2 - width / 2;
       const left = Math.min(Math.max(margin, rawLeft), vw - width - margin);
       const spaceBelow = vh - rect.bottom - margin;
-      const spaceAbove = rect.top - margin;
-      let top: number;
-      let maxHeight: number;
-      // Prefer below; flip above if much more room there
-      if (spaceBelow >= 240 || spaceBelow >= spaceAbove) {
-        top = rect.bottom + 8;
-        maxHeight = Math.max(200, spaceBelow);
-      } else {
-        maxHeight = Math.max(200, spaceAbove);
-        top = Math.max(margin, rect.top - 8 - maxHeight);
-      }
+      // Always open below the card; cap height and scroll internally if needed
+      const maxHeight = Math.max(180, Math.min(spaceBelow, 420));
+      const top = Math.min(rect.bottom + 8, vh - margin - maxHeight);
       setPos({ top, left, width, maxHeight });
     };
 
