@@ -2246,7 +2246,7 @@ export default function MonthlyAttendanceTab({
             </div>
           </div>
           <DialogFooter className="px-4 py-3 border-t shrink-0 sm:justify-start gap-2">
-            <Button onClick={saveEdit} disabled={saving} className="gap-2">
+            <Button onClick={saveEdit} disabled={saving || breaksLoading || rawLoading || (!isLockStatus && (!timeValid.in || !timeValid.out))} className="gap-2">
               {saving && <Loader2 className="h-4 w-4 animate-spin" />} حفظ التعديل
             </Button>
             <Button variant="outline" onClick={() => setEditing(null)} disabled={saving}>إلغاء</Button>
