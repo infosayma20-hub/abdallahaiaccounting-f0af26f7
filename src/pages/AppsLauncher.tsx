@@ -92,7 +92,11 @@ const ROLE_ALLOWED_APPS: Record<string, string[]> = {
 
 /* AppCard component moved to src/pages/Apps/components/AppCardV2.tsx (Phase 1) */
 
-const AppsLauncher = () => {
+type AppsLauncherProps = {
+  preloadOnly?: boolean;
+};
+
+const AppsLauncher = ({ preloadOnly = false }: AppsLauncherProps) => {
   const tt = useTT();
   const navigate = useNavigate();
   const { user, loading: authLoading } = useAuth();
@@ -216,7 +220,7 @@ const AppsLauncher = () => {
             sessionStorage.removeItem(`workspace-choice:${user.id}`);
           } catch {}
           setEmployeeOnlyRedirect(false);
-          navigate("/rep", { replace: true });
+          if (!preloadOnly) navigate("/rep", { replace: true });
         } else if (hasEmployeeRecord && !hasAdminAccess && !hasPureSystemRole) {
           try {
             Object.keys(localStorage).forEach((key) => {
@@ -263,11 +267,11 @@ const AppsLauncher = () => {
         setRolesLoading(false);
       });
     return () => { cancelled = true; };
-  }, [user?.id]);
+  }, [navigate, preloadOnly, user?.id]);
 
   useEffect(() => {
-    if (employeeOnlyRedirect) navigate("/employee", { replace: true });
-  }, [employeeOnlyRedirect, navigate]);
+    if (employeeOnlyRedirect && !preloadOnly) navigate("/employee", { replace: true });
+  }, [employeeOnlyRedirect, navigate, preloadOnly]);
 
   // ⚠️ DO NOT REGRESS — قاعدة ثابتة:
   // الـ gate الفعلي لعرض البطاقات = auth + roles فقط.
@@ -429,6 +433,10 @@ const AppsLauncher = () => {
     update({ full_tour_completed: true, modules_toured: appSections.flatMap(s => s.items.map(i => i.id)) });
   };
   const handleTourSkip = () => { setTourActive(false); update({ full_tour_skipped: true }); };
+
+  // During sign-in, mount all launcher hooks invisibly so cards and access
+  // gates settle while the user still sees the login screen.
+  if (preloadOnly) return null;
 
   if (employeeOnlyRedirect) {
     return (

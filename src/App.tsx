@@ -574,9 +574,9 @@ const AuthRoute = ({ children }: { children: React.ReactNode }) => {
   // Dark placeholder — matches the login background so there is no white flash
   // before the login screen appears.
   if (checking && !welcomePending) return stalled ? <RoleResolveFallback onRetry={retry} /> : <AuthCheckSpinner dark />;
-  // Keep the welcome layer mounted globally while the target route loads
-  // underneath it; the launcher itself releases the layer when its cards are ready.
-  if (user && targetPath) return <Navigate to={targetPath} replace />;
+  // Keep the actual login screen visible while its invisible launcher preload
+  // settles. Navigation happens only after the welcome animation has finished.
+  if (user && targetPath && !welcomePending) return <Navigate to={targetPath} replace />;
 
   const isSpartaDomain = typeof window !== "undefined" && (
     window.location.hostname === "sparta-trade.com" || 

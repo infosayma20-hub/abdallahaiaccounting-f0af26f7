@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { lazy, Suspense, useState, useEffect, useCallback, useRef } from "react";
 // صورة الخلفية الرئيسية لشاشة تسجيل الدخول — ثابتة ولا تتبدّل.
 import unifyMarkWhiteImg from "@/assets/unify-mark-white.webp";
 import unifyLogoVertical from "@/assets/unify-logo-vertical.webp";
@@ -16,7 +16,9 @@ import { useTranslation } from "react-i18next";
 import LanguageSwitcher from "@/i18n/LanguageSwitcher";
 import { Loader2, ScanFace, Mail, Lock, Eye, EyeOff, Check, LifeBuoy, Info } from "lucide-react";
 import { startAuthentication, browserSupportsWebAuthn } from "@simplewebauthn/browser";
-import { finishPostLoginWelcome, markPostLoginWelcome } from "@/components/auth/PostLoginWelcomeOverlay";
+import { finishPostLoginWelcome, hasPendingPostLoginWelcome, markPostLoginWelcome } from "@/components/auth/PostLoginWelcomeOverlay";
+
+const AppsLauncherPreloader = lazy(() => import("./AppsLauncher"));
 
 
 type Mode = "login" | "signup" | "forgot";
@@ -33,6 +35,8 @@ const AuthPage = () => {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [agreedToTerms, setAgreedToTerms] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [preloadApps, setPreloadApps] = useState(false);
+  const completingWelcomeRef = useRef(false);
   const [isOffline, setIsOffline] = useState(typeof navigator !== "undefined" && !navigator.onLine);
   useEffect(() => {
     const on = () => setIsOffline(false);
@@ -153,6 +157,27 @@ const AuthPage = () => {
     if (roles.includes("cashier") && !roles.includes("admin")) return "/pos";
     return "/apps";
   }, []);
+
+  const completePostLogin = useCallback(async (destination: string) => {
+    if (completingWelcomeRef.current) return;
+    completingWelcomeRef.current = true;
+    if (destination === "/apps") setPreloadApps(true);
+    await finishPostLoginWelcome(destination);
+    navigate(destination, { replace: true });
+  }, [navigate]);
+
+  // OAuth returns to /auth with the pending welcome marker already stored.
+  // Resume the same hidden-preload flow instead of navigating behind the popup.
+  useEffect(() => {
+    if (!hasPendingPostLoginWelcome()) return;
+    let cancelled = false;
+    void supabase.auth.getUser().then(async ({ data }) => {
+      if (cancelled || !data.user) return;
+      const destination = await resolveRedirect(data.user.id);
+      if (!cancelled) await completePostLogin(destination);
+    });
+    return () => { cancelled = true; };
+  }, [completePostLogin, resolveRedirect]);
 
   const sendEmailResetLink = async () => {
     const cleanEmail = email.trim().toLowerCase();
@@ -316,11 +341,9 @@ const AuthPage = () => {
             return;
           }
           const dest = await resolveRedirect(data.user.id);
-          await finishPostLoginWelcome(dest);
-          navigate(dest);
+          await completePostLogin(dest);
         } else {
-          await finishPostLoginWelcome("/apps");
-          navigate("/apps");
+          await completePostLogin("/apps");
         }
       }
     } catch (err: any) {
@@ -391,11 +414,9 @@ const AuthPage = () => {
       const { data: { user: currentUser } } = await supabase.auth.getUser();
       if (currentUser) {
         const dest = await resolveRedirect(currentUser.id);
-        await finishPostLoginWelcome(dest);
-        navigate(dest);
+        await completePostLogin(dest);
       } else {
-        await finishPostLoginWelcome("/apps");
-        navigate("/apps");
+        await completePostLogin("/apps");
       }
     } catch (err: any) {
       const msg = err.message || "فشل التحقق البيومتري";
@@ -436,6 +457,13 @@ const AuthPage = () => {
 
   return (
     <>
+    {preloadApps && (
+      <div className="pointer-events-none fixed size-px overflow-hidden opacity-0" aria-hidden="true">
+        <Suspense fallback={null}>
+          <AppsLauncherPreloader preloadOnly />
+        </Suspense>
+      </div>
+    )}
     {/* Dark base colour so the very first paint is already dark — the photo
         fades in on top instead of flashing white underneath it. */}
     <div className="h-screen flex flex-col relative overflow-hidden" dir="ltr" style={{ background: '#0A1018' }}>

@@ -35,13 +35,6 @@ export const finishPostLoginWelcome = (targetPath: string) => new Promise<void>(
     detail: { targetPath, releaseWelcome: !waitsForLauncher },
   }));
 
-  // The apps launcher must mount behind the overlay before it can report that
-  // its cards are ready. Do not make navigation wait for that same signal.
-  if (waitsForLauncher) {
-    resolve();
-    return;
-  }
-
   let settled = false;
   const finish = () => {
     if (settled) return;
@@ -50,7 +43,9 @@ export const finishPostLoginWelcome = (targetPath: string) => new Promise<void>(
     resolve();
   };
   window.addEventListener(POST_LOGIN_WELCOME_FINISHED_EVENT, finish, { once: true });
-  window.setTimeout(finish, 2400);
+  // The launcher's own four-second watchdog releases its readiness signal.
+  // Keep this longer fallback only for unexpected mounting/runtime failures.
+  window.setTimeout(finish, waitsForLauncher ? 5500 : 2400);
 });
 
 const clearPendingWelcome = () => {
