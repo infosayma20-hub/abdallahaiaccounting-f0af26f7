@@ -447,18 +447,12 @@ const AppsLauncher = ({ preloadOnly = false }: AppsLauncherProps) => {
   }
 
   return (
-    <div style={{ minHeight: "100%", background: "#F7F8FA", margin: "-1.25rem", marginBottom: 0, fontFamily: "Cairo, sans-serif" }} className="lg:-m-8 lg:mb-0" dir="rtl">
-
-      <div className="amwali-apps-container" style={{ maxWidth: 1280, margin: "0 auto", padding: "24px 24px 120px" }}>
-        <style>{`
-          @media (max-width: 767px) {
-            .amwali-apps-container { padding: 14px 12px 100px !important; }
-          }
-        `}</style>
+    <div className="min-h-full min-w-0 bg-background" dir="rtl">
+      <div className="container mx-auto max-w-6xl min-w-0 space-y-6 p-4 pb-24 md:p-8 md:pb-24">
         {/* Compact header */}
-        <div className="flex items-baseline justify-between mb-4 px-1">
+        <div className="mb-4 flex items-baseline justify-between px-1">
           <div>
-            <h1 className="text-xl font-bold" style={{ color: "#0D1B2E" }}>{tt("التطبيقات")}</h1>
+            <h1 className="text-2xl font-bold text-foreground">{tt("التطبيقات")}</h1>
             <p className="text-xs text-muted-foreground mt-0.5">{tt("اختر تطبيقاً للبدء")}</p>
           </div>
         </div>

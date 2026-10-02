@@ -62,8 +62,7 @@ export default function AppCardV2({
         isPremiumLocked && "bg-muted/50",
       )}
       initial={reduceMotion ? false : { opacity: 0, x: 34, y: 18, scale: 0.95 }}
-      animate={{ opacity: 1, y: 0 }}
-      style={reduceMotion ? undefined : { x: 0, scale: 1 }}
+      animate={{ opacity: 1, x: 0, y: 0, scale: 1 }}
       transition={{ delay: reduceMotion ? 0 : 0.12 + index * 0.06, duration: 0.62, ease: [0.2, 0.8, 0.2, 1] }}
     >
       <span aria-hidden="true" className="absolute inset-x-4 top-0 h-px origin-right scale-x-0 bg-gradient-to-l from-transparent via-accent/70 to-transparent transition-transform duration-500 ease-out group-hover:scale-x-100" />
