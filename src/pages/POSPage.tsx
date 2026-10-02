@@ -492,22 +492,6 @@ const POSPage = () => {
     registerEnglishNames(products as any);
     registerEnglishNames(posCategories as any);
   }, [products, posCategories]);
-  useEffect(() => {
-    const bid = getDeviceBranchIdForLang();
-    if (!bid) { setReceiptLanguage("ar"); setPosLang("ar"); return; }
-    supabase.from("branches").select("receipt_language, name_en, address_en, receipt_footer_en").eq("id", bid).maybeSingle()
-      .then(({ data }) => {
-        const d: any = data || {};
-        setReceiptLanguage(d.receipt_language === "en" ? "en" : "ar");
-        setPosLang(d.receipt_language === "en" ? "en" : "ar");
-        if (d.receipt_language === "en") {
-          bridgeSupportsEnglish().then((ok) => {
-            if (!ok) toast.warning("This device's print bridge is Arabic-only. Install the bilingual print bridge for full English printing.", { duration: 8000 });
-          });
-        }
-        setEnglishReceiptHeader({ name: d.name_en, address: d.address_en, footer: d.receipt_footer_en });
-      });
-  }, []);
 
   const [selectedCategory, setSelectedCategory] = useState<string>("الكل");
   const [searchQuery, setSearchQuery] = useState("");
@@ -1124,6 +1108,34 @@ const POSPage = () => {
     })();
     return () => { cancelled = true; };
   }, [session?.cash_box_id]);
+
+  // Branch POS language: device branch → terminal branch → cash-box branch →
+  // the tenant's only active branch. Re-runs as these resolve.
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      let bid: string | null = getDeviceBranchIdForLang() || terminalBranchId || cashBoxBranchId || null;
+      if (!bid) {
+        const { data: list } = await supabase.from("branches").select("id").eq("is_active", true).limit(2);
+        if (list && list.length === 1) bid = (list[0] as any).id;
+      }
+      if (cancelled) return;
+      if (!bid) { setReceiptLanguage("ar"); setPosLang("ar"); return; }
+      const { data } = await supabase.from("branches").select("receipt_language, name_en, address_en, receipt_footer_en").eq("id", bid).maybeSingle();
+      if (cancelled) return;
+      const d: any = data || {};
+      const lang = d.receipt_language === "en" ? "en" : "ar";
+      setReceiptLanguage(lang);
+      setPosLang(lang);
+      if (lang === "en") {
+        bridgeSupportsEnglish().then((ok) => {
+          if (!ok) toast.warning("This device's print bridge is Arabic-only. Install the bilingual print bridge for full English printing.", { duration: 8000 });
+        });
+      }
+      setEnglishReceiptHeader({ name: d.name_en, address: d.address_en, footer: d.receipt_footer_en });
+    })();
+    return () => { cancelled = true; };
+  }, [terminalBranchId, cashBoxBranchId]);
 
   // ── Concurrent-shift watcher ───────────────────────────────────────
   // Detects when the SAME cashier's session was closed (or marked deleted)
