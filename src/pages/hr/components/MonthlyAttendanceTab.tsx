@@ -386,7 +386,6 @@ export default function MonthlyAttendanceTab({
   // بصمات أصلية يختار HR تجاهلها في الحساب (لا تُحذف أبدًا)
   const [ignoredEventIds, setIgnoredEventIds] = useState<string[]>([]);
   const [leaveType, setLeaveType] = useState<string>("");
-  const [saveResult, setSaveResult] = useState<null | { warnings: string[]; net: number | null; status: string | null }>(null);
 
   const fetchRows = useCallback(async () => {
     if (!user) return;
