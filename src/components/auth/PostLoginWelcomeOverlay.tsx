@@ -7,6 +7,7 @@ import { useCompany } from "@/hooks/useCompanyContext";
 import { supabase } from "@/integrations/supabase/client";
 
 export const POST_LOGIN_WELCOME_KEY = "unify:post-login-welcome";
+export const POST_LOGIN_WELCOME_START_EVENT = "unify:post-login-welcome-start";
 export const POST_LOGIN_ROUTE_READY_EVENT = "unify:post-login-route-ready";
 export const POST_LOGIN_APPS_READY_EVENT = "unify:post-login-apps-ready";
 
@@ -16,6 +17,7 @@ export const markPostLoginWelcome = () => {
   } catch {
     // The welcome layer is cosmetic; authentication must continue if storage is unavailable.
   }
+  window.dispatchEvent(new Event(POST_LOGIN_WELCOME_START_EVENT));
 };
 
 const hasPendingWelcome = () => {
@@ -45,16 +47,31 @@ const PostLoginWelcomeOverlay = () => {
   const { company, loading: companyLoading } = useCompany();
   const [visible, setVisible] = useState(hasPendingWelcome);
   const [routeReady, setRouteReady] = useState(false);
+  const [resolvedTarget, setResolvedTarget] = useState<string | null>(null);
   const [appsReady, setAppsReady] = useState(false);
   const [stalled, setStalled] = useState(false);
   const [leaving, setLeaving] = useState(false);
 
   useEffect(() => {
-    const handleRouteReady = () => setRouteReady(true);
+    const handleStart = () => {
+      setVisible(true);
+      setLeaving(false);
+      setStalled(false);
+      setRouteReady(false);
+      setResolvedTarget(null);
+      setAppsReady(false);
+    };
+    const handleRouteReady = (event: Event) => {
+      const targetPath = (event as CustomEvent<{ targetPath?: string }>).detail?.targetPath || null;
+      setResolvedTarget(targetPath);
+      setRouteReady(true);
+    };
     const handleAppsReady = () => setAppsReady(true);
+    window.addEventListener(POST_LOGIN_WELCOME_START_EVENT, handleStart);
     window.addEventListener(POST_LOGIN_ROUTE_READY_EVENT, handleRouteReady);
     window.addEventListener(POST_LOGIN_APPS_READY_EVENT, handleAppsReady);
     return () => {
+      window.removeEventListener(POST_LOGIN_WELCOME_START_EVENT, handleStart);
       window.removeEventListener(POST_LOGIN_ROUTE_READY_EVENT, handleRouteReady);
       window.removeEventListener(POST_LOGIN_APPS_READY_EVENT, handleAppsReady);
     };
@@ -66,7 +83,7 @@ const PostLoginWelcomeOverlay = () => {
     return () => window.clearTimeout(timer);
   }, [visible]);
 
-  const needsApps = location.pathname === "/apps";
+  const needsApps = resolvedTarget === "/apps" || (!resolvedTarget && location.pathname === "/apps");
   const ready = !authLoading && !!user && !companyLoading && routeReady && (!needsApps || appsReady);
 
   useEffect(() => {
