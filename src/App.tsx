@@ -38,6 +38,7 @@ const WebLayout = lazy(() => import("./components/layout/WebLayout"));
 import FeedbackShell from "./components/layout/FeedbackShell";
 import RoleGuard from "./components/RoleGuard";
 import { OnboardingGate } from "@/components/auth/OnboardingGate";
+import PostLoginWelcomeOverlay from "@/components/auth/PostLoginWelcomeOverlay";
 import HRPermGuard from "./components/HRPermGuard";
 const HRShell = lazy(() => import("./components/hr/HRShell"));
 const InvoicesPage = lazy(() => import("./pages/InvoicesPage"));
@@ -626,6 +627,7 @@ const App = () => (
             <ReadOnlyProvider>
             <CompanyProvider>
             <CompanyThemeProvider>
+            <PostLoginWelcomeOverlay />
             <GlobalFormFocusProvider />
             <AppUpdatePrompt />
             {/* App-wide idle-timeout watcher. Reads tenant policy from

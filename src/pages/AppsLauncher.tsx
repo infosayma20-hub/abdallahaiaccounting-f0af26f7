@@ -25,6 +25,7 @@ import CommandPalette from "@/pages/Apps/components/CommandPalette";
 import { useFavoriteApps } from "@/hooks/useFavoriteApps";
 import { Star, Command, ChevronDown, Megaphone, ShieldCheck } from "lucide-react";
 import { useTT } from "@/i18n/dict";
+import { POST_LOGIN_APPS_READY_EVENT } from "@/components/auth/PostLoginWelcomeOverlay";
 
 /* Marketing-only extra apps gated by email allow-list.
    Kept here (not in navigationConfig) so it stays scoped and doesn't
@@ -274,6 +275,11 @@ const AppsLauncher = () => {
     watchdogReady ||
     (!authLoading && !rolesLoading);
 
+  useEffect(() => {
+    if (!isReady) return;
+    window.dispatchEvent(new Event(POST_LOGIN_APPS_READY_EVENT));
+  }, [isReady]);
+
   // Hidden apps from super admin
   const hiddenApps: string[] = useMemo(() => {
     return (settings as any)?.hidden_apps || [];
@@ -430,7 +436,7 @@ const AppsLauncher = () => {
           </div>
         </div>
 
-        {/* Apps Grid — gated on unified loading state to prevent flicker */}
+        {/* Apps Grid — the post-login welcome layer covers this brief first load. */}
         {!isReady ? (
           <div className="grid grid-cols-3 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
             {Array.from({ length: 12 }).map((_, i) => (

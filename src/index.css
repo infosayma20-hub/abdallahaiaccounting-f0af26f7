@@ -4,6 +4,64 @@
 @tailwind components;
 @tailwind utilities;
 
+@keyframes postLoginProgress {
+  0% { transform: translateX(110%); width: 28%; }
+  50% { width: 55%; }
+  100% { transform: translateX(-360%); width: 28%; }
+}
+
+@keyframes postLoginReveal {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.post-login-welcome {
+  opacity: 1;
+  transition: opacity 450ms ease;
+}
+
+.post-login-welcome--leaving {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.post-login-welcome__pattern {
+  position: absolute;
+  inset: 0;
+  opacity: 0.16;
+  background-image:
+    linear-gradient(hsl(var(--primary-foreground) / 0.08) 1px, transparent 1px),
+    linear-gradient(90deg, hsl(var(--primary-foreground) / 0.08) 1px, transparent 1px);
+  background-size: 36px 36px;
+  mask-image: linear-gradient(to bottom, transparent, black 25%, black 75%, transparent);
+}
+
+.post-login-welcome__logos,
+.post-login-welcome h1,
+.post-login-welcome p {
+  animation: postLoginReveal 600ms ease both;
+}
+
+.post-login-welcome h1 { animation-delay: 100ms; }
+.post-login-welcome p { animation-delay: 160ms; }
+
+.post-login-welcome__progress {
+  animation: postLoginProgress 1.35s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .post-login-welcome,
+  .post-login-welcome__logos,
+  .post-login-welcome h1,
+  .post-login-welcome p,
+  .post-login-welcome__progress {
+    animation: none;
+    transition: none;
+  }
+
+  .post-login-welcome__progress { width: 55%; }
+}
+
 @layer base {
   /* ─── LIGHT THEME (DEFAULT) ─── */
   :root {
