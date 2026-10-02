@@ -1935,19 +1935,19 @@ export default function MonthlyAttendanceTab({
           </DialogHeader>
           <div className="flex-1 overflow-y-auto px-4 py-3 grid grid-cols-1 lg:grid-cols-2 gap-3 items-start">
            <div className="space-y-3">
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="text-xs text-muted-foreground mb-1 block">الدخول</label>
-                <TimeTextInput value={form.first_check_in} onChange={(v) => setForm(p => ({ ...p, first_check_in: v }))} />
+            {saveResult && (
+              <div className="rounded-md border border-amber-300 bg-amber-50 p-2 text-[11px] text-amber-900 space-y-1">
+                <div className="font-semibold flex items-center gap-1.5">
+                  <AlertCircle className="h-3.5 w-3.5" /> تم الحفظ — النتيجة الفعلية:
+                  {saveResult.status && <span>{STATUS_LABEL[saveResult.status] || saveResult.status}</span>}
+                  {saveResult.net != null && <span>· صافي {fmtHM(saveResult.net)}</span>}
+                </div>
+                {saveResult.warnings.map((w, i) => <div key={i}>• {w}</div>)}
               </div>
-              <div>
-                <label className="text-xs text-muted-foreground mb-1 block">الخروج</label>
-                <TimeTextInput value={form.last_check_out} onChange={(v) => setForm(p => ({ ...p, last_check_out: v }))} />
-              </div>
-            </div>
+            )}
             <div>
               <label className="text-xs text-muted-foreground mb-1 block">الحالة</label>
-              <Select value={form.status} onValueChange={(v) => setForm(p => ({ ...p, status: v }))}>
+              <Select dir="rtl" value={form.status} onValueChange={(v) => setForm(p => ({ ...p, status: v }))}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="present">حاضر</SelectItem>
@@ -1958,7 +1958,41 @@ export default function MonthlyAttendanceTab({
                   <SelectItem value="holiday">عطلة</SelectItem>
                 </SelectContent>
               </Select>
+              {!isLockStatus && (
+                <p className="text-[10px] text-muted-foreground mt-1">
+                  حاضر/متأخر/بصمة ناقصة تُحسب تلقائيًا من الأوقات. الإجازة والغياب والعطلة تثبت كما تختارها.
+                </p>
+              )}
             </div>
+            {form.status === "leave" && !editing?.leaveInfo && (
+              <div>
+                <label className="text-xs text-muted-foreground mb-1 block">نوع الإجازة (تُسجَّل إجازة معتمدة ليوم واحد)</label>
+                <Select dir="rtl" value={leaveType} onValueChange={setLeaveType}>
+                  <SelectTrigger><SelectValue placeholder="اختر نوع الإجازة" /></SelectTrigger>
+                  <SelectContent>
+                    {["سنوية", "مرضية", "بدون راتب", "طارئة", "شخصية", "أخرى"].map((t) => (
+                      <SelectItem key={t} value={t}>{t}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+            {isLockStatus ? (
+              <div className="rounded-md border bg-muted/40 p-2 text-[11px] text-muted-foreground">
+                اليوم سيُثبَّت «{STATUS_LABEL[form.status] || form.status}» بصفر ساعات. البصمات الأصلية تبقى محفوظة، وإرجاع الحالة لحاضر يعيد الحساب منها.
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs text-muted-foreground mb-1 block">الدخول</label>
+                  <TimeTextInput value={form.first_check_in} onValidityChange={onInValid} onChange={(v) => setForm(p => ({ ...p, first_check_in: v }))} />
+                </div>
+                <div>
+                  <label className="text-xs text-muted-foreground mb-1 block">الخروج</label>
+                  <TimeTextInput value={form.last_check_out} onValidityChange={onOutValid} onChange={(v) => setForm(p => ({ ...p, last_check_out: v }))} />
+                </div>
+              </div>
+            )}
             <div>
               <label className="text-xs text-muted-foreground mb-1 block">ملاحظات</label>
               <Textarea rows={2} value={form.notes} onChange={e => setForm(p => ({ ...p, notes: e.target.value }))} />
@@ -2027,6 +2061,31 @@ export default function MonthlyAttendanceTab({
                             {e.status}
                           </Badge>
                         )}
+                        {(() => {
+                          if (isLockStatus) return null;
+                          const coAt = combineDT(editing!.attendance_date, form.last_check_out, ovn(combineDT(editing!.attendance_date, form.first_check_in)));
+                          const after = !!coAt && new Date(e.event_time).getTime() > coAt.getTime();
+                          const ignored = ignoredEventIds.includes(e.id);
+                          if (!after && !ignored) return null;
+                          return (
+                            <>
+                              {after && !ignored && (
+                                <Badge variant="outline" className="text-[9px] px-1 py-0 h-4 border-amber-300 text-amber-700 bg-amber-50">
+                                  بعد الخروج — لن تُحتسب
+                                </Badge>
+                              )}
+                              <button
+                                type="button"
+                                className="text-[10px] underline text-muted-foreground hover:text-foreground"
+                                onClick={() =>
+                                  setIgnoredEventIds((p) => (p.includes(e.id) ? p.filter((x) => x !== e.id) : [...p, e.id]))
+                                }
+                              >
+                                {ignored ? "إلغاء التجاهل" : "تجاهل"}
+                              </button>
+                            </>
+                          );
+                        })()}
                       </div>
                     );
                   })}
