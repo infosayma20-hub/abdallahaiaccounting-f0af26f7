@@ -6153,12 +6153,19 @@ const POSPage = () => {
         // "حفظ بدون طباعة" (opts.skipPrint) bypasses BOTH the customer receipt
         // AND kitchen tickets — used for items like water/cola that don't need
         // any paper trail. Save + post accounting still run normally.
+        //
+        // 🪑 طلب طاولة محفوظ مسبقاً: تذاكر المطبخ انطبعت لما الويتر/الكاشير
+        // أرسل الطلب (F8/F9) وقت الحفظ على الطاولة. عند الدفع لسد الحساب نطبع
+        // فاتورة الزبون فقط — إعادة طباعة تذاكر المطبخ هنا تُنتج نسخاً مكررة
+        // عند المحطات. طلب طاولة جديد يُدفع مباشرة بدون حفظ يطبع مطبخه عادي.
+        const isSavedTableOrder = !!activeOrder.savedOrderId && !!activeOrder.tableId;
+        const kitchenJobsToPrint = isSavedTableOrder ? [] : kitchenJobs;
         if (!opts?.skipPrint) {
-          const jobsForRetry = kitchenJobs.length > 0 ? kitchenJobs : [];
+          const jobsForRetry = kitchenJobsToPrint.length > 0 ? kitchenJobsToPrint : [];
           printAllImage(
             bridgeOrder,
             companyPrintInfo,
-            kitchenJobs.length > 0 ? kitchenJobs : undefined,
+            kitchenJobsToPrint.length > 0 ? kitchenJobsToPrint : undefined,
             // Delivery orders MUST also print the customer receipt automatically
             // (the captain takes it with the order). Previously we skipped the
             // receipt for delivery which caused "nothing printed on payment;
