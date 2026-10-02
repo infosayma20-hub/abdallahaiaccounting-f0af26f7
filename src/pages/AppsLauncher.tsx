@@ -500,11 +500,11 @@ const AppsLauncher = ({ preloadOnly = false }: AppsLauncherProps) => {
 
   return (
     <div className="relative min-h-full min-w-0 overflow-hidden bg-background" dir="rtl">
-      <div aria-hidden="true" className="pointer-events-none absolute inset-0 overflow-hidden">
+      <div aria-hidden="true" className="pointer-events-none fixed inset-0 overflow-hidden">
         <img
           src="/branding/unify/unify-mark.png"
           alt=""
-          className="absolute start-1/2 top-1/2 w-[88vw] max-w-[880px] -translate-x-1/2 -translate-y-1/2 opacity-[0.075] saturate-0 dark:opacity-[0.1]"
+          className="absolute left-1/2 top-1/2 h-[110dvh] max-h-[1000px] w-auto -translate-x-1/2 -translate-y-1/2 opacity-[0.16] saturate-0 dark:opacity-[0.2]"
         />
       </div>
 
