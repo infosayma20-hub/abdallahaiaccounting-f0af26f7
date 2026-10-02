@@ -122,7 +122,7 @@ const AppsLauncher = ({ preloadOnly = false }: AppsLauncherProps) => {
   const [search, setSearch] = useState("");
   const [categoryFilter, setCategoryFilter] = useState<CategoryFilter>("all");
   const [paletteOpen, setPaletteOpen] = useState(false);
-  const { favorites, isFavorite, toggleFavorite } = useFavoriteApps();
+  const { favorites, isFavorite, toggleFavorite, loading: favoritesLoading } = useFavoriteApps();
   const orderStorageKey = user?.id ? `unify:apps:order:${user.id}` : "";
   const [appOrder, setAppOrder] = useState<string[]>([]);
   const sensors = useSensors(
@@ -324,6 +324,7 @@ const AppsLauncher = ({ preloadOnly = false }: AppsLauncherProps) => {
       subscriptionResolved &&
       !onboardingLoading &&
       !overridesLoading &&
+      !favoritesLoading &&
       accountantPosAuditAllowed !== null
     );
 
@@ -500,23 +501,10 @@ const AppsLauncher = ({ preloadOnly = false }: AppsLauncherProps) => {
   return (
     <div className="relative min-h-full min-w-0 overflow-hidden bg-background" dir="rtl">
       <div aria-hidden="true" className="pointer-events-none absolute inset-0 overflow-hidden">
-        <div className="absolute inset-0 bg-secondary/35 dark:bg-secondary/15" />
-        <div className="absolute -start-16 top-12 h-60 w-60 rounded-full border-[24px] border-primary/[0.035] dark:border-primary/[0.06] md:h-80 md:w-80" />
-        <div className="absolute -start-28 top-44 h-60 w-60 rotate-45 rounded-[3rem] border border-primary/[0.06] dark:border-primary/[0.09] md:h-80 md:w-80" />
-        <div className="absolute -end-20 top-24 h-48 w-48 rotate-12 rounded-[2.5rem] border-[18px] border-accent/[0.045] dark:border-accent/[0.07] md:h-64 md:w-64" />
-        <div className="absolute end-[8%] top-[44%] h-px w-52 rotate-[-18deg] bg-primary/[0.07] dark:bg-primary/[0.1] md:w-96" />
-        <div className="absolute end-[4%] top-[48%] h-px w-60 rotate-[-18deg] bg-primary/[0.05] dark:bg-primary/[0.08] md:w-[28rem]" />
-        <div className="absolute start-[7%] top-[58%] h-px w-60 rotate-[16deg] bg-primary/[0.06] dark:bg-primary/[0.09] md:w-[30rem]" />
-        <div className="absolute start-[4%] top-[62%] h-px w-52 rotate-[16deg] bg-primary/[0.04] dark:bg-primary/[0.07] md:w-[26rem]" />
         <img
           src="/branding/unify/unify-mark.png"
           alt=""
-          className="absolute -bottom-16 -start-16 w-64 opacity-[0.035] saturate-0 dark:opacity-[0.055] md:w-96"
-        />
-        <img
-          src="/branding/unify/unify-mark.png"
-          alt=""
-          className="absolute end-[2%] top-10 w-32 opacity-[0.025] saturate-0 dark:opacity-[0.045] md:w-52"
+          className="absolute start-1/2 top-1/2 w-[88vw] max-w-[880px] -translate-x-1/2 -translate-y-1/2 opacity-[0.075] saturate-0 dark:opacity-[0.1]"
         />
       </div>
 
@@ -548,7 +536,15 @@ const AppsLauncher = ({ preloadOnly = false }: AppsLauncherProps) => {
           <>
             {/* ⭐ Favorites group (only when "all" + has favorites + no search) */}
             {groupedApps.showFavoritesGroup && categoryFilter === "all" && groupedApps.favoritesList.length > 0 && (
-              <div className="mb-6">
+              <motion.div
+                className="mb-6"
+                initial={reduceMotion ? false : "hidden"}
+                animate="visible"
+                variants={{
+                  hidden: {},
+                  visible: { transition: reduceMotion ? { delayChildren: 0 } : { delayChildren: 0.03, staggerChildren: 0.018 } },
+                }}
+              >
                 <button
                   type="button"
                   onClick={() => setFavCollapsed((c) => !c)}
@@ -580,23 +576,32 @@ const AppsLauncher = ({ preloadOnly = false }: AppsLauncherProps) => {
                     const meta = getSafeAppMeta(app);
                     const pendingActivation = isAppDisabled(app);
                     return (
-                      <AppCardV2
+                      <motion.div
                         key={`fav-${app.id}`}
-                        app={app}
-                        meta={meta}
-                        index={idx}
-                        onNavigate={handleAppNavigate}
-                        disabled={false}
-                        isPremiumLocked={pendingActivation || isAppPremiumLocked(app)}
-                        pendingActivation={pendingActivation}
-                        onPremiumClick={() => setUpgradeModal({ open: true, module: app.label, tier: pendingActivation ? "activation" : "pro" })}
-                        isFavorite={true}
-                        onToggleFavorite={() => toggleFavorite(app.id)}
-                      />
+                        variants={{
+                          hidden: reduceMotion ? { opacity: 1 } : { opacity: 0, x: 26, y: 12, scale: 0.97 },
+                          visible: { opacity: 1, x: 0, y: 0, scale: 1 },
+                        }}
+                        transition={{ duration: reduceMotion ? 0 : 0.28, ease: [0.2, 0.8, 0.2, 1] }}
+                      >
+                        <AppCardV2
+                          app={app}
+                          meta={meta}
+                          index={idx}
+                          onNavigate={handleAppNavigate}
+                          disabled={false}
+                          isPremiumLocked={pendingActivation || isAppPremiumLocked(app)}
+                          pendingActivation={pendingActivation}
+                          onPremiumClick={() => setUpgradeModal({ open: true, module: app.label, tier: pendingActivation ? "activation" : "pro" })}
+                          isFavorite={true}
+                          onToggleFavorite={() => toggleFavorite(app.id)}
+                          animateEntry={false}
+                        />
+                      </motion.div>
                     );
                   })}
                 </div>}
-              </div>
+              </motion.div>
             )}
 
             {/* All enabled apps in one personally sortable grid. */}
@@ -622,7 +627,7 @@ const AppsLauncher = ({ preloadOnly = false }: AppsLauncherProps) => {
                         sortableId={app.id}
                         app={app}
                         meta={meta}
-                        index={idx}
+                        index={enabledApps.length + idx}
                         onNavigate={handleAppNavigate}
                         disabled={false}
                         isPremiumLocked={false}
