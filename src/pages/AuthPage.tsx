@@ -16,7 +16,7 @@ import { useTranslation } from "react-i18next";
 import LanguageSwitcher from "@/i18n/LanguageSwitcher";
 import { Loader2, ScanFace, Mail, Lock, Eye, EyeOff, Check, LifeBuoy, Info } from "lucide-react";
 import { startAuthentication, browserSupportsWebAuthn } from "@simplewebauthn/browser";
-import { finishPostLoginWelcome, hasPendingPostLoginWelcome, markPostLoginWelcome, POST_LOGIN_SHELL_READY_EVENT } from "@/components/auth/PostLoginWelcomeOverlay";
+import { finishPostLoginWelcome, hasPendingPostLoginWelcome, markPostLoginWelcome, POST_LOGIN_SHELL_READY_EVENT, POST_LOGIN_WELCOME_KEY, showPostLoginWelcome } from "@/components/auth/PostLoginWelcomeOverlay";
 
 const AppsLauncherPreloader = lazy(() => import("./AppsLauncher"));
 
@@ -179,7 +179,13 @@ const AuthPage = () => {
     if (!hasPendingPostLoginWelcome()) return;
     let cancelled = false;
     void supabase.auth.getUser().then(async ({ data }) => {
-      if (cancelled || !data.user) return;
+      if (cancelled) return;
+      if (!data.user) {
+        // Returned from Google without signing in: drop the pending welcome.
+        try { sessionStorage.removeItem(POST_LOGIN_WELCOME_KEY); } catch {}
+        return;
+      }
+      showPostLoginWelcome();
       const destination = await resolveRedirect(data.user.id);
       if (!cancelled) await completePostLogin(destination);
     });
@@ -370,13 +376,21 @@ const AuthPage = () => {
       } catch {}
       await supabase.auth.signOut();
       localStorage.removeItem("trial_banner_dismissed");
-      markPostLoginWelcome();
-      const { error } = await lovable.auth.signInWithOAuth("google", {
+      // Remember the welcome silently — show it only after Google returns signed in.
+      markPostLoginWelcome(undefined, { silent: true });
+      const result: any = await lovable.auth.signInWithOAuth("google", {
         redirect_uri: window.location.origin,
         extraParams: { prompt: "select_account" },
       });
-      if (error) throw error;
+      if (result?.error) throw result.error;
+      if (result?.redirected) return;
+      const { data } = await supabase.auth.getUser();
+      if (!data.user) throw new Error("لم يكتمل تسجيل الدخول");
+      showPostLoginWelcome();
+      const destination = await resolveRedirect(data.user.id);
+      await completePostLogin(destination);
     } catch (err: any) {
+      try { sessionStorage.removeItem(POST_LOGIN_WELCOME_KEY); } catch {}
       toast({ title: "خطأ", description: err.message, variant: "destructive" });
       setLoading(false);
     }

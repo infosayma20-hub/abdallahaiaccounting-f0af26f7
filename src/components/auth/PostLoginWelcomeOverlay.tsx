@@ -8,14 +8,20 @@ export const POST_LOGIN_APPS_READY_EVENT = "unify:post-login-apps-ready";
 export const POST_LOGIN_SHELL_READY_EVENT = "unify:post-login-shell-ready";
 export const POST_LOGIN_WELCOME_FINISHED_EVENT = "unify:post-login-welcome-finished";
 
-export const markPostLoginWelcome = (targetPath?: string) => {
+export const markPostLoginWelcome = (targetPath?: string, options?: { silent?: boolean }) => {
   try {
     sessionStorage.setItem(POST_LOGIN_WELCOME_KEY, String(Date.now()));
   } catch {
     // The welcome layer is cosmetic; authentication must continue if storage is unavailable.
   }
+  // silent: only remember the pending welcome (e.g. before leaving for Google);
+  // the popup appears once the user actually returns signed in.
+  if (options?.silent) return;
   window.dispatchEvent(new CustomEvent(POST_LOGIN_WELCOME_START_EVENT, { detail: { targetPath } }));
 };
+
+export const showPostLoginWelcome = () =>
+  window.dispatchEvent(new CustomEvent(POST_LOGIN_WELCOME_START_EVENT, { detail: {} }));
 
 export const hasPendingPostLoginWelcome = () => {
   try {
@@ -58,7 +64,7 @@ const clearPendingWelcome = () => {
 };
 
 const PostLoginWelcomeOverlay = () => {
-  const [visible, setVisible] = useState(hasPendingPostLoginWelcome);
+  const [visible, setVisible] = useState(false);
   const [targetPath, setTargetPath] = useState<string | null>(null);
   const [routeReady, setRouteReady] = useState(false);
   const [appsReady, setAppsReady] = useState(false);
@@ -82,6 +88,11 @@ const PostLoginWelcomeOverlay = () => {
     const handleRouteReady = (event: Event) => {
       const detail = (event as CustomEvent<{ targetPath?: string; releaseWelcome?: boolean }>).detail;
       if (!detail?.targetPath) return;
+      // Only the login flow's own signal (it carries releaseWelcome) decides
+      // the destination. Route guards re-broadcast their guessed path on every
+      // page (e.g. "/apps" for super admins), which used to reset the timers
+      // and leave the welcome spinning forever.
+      if (detail.releaseWelcome === undefined) return;
       setTargetPath(detail.targetPath);
       if (detail.releaseWelcome) setRouteReady(true);
     };
@@ -121,6 +132,17 @@ const PostLoginWelcomeOverlay = () => {
       window.clearTimeout(hideTimer);
     };
   }, [appsReady, routeReady, shellReady, targetPath, visible]);
+
+  // Safety net: the welcome is cosmetic and must never block the app.
+  useEffect(() => {
+    if (!visible) return;
+    const t = window.setTimeout(() => {
+      clearPendingWelcome();
+      setVisible(false);
+      window.dispatchEvent(new Event(POST_LOGIN_WELCOME_FINISHED_EVENT));
+    }, 9000);
+    return () => window.clearTimeout(t);
+  }, [visible]);
 
   if (!visible) return null;
 
