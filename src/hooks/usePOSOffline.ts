@@ -150,10 +150,25 @@ export function usePOSOffline({ userId, sessionId, terminalId, companyId }: UseP
         if (rows.length < 1000) break;
         afterId = rows[rows.length - 1].id;
       }
-      const customersRes: any = await (supabase.from('contacts') as any)
-        .select('id, contact_name, phone, current_balance, credit_limit, contact_type')
-        .eq('user_id', userId)
-        .or('contact_type.eq.عميل,contact_type.eq.both,contact_type.eq.customer');
+      // Page contacts too — a single request is capped at 1000 rows.
+      const customerRows: any[] = [];
+      let afterContactId: string | null = null;
+      for (let page = 0; page < 50; page++) {
+        let cq: any = (supabase.from('contacts') as any)
+          .select('id, contact_name, phone, current_balance, credit_limit, contact_type')
+          .eq('user_id', userId)
+          .or('contact_type.eq.عميل,contact_type.eq.both,contact_type.eq.customer')
+          .order('id')
+          .limit(1000);
+        if (afterContactId) cq = cq.gt('id', afterContactId);
+        const { data: chunk, error } = await cq;
+        if (error) break;
+        const rows = (chunk || []) as any[];
+        customerRows.push(...rows);
+        if (rows.length < 1000) break;
+        afterContactId = rows[rows.length - 1].id;
+      }
+      const customersRes = { data: customerRows.length ? customerRows : null };
 
       if (productRows.length) await cacheProducts(productRows);
       if (customersRes.data) await cacheCustomers(customersRes.data);
@@ -461,8 +476,9 @@ export function usePOSOffline({ userId, sessionId, terminalId, companyId }: UseP
   useEffect(() => {
     if (!userId) return;
     
-    // Initial pre-cache
-    preCacheData();
+    // Initial pre-cache — deferred so it never competes with the POS screen's
+    // own first-paint loads (it re-reads the full products/contacts tables).
+    const initialPreCache = setTimeout(() => { void preCacheData(); }, 20_000);
 
     // Load pending + quarantined counts and trigger a startup sync if needed
     countPending()
@@ -490,6 +506,7 @@ export function usePOSOffline({ userId, sessionId, terminalId, companyId }: UseP
     }, 15 * 60 * 1000);
 
     return () => {
+      clearTimeout(initialPreCache);
       if (syncIntervalRef.current) clearInterval(syncIntervalRef.current);
     };
   }, [userId, preCacheData, checkConnection, syncPendingQueue]);
