@@ -499,27 +499,37 @@ const AppsLauncher = ({ preloadOnly = false }: AppsLauncherProps) => {
   }
 
   return (
-    <div className="relative min-h-full min-w-0 overflow-hidden bg-background" dir="rtl">
+    <div className="unify-apps-surface relative min-h-full min-w-0 overflow-hidden" dir="rtl">
       <div aria-hidden="true" className="pointer-events-none fixed inset-0 overflow-hidden">
         <img
           src="/branding/unify/unify-mark.png"
           alt=""
-          className="absolute left-1/2 top-1/2 h-[110dvh] max-h-[1000px] w-auto -translate-x-1/2 -translate-y-1/2 opacity-[0.16] saturate-0 dark:opacity-[0.2]"
+          className="absolute -left-[12vw] -top-[18vh] h-[90dvh] w-auto opacity-[0.035] saturate-0"
         />
+        <img
+          src="/branding/unify/unify-mark.png"
+          alt=""
+          className="absolute -bottom-[30vh] -right-[8vw] h-[60dvh] w-auto rotate-180 opacity-[0.025] saturate-0"
+        />
+        <svg className="absolute inset-0 h-full w-full text-primary/[0.07]" preserveAspectRatio="none" viewBox="0 0 1440 900" fill="none">
+          {[0, 1, 2, 3, 4].map((i) => (
+            <path key={i} d={`M-40 ${620 + i * 70} C 360 ${520 + i * 70}, 760 ${760 + i * 60}, 1480 ${560 + i * 70}`} stroke="currentColor" strokeWidth="1" vectorEffect="non-scaling-stroke" />
+          ))}
+        </svg>
       </div>
 
       <div className="container relative z-10 mx-auto max-w-6xl min-w-0 space-y-6 p-4 pb-24 md:p-8 md:pb-24">
         {/* Compact header */}
         <div className="mb-4 flex items-baseline justify-between px-1">
           <div>
-            <h1 className="text-2xl font-bold text-foreground">{tt("التطبيقات")}</h1>
-            <p className="text-xs text-muted-foreground mt-0.5">{tt("اختر تطبيقاً للبدء")}</p>
+            <h1 className="flex items-center gap-2.5 text-2xl font-bold tracking-tight text-primary dark:text-foreground"><span aria-hidden="true" className="h-6 w-1 rounded-full bg-accent" />{tt("التطبيقات")}</h1>
+            <p className="mt-1 ps-3.5 text-sm text-muted-foreground">{tt("اختر تطبيقاً للبدء")}</p>
           </div>
         </div>
 
         {/* Apps Grid — the post-login welcome layer covers this brief first load. */}
         {!isReady ? (
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
+          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
             {Array.from({ length: 12 }).map((_, i) => (
               <div
                 key={i}
@@ -571,7 +581,7 @@ const AppsLauncher = ({ preloadOnly = false }: AppsLauncherProps) => {
                     }}
                   />
                 </button>
-                {!favCollapsed && <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
+                {!favCollapsed && <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
                   {groupedApps.favoritesList.map((app, idx) => {
                     const meta = getSafeAppMeta(app);
                     const pendingActivation = isAppDisabled(app);
@@ -609,7 +619,7 @@ const AppsLauncher = ({ preloadOnly = false }: AppsLauncherProps) => {
               <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleAppDragEnd}>
                 <SortableContext items={enabledApps.map((app) => app.id)} strategy={rectSortingStrategy}>
                   <motion.div
-                    className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5"
+                    className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5"
                     initial="hidden"
                     animate="visible"
                     variants={{
