@@ -18421,6 +18421,7 @@ export type Database = {
           is_active: boolean
           max_manager_discount_percent: number
           name: string
+          receipt_language: string | null
           receivable_account_code: string
           revenue_account_code: string
           settings: Json | null
@@ -18439,6 +18440,7 @@ export type Database = {
           is_active?: boolean
           max_manager_discount_percent?: number
           name?: string
+          receipt_language?: string | null
           receivable_account_code?: string
           revenue_account_code?: string
           settings?: Json | null
@@ -18457,6 +18459,7 @@ export type Database = {
           is_active?: boolean
           max_manager_discount_percent?: number
           name?: string
+          receipt_language?: string | null
           receivable_account_code?: string
           revenue_account_code?: string
           settings?: Json | null

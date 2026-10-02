@@ -477,6 +477,13 @@
       "when": 1790920921057,
       "tag": "0067_product_modifier_groups_rls_initplan",
       "breakpoints": true
+    },
+    {
+      "idx": 68,
+      "version": "7",
+      "when": 1790936728969,
+      "tag": "0068_pos_terminal_receipt_language",
+      "breakpoints": true
     }
   ]
 }
