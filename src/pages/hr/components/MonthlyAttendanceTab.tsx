@@ -1316,6 +1316,38 @@ export default function MonthlyAttendanceTab({
     return null;
   };
 
+  // ── مراجعة الأيام القديمة المتأثرة ──
+  const [reviewOpen, setReviewOpen] = useState(false);
+  const [reviewLoading, setReviewLoading] = useState(false);
+  const [reviewRows, setReviewRows] = useState<any[]>([]);
+  const openReview = async () => {
+    setReviewOpen(true);
+    setReviewLoading(true);
+    try {
+      const { data, error } = await supabase.rpc("hr_attendance_review_days" as any, { p_from: period.from, p_to: period.to } as any);
+      if (error) throw error;
+      setReviewRows((data as any[]) || []);
+    } catch (e: any) {
+      toast({ title: "تعذر الفحص", description: e.message, variant: "destructive" });
+      setReviewRows([]);
+    } finally {
+      setReviewLoading(false);
+    }
+  };
+  const openReviewDay = async (dayId: string) => {
+    const { data, error } = await supabase
+      .from("attendance_days")
+      .select("id, employee_id, attendance_date, first_check_in, last_check_out, total_hours, overtime_hours, net_work_minutes, status, notes, is_manually_adjusted, employees!inner(full_name)")
+      .eq("id", dayId)
+      .maybeSingle();
+    if (error || !data) {
+      toast({ title: "تعذر فتح اليوم", description: error?.message, variant: "destructive" });
+      return;
+    }
+    setReviewOpen(false);
+    openEdit(data as any);
+  };
+
   const isLockStatus = ["leave", "absent", "holiday"].includes(form.status);
 
   const saveEdit = async () => {
@@ -1541,6 +1573,9 @@ export default function MonthlyAttendanceTab({
               الفترة المطبَّقة: {fmtDateDisplay(period.from)} → {fmtDateDisplay(period.to)}
               {periodMode === "range" ? " (مخصصة)" : " (شهر كامل)"}
             </Badge>
+            <Button variant="outline" size="sm" onClick={openReview} className="gap-1 border-amber-300 text-amber-800">
+              <AlertCircle className="h-4 w-4" /> أيام قديمة تحتاج مراجعة
+            </Button>
             <Button variant="outline" size="sm" onClick={fetchRows} className="gap-1">
               <RefreshCw className="h-4 w-4" /> تحديث
             </Button>
@@ -1920,6 +1955,54 @@ export default function MonthlyAttendanceTab({
       </Card>
       </>
       )}
+
+      {/* Review dialog — أيام عُدّلت بالنظام القديم وتأثرت بالمشكلة */}
+      <Dialog open={reviewOpen} onOpenChange={setReviewOpen}>
+        <DialogContent dir="rtl" className="max-w-3xl max-h-[85vh] flex flex-col">
+          <DialogHeader>
+            <DialogTitle className="text-sm">أيام قديمة تحتاج مراجعة ({fmtDateDisplay(period.from)} → {fmtDateDisplay(period.to)})</DialogTitle>
+          </DialogHeader>
+          <p className="text-[11px] text-muted-foreground">
+            أيام عُدّلت قبل الإصلاح: إما فيها بصمات بعد الخروج اليدوي لم تُحتسب، أو حالة (إجازة/غياب/عطلة) رجعت لوحدها. لا شيء تغيّر فيها تلقائيًا — افتح اليوم وصحّحه واحفظ.
+          </p>
+          <div className="flex-1 overflow-y-auto border rounded-md">
+            {reviewLoading ? (
+              <div className="p-6 text-center text-xs text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin inline" /> جاري الفحص...</div>
+            ) : reviewRows.length === 0 ? (
+              <div className="p-6 text-center text-xs text-muted-foreground">لا توجد أيام تحتاج مراجعة في هذه الفترة.</div>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="text-right">الموظف</TableHead>
+                    <TableHead className="text-right">التاريخ</TableHead>
+                    <TableHead className="text-right">المشكلة</TableHead>
+                    <TableHead />
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {reviewRows.map((r) => (
+                    <TableRow key={r.day_id}>
+                      <TableCell className="text-xs">{r.full_name}</TableCell>
+                      <TableCell className="text-xs whitespace-nowrap">{fmtDateDisplay(r.attendance_date)}</TableCell>
+                      <TableCell className="text-xs">
+                        {r.issue === "punches_after_out"
+                          ? `${r.punches_after} بصمة بعد الخروج (آخرها ${r.last_punch ? hebronHHmm(r.last_punch) : "—"}) — خروج محفوظ ${r.last_check_out ? hebronHHmm(r.last_check_out) : "—"}`
+                          : `طُلبت «${STATUS_LABEL[r.requested_status] || r.requested_status}» وصارت «${STATUS_LABEL[r.status] || r.status}»`}
+                      </TableCell>
+                      <TableCell>
+                        <Button size="sm" variant="ghost" className="h-7 gap-1" onClick={() => openReviewDay(r.day_id)}>
+                          <Pencil className="h-3.5 w-3.5" /> فتح
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Edit Dialog */}
       <Dialog open={!!editing} onOpenChange={(o) => !o && setEditing(null)}>
