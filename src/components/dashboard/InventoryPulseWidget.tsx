@@ -19,7 +19,7 @@ export default function InventoryPulseWidget({ alerts, summary, loading }: Props
 
   if (loading) {
     return (
-      <div className="col-span-12 lg:col-span-4 bg-card rounded-2xl p-5 shadow-sm border border-border/30 animate-pulse">
+      <div className="col-span-12 lg:col-span-4 bg-card rounded-lg p-4 border border-border animate-pulse">
         <div className="h-6 w-32 bg-muted rounded mb-4" />
         <div className="h-[160px] bg-muted rounded-xl" />
       </div>
@@ -27,7 +27,7 @@ export default function InventoryPulseWidget({ alerts, summary, loading }: Props
   }
 
   return (
-    <div className="col-span-12 lg:col-span-4 bg-card rounded-2xl p-5 shadow-sm border border-border/30">
+    <div className="col-span-12 lg:col-span-4 bg-card rounded-lg p-4 border border-border">
       <WidgetBanner title={tt("المخزون")} icon="📦">
         <button onClick={() => navigate("/inventory")} className="text-[10px] text-white/70 hover:text-white hover:underline">{tt("عرض الكل ←")}</button>
       </WidgetBanner>

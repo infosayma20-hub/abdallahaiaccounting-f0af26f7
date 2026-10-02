@@ -52,7 +52,7 @@ export default function RevenueExpenseChart({ data, grouping, onGroupingChange, 
 
   if (loading) {
     return (
-      <div className="col-span-12 lg:col-span-8 bg-card rounded-2xl p-5 shadow-sm border border-border/30 animate-pulse">
+      <div className="col-span-12 lg:col-span-8 bg-card rounded-lg p-4 border border-border animate-pulse">
         <div className="h-6 w-48 bg-muted rounded mb-4" />
         <div className="h-[280px] bg-muted rounded-xl" />
       </div>
@@ -60,7 +60,7 @@ export default function RevenueExpenseChart({ data, grouping, onGroupingChange, 
   }
 
   return (
-    <div className="col-span-12 lg:col-span-8 bg-card rounded-2xl p-5 shadow-sm border border-border/30">
+    <div className="col-span-12 lg:col-span-8 bg-card rounded-lg p-4 border border-border">
       <WidgetBanner title={tt("الإيرادات مقابل المصروفات")}>
         <div className="flex items-center gap-2">
           {/* Chart type */}

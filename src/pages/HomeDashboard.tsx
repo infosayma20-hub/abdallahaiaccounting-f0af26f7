@@ -251,6 +251,7 @@ const HomeDashboard = () => {
       <ContactStatementModal open={showContactStatement} onClose={() => setShowContactStatement(false)} />
       <CustomizeDashboardDialog open={customizeOpen} onOpenChange={setCustomizeOpen} onApply={setWidgetConfig} />
     </div>
+    </FinanceShell>
   );
 };
 

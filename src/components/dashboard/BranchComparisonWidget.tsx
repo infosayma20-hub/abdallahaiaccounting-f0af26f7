@@ -75,7 +75,7 @@ export default function BranchComparisonWidget() {
 
   if (loading) {
     return (
-      <div className="col-span-12 lg:col-span-6 bg-card rounded-2xl p-5 shadow-sm border border-border/30 animate-pulse">
+      <div className="col-span-12 lg:col-span-6 bg-card rounded-lg p-4 border border-border animate-pulse">
         <div className="h-6 w-40 bg-muted rounded mb-4" />
         <div className="h-[200px] bg-muted rounded-xl" />
       </div>
@@ -85,7 +85,7 @@ export default function BranchComparisonWidget() {
   const maxRevenue = rows.length > 0 ? Math.max(...rows.map(r => r.revenue), 1) : 1;
 
   return (
-    <div className="col-span-12 lg:col-span-6 bg-card rounded-2xl p-5 shadow-sm border border-border/30">
+    <div className="col-span-12 lg:col-span-6 bg-card rounded-lg p-4 border border-border">
       <WidgetBanner title={tt("مقارنة الفروع (الشهر الحالي)")} icon="🏢" />
       {rows.length === 0 ? (
         <div className="text-center py-8 text-muted-foreground text-xs">{tt("لا توجد مراكز تكلفة مفعّلة")}</div>
