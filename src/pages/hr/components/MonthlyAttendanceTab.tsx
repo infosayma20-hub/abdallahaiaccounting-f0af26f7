@@ -2114,7 +2114,7 @@ export default function MonthlyAttendanceTab({
               )}
             </div>
             {/* Sessions (multi-break) editor */}
-            <div className="border rounded-md p-2 bg-muted/20 space-y-2 lg:col-span-2">
+            <div className={cn("border rounded-md p-2 bg-muted/20 space-y-2 lg:col-span-2", isLockStatus && "hidden")}>
               <div className="flex items-center justify-between">
                 <div className="text-xs font-semibold flex items-center gap-1.5">
                   <Clock className="h-3.5 w-3.5 text-primary" />
