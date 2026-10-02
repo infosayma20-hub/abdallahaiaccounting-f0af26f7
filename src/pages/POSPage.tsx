@@ -1,7 +1,7 @@
 import { parseScaleBarcode, type ScaleFormat } from "@/lib/scale-barcode";
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { usePOSOffline } from "@/hooks/usePOSOffline";
-import { setPosPageLoading } from "@/lib/pos/posBootLoading";
+import { setPosPageLoading, usePosGuardResolving } from "@/lib/pos/posBootLoading";
 import { getCachedProducts } from "@/lib/pos-offline-db";
 import {
   loadPOSBootstrap,
@@ -519,6 +519,8 @@ const POSPage = () => {
   const [company, setCompany] = useState<Company | null>(null);
   const [terminal, setTerminal] = useState<Terminal | null>(null);
   const [loading, setLoading] = useState(true);
+  // True while the device guard is still verifying this device — no shift claim yet.
+  const posGuardResolving = usePosGuardResolving();
   // Drive the shared POS boot popup (rendered by POSDeviceAuthGuard).
   useEffect(() => {
     setPosPageLoading(loading);
@@ -1145,7 +1147,7 @@ const POSPage = () => {
   //   flips to "revoked" and we re-use the existing closed-elsewhere flow
   //   (cart auto-saved, view-only, sign out / open new shift).
   const { state: sessionClaimState, forceClaim: forceClaimSession, retryClaim: retrySessionClaim } =
-    usePOSSessionClaim(session?.id ?? null);
+    usePOSSessionClaim(posGuardResolving ? null : session?.id ?? null);
   const sessionRevokedFromElsewhere = sessionClaimState.status === "revoked";
   const sessionConflict = sessionClaimState.status === "conflict";
   // Treat a "revoked" heartbeat as the same blocking condition as a closed

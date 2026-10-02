@@ -7,7 +7,7 @@ import { setCanSell } from "@/lib/pos-device-auth";
 import { usePosMode } from "@/hooks/usePosMode";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
-import { usePosPageLoading } from "@/lib/pos/posBootLoading";
+import { setPosGuardResolving, usePosPageLoading } from "@/lib/pos/posBootLoading";
 import POSBootOverlay from "./POSBootOverlay";
 
 /**
@@ -102,6 +102,10 @@ export default function POSDeviceAuthGuard({ children }: { children: ReactNode }
   //    nothing can be sold/printed while checks run.
   const stillResolvingBase = checkingAdmin || posModeLoading || userIsCallCenter === null;
   const resolving = stillResolvingBase || (!bypassBridge && checking);
+  useEffect(() => {
+    setPosGuardResolving(resolving);
+  }, [resolving]);
+  useEffect(() => () => setPosGuardResolving(true), []);
 
   // 2) Authorized OR (admin OR previously-authorized cashier) → render POS.
   //    In the non-authorized branches we render with canSell=false (view-only).

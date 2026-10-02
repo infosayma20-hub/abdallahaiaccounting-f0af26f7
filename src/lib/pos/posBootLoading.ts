@@ -24,3 +24,28 @@ export function usePosPageLoading() {
     () => false,
   );
 }
+
+/**
+ * Whether POSDeviceAuthGuard is still verifying this device. POS mounts
+ * underneath during this window; device-side effects that must only run on
+ * an authorized device (e.g. claiming the open shift) wait for this to clear.
+ */
+let guardResolving = true;
+const guardListeners = new Set<() => void>();
+
+export function setPosGuardResolving(value: boolean) {
+  if (guardResolving === value) return;
+  guardResolving = value;
+  guardListeners.forEach((l) => l());
+}
+
+export function usePosGuardResolving() {
+  return useSyncExternalStore(
+    (cb) => {
+      guardListeners.add(cb);
+      return () => guardListeners.delete(cb);
+    },
+    () => guardResolving,
+    () => true,
+  );
+}
