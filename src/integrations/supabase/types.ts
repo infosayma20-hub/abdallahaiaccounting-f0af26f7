@@ -2068,6 +2068,70 @@ export type Database = {
           },
         ]
       }
+      attendance_day_overrides: {
+        Row: {
+          attendance_day_id: string
+          created_at: string
+          employee_id: string
+          ignored_event_ids: string[]
+          leave_id: string | null
+          override_in: string | null
+          override_out: string | null
+          reason: string | null
+          status_lock: string | null
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          attendance_day_id: string
+          created_at?: string
+          employee_id: string
+          ignored_event_ids?: string[]
+          leave_id?: string | null
+          override_in?: string | null
+          override_out?: string | null
+          reason?: string | null
+          status_lock?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          attendance_day_id?: string
+          created_at?: string
+          employee_id?: string
+          ignored_event_ids?: string[]
+          leave_id?: string | null
+          override_in?: string | null
+          override_out?: string | null
+          reason?: string | null
+          status_lock?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "attendance_day_overrides_attendance_day_id_fkey"
+            columns: ["attendance_day_id"]
+            isOneToOne: true
+            referencedRelation: "attendance_days"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "attendance_day_overrides_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "attendance_day_overrides_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees_safe"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       attendance_days: {
         Row: {
           attendance_date: string
@@ -30785,6 +30849,24 @@ export type Database = {
         Args: { p_changes: Json; p_order_id: string }
         Returns: undefined
       }
+      _attendance_effective_events: {
+        Args: {
+          p_apply: boolean
+          p_employee_id: string
+          p_end: string
+          p_ignored: string[]
+          p_in: string
+          p_out: string
+          p_start: string
+        }
+        Returns: {
+          auth_user_id: string
+          branch_id: string
+          checkout_kind: string
+          event_time: string
+          event_type: string
+        }[]
+      }
       _barcode_variants: { Args: { p_code: string }; Returns: string[] }
       _capture_client_request_info: { Args: never; Returns: Json }
       _currency_code_label: { Args: { _c: string }; Returns: string }
@@ -32997,6 +33079,22 @@ export type Database = {
           total_debit: number
         }[]
       }
+      hr_attendance_review_days: {
+        Args: { p_from: string; p_to: string }
+        Returns: {
+          attendance_date: string
+          day_id: string
+          employee_id: string
+          first_check_in: string
+          full_name: string
+          issue: string
+          last_check_out: string
+          last_punch: string
+          punches_after: number
+          requested_status: string
+          status: string
+        }[]
+      }
       hr_backfill_attendance: {
         Args: {
           p_check_in: string
@@ -33063,6 +33161,24 @@ export type Database = {
         }[]
       }
       hr_form_admin_owner: { Args: never; Returns: string }
+      hr_save_attendance_day: {
+        Args: {
+          p_breaks?: Json
+          p_date: string
+          p_day_id: string
+          p_deleted_break_ids?: string[]
+          p_dismissed_gaps?: Json
+          p_employee_id: string
+          p_first_check_in: string
+          p_ignored_event_ids?: string[]
+          p_last_check_out: string
+          p_leave_type?: string
+          p_notes: string
+          p_reason: string
+          p_status: string
+        }
+        Returns: Json
+      }
       hr_update_attendance_day: {
         Args: {
           p_breaks?: Json

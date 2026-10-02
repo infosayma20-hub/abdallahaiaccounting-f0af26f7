@@ -16,6 +16,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { toast } from "@/hooks/use-toast";
 import { useDepartureCap } from "@/hooks/useDepartureCap";
 import { fmtDateDisplay, cn } from "@/lib/utils";
+import { hebronLocalToDate, addDaysIso, hebronHHmm } from "@/lib/hebronTime";
 import { fetchAllRows } from "@/lib/fetch-all-rows";
 import { splitSickPayDays, SICK_FULL_PAY_DAYS, SICK_PAID_DAYS_CAP } from "@/lib/hr-utils";
 import {
@@ -100,6 +101,8 @@ type BreakSummary = {
 };
 
 /** In-memory shape for an attendance break row while editing. */
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 type BreakDraft = {
   /** Existing DB id (null = new row not yet inserted). */
   id: string | null;
@@ -377,6 +380,13 @@ export default function MonthlyAttendanceTab({
   const [rawEvents, setRawEvents] = useState<{ id: string; event_type: string; event_time: string; branch_id: string | null; status: string | null; notes: string | null }[]>([]);
   const [rawLoading, setRawLoading] = useState(false);
   const [branchNames, setBranchNames] = useState<Record<string, string>>({});
+  const [timeValid, setTimeValid] = useState({ in: true, out: true });
+  const onInValid = useCallback((v: boolean) => setTimeValid((p) => (p.in === v ? p : { ...p, in: v })), []);
+  const onOutValid = useCallback((v: boolean) => setTimeValid((p) => (p.out === v ? p : { ...p, out: v })), []);
+  // بصمات أصلية يختار HR تجاهلها في الحساب (لا تُحذف أبدًا)
+  const [ignoredEventIds, setIgnoredEventIds] = useState<string[]>([]);
+  const [leaveType, setLeaveType] = useState<string>("");
+  const [saveResult, setSaveResult] = useState<null | { warnings: string[]; net: number | null; status: string | null }>(null);
 
   const fetchRows = useCallback(async () => {
     if (!user) return;
@@ -1054,16 +1064,22 @@ export default function MonthlyAttendanceTab({
   ];
 
   const openEdit = (r: MonthRow) => {
+    // صف وهمي (يوم إجازة/يوم بلا بصمات) ليس له سجل بعد — يُنشأ عند الحفظ.
+    const hasRealDay = UUID_RE.test(r.id);
     setEditing(r);
     setForm({
-      first_check_in: r.first_check_in ? format(new Date(r.first_check_in), "HH:mm") : "",
-      last_check_out: r.last_check_out ? format(new Date(r.last_check_out), "HH:mm") : "",
+      first_check_in: r.first_check_in ? hebronHHmm(r.first_check_in) : "",
+      last_check_out: r.last_check_out ? hebronHHmm(r.last_check_out) : "",
       status: r.status || "present",
       notes: r.notes || "",
       reason: "",
     });
+    setTimeValid({ in: true, out: true });
+    setIgnoredEventIds([]);
+    setLeaveType("");
+    setSaveResult(null);
     setBreaks([]);
-    setBreaksLoading(true);
+    setBreaksLoading(hasRealDay);
     setRawEvents([]);
     setRawLoading(true);
     // 🛡️ نافذة يوم الدوام = نفس تعريف الخادم (06:00 → 06:00 اليوم التالي)،
@@ -1072,10 +1088,8 @@ export default function MonthlyAttendanceTab({
     // دخول/خروج اليوم المحفوظ (تعديلات الموارد البشرية) فلا يختفي أي وقت معتمد.
     (async () => {
       try {
-        const winStart = new Date(`${r.attendance_date}T00:00:00`);
-        winStart.setHours(6, 0, 0, 0);
-        const winEnd = new Date(winStart);
-        winEnd.setDate(winEnd.getDate() + 1);
+        const winStart = hebronLocalToDate(r.attendance_date, "06:00")!;
+        const winEnd = hebronLocalToDate(addDaysIso(r.attendance_date, 1), "06:00")!;
         const ciAt = r.first_check_in ? new Date(r.first_check_in) : null;
         const coAt = r.last_check_out ? new Date(r.last_check_out) : null;
         const from = ciAt && ciAt.getTime() < winStart.getTime() ? ciAt : winStart;
@@ -1121,12 +1135,12 @@ export default function MonthlyAttendanceTab({
               .map((g) => ({
                 id: null,
                 break_type: "other" as const,
-                out: format(new Date(g.out), "HH:mm"),
-                in: format(new Date(g.in), "HH:mm"),
+                out: hebronHHmm(g.out),
+                in: hebronHHmm(g.in),
                 reason: "محسوبة تلقائياً من البصمات",
                 _derived: true,
-                _origOut: format(new Date(g.out), "HH:mm"),
-                _origIn: format(new Date(g.in), "HH:mm"),
+                _origOut: hebronHHmm(g.out),
+                _origIn: hebronHHmm(g.in),
               }));
             return extra.length ? [...prev, ...extra] : prev;
           });
@@ -1147,7 +1161,7 @@ export default function MonthlyAttendanceTab({
         setRawLoading(false);
       }
     })();
-    supabase
+    if (hasRealDay) supabase
       .from("attendance_breaks")
       .select("id, break_type, break_out, break_in, reason")
       .eq("attendance_day_id", r.id)
@@ -1159,8 +1173,8 @@ export default function MonthlyAttendanceTab({
           break_type: (b.break_type as BreakDraft["break_type"]) || "other",
           // ⚠️ القيمة الداخلية يجب أن تبقى HH:mm (24 ساعة) — الحقل يعرضها AM/PM.
           // صيغة "hh:mm a" هنا كانت تكسر الحساب والحفظ (01:10 PM ⇒ 01:00 صباحاً).
-          out: b.break_out ? format(new Date(b.break_out), "HH:mm") : "",
-          in: b.break_in ? format(new Date(b.break_in), "HH:mm") : "",
+          out: b.break_out ? hebronHHmm(b.break_out) : "",
+          in: b.break_in ? hebronHHmm(b.break_in) : "",
           reason: b.reason || "",
         }));
         const storedRanges = rows.map((b) => ({ break_out: b.break_out, break_in: b.break_in }));
@@ -1186,14 +1200,13 @@ export default function MonthlyAttendanceTab({
    *  + 01:04 AM check-out is treated as ~8h15m (not a negative span). */
   const combineDT = useCallback((dateStr: string, hhmmRaw: string, anchor?: Date | null): Date | null => {
     // 🛡️ يقبل "13:10" أو "01:10 PM" — أي صيغة أخرى تُرفض بدل حفظ وقت خاطئ بصمت.
+    // الوقت دائمًا بتوقيت فلسطين (لا يعتمد على ساعة جهاز المستخدم، ويراعي التوقيت الشتوي).
     const hhmm = normalizeTime24(hhmmRaw);
     if (!hhmm) return null;
-    const [y, mo, d] = dateStr.split("-").map(Number);
-    const [h, mi] = hhmm.split(":").map(Number);
-    if (!y || !mo || !d) return null;
-    const dt = new Date(y, mo - 1, d, h || 0, mi || 0, 0, 0);
+    let dt = hebronLocalToDate(dateStr, hhmm);
+    if (!dt) return null;
     if (anchor && dt.getTime() < anchor.getTime()) {
-      dt.setDate(dt.getDate() + 1);
+      dt = hebronLocalToDate(addDaysIso(dateStr, 1), hhmm);
     }
     return dt;
   }, []);
@@ -1303,39 +1316,56 @@ export default function MonthlyAttendanceTab({
     return null;
   };
 
+  const isLockStatus = ["leave", "absent", "holiday"].includes(form.status);
+
   const saveEdit = async () => {
     if (!editing || !user) return;
     if (!form.reason.trim()) {
       toast({ title: "سبب التعديل إلزامي", variant: "destructive" });
       return;
     }
-    const vErr = validateBreaks();
-    if (vErr) {
-      toast({ title: "خطأ في الجلسات", description: vErr, variant: "destructive" });
+    if (breaksLoading || rawLoading) {
+      toast({ title: "انتظر اكتمال تحميل بيانات اليوم", variant: "destructive" });
       return;
+    }
+    if (!isLockStatus && (!timeValid.in || !timeValid.out)) {
+      toast({ title: "وقت غير مكتمل", description: "أكمل الوقت الملوّن بالأحمر أو امسحه قبل الحفظ.", variant: "destructive" });
+      return;
+    }
+    if (!isLockStatus) {
+      const vErr = validateBreaks();
+      if (vErr) {
+        toast({ title: "خطأ في الجلسات", description: vErr, variant: "destructive" });
+        return;
+      }
     }
     setSaving(true);
     try {
-      const ciDate = combineDT(editing.attendance_date, form.first_check_in);
-      const coDate = combineDT(editing.attendance_date, form.last_check_out, ovn(ciDate));
+      const ciDate = isLockStatus ? null : combineDT(editing.attendance_date, form.first_check_in);
+      const coDate = isLockStatus ? null : combineDT(editing.attendance_date, form.last_check_out, ovn(ciDate));
       const ci = ciDate ? ciDate.toISOString() : null;
       const co = coDate ? coDate.toISOString() : null;
-      const activeBreaks = ci && co ? breaks
-        .filter((b) => !b._deleted)
+
+      // نرسل فقط الجلسات الموجودة (مع رقمها) والجديدة، وقائمة صريحة بالمحذوف —
+      // لا شيء يُحذف إلا ما حذفه المستخدم فعلاً.
+      const activeBreaks = isLockStatus ? [] : breaks
+        .filter((b) => !b._deleted && b.out)
         .map((b) => {
           const breakOut = combineDT(editing.attendance_date, b.out, ovn(ciDate));
-          const breakIn = combineDT(editing.attendance_date, b.in, ovn(breakOut || ciDate));
+          const breakIn = b.in ? combineDT(editing.attendance_date, b.in, ovn(breakOut || ciDate)) : null;
           return {
+            id: b.id,
             break_type: b.break_type,
             break_out: breakOut?.toISOString() ?? "",
             break_in: breakIn?.toISOString() ?? "",
             reason: b.reason || BREAK_TYPE_LABEL[b.break_type],
           };
-        }) : [];
+        });
+      const deletedBreakIds = isLockStatus ? [] : breaks.filter((b) => b._deleted && b.id).map((b) => b.id as string);
 
       // 🛡️ المغادرات المشتقة من البصمات ليست صفوفاً مخزّنة، لذلك حذفها من
       // النافذة يتطلب تسجيل استبعاد دائم، وإلا تعود عند إعادة الحساب.
-      const dismissedGaps = breaks
+      const dismissedGaps = isLockStatus ? [] : breaks
         .filter((b) => b._deleted && b._derived && !b.id)
         .map((b) => {
           const gOut = combineDT(editing.attendance_date, b._origOut || b.out, ovn(ciDate));
@@ -1344,28 +1374,52 @@ export default function MonthlyAttendanceTab({
         })
         .filter(Boolean) as { gap_out: string; gap_in: string }[];
 
-      // معاملة واحدة في قاعدة البيانات: الصلاحية، اليوم، الجلسات، استبعاد
-      // المغادرات، الحساب والتدقيق — أي فشل يلغي كل شيء.
-      const { error: saveError } = await supabase.rpc(
-        "hr_update_attendance_day" as any,
+      // معاملة واحدة في قاعدة البيانات: الصلاحية، طبقة التصحيح، الجلسات،
+      // الإجازة، الحساب والتدقيق — أي فشل يلغي كل شيء. البصمات الأصلية لا تُمس.
+      const hasRealDay = UUID_RE.test(editing.id);
+      const { data, error: saveError } = await supabase.rpc(
+        "hr_save_attendance_day" as any,
         {
-          p_day_id: editing.id,
+          p_day_id: hasRealDay ? editing.id : null,
+          p_employee_id: editing.employee_id,
+          p_date: editing.attendance_date,
           p_first_check_in: ci,
           p_last_check_out: co,
           p_status: form.status,
           p_notes: form.notes || null,
           p_reason: form.reason.trim(),
           p_breaks: activeBreaks,
+          p_deleted_break_ids: deletedBreakIds,
           p_dismissed_gaps: dismissedGaps,
+          p_ignored_event_ids: isLockStatus ? [] : ignoredEventIds,
+          p_leave_type: form.status === "leave" ? (leaveType || null) : null,
         } as any,
       );
       if (saveError) throw saveError;
 
-      toast({ title: "تم حفظ التعديل" });
-      setEditing(null);
+      const res = (data || {}) as any;
+      const warnings: string[] = [];
+      for (const w of (res.warnings || []) as any[]) {
+        if (w.code === "punches_after_out") {
+          warnings.push(`يوجد ${w.count} بصمة بعد وقت الخروج الذي أدخلته ولم تُحتسب. إن كانت صحيحة عدّل وقت الخروج، وإن كانت خاطئة اختر «تجاهل» بجانبها.`);
+        } else if (w.code === "status_computed") {
+          warnings.push(`الحالة المحفوظة «${STATUS_LABEL[w.final] || w.final}» بدل «${STATUS_LABEL[w.requested] || w.requested}» لأنها تُحسب من الأوقات. لتثبيت حالة اختر إجازة أو غياب أو عطلة.`);
+        }
+      }
       fetchRows();
+      if (warnings.length) {
+        // نبقي النافذة مفتوحة ليرى HR النتيجة الفعلية ويصحح إن لزم.
+        setSaveResult({ warnings, net: res.net_work_minutes ?? null, status: res.status ?? null });
+        toast({ title: "تم الحفظ مع ملاحظات", description: "راجع الملاحظات في النافذة." });
+      } else {
+        toast({
+          title: "تم حفظ التعديل",
+          description: res.net_work_minutes != null ? `صافي الساعات: ${fmtHM(res.net_work_minutes)}` : undefined,
+        });
+        setEditing(null);
+      }
     } catch (e: any) {
-      toast({ title: "خطأ", description: e.message, variant: "destructive" });
+      toast({ title: "لم يتم الحفظ", description: e.message, variant: "destructive" });
     } finally {
       setSaving(false);
     }
@@ -1826,13 +1880,9 @@ export default function MonthlyAttendanceTab({
                       {r.is_manually_adjusted && <Badge variant="outline" className="ml-1 text-[10px] bg-blue-50 text-blue-700 border-blue-200">معدّل</Badge>}
                     </TableCell>
                     <TableCell className="text-center">
-                      {isLeaveRow || r.isEmptyDay ? (
-                        <span className="text-[11px] text-muted-foreground">—</span>
-                      ) : (
-                        <Button variant="ghost" size="sm" onClick={() => openEdit(r)} className="h-7 gap-1">
-                          <Pencil className="h-3.5 w-3.5" /> تعديل
-                        </Button>
-                      )}
+                      <Button variant="ghost" size="sm" onClick={() => openEdit(r)} className="h-7 gap-1">
+                        <Pencil className="h-3.5 w-3.5" /> تعديل
+                      </Button>
                     </TableCell>
                   </TableRow>
                 );
@@ -1885,19 +1935,19 @@ export default function MonthlyAttendanceTab({
           </DialogHeader>
           <div className="flex-1 overflow-y-auto px-4 py-3 grid grid-cols-1 lg:grid-cols-2 gap-3 items-start">
            <div className="space-y-3">
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="text-xs text-muted-foreground mb-1 block">الدخول</label>
-                <TimeTextInput value={form.first_check_in} onChange={(v) => setForm(p => ({ ...p, first_check_in: v }))} />
+            {saveResult && (
+              <div className="rounded-md border border-amber-300 bg-amber-50 p-2 text-[11px] text-amber-900 space-y-1">
+                <div className="font-semibold flex items-center gap-1.5">
+                  <AlertCircle className="h-3.5 w-3.5" /> تم الحفظ — النتيجة الفعلية:
+                  {saveResult.status && <span>{STATUS_LABEL[saveResult.status] || saveResult.status}</span>}
+                  {saveResult.net != null && <span>· صافي {fmtHM(saveResult.net)}</span>}
+                </div>
+                {saveResult.warnings.map((w, i) => <div key={i}>• {w}</div>)}
               </div>
-              <div>
-                <label className="text-xs text-muted-foreground mb-1 block">الخروج</label>
-                <TimeTextInput value={form.last_check_out} onChange={(v) => setForm(p => ({ ...p, last_check_out: v }))} />
-              </div>
-            </div>
+            )}
             <div>
               <label className="text-xs text-muted-foreground mb-1 block">الحالة</label>
-              <Select value={form.status} onValueChange={(v) => setForm(p => ({ ...p, status: v }))}>
+              <Select dir="rtl" value={form.status} onValueChange={(v) => setForm(p => ({ ...p, status: v }))}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="present">حاضر</SelectItem>
@@ -1908,7 +1958,41 @@ export default function MonthlyAttendanceTab({
                   <SelectItem value="holiday">عطلة</SelectItem>
                 </SelectContent>
               </Select>
+              {!isLockStatus && (
+                <p className="text-[10px] text-muted-foreground mt-1">
+                  حاضر/متأخر/بصمة ناقصة تُحسب تلقائيًا من الأوقات. الإجازة والغياب والعطلة تثبت كما تختارها.
+                </p>
+              )}
             </div>
+            {form.status === "leave" && !editing?.leaveInfo && (
+              <div>
+                <label className="text-xs text-muted-foreground mb-1 block">نوع الإجازة (تُسجَّل إجازة معتمدة ليوم واحد)</label>
+                <Select dir="rtl" value={leaveType} onValueChange={setLeaveType}>
+                  <SelectTrigger><SelectValue placeholder="اختر نوع الإجازة" /></SelectTrigger>
+                  <SelectContent>
+                    {["سنوية", "مرضية", "بدون راتب", "طارئة", "شخصية", "أخرى"].map((t) => (
+                      <SelectItem key={t} value={t}>{t}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+            {isLockStatus ? (
+              <div className="rounded-md border bg-muted/40 p-2 text-[11px] text-muted-foreground">
+                اليوم سيُثبَّت «{STATUS_LABEL[form.status] || form.status}» بصفر ساعات. البصمات الأصلية تبقى محفوظة، وإرجاع الحالة لحاضر يعيد الحساب منها.
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs text-muted-foreground mb-1 block">الدخول</label>
+                  <TimeTextInput value={form.first_check_in} onValidityChange={onInValid} onChange={(v) => setForm(p => ({ ...p, first_check_in: v }))} />
+                </div>
+                <div>
+                  <label className="text-xs text-muted-foreground mb-1 block">الخروج</label>
+                  <TimeTextInput value={form.last_check_out} onValidityChange={onOutValid} onChange={(v) => setForm(p => ({ ...p, last_check_out: v }))} />
+                </div>
+              </div>
+            )}
             <div>
               <label className="text-xs text-muted-foreground mb-1 block">ملاحظات</label>
               <Textarea rows={2} value={form.notes} onChange={e => setForm(p => ({ ...p, notes: e.target.value }))} />
@@ -1977,6 +2061,31 @@ export default function MonthlyAttendanceTab({
                             {e.status}
                           </Badge>
                         )}
+                        {(() => {
+                          if (isLockStatus) return null;
+                          const coAt = combineDT(editing!.attendance_date, form.last_check_out, ovn(combineDT(editing!.attendance_date, form.first_check_in)));
+                          const after = !!coAt && new Date(e.event_time).getTime() > coAt.getTime();
+                          const ignored = ignoredEventIds.includes(e.id);
+                          if (!after && !ignored) return null;
+                          return (
+                            <>
+                              {after && !ignored && (
+                                <Badge variant="outline" className="text-[9px] px-1 py-0 h-4 border-amber-300 text-amber-700 bg-amber-50">
+                                  بعد الخروج — لن تُحتسب
+                                </Badge>
+                              )}
+                              <button
+                                type="button"
+                                className="text-[10px] underline text-muted-foreground hover:text-foreground"
+                                onClick={() =>
+                                  setIgnoredEventIds((p) => (p.includes(e.id) ? p.filter((x) => x !== e.id) : [...p, e.id]))
+                                }
+                              >
+                                {ignored ? "إلغاء التجاهل" : "تجاهل"}
+                              </button>
+                            </>
+                          );
+                        })()}
                       </div>
                     );
                   })}
@@ -2005,7 +2114,7 @@ export default function MonthlyAttendanceTab({
               )}
             </div>
             {/* Sessions (multi-break) editor */}
-            <div className="border rounded-md p-2 bg-muted/20 space-y-2 lg:col-span-2">
+            <div className={cn("border rounded-md p-2 bg-muted/20 space-y-2 lg:col-span-2", isLockStatus && "hidden")}>
               <div className="flex items-center justify-between">
                 <div className="text-xs font-semibold flex items-center gap-1.5">
                   <Clock className="h-3.5 w-3.5 text-primary" />
@@ -2137,7 +2246,7 @@ export default function MonthlyAttendanceTab({
             </div>
           </div>
           <DialogFooter className="px-4 py-3 border-t shrink-0 sm:justify-start gap-2">
-            <Button onClick={saveEdit} disabled={saving} className="gap-2">
+            <Button onClick={saveEdit} disabled={saving || breaksLoading || rawLoading || (!isLockStatus && (!timeValid.in || !timeValid.out))} className="gap-2">
               {saving && <Loader2 className="h-4 w-4 animate-spin" />} حفظ التعديل
             </Button>
             <Button variant="outline" onClick={() => setEditing(null)} disabled={saving}>إلغاء</Button>
