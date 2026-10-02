@@ -70,6 +70,28 @@ Deno.serve(async (req) => {
   if (!ok) return json({ success: false, error: 'UNAUTHORIZED' }, 401)
 
   const body = await req.json().catch(() => ({}))
+
+  // Usage report: total objects/bytes stored in the B2 bucket (super_admin only path).
+  if (body.action === 'usage') {
+    const keyId = Deno.env.get('B2_KEY_ID'), appKey = Deno.env.get('B2_APPLICATION_KEY')
+    if (!keyId || !appKey) return json({ success: false, error: 'B2_NOT_CONFIGURED' }, 500)
+    const s3 = new AwsClient({ accessKeyId: keyId, secretAccessKey: appKey, service: 's3', region: B2_REGION })
+    let bytes = 0, objects = 0, truncated = false, token: string | null = null
+    const deadline = Date.now() + 50_000
+    while (Date.now() < deadline) {
+      const q = `list-type=2&max-keys=1000${token ? `&continuation-token=${encodeURIComponent(token)}` : ''}`
+      const r = await s3.fetch(`${B2_ENDPOINT}/${B2_BUCKET}?${q}`, { headers: { 'X-Amz-Content-Sha256': 'UNSIGNED-PAYLOAD' } })
+      if (!r.ok) return json({ success: false, error: `B2 list ${r.status}` }, 502)
+      const xml = await r.text()
+      for (const m of xml.matchAll(/<Size>(\d+)<\/Size>/g)) { bytes += Number(m[1]); objects++ }
+      const tm = xml.match(/<NextContinuationToken>([^<]+)<\/NextContinuationToken>/)
+      if (!tm) { token = null; break }
+      token = tm[1]
+    }
+    if (token) truncated = true
+    return json({ success: true, bytes, objects, truncated })
+  }
+
   const ownerId: string | undefined = body.owner_id
 
   // Dispatcher: start one background job per tenant.
