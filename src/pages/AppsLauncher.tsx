@@ -341,7 +341,7 @@ const AppsLauncher = ({ preloadOnly = false }: AppsLauncherProps) => {
       allApps = [...SUPERADMIN_APPS, ...allApps];
     }
     // Per-user deny: hide entirely from launcher
-    allApps = allApps.filter(app => !denyOverrides.has(app.id));
+    allApps = allApps.filter(app => app.id !== "elite-interviews" && !denyOverrides.has(app.id));
     // POS-audit card is reserved for accountants who were explicitly granted it.
     allApps = allApps.filter(app => app.id !== "pos-audit" || accountantPosAuditAllowed === true);
     if (restrictedRole && ROLE_ALLOWED_APPS[restrictedRole]) {
@@ -547,7 +547,7 @@ const AppsLauncher = ({ preloadOnly = false }: AppsLauncherProps) => {
                         key={app.id}
                         app={app}
                         meta={meta}
-                        index={idx}
+                        index={allVisibleApps.findIndex((item) => item.id === app.id)}
                         onNavigate={handleAppNavigate}
                         disabled={false}
                         isPremiumLocked={pendingActivation || isAppPremiumLocked(app)}
