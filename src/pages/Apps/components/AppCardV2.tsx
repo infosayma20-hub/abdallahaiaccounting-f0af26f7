@@ -109,7 +109,7 @@ export default function AppCardV2({
         <div className="min-w-0 space-y-1">
           <div className="flex flex-wrap items-center justify-center gap-1">
             <p
-              className={cn("text-sm font-extrabold leading-tight text-foreground transition-colors duration-300 group-hover:text-primary", isInert && "text-muted-foreground")}
+              className={cn("text-sm font-medium leading-tight text-foreground transition-colors duration-300 group-hover:text-primary", isInert && "text-muted-foreground")}
             >
               {tt(app.label)}
             </p>
