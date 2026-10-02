@@ -122,7 +122,7 @@ const AppsLauncher = ({ preloadOnly = false }: AppsLauncherProps) => {
   const [search, setSearch] = useState("");
   const [categoryFilter, setCategoryFilter] = useState<CategoryFilter>("all");
   const [paletteOpen, setPaletteOpen] = useState(false);
-  const { favorites, isFavorite, toggleFavorite } = useFavoriteApps();
+  const { favorites, isFavorite, toggleFavorite, loading: favoritesLoading } = useFavoriteApps();
   const orderStorageKey = user?.id ? `unify:apps:order:${user.id}` : "";
   const [appOrder, setAppOrder] = useState<string[]>([]);
   const sensors = useSensors(
@@ -324,6 +324,7 @@ const AppsLauncher = ({ preloadOnly = false }: AppsLauncherProps) => {
       subscriptionResolved &&
       !onboardingLoading &&
       !overridesLoading &&
+      !favoritesLoading &&
       accountantPosAuditAllowed !== null
     );
 
@@ -503,7 +504,7 @@ const AppsLauncher = ({ preloadOnly = false }: AppsLauncherProps) => {
         <img
           src="/branding/unify/unify-mark.png"
           alt=""
-          className="absolute start-1/2 top-1/2 w-[78vw] max-w-[760px] -translate-x-1/2 -translate-y-1/2 opacity-[0.055] saturate-0 dark:opacity-[0.08]"
+          className="absolute start-1/2 top-1/2 w-[88vw] max-w-[880px] -translate-x-1/2 -translate-y-1/2 opacity-[0.075] saturate-0 dark:opacity-[0.1]"
         />
       </div>
 
