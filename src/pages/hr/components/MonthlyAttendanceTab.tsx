@@ -1318,6 +1318,21 @@ export default function MonthlyAttendanceTab({
   const [reviewOpen, setReviewOpen] = useState(false);
   const [reviewLoading, setReviewLoading] = useState(false);
   const [reviewRows, setReviewRows] = useState<any[]>([]);
+  const [reviewCount, setReviewCount] = useState<number>(0);
+  // فحص صامت لعدد الأيام التي تحتاج مراجعة — الزر يظهر فقط إذا وُجدت أيام
+  useEffect(() => {
+    let cancelled = false;
+    setReviewCount(0);
+    (async () => {
+      try {
+        const { data, error } = await supabase.rpc("hr_attendance_review_days" as any, { p_from: period.from, p_to: period.to } as any);
+        if (cancelled) return;
+        if (error) return;
+        setReviewCount(((data as any[]) || []).length);
+      } catch { /* تجاهل — الزر يبقى مخفيًا */ }
+    })();
+    return () => { cancelled = true; };
+  }, [period.from, period.to]);
   const openReview = async () => {
     setReviewOpen(true);
     setReviewLoading(true);
