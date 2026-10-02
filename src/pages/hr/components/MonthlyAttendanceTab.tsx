@@ -101,6 +101,8 @@ type BreakSummary = {
 };
 
 /** In-memory shape for an attendance break row while editing. */
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 type BreakDraft = {
   /** Existing DB id (null = new row not yet inserted). */
   id: string | null;
@@ -378,6 +380,13 @@ export default function MonthlyAttendanceTab({
   const [rawEvents, setRawEvents] = useState<{ id: string; event_type: string; event_time: string; branch_id: string | null; status: string | null; notes: string | null }[]>([]);
   const [rawLoading, setRawLoading] = useState(false);
   const [branchNames, setBranchNames] = useState<Record<string, string>>({});
+  const [timeValid, setTimeValid] = useState({ in: true, out: true });
+  const onInValid = useCallback((v: boolean) => setTimeValid((p) => (p.in === v ? p : { ...p, in: v })), []);
+  const onOutValid = useCallback((v: boolean) => setTimeValid((p) => (p.out === v ? p : { ...p, out: v })), []);
+  // بصمات أصلية يختار HR تجاهلها في الحساب (لا تُحذف أبدًا)
+  const [ignoredEventIds, setIgnoredEventIds] = useState<string[]>([]);
+  const [leaveType, setLeaveType] = useState<string>("");
+  const [saveResult, setSaveResult] = useState<null | { warnings: string[]; net: number | null; status: string | null }>(null);
 
   const fetchRows = useCallback(async () => {
     if (!user) return;
@@ -1164,8 +1173,8 @@ export default function MonthlyAttendanceTab({
           break_type: (b.break_type as BreakDraft["break_type"]) || "other",
           // ⚠️ القيمة الداخلية يجب أن تبقى HH:mm (24 ساعة) — الحقل يعرضها AM/PM.
           // صيغة "hh:mm a" هنا كانت تكسر الحساب والحفظ (01:10 PM ⇒ 01:00 صباحاً).
-          out: b.break_out ? format(new Date(b.break_out), "HH:mm") : "",
-          in: b.break_in ? format(new Date(b.break_in), "HH:mm") : "",
+          out: b.break_out ? hebronHHmm(b.break_out) : "",
+          in: b.break_in ? hebronHHmm(b.break_in) : "",
           reason: b.reason || "",
         }));
         const storedRanges = rows.map((b) => ({ break_out: b.break_out, break_in: b.break_in }));
