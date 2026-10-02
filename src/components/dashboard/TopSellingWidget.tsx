@@ -21,7 +21,7 @@ export default function TopSellingWidget({ items, loading }: Props) {
   const tt = useTT();
   if (loading) {
     return (
-      <div className="col-span-12 lg:col-span-6 bg-card rounded-2xl p-5 shadow-sm border border-border/30 animate-pulse">
+      <div className="col-span-12 lg:col-span-6 bg-card rounded-lg p-4 border border-border animate-pulse">
         <div className="h-6 w-40 bg-muted rounded mb-4" />
         <div className="h-[200px] bg-muted rounded-xl" />
       </div>
@@ -31,7 +31,7 @@ export default function TopSellingWidget({ items, loading }: Props) {
   const maxAmount = items.length > 0 ? items[0].totalAmount : 1;
 
   return (
-    <div className="col-span-12 lg:col-span-6 bg-card rounded-2xl p-5 shadow-sm border border-border/30">
+    <div className="col-span-12 lg:col-span-6 bg-card rounded-lg p-4 border border-border">
       <WidgetBanner title={tt("أكثر الأصناف مبيعاً")} icon="🏆" />
 
       {items.length === 0 ? (

@@ -15,7 +15,7 @@ export default function CashFlowWidget({ data, cashBalance, loading }: Props) {
   const tt = useTT();
   if (loading) {
     return (
-      <div className="col-span-12 lg:col-span-6 bg-card rounded-2xl p-5 shadow-sm border border-border/30 animate-pulse">
+      <div className="col-span-12 lg:col-span-6 bg-card rounded-lg p-4 border border-border animate-pulse">
         <div className="h-6 w-36 bg-muted rounded mb-4" />
         <div className="h-[180px] bg-muted rounded-xl" />
       </div>
@@ -28,7 +28,7 @@ export default function CashFlowWidget({ data, cashBalance, loading }: Props) {
   const runwayColor = data.runway <= 1 ? "text-red-500 bg-red-500/10" : data.runway <= 3 ? "text-amber-500 bg-amber-500/10" : "text-emerald-500 bg-emerald-500/10";
 
   return (
-    <div className="col-span-12 lg:col-span-6 bg-card rounded-2xl p-5 shadow-sm border border-border/30">
+    <div className="col-span-12 lg:col-span-6 bg-card rounded-lg p-4 border border-border">
       <WidgetBanner title={tt("التدفق النقدي")} icon="💧" />
 
       {/* Waterfall visual */}

@@ -24,7 +24,7 @@ export default function ChequesCalendarWidget({ cheques, loading }: Props) {
 
   if (loading) {
     return (
-      <div className="col-span-12 lg:col-span-4 bg-card rounded-2xl p-5 shadow-sm border border-border/30 animate-pulse">
+      <div className="col-span-12 lg:col-span-4 bg-card rounded-lg p-4 border border-border animate-pulse">
         <div className="h-6 w-32 bg-muted rounded mb-4" />
         {[1, 2, 3].map((i) => <div key={i} className="h-12 bg-muted rounded-lg mb-2" />)}
       </div>
@@ -32,7 +32,7 @@ export default function ChequesCalendarWidget({ cheques, loading }: Props) {
   }
 
   return (
-    <div className="col-span-12 lg:col-span-4 bg-card rounded-2xl p-5 shadow-sm border border-border/30">
+    <div className="col-span-12 lg:col-span-4 bg-card rounded-lg p-4 border border-border">
       <WidgetBanner title={tt("الشيكات القادمة")} icon="🗓️">
         <div className="flex bg-white/10 rounded-lg p-0.5">
           <button onClick={() => setTab("in")} className={`px-2 py-1 rounded-md text-[10px] transition-all ${tab === "in" ? "bg-white/20 shadow-sm text-white" : "text-white/50"}`}>{tt("واردة")}</button>

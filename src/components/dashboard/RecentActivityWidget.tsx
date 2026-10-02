@@ -20,7 +20,7 @@ export default function RecentActivityWidget({ activities, loading }: Props) {
 
   if (loading) {
     return (
-      <div className="col-span-12 lg:col-span-4 bg-card rounded-2xl p-5 shadow-sm border border-border/30 animate-pulse">
+      <div className="col-span-12 lg:col-span-4 bg-card rounded-lg p-4 border border-border animate-pulse">
         <div className="h-6 w-32 bg-muted rounded mb-4" />
         {[1, 2, 3, 4, 5].map((i) => <div key={i} className="h-10 bg-muted rounded-lg mb-2" />)}
       </div>
@@ -32,7 +32,7 @@ export default function RecentActivityWidget({ activities, loading }: Props) {
   const yesterday = new Date(Date.now() - 86400000).toISOString().split("T")[0];
 
   return (
-    <div className="col-span-12 lg:col-span-4 bg-card rounded-2xl p-5 shadow-sm border border-border/30">
+    <div className="col-span-12 lg:col-span-4 bg-card rounded-lg p-4 border border-border">
       <WidgetBanner title={tt("آخر النشاطات")} icon="⚡" />
 
       <div className="space-y-1 max-h-[320px] overflow-y-auto">

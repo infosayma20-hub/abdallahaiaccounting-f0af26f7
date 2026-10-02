@@ -1,13 +1,19 @@
 import { useState, useEffect } from "react";
-import { Loader2, Clock, EyeOff, Eye, Keyboard, X } from "lucide-react";
+import { Clock, EyeOff, Eye, Keyboard, X, RefreshCw, SlidersHorizontal } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { useDashboardData } from "@/hooks/useDashboardData";
-
-import DashboardHeader from "@/components/dashboard/DashboardHeader";
+import { useDashboardData, type PeriodType } from "@/hooks/useDashboardData";
+import { FinanceShell, type ActionTab } from "@/components/finance/shell";
+import { Button } from "@/components/ui/button";
 import KPIMegaRow from "@/components/dashboard/KPIMegaRow";
+
+const PERIODS: { key: PeriodType; label: string }[] = [
+  { key: "today", label: "اليوم" },
+  { key: "week", label: "هذا الأسبوع" },
+  { key: "month", label: "هذا الشهر" },
+  { key: "year", label: "هذه السنة" },
+];
 import RevenueExpenseChart from "@/components/dashboard/RevenueExpenseChart";
 
 import CashFlowWidget from "@/components/dashboard/CashFlowWidget";
@@ -131,46 +137,81 @@ const HomeDashboard = () => {
 
   const displayName = dashboard.profileData?.company_name || dashboard.profileData?.display_name || user?.user_metadata?.company_name || tt("شركتي");
 
+  const togglePrivacy = () => {
+    const next = !privacyMode;
+    setPrivacyMode(next);
+    localStorage.setItem("dashboard_privacy", String(next));
+  };
+
+  const actionTabs: ActionTab[] = [
+    {
+      key: "general",
+      label: tt("عام"),
+      groups: [
+        {
+          key: "view",
+          label: tt("العرض"),
+          items: [
+            { key: "refresh", label: tt("تحديث"), icon: RefreshCw, onClick: dashboard.refresh, disabled: dashboard.loading },
+            { key: "customize", label: tt("تخصيص"), icon: SlidersHorizontal, onClick: () => setCustomizeOpen(true) },
+            { key: "privacy", label: privacyMode ? tt("إظهار الأرقام") : tt("خصوصية"), icon: privacyMode ? Eye : EyeOff, onClick: togglePrivacy },
+            ...(!isMobile ? [{ key: "shortcuts", label: tt("الاختصارات"), icon: Keyboard, onClick: () => setShowShortcuts(true) }] : []),
+          ],
+        },
+      ],
+    },
+  ];
+
+  const periodSwitcher = (
+    <div className="flex items-center gap-1 rounded-md border border-border bg-muted/40 p-0.5" dir="rtl">
+      {PERIODS.map((p) => (
+        <Button
+          key={p.key}
+          size="sm"
+          variant={dashboard.period === p.key ? "default" : "ghost"}
+          className="h-7 px-3 text-[12px]"
+          onClick={() => dashboard.setPeriod(p.key)}
+        >
+          {tt(p.label)}
+        </Button>
+      ))}
+    </div>
+  );
+
   return (
+    <FinanceShell
+      title={tt("لوحة التحكم")}
+      subtitle={displayName}
+      actionTabs={actionTabs}
+      rightSlot={
+        <div className="flex items-center gap-2 flex-wrap">
+          {periodSwitcher}
+          {dashboard.lastUpdated && (
+            <span className="flex items-center gap-1 text-[11px] text-muted-foreground">
+              <Clock className="h-3.5 w-3.5" />
+              {tt("آخر تحديث")}: {dashboard.lastUpdated.toLocaleTimeString("ar", { hour: "2-digit", minute: "2-digit" })}
+            </span>
+          )}
+        </div>
+      }
+    >
     <div className="space-y-0 max-w-[1600px] mx-auto animate-fade-in" dir="rtl">
       {user && <CompleteProfileDialog open={showProfileDialog} onClose={() => setShowProfileDialog(false)} user={user} />}
-
-
-
 
       {/* Privacy overlay */}
       <div className="relative">
         {privacyMode && (
-          <div className="absolute inset-0 z-10 backdrop-blur-lg bg-background/40 rounded-2xl flex items-center justify-center">
+          <div className="absolute inset-0 z-10 backdrop-blur-lg bg-background/40 rounded-lg flex items-center justify-center">
             <div className="text-center space-y-3 p-6">
               <EyeOff className="h-8 w-8 text-muted-foreground mx-auto" strokeWidth={1.5} />
               <p className="text-sm text-muted-foreground font-medium">{tt("البيانات المالية مخفية")}</p>
-              <button onClick={() => { setPrivacyMode(false); localStorage.setItem("dashboard_privacy", "false"); }} className="px-4 py-2 rounded-xl bg-primary text-primary-foreground text-xs font-bold hover:opacity-90 transition-all">
-                {tt("إظهار البيانات")}
-              </button>
+              <Button size="sm" onClick={togglePrivacy}>{tt("إظهار البيانات")}</Button>
             </div>
           </div>
         )}
 
-        <div className="grid grid-cols-12 gap-4">
-          {/* W1: Header - always interactive */}
-          <DashboardHeader
-            companyName={displayName}
-            companyLogo={dashboard.companyLogo}
-            period={dashboard.period}
-            onPeriodChange={dashboard.setPeriod}
-            lastUpdated={dashboard.lastUpdated}
-            onRefresh={dashboard.refresh}
-            onCustomize={() => setCustomizeOpen(true)}
-            loading={dashboard.loading}
-            privacyMode={privacyMode}
-            onTogglePrivacy={() => {
-              const next = !privacyMode;
-              setPrivacyMode(next);
-              localStorage.setItem("dashboard_privacy", String(next));
-            }}
-          />
-          <div className={privacyMode ? "select-none pointer-events-none col-span-12 grid grid-cols-12 gap-4" : "col-span-12 grid grid-cols-12 gap-4"}>
+        <div className="grid grid-cols-12 gap-3">
+          <div className={privacyMode ? "select-none pointer-events-none col-span-12 grid grid-cols-12 gap-3" : "col-span-12 grid grid-cols-12 gap-3"}>
             {isVisible("kpis") && <KPIMegaRow kpis={dashboard.kpis} sparklines={dashboard.sparklines} loading={dashboard.loading} />}
 
             {isVisible("revenue-chart") && (
@@ -210,6 +251,7 @@ const HomeDashboard = () => {
       <ContactStatementModal open={showContactStatement} onClose={() => setShowContactStatement(false)} />
       <CustomizeDashboardDialog open={customizeOpen} onOpenChange={setCustomizeOpen} onApply={setWidgetConfig} />
     </div>
+    </FinanceShell>
   );
 };
 

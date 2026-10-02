@@ -38,7 +38,7 @@ export default function KPIMegaRow({ kpis, sparklines, loading }: Props) {
     return (
       <div className="col-span-12 flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
         {[1, 2, 3, 4, 5, 6].map((i) => (
-          <div key={i} className="flex-1 min-w-[170px] h-[130px] rounded-2xl bg-card animate-pulse" />
+          <div key={i} className="flex-1 min-w-[170px] h-[130px] rounded-lg bg-card animate-pulse" />
         ))}
       </div>
     );
@@ -59,7 +59,7 @@ export default function KPIMegaRow({ kpis, sparklines, loading }: Props) {
           <button
             key={def.id}
             onClick={() => navigate(def.route)}
-            className="flex-1 min-w-[170px] bg-card rounded-2xl p-4 shadow-sm hover:shadow-md transition-all text-right group border border-border/30 hover:border-primary/20"
+            className="flex-1 min-w-[170px] bg-card rounded-lg p-4 hover:shadow-sm transition-all text-right group border border-border hover:border-primary/40"
           >
             {/* Top */}
             <div className="flex items-center justify-between mb-2">
