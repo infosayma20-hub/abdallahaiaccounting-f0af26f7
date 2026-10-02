@@ -38,7 +38,7 @@ export const finishPostLoginWelcome = (targetPath: string) => new Promise<void>(
     resolve();
   };
   window.addEventListener(POST_LOGIN_WELCOME_FINISHED_EVENT, finish, { once: true });
-  window.dispatchEvent(new CustomEvent(POST_LOGIN_ROUTE_READY_EVENT, { detail: { targetPath } }));
+  window.dispatchEvent(new CustomEvent(POST_LOGIN_ROUTE_READY_EVENT, { detail: { targetPath, releaseWelcome: true } }));
   window.setTimeout(finish, 1800);
 });
 
@@ -63,8 +63,8 @@ const PostLoginWelcomeOverlay = () => {
       setRouteReady(!!targetPath);
     };
     const handleRouteReady = (event: Event) => {
-      const targetPath = (event as CustomEvent<{ targetPath?: string }>).detail?.targetPath || null;
-      if (targetPath) setRouteReady(true);
+      const detail = (event as CustomEvent<{ targetPath?: string; releaseWelcome?: boolean }>).detail;
+      if (detail?.targetPath && detail.releaseWelcome) setRouteReady(true);
     };
     window.addEventListener(POST_LOGIN_WELCOME_START_EVENT, handleStart);
     window.addEventListener(POST_LOGIN_ROUTE_READY_EVENT, handleRouteReady);
