@@ -954,6 +954,7 @@ const POSPage = () => {
   // ── Device-level config (per-machine, stored in localStorage) ──
   const [deviceConfig, setDeviceConfig] = useState(() => getDeviceConfig());
   const [terminalBranchId, setTerminalBranchId] = useState<string | null>(null);
+  const [terminalLang, setTerminalLang] = useState<"ar" | "en" | null>(null);
   const [terminalBranchChecked, setTerminalBranchChecked] = useState(false);
   const [cashBoxBranchId, setCashBoxBranchId] = useState<string | null>(null);
   const [cashBoxBranchChecked, setCashBoxBranchChecked] = useState(false);
@@ -1078,10 +1079,12 @@ const POSPage = () => {
       setTerminalBranchChecked(false);
       const { data } = await supabase
         .from("pos_terminals")
-        .select("branch_id")
+        .select("branch_id, receipt_language")
         .eq("id", deviceConfig.terminalId)
         .maybeSingle();
       if (!cancelled) {
+        const tl = (data as any)?.receipt_language;
+        setTerminalLang(tl === "en" || tl === "ar" ? tl : null);
         setTerminalBranchId(((data as any)?.branch_id as string) || null);
         setTerminalBranchChecked(true);
       }
@@ -1120,11 +1123,12 @@ const POSPage = () => {
         if (list && list.length === 1) bid = (list[0] as any).id;
       }
       if (cancelled) return;
-      if (!bid) { setReceiptLanguage("ar"); setPosLang("ar"); return; }
+      if (!bid) { const l = terminalLang ?? "ar"; setReceiptLanguage(l); setPosLang(l); return; }
       const { data } = await supabase.from("branches").select("receipt_language, name_en, address_en, receipt_footer_en").eq("id", bid).maybeSingle();
       if (cancelled) return;
       const d: any = data || {};
-      const lang = d.receipt_language === "en" ? "en" : "ar";
+      // Station (pos_terminals) language wins; branch is the default.
+      const lang = terminalLang ?? (d.receipt_language === "en" ? "en" : "ar");
       setReceiptLanguage(lang);
       setPosLang(lang);
       if (lang === "en") {
@@ -1135,7 +1139,7 @@ const POSPage = () => {
       setEnglishReceiptHeader({ name: d.name_en, address: d.address_en, footer: d.receipt_footer_en });
     })();
     return () => { cancelled = true; };
-  }, [terminalBranchId, cashBoxBranchId]);
+  }, [terminalBranchId, cashBoxBranchId, terminalLang]);
 
   // ── Concurrent-shift watcher ───────────────────────────────────────
   // Detects when the SAME cashier's session was closed (or marked deleted)

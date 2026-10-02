@@ -455,6 +455,11 @@ export default function NewDeviceOnboardingPage() {
     }
   };
 
+  useEffect(() => {
+    const t: any = terminals.find(x => x.id === terminalId);
+    setStationLang(t?.receipt_language === "en" ? "en" : t?.receipt_language === "ar" ? "ar" : "inherit");
+  }, [terminalId, terminals]);
+
   const filteredTerminals = useMemo(
     () => terminals.filter(t => !branchId || !t.branch_id || t.branch_id === branchId),
     [terminals, branchId],
