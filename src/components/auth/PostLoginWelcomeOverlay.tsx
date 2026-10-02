@@ -82,6 +82,11 @@ const PostLoginWelcomeOverlay = () => {
     const handleRouteReady = (event: Event) => {
       const detail = (event as CustomEvent<{ targetPath?: string; releaseWelcome?: boolean }>).detail;
       if (!detail?.targetPath) return;
+      // Only the login flow's own signal (it carries releaseWelcome) decides
+      // the destination. Route guards re-broadcast their guessed path on every
+      // page (e.g. "/apps" for super admins), which used to reset the timers
+      // and leave the welcome spinning forever.
+      if (detail.releaseWelcome === undefined) return;
       setTargetPath(detail.targetPath);
       if (detail.releaseWelcome) setRouteReady(true);
     };
@@ -121,6 +126,17 @@ const PostLoginWelcomeOverlay = () => {
       window.clearTimeout(hideTimer);
     };
   }, [appsReady, routeReady, shellReady, targetPath, visible]);
+
+  // Safety net: the welcome is cosmetic and must never block the app.
+  useEffect(() => {
+    if (!visible) return;
+    const t = window.setTimeout(() => {
+      clearPendingWelcome();
+      setVisible(false);
+      window.dispatchEvent(new Event(POST_LOGIN_WELCOME_FINISHED_EVENT));
+    }, 9000);
+    return () => window.clearTimeout(t);
+  }, [visible]);
 
   if (!visible) return null;
 
