@@ -1,8 +1,6 @@
-# Roadmap — Rooh restaurant English POS
+# Roadmap — إصلاح تعديل الحضور
 
-- [x] DB: name_en on products/pos_categories, branches.receipt_language/name_en/address_en
-- [ ] Phase 1: English name fields in product card + categories, Excel import/export column
-- [ ] Phase 2: POS screen language switch (LTR + translated strings + English item names)
-- [ ] Phase 3: receipt-en-addon.js (receipt/kitchen/shift LTR) + client fallback + rebuild bridge zips
-- [ ] Phase 4: Rooh branch set to English, verification
-- Blocked on user: Rooh English name/address/VAT no., English item list, device list
+- [ ] مرحلة 1: خانة الوقت (استبدال + صلاحية + مسح)، تسكير الحفظ أثناء التحميل، الملخص بعد الحفظ
+- [ ] مرحلة 2: جدول التصحيحات + recompute v2 + RPC حفظ جديد (فرق مغادرات، حالات محترمة، نفس النهار)
+- [ ] مرحلة 3: نفس قواعد الحفظ بالعرض المباشر، زر تعديل لكل الأيام، توقيت فلسطين، الإجازة
+- [ ] مرحلة 4: تقرير الأيام المتأثرة
