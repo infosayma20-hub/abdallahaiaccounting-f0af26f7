@@ -271,7 +271,7 @@ export default function BranchesSettingsSection() {
 
       {/* Add/Edit Dialog */}
       <Dialog open={showDialog} onOpenChange={setShowDialog}>
-        <DialogContent className="max-w-lg" dir="rtl">
+        <DialogContent className="max-w-lg max-h-[90dvh] overflow-y-auto" dir="rtl">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Building2 className="h-5 w-5 text-primary" />
