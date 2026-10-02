@@ -78,7 +78,10 @@ export function useRoleRedirect() {
     }
 
     const cachedTarget = redirectCache.get(user.id);
-    if (cachedTarget !== undefined && !["/apps", "/employee", "/rep", "/rep/home", "/choose-workspace", "/setup"].includes(cachedTarget || "")) {
+    // إعادة استخدام نتيجة /apps ضرورية أثناء الانتقال بعد تسجيل الدخول:
+    // AuthRoute يكون قد حسمها بالفعل، وإعادة الاستعلام داخل ProtectedRoute
+    // تُظهر شاشة تحميل بين اختفاء الترحيب وظهور التطبيقات.
+    if (cachedTarget !== undefined && !["/employee", "/rep", "/rep/home", "/choose-workspace", "/setup"].includes(cachedTarget || "")) {
       setTargetPath(cachedTarget);
       setChecking(false);
       setStalled(false);

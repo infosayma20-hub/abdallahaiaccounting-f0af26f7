@@ -16,7 +16,7 @@ import { useTranslation } from "react-i18next";
 import LanguageSwitcher from "@/i18n/LanguageSwitcher";
 import { Loader2, ScanFace, Mail, Lock, Eye, EyeOff, Check, LifeBuoy, Info } from "lucide-react";
 import { startAuthentication, browserSupportsWebAuthn } from "@simplewebauthn/browser";
-import { finishPostLoginWelcome, hasPendingPostLoginWelcome, markPostLoginWelcome } from "@/components/auth/PostLoginWelcomeOverlay";
+import { finishPostLoginWelcome, hasPendingPostLoginWelcome, markPostLoginWelcome, POST_LOGIN_SHELL_READY_EVENT } from "@/components/auth/PostLoginWelcomeOverlay";
 
 const AppsLauncherPreloader = lazy(() => import("./AppsLauncher"));
 
@@ -161,8 +161,15 @@ const AuthPage = () => {
   const completePostLogin = useCallback(async (destination: string) => {
     if (completingWelcomeRef.current) return;
     completingWelcomeRef.current = true;
-    if (destination === "/apps") setPreloadApps(true);
-    await finishPostLoginWelcome(destination);
+    if (destination === "/apps") {
+      setPreloadApps(true);
+      const welcomeFinished = finishPostLoginWelcome(destination);
+      await import("@/components/layout/WebLayout");
+      window.dispatchEvent(new Event(POST_LOGIN_SHELL_READY_EVENT));
+      await welcomeFinished;
+    } else {
+      await finishPostLoginWelcome(destination);
+    }
     navigate(destination, { replace: true });
   }, [navigate]);
 
