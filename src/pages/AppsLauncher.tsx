@@ -124,7 +124,7 @@ const AppsLauncher = ({ preloadOnly = false }: AppsLauncherProps) => {
   const orderStorageKey = user?.id ? `unify:apps:order:${user.id}` : "";
   const [appOrder, setAppOrder] = useState<string[]>([]);
   const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
+    useSensor(PointerSensor, { activationConstraint: { delay: 450, tolerance: 8 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
   );
 
@@ -508,7 +508,7 @@ const AppsLauncher = ({ preloadOnly = false }: AppsLauncherProps) => {
 
         {/* Apps Grid — the post-login welcome layer covers this brief first load. */}
         {!isReady ? (
-          <div className="grid grid-cols-3 gap-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-7">
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
             {Array.from({ length: 12 }).map((_, i) => (
               <div
                 key={i}
@@ -552,7 +552,7 @@ const AppsLauncher = ({ preloadOnly = false }: AppsLauncherProps) => {
                     }}
                   />
                 </button>
-                {!favCollapsed && <div className="grid grid-cols-3 gap-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-7">
+                {!favCollapsed && <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
                   {groupedApps.favoritesList.map((app, idx) => {
                     const meta = getSafeAppMeta(app);
                     const pendingActivation = isAppDisabled(app);
@@ -580,7 +580,7 @@ const AppsLauncher = ({ preloadOnly = false }: AppsLauncherProps) => {
             {categoryFilter !== "favorites" && enabledApps.length > 0 && (
               <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleAppDragEnd}>
                 <SortableContext items={enabledApps.map((app) => app.id)} strategy={rectSortingStrategy}>
-                  <div className="grid grid-cols-3 gap-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-7">
+                  <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
                     {enabledApps.map((app, idx) => {
                     const meta = getSafeAppMeta(app);
                     return (

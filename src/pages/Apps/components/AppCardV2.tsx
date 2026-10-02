@@ -131,13 +131,13 @@ export default function AppCardV2({
               </span>
             )}
             {!isInert && meta.isAIFeature && !pendingActivation && (
-              <span className="rounded bg-primary px-1.5 py-0.5 text-[8px] font-semibold text-primary-foreground">
-                AI
+              <span className="text-[10px] font-medium text-muted-foreground">
+                {tt("ذكاء اصطناعي")}
               </span>
             )}
             {!isInert && app.id === "crm" && !pendingActivation && (
-              <span className="rounded bg-accent px-1.5 py-0.5 text-[8px] font-bold text-accent-foreground">
-                CRM
+              <span className="text-[10px] font-medium text-muted-foreground">
+                {tt("إدارة علاقات العملاء")}
               </span>
             )}
           </div>
