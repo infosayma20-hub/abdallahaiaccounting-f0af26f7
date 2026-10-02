@@ -1414,7 +1414,7 @@ export default function MonthlyAttendanceTab({
       } else {
         toast({
           title: "تم حفظ التعديل",
-          description: res.net_work_minutes != null ? `صافي الساعات: ${fmtMin(res.net_work_minutes)}` : undefined,
+          description: res.net_work_minutes != null ? `صافي الساعات: ${fmtHM(res.net_work_minutes)}` : undefined,
         });
         setEditing(null);
       }
