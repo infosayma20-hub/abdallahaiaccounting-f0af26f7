@@ -614,7 +614,7 @@ const AppsLauncher = ({ preloadOnly = false }: AppsLauncherProps) => {
                       key={app.id}
                       app={app}
                       meta={meta}
-                      index={enabledApps.length + idx}
+                      index={idx}
                       onNavigate={handleAppNavigate}
                       disabled={false}
                       isPremiumLocked
