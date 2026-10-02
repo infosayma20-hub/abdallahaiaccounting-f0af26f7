@@ -55,10 +55,9 @@ export default function AppCardV2({
       ref={cardRef as any}
       id={`app-${app.id}`}
       data-tour-id={`app-${app.id}`}
+      data-inert={isInert ? "true" : undefined}
       className={cn(
-        "group relative min-w-0 overflow-hidden rounded-2xl border border-border bg-card shadow-sm",
-        "transition-[transform,box-shadow,border-color] duration-500 ease-out",
-        !isInert && "hover:-translate-y-2 hover:border-primary/20 hover:shadow-lg",
+        "unify-app-card group relative h-full min-w-0 overflow-hidden",
         isInert && "cursor-not-allowed opacity-45",
         isPremiumLocked && "bg-muted/50",
       )}
@@ -82,7 +81,7 @@ export default function AppCardV2({
       >
         {/* Icon container — uses original app.color/bgColor classes */}
         <div
-          className={`flex h-14 w-14 items-center justify-center rounded-2xl transition-[transform,box-shadow] duration-500 ease-out group-hover:-translate-y-1 group-hover:scale-105 group-hover:shadow-md ${
+          className={`flex h-14 w-14 items-center justify-center rounded-[15px] transition-transform duration-200 ease-out group-hover:scale-[1.03] ${
             isInert
               ? "grayscale"
               : `${app.bgColor || "bg-primary/8"} group-hover:scale-110`
