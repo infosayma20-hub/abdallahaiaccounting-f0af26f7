@@ -7,6 +7,8 @@ import { setCanSell } from "@/lib/pos-device-auth";
 import { usePosMode } from "@/hooks/usePosMode";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
+import { setPosGuardResolving, usePosPageLoading } from "@/lib/pos/posBootLoading";
+import POSBootOverlay from "./POSBootOverlay";
 
 /**
  * Gate around /pos that enforces:
@@ -55,6 +57,7 @@ export default function POSDeviceAuthGuard({ children }: { children: ReactNode }
     return () => { cancelled = true; };
   }, [user?.id]);
   const bypassBridge = callCenterEnabled || !!userIsCallCenter;
+  const pageLoading = usePosPageLoading();
   const effectiveAuthorized = authorized || bypassBridge;
 
   // Track whether this tab has EVER seen a working Bridge.
@@ -93,41 +96,38 @@ export default function POSDeviceAuthGuard({ children }: { children: ReactNode }
     };
   }, [effectiveAuthorized]);
 
-  // 1) Still resolving — minimal spinner.
-  // Call-center users don't need the Print Bridge at all — as soon as we
-  // know they're call-center (via pos_users.is_call_center or the branch
-  // POS mode flag) we can skip the bridge probe entirely and render POS.
+  // 1) Still resolving. POS mounts UNDERNEATH the boot popup at the same time
+  //    so its data loads in parallel with the device checks (they used to be
+  //    serialized). canSell stays false until authorization is confirmed, so
+  //    nothing can be sold/printed while checks run.
   const stillResolvingBase = checkingAdmin || posModeLoading || userIsCallCenter === null;
-  if (stillResolvingBase || (!bypassBridge && checking)) {
-    return (
-      <div dir="rtl" className="min-h-[100dvh] flex items-center justify-center bg-background">
-        <div className="flex flex-col items-center gap-3 text-muted-foreground">
-          <Loader2 className="h-6 w-6 animate-spin" />
-          <span className="text-sm">جارٍ التحقق من برنامج الطباعة على هذا الجهاز…</span>
-        </div>
-      </div>
-    );
-  }
+  const resolving = stillResolvingBase || (!bypassBridge && checking);
+  useEffect(() => {
+    setPosGuardResolving(resolving);
+  }, [resolving]);
+  useEffect(() => () => setPosGuardResolving(true), []);
 
   // 2) Authorized OR (admin OR previously-authorized cashier) → render POS.
   //    In the non-authorized branches we render with canSell=false (view-only).
-  const showAsViewOnly = !effectiveAuthorized && (isDeviceAdmin || wasAuthorized);
-  if (effectiveAuthorized || showAsViewOnly) {
-    return (
-      <div className="flex flex-col min-h-[100dvh]">
-        {showAsViewOnly && (
-          <ViewOnlyBanner onRecheck={recheck} bridgeUrl={bridgeUrl} />
-        )}
-        <div className="flex-1 min-h-0">{children}</div>
-      </div>
-    );
-  }
+  const showAsViewOnly = !resolving && !effectiveAuthorized && (isDeviceAdmin || wasAuthorized);
+  // 3) Unauthorized cashier on a device that never had a Bridge → back to
+  //    /choose-workspace where the POS card explains why it is disabled.
+  const mustRedirect = !resolving && !effectiveAuthorized && !showAsViewOnly;
 
-  // 3) Unauthorized cashier on a device that never had a Bridge.
-  //    Instead of slamming them with a full-screen lock, send them back to
-  //    /choose-workspace where the POS card is disabled with the same
-  //    explanation and the employee card stays available.
-  return <RedirectToChooseWorkspace />;
+  // The tree shape stays identical across states so POS is never remounted.
+  return (
+    <div className="flex flex-col min-h-[100dvh]">
+      {showAsViewOnly && (
+        <ViewOnlyBanner onRecheck={recheck} bridgeUrl={bridgeUrl} />
+      )}
+      {mustRedirect ? (
+        <RedirectToChooseWorkspace />
+      ) : (
+        <div className="flex-1 min-h-0" aria-hidden={resolving || undefined}>{children}</div>
+      )}
+      <POSBootOverlay active={resolving || pageLoading} />
+    </div>
+  );
 }
 
 function RedirectToChooseWorkspace() {

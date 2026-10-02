@@ -1,6 +1,7 @@
 import { parseScaleBarcode, type ScaleFormat } from "@/lib/scale-barcode";
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { usePOSOffline } from "@/hooks/usePOSOffline";
+import { setPosPageLoading, usePosGuardResolving } from "@/lib/pos/posBootLoading";
 import { getCachedProducts } from "@/lib/pos-offline-db";
 import {
   loadPOSBootstrap,
@@ -518,6 +519,13 @@ const POSPage = () => {
   const [company, setCompany] = useState<Company | null>(null);
   const [terminal, setTerminal] = useState<Terminal | null>(null);
   const [loading, setLoading] = useState(true);
+  // True while the device guard is still verifying this device — no shift claim yet.
+  const posGuardResolving = usePosGuardResolving();
+  // Drive the shared POS boot popup (rendered by POSDeviceAuthGuard).
+  useEffect(() => {
+    setPosPageLoading(loading);
+  }, [loading]);
+  useEffect(() => () => setPosPageLoading(false), []);
   const [contacts, setContacts] = useState<{ id: string; contact_name: string; contact_type?: string; phone?: string }[]>([]);
   const [customerSearch, setCustomerSearch] = useState("");
   const [showContactDropdown, setShowContactDropdown] = useState(false);
@@ -1139,7 +1147,7 @@ const POSPage = () => {
   //   flips to "revoked" and we re-use the existing closed-elsewhere flow
   //   (cart auto-saved, view-only, sign out / open new shift).
   const { state: sessionClaimState, forceClaim: forceClaimSession, retryClaim: retrySessionClaim } =
-    usePOSSessionClaim(session?.id ?? null);
+    usePOSSessionClaim(posGuardResolving ? null : session?.id ?? null);
   const sessionRevokedFromElsewhere = sessionClaimState.status === "revoked";
   const sessionConflict = sessionClaimState.status === "conflict";
   // Treat a "revoked" heartbeat as the same blocking condition as a closed
@@ -1989,13 +1997,46 @@ const POSPage = () => {
       setLoading(true); // nothing cached — try the network anyway (may be a false negative)
     }
     try {
-      let { data: companies } = await supabase
-        .from("pos_companies")
-        .select("*")
-        .eq("user_id", dataOwnerId)
-        .limit(1);
+      // ⚡ Phase A — every lookup that only needs the tenant/user id runs in
+      // parallel (was ~10 serial round-trips). Products/rates start now too;
+      // categories wait only for the user's saved order (prefs).
+      const prefsP = loadUserPreferences();
+      const productsP = loadProducts();
+      const ratesP = loadExchangeRates();
+      const categoriesP = prefsP.then((p) => loadCategories(p.categoryOrderIds));
+      const gridP = Promise.all([productsP, categoriesP, ratesP]);
+      gridP.catch(() => null); // handled below; avoid unhandled rejection on early return
 
-      let comp = companies?.[0];
+      const [companiesRes, posUserRes, settingsRes, sessionsRes, boxesRes] = await Promise.all([
+        supabase.from("pos_companies").select("*").eq("user_id", dataOwnerId).limit(1),
+        supabase.from("pos_users").select("name, is_call_center, is_waiter").eq("auth_user_id", userId).maybeSingle(),
+        supabase
+          .from("company_settings" as any)
+          .select("pos_show_return_policy, pos_return_policy_days, pos_default_opening_balance, pos_allow_order_transfer, pos_require_cash_box, pos_auto_print, logo_url, pos_cashier_cancel_window_minutes, pos_cashier_invoice_amount_visible_minutes, pos_day_cutoff_hour, pos_require_device_fingerprint, hidden_apps")
+          .eq("user_id", dataOwnerId)
+          .maybeSingle(),
+        supabase
+          .from("pos_sessions")
+          .select("*")
+          .eq("user_id", dataOwnerId)
+          .eq("state", "open")
+          .eq("cashier_auth_user_id", userId)
+          .order("opened_at", { ascending: false })
+          .limit(1),
+        supabase
+          .from("cash_boxes")
+          .select("id, name, type, branch_id")
+          .eq("user_id", dataOwnerId)
+          .eq("type", "pos")
+          .eq("is_active", true),
+      ]);
+
+      const posSettings: any = settingsRes.data;
+      const posUserRow: any = posUserRes.data;
+      const sessions = sessionsRes.data;
+      const boxes = boxesRes.data;
+
+      let comp: any = companiesRes.data?.[0];
       if (!comp) {
         const { data: profile } = await supabase
           .from("profiles")
@@ -2016,26 +2057,25 @@ const POSPage = () => {
       setCompany(comp ? { id: comp.id, name: comp.name, logo_url: comp.logo_url, phone: (comp as any).phone, tax_number: (comp as any).tax_number, address: (comp as any).address } : null);
 
       if (comp) {
-        let term: any = null;
-        if (deviceConfig.terminalId) {
-          const { data: configuredTerm } = await supabase
+        // Configured terminal and fallback terminal are fetched together.
+        const [configuredRes, anyTermRes] = await Promise.all([
+          deviceConfig.terminalId
+            ? supabase
+                .from("pos_terminals")
+                .select("*")
+                .eq("id", deviceConfig.terminalId)
+                .eq("user_id", dataOwnerId)
+                .eq("company_id", comp.id)
+                .maybeSingle()
+            : Promise.resolve({ data: null } as any),
+          supabase
             .from("pos_terminals")
             .select("*")
-            .eq("id", deviceConfig.terminalId)
             .eq("user_id", dataOwnerId)
             .eq("company_id", comp.id)
-            .maybeSingle();
-          term = configuredTerm;
-        }
-        if (!term) {
-          const { data: terminals } = await supabase
-            .from("pos_terminals")
-            .select("*")
-            .eq("user_id", dataOwnerId)
-            .eq("company_id", comp.id)
-            .limit(1);
-          term = terminals?.[0];
-        }
+            .limit(1),
+        ]);
+        let term: any = configuredRes?.data || anyTermRes.data?.[0] || null;
         if (!term) {
           const { data: newTerm } = await supabase
             .from("pos_terminals")
@@ -2050,64 +2090,33 @@ const POSPage = () => {
         }
         setTerminal(term ? { id: term.id, name: term.name, company_id: term.company_id } : null);
 
-        // Prefer the name stored in pos_users (synced from HR / Employees list)
-        // over auth user_metadata, which can become stale after a rename.
-        let displayName = "";
-        try {
-          const { data: puName } = await supabase
-            .from("pos_users")
-            .select("name")
-            .eq("auth_user_id", user.id)
-            .maybeSingle();
-          displayName = (puName as any)?.name || "";
-        } catch {}
-        if (!displayName) {
-          displayName = user?.user_metadata?.full_name || user?.email?.split("@")[0] || "";
-        }
-
-        // Load POS settings needed at startup (receipt policy + default opening cash)
-        const { data: posSettings } = await supabase
-          .from("company_settings" as any)
-          .select("pos_show_return_policy, pos_return_policy_days, pos_default_opening_balance, pos_allow_order_transfer, pos_require_cash_box, pos_auto_print, logo_url, pos_cashier_cancel_window_minutes, pos_cashier_invoice_amount_visible_minutes, pos_day_cutoff_hour")
-          .eq("user_id", dataOwnerId)
-          .maybeSingle();
-
         // If company doesn't have logo from pos_companies, try company_settings
-        if (!company?.logo_url && (posSettings as any)?.logo_url) {
-          setCompany(prev => prev ? { ...prev, logo_url: (posSettings as any).logo_url } : prev);
+        if (!comp?.logo_url && posSettings?.logo_url) {
+          setCompany(prev => prev ? { ...prev, logo_url: posSettings.logo_url } : prev);
         }
 
         if (posSettings) {
           setPosReturnPolicy({
-            show: (posSettings as any).pos_show_return_policy ?? true,
-            days: (posSettings as any).pos_return_policy_days ?? 7,
+            show: posSettings.pos_show_return_policy ?? true,
+            days: posSettings.pos_return_policy_days ?? 7,
           });
-          setPosAllowOrderTransfer((posSettings as any).pos_allow_order_transfer ?? false);
-          setPosRequireCashBox((posSettings as any).pos_require_cash_box ?? false);
-          setPosAutoPrint((posSettings as any).pos_auto_print ?? true);
-          const cw = Number((posSettings as any).pos_cashier_cancel_window_minutes);
+          setPosAllowOrderTransfer(posSettings.pos_allow_order_transfer ?? false);
+          setPosRequireCashBox(posSettings.pos_require_cash_box ?? false);
+          setPosAutoPrint(posSettings.pos_auto_print ?? true);
+          const cw = Number(posSettings.pos_cashier_cancel_window_minutes);
           if (Number.isFinite(cw) && cw > 0) setCashierCancelWindowMin(cw);
-          const av = Number((posSettings as any).pos_cashier_invoice_amount_visible_minutes);
+          const av = Number(posSettings.pos_cashier_invoice_amount_visible_minutes);
           if (Number.isFinite(av) && av > 0) setCashierAmountVisibleMin(av);
-          const configuredCutoff = Number((posSettings as any).pos_day_cutoff_hour);
+          const configuredCutoff = Number(posSettings.pos_day_cutoff_hour);
           if (Number.isInteger(configuredCutoff) && configuredCutoff >= 0 && configuredCutoff <= 23) {
             setPosDayCutoffHour(configuredCutoff);
           }
         }
 
-        const rawDefaultOpeningCash = (posSettings as any)?.pos_default_opening_balance;
+        const rawDefaultOpeningCash = posSettings?.pos_default_opening_balance;
         if (rawDefaultOpeningCash && Number(rawDefaultOpeningCash) > 0) {
           setOpeningCash(String(Number(rawDefaultOpeningCash)));
         }
-
-        const { data: sessions } = await supabase
-          .from("pos_sessions")
-          .select("*")
-          .eq("user_id", dataOwnerId)
-          .eq("state", "open")
-          .eq("cashier_auth_user_id", userId)
-          .order("opened_at", { ascending: false })
-          .limit(1);
 
         if (sessions?.[0]) {
           setSession({
@@ -2121,19 +2130,16 @@ const POSPage = () => {
             cash_box_id: (sessions[0] as any).cash_box_id || null,
           });
 
-          // Detect branch from cash box name for existing session
+          // Detect branch from cash box for existing session
           const existingBoxId = (sessions[0] as any).cash_box_id;
           if (existingBoxId && dataOwnerId) {
-            const { data: boxData } = await supabase
-              .from("cash_boxes")
-              .select("name, branch_id")
-              .eq("id", existingBoxId)
-              .maybeSingle();
-            // Direct branch_id link (preferred)
-            if ((boxData as any)?.branch_id) {
-              setDetectedBranchId((boxData as any).branch_id);
+            const knownBox: any = (boxes || []).find((b: any) => b.id === existingBoxId);
+            const boxData: any = knownBox
+              ? knownBox
+              : (await supabase.from("cash_boxes").select("name, branch_id").eq("id", existingBoxId).maybeSingle()).data;
+            if (boxData?.branch_id) {
+              setDetectedBranchId(boxData.branch_id);
             } else if (boxData?.name) {
-              // Fallback: name matching
               const { data: allBranches } = await supabase
                 .from("branches")
                 .select("id, name")
@@ -2141,7 +2147,7 @@ const POSPage = () => {
                 .eq("is_active", true);
               if (allBranches) {
                 const boxNameNorm = boxData.name.trim();
-                const matched = allBranches.find(br => 
+                const matched = allBranches.find(br =>
                   boxNameNorm.includes(br.name) || br.name.includes(boxNameNorm.split(/\s+/)[0])
                 );
                 setDetectedBranchId(matched?.id || null);
@@ -2150,13 +2156,7 @@ const POSPage = () => {
           }
         } else {
           // ── Device fingerprint check (only if enabled in settings) ──
-          const { data: csSettings } = await supabase
-            .from("company_settings" as any)
-            .select("pos_require_device_fingerprint")
-            .eq("user_id", comp.user_id || userId)
-            .maybeSingle();
-          
-          if ((csSettings as any)?.pos_require_device_fingerprint) {
+          if (posSettings?.pos_require_device_fingerprint) {
             const { getDeviceFingerprint } = await import("@/lib/device-fingerprint");
             const fingerprint = await getDeviceFingerprint();
             const { data: deviceRecord } = await supabase
@@ -2172,52 +2172,22 @@ const POSPage = () => {
               return;
             }
 
-            await supabase.from("pos_devices").update({ last_seen_at: new Date().toISOString() }).eq("id", deviceRecord.id);
+            void supabase.from("pos_devices").update({ last_seen_at: new Date().toISOString() }).eq("id", deviceRecord.id);
           }
 
-          // Load POS cash boxes for shift opening
-          const { data: boxes } = await supabase
-            .from("cash_boxes")
-            .select("id, name, type, branch_id")
-            .eq("user_id", dataOwnerId)
-            .eq("type", "pos")
-            .eq("is_active", true);
-          
-          // Only add call center option if not hidden for this tenant
-          const { data: csHidden } = await supabase
-            .from("company_settings" as any)
-            .select("hidden_apps")
-            .eq("user_id", dataOwnerId)
-            .maybeSingle();
-          const hiddenApps: string[] = (csHidden as any)?.hidden_apps || [];
+          const hiddenApps: string[] = posSettings?.hidden_apps || [];
           const callCenterHidden = hiddenApps.includes("call_center") || hiddenApps.includes("callcenter");
-          
-          // Emergency POS access: do NOT silently hide cash boxes by branch.
-          // The previous filter caused boxes to "disappear" whenever a device
-          // was bound to a branch with no matching cash box. Admins setting up
-          // multiple branches expect to see every active POS cash box and pick
-          // the right one themselves. Selection-side guard remains permissive
-          // (see guardCashBoxBranchId), so this is consistent.
+
+          // Emergency POS access: show every active POS cash box (no branch filter).
           const boxList: CashBoxOption[] = [...(boxes || [])] as CashBoxOption[];
-          // Check if this auth user is flagged as a call-center user in pos_users.
-          // Such users have no cash box / opening cash — they only dispatch orders.
-          const { data: posUserRow } = await supabase
-            .from("pos_users")
-            .select("is_call_center, is_waiter")
-            .eq("auth_user_id", userId)
-            .maybeSingle();
-          const userIsCallCenter = !!(posUserRow as any)?.is_call_center;
-          const userIsWaiter = !!(posUserRow as any)?.is_waiter;
-          setIsWaiterUser(userIsWaiter);
+          const userIsCallCenter = !!posUserRow?.is_call_center;
+          const userIsWaiter = !!posUserRow?.is_waiter;
           setIsWaiterUser(userIsWaiter);
 
           let finalBoxList: CashBoxOption[];
           if (userIsCallCenter) {
-            // Call-center user: force the virtual call-center box only,
-            // bypassing the tenant-level callCenterEnabled / hidden_apps gates.
             finalBoxList = [{ id: "__call_center__", name: userIsWaiter ? "ويتر" : "كول سنتر", type: "call_center" } as any];
           } else {
-            // Phase A: Call Center option is opt-in via company_settings.pos_call_center_enabled.
             if (!callCenterHidden && callCenterEnabled) {
               boxList.push({ id: "__call_center__", name: "كول سنتر", type: "call_center" } as any);
             }
@@ -2226,14 +2196,9 @@ const POSPage = () => {
           setCashBoxes(finalBoxList);
 
           if (userIsCallCenter) {
-            // Auto-select the call-center virtual box and zero out opening cash.
             setSelectedCashBoxId("__call_center__");
             setOpeningCash("0");
           } else {
-            // Auto-select from device binding (localStorage).
-            // A user converted from call-center back to cashier may still have
-            // "__call_center__" remembered on this device — drop it so the
-            // shift opens on a real cash box instead of the call-center mode.
             const savedBoxId = localStorage.getItem(`pos_default_cash_box_${dataOwnerId}`);
             if (savedBoxId === "__call_center__") {
               localStorage.removeItem(`pos_default_cash_box_${dataOwnerId}`);
@@ -2256,20 +2221,9 @@ const POSPage = () => {
         }
       }
 
-      // Load the user's saved orders FIRST, then pass the category order
-      // directly into loadCategories so it doesn't race the state update.
-      // Without this, on a hard refresh the sort would fall back to the
-      // company-wide display_order until another render kicked sorting again.
-      const prefs = await loadUserPreferences();
-      // ⚡ Only what the FIRST paint needs is awaited. Contacts (≈8k rows for
-      // الملكي), employees and modifiers are used inside dialogs/search panels
-      // only, so they stream in the background instead of holding the whole
-      // screen on a spinner.
-      await Promise.all([
-        loadProducts(),
-        loadCategories(prefs.categoryOrderIds),
-        loadExchangeRates(),
-      ]);
+      // Only what the FIRST paint needs is awaited (started in Phase A).
+      // Contacts, employees and modifiers stream in the background.
+      await gridP;
       modifiersPromiseRef.current = loadModifiers()
         .catch(() => null)
         .then(() => { modifiersLoadedRef.current = true; });
