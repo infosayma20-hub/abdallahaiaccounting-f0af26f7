@@ -513,6 +513,31 @@ Deno.serve(async (req) => {
         }
       }
 
+      // 🛡️ HR-entered check-in fallback (mirror of getManualOpenSessionFromDays
+      // in src/lib/attendance-session.ts). hr_save_attendance_day stores the
+      // check-in in attendance_day_overrides without a raw event, so when the
+      // employee could not punch in (e.g. broken GPS) and HR entered it, the
+      // employee must still be able to check OUT today.
+      if (!openSessionStart) {
+        const nowMs = Date.now();
+        const yesterday = hebronDateFromIso(new Date(nowMs - 24 * 3600_000).toISOString());
+        const { data: manualDays } = await supabase
+          .from("attendance_days")
+          .select("attendance_date, first_check_in, last_check_out, is_manually_adjusted, status")
+          .eq("employee_id", employee.id)
+          .in("attendance_date", [today, yesterday])
+          .order("attendance_date", { ascending: false });
+        const locked = new Set(["leave", "absent", "holiday", "on_leave", "sick_leave"]);
+        for (const d of manualDays || []) {
+          if (!d.is_manually_adjusted || !d.first_check_in || d.last_check_out) continue;
+          if (d.status && locked.has(d.status)) continue;
+          const ageH = (nowMs - new Date(d.first_check_in).getTime()) / 3600_000;
+          if (ageH < 0 || ageH > 18) continue;
+          openSessionStart = { event_type: "check_in", event_time: d.first_check_in, created_at: d.first_check_in };
+          break;
+        }
+      }
+
       // Check for open break.
       // 🗓️ A break started before midnight stays open after it — clipping the
       // lookup at calendar midnight used to lose the open break and let the

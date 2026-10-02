@@ -52,7 +52,39 @@ export type AttendanceDayLike = {
   attendance_date: string;
   last_check_out?: string | null;
   is_manually_adjusted?: boolean | null;
+  first_check_in?: string | null;
+  status?: string | null;
 };
+
+const LOCKED_DAY_STATUSES = new Set(["leave", "absent", "holiday", "on_leave", "sick_leave"]);
+
+/**
+ * 🛡️ HR-entered check-in (attendance_day_overrides.override_in via
+ * hr_save_attendance_day) writes NO raw attendance_event. When the employee
+ * could not punch (e.g. broken GPS) and HR entered today's check-in while he
+ * is still at work, the day row has first_check_in but no last_check_out.
+ * Treat that as an open session so the employee is offered "تسجيل خروج".
+ * Mirrors the identical fallback in the `attendance` edge function.
+ */
+export function getManualOpenSessionFromDays(
+  days: AttendanceDayLike[] = [],
+  now: Date = new Date(),
+): AttendanceEventLike | null {
+  const today = hebronDay(now);
+  const yesterday = hebronDay(new Date(now.getTime() - 24 * 3_600_000));
+  const candidates = days
+    .filter((d) => d.attendance_date === today || d.attendance_date === yesterday)
+    .sort((a, b) => (a.attendance_date < b.attendance_date ? 1 : -1));
+  for (const d of candidates) {
+    if (!d.is_manually_adjusted || !d.first_check_in || d.last_check_out) continue;
+    if (d.status && LOCKED_DAY_STATUSES.has(d.status)) continue;
+    const inAt = new Date(d.first_check_in);
+    const ageHours = (now.getTime() - inAt.getTime()) / 3_600_000;
+    if (ageHours < 0 || ageHours > OPEN_SESSION_ACTIONABLE_HOURS) continue;
+    return { event_type: "check_in", event_time: d.first_check_in, created_at: d.first_check_in };
+  }
+  return null;
+}
 
 /**
  * 🛡️ Mirrors the server rule in the `attendance` edge function: HR can close a
@@ -86,7 +118,7 @@ export function getActionableOpenSession(
   // Look back 30 days (same as the server) so the raw pairing is identical,
   // then apply the actionable rule.
   const open = getOpenAttendanceSession(events, 30 * 24);
-  if (!open) return null;
+  if (!open) return getManualOpenSessionFromDays(days, now);
   const openAt = new Date(open.event_time);
   const ageHours = (now.getTime() - openAt.getTime()) / 3_600_000;
   const sameHebronDay = hebronDay(openAt) === hebronDay(now);
