@@ -88,6 +88,9 @@ const PostLoginWelcomeOverlay = () => {
     return () => window.clearTimeout(timer);
   }, [visible]);
 
+  const needsApps = resolvedTarget === "/apps" || (!resolvedTarget && location.pathname === "/apps");
+  const ready = !authLoading && !!user && !companyLoading && routeReady && (!needsApps || appsReady);
+
   useEffect(() => {
     if (!visible || stalled) return;
     const timer = window.setInterval(() => {
@@ -100,9 +103,6 @@ const PostLoginWelcomeOverlay = () => {
     }, 180);
     return () => window.clearInterval(timer);
   }, [needsApps, ready, routeReady, stalled, visible]);
-
-  const needsApps = resolvedTarget === "/apps" || (!resolvedTarget && location.pathname === "/apps");
-  const ready = !authLoading && !!user && !companyLoading && routeReady && (!needsApps || appsReady);
 
   useEffect(() => {
     if (!visible || !ready) return;
