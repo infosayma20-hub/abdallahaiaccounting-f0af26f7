@@ -1,6 +1,7 @@
 import { parseScaleBarcode, type ScaleFormat } from "@/lib/scale-barcode";
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { usePOSOffline } from "@/hooks/usePOSOffline";
+import { setPosPageLoading } from "@/lib/pos/posBootLoading";
 import { getCachedProducts } from "@/lib/pos-offline-db";
 import {
   loadPOSBootstrap,
@@ -518,6 +519,11 @@ const POSPage = () => {
   const [company, setCompany] = useState<Company | null>(null);
   const [terminal, setTerminal] = useState<Terminal | null>(null);
   const [loading, setLoading] = useState(true);
+  // Drive the shared POS boot popup (rendered by POSDeviceAuthGuard).
+  useEffect(() => {
+    setPosPageLoading(loading);
+  }, [loading]);
+  useEffect(() => () => setPosPageLoading(false), []);
   const [contacts, setContacts] = useState<{ id: string; contact_name: string; contact_type?: string; phone?: string }[]>([]);
   const [customerSearch, setCustomerSearch] = useState("");
   const [showContactDropdown, setShowContactDropdown] = useState(false);
