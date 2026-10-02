@@ -504,7 +504,7 @@ const AppsLauncher = ({ preloadOnly = false }: AppsLauncherProps) => {
         <img
           src="/branding/unify/unify-mark.png"
           alt=""
-          className="absolute start-1/2 top-1/2 h-[110dvh] max-h-[1000px] w-auto -translate-x-1/2 -translate-y-1/2 opacity-[0.16] saturate-0 dark:opacity-[0.2]"
+          className="absolute left-1/2 top-1/2 h-[110dvh] max-h-[1000px] w-auto -translate-x-1/2 -translate-y-1/2 opacity-[0.16] saturate-0 dark:opacity-[0.2]"
         />
       </div>
 
