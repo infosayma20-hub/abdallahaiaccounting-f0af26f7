@@ -589,7 +589,7 @@ const AppsLauncher = ({ preloadOnly = false }: AppsLauncherProps) => {
                     variants={{
                       hidden: {},
                       visible: {
-                        transition: reduceMotion ? { delayChildren: 0 } : { delayChildren: 0.06, staggerChildren: 0.035 },
+                        transition: reduceMotion ? { delayChildren: 0 } : { delayChildren: 0.04, staggerChildren: 0.018 },
                       },
                     }}
                   >

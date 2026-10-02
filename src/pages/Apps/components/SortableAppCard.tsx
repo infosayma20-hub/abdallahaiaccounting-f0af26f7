@@ -29,7 +29,7 @@ export default function SortableAppCard({ sortableId, ...cardProps }: Props) {
         hidden: reduceMotion ? { opacity: 1 } : { opacity: 0, x: 26, y: 12, scale: 0.97 },
         visible: { opacity: 1, x: 0, y: 0, scale: 1 },
       }}
-      transition={{ duration: reduceMotion ? 0 : 0.38, ease: [0.2, 0.8, 0.2, 1] }}
+      transition={{ duration: reduceMotion ? 0 : 0.28, ease: [0.2, 0.8, 0.2, 1] }}
       {...attributes}
       {...listeners}
     >
