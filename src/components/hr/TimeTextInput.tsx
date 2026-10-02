@@ -47,20 +47,33 @@ function selectAll(el: HTMLInputElement) {
   });
 }
 
-/** يأخذ آخر رقمين كُتبا — حتى لو لم يُحدَّد النص القديم (مثلاً "01" ثم "2" ⇒ "12"). */
-function lastTwoDigits(raw: string): string {
+/**
+ * الكتابة تستبدل القيمة القديمة دائمًا: إذا تجاوز النص رقمين (لأن النص القديم
+ * لم يُحدَّد — شائع على التابلت) نأخذ الرقم الجديد فقط، بدل دمجه مع القديم
+ * ("09" ثم "1" كانت تصير "91" وتُرفض بصمت).
+ */
+function takeTyped(raw: string, prev: string): string {
   const d = raw.replace(/\D/g, "");
-  return d.length > 2 ? d.slice(-2) : d;
+  if (d.length <= 2) return d;
+  const p = prev.replace(/\D/g, "");
+  if (p && d.startsWith(p)) return d.slice(p.length).slice(0, 2);
+  if (p && d.endsWith(p)) return d.slice(0, d.length - p.length).slice(-2);
+  return d.slice(-1);
 }
 
 export function TimeTextInput({
   value,
   onChange,
   className,
+  onValidityChange,
+  clearable = true,
 }: {
   value: string;
   onChange: (v: string) => void;
   className?: string;
+  /** يُبلَّغ عند وجود رقم غير صالح لم يُحفظ — حتى يمنع الأب الحفظ. */
+  onValidityChange?: (valid: boolean) => void;
+  clearable?: boolean;
 }) {
   // القيمة المخزنة قد تصل بصيغة "13:10" أو "01:10 PM" — نوحّدها قبل التقسيم.
   const parsed = (() => {
