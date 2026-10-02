@@ -142,13 +142,15 @@ const AppsLauncher = () => {
       .eq("accountant_auth_id", user.id)
       .eq("is_active", true)
       .maybeSingle()
-      .then(({ data }) => {
-        if (cancelled) return;
-        setAccountantPosAuditAllowed(((data as any)?.can_audit_pos_shifts as boolean) === true);
-      })
-      .catch(() => {
-        if (!cancelled) setAccountantPosAuditAllowed(false);
-      });
+      .then(
+        ({ data }) => {
+          if (cancelled) return;
+          setAccountantPosAuditAllowed(((data as any)?.can_audit_pos_shifts as boolean) === true);
+        },
+        () => {
+          if (!cancelled) setAccountantPosAuditAllowed(false);
+        },
+      );
     return () => { cancelled = true; };
   }, [user?.id]);
 
