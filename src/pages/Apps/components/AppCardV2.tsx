@@ -9,7 +9,7 @@ import { useTT } from "@/i18n/dict";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
-interface Props {
+export interface Props {
   app: NavItem;
   meta: AppVisualMeta;
   index: number;

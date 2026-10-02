@@ -1,7 +1,8 @@
 import { useState, useEffect, type ReactNode } from "react";
 import { ChevronDown } from "lucide-react";
 import { useTT } from "@/i18n/dict";
-import { SECTION_ACCENTS, SECTION_LABELS, type AppSection as SectionKey } from "../data/appsRegistry";
+import { SECTION_LABELS, type AppSection as SectionKey } from "../data/appsRegistry";
+import { Button } from "@/components/ui/button";
 
 interface Props {
   section: SectionKey;
@@ -11,8 +12,7 @@ interface Props {
 
 export default function AppSection({ section, isPremium, children }: Props) {
   const tt = useTT();
-  const accent = SECTION_ACCENTS[section];
-  const { title, description } = SECTION_LABELS[section];
+  const { title } = SECTION_LABELS[section];
   const storageKey = `amwali:apps:section:${section}:collapsed`;
   const [collapsed, setCollapsed] = useState<boolean>(() => {
     try { return localStorage.getItem(storageKey) === "1"; } catch { return false; }
@@ -22,78 +22,26 @@ export default function AppSection({ section, isPremium, children }: Props) {
   }, [collapsed, storageKey]);
 
   return (
-    <section style={{ padding: "18px 0 8px" }}>
-      {/* Section header */}
-      <button
+    <section className="py-5">
+      <Button
         type="button"
+        variant="ghost"
         onClick={() => setCollapsed((c) => !c)}
         aria-expanded={!collapsed}
-        style={{
-          display: "flex", alignItems: "center", gap: 10, marginBottom: 14, padding: "4px 6px",
-          width: "100%", background: "transparent", border: "none", cursor: "pointer",
-          borderRadius: 8, transition: "background 0.15s",
-        }}
-        onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(13,27,46,0.04)")}
-        onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+        className="mb-3 flex h-9 w-full justify-start gap-2 px-1 text-foreground"
       >
-        <div
-          aria-hidden="true"
-          style={{
-            width: 3,
-            height: 14,
-            borderRadius: 2,
-            background: accent,
-            flexShrink: 0,
-          }}
-        />
-        <h3
-          style={{
-            fontSize: 13,
-            fontWeight: 500,
-            color: "#0D1B2E",
-            margin: 0,
-            fontFamily: "Cairo, Tajawal, sans-serif",
-          }}
-        >
-          {tt(title)}
-        </h3>
+        <span aria-hidden="true" className="h-4 w-1 rounded-full bg-primary" />
+        <h3 className="text-sm font-semibold">{tt(isPremium ? "متقدمة" : title)}</h3>
         {isPremium && (
-          <span
-            style={{
-              background: "#EEEDFE",
-              color: "#3C3489",
-              fontSize: 11,
-              fontWeight: 500,
-              padding: "2px 8px",
-              borderRadius: 999,
-              fontFamily: "Cairo, Tajawal, sans-serif",
-            }}
-          >
-            Premium
-          </span>
-        )}
-        {description && (
-          <span
-            style={{
-              fontSize: 12,
-              fontWeight: 400,
-              color: "#9CA3AF",
-              fontFamily: "Cairo, Tajawal, sans-serif",
-            }}
-          >
-            {tt(description)}
+          <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
+            {tt("مغلقة")}
           </span>
         )}
         <ChevronDown
           size={16}
-          style={{
-            color: "#94a3b8",
-            marginInlineStart: "auto",
-            transition: "transform 0.2s",
-            transform: collapsed ? "rotate(-90deg)" : "rotate(0deg)",
-          }}
+          className={`ms-auto text-muted-foreground transition-transform ${collapsed ? "-rotate-90" : ""}`}
         />
-      </button>
+      </Button>
 
       {/* Apps grid */}
       {!collapsed && <div className="grid grid-cols-3 gap-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-7">
