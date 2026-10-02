@@ -1054,16 +1054,22 @@ export default function MonthlyAttendanceTab({
   ];
 
   const openEdit = (r: MonthRow) => {
+    // صف وهمي (يوم إجازة/يوم بلا بصمات) ليس له سجل بعد — يُنشأ عند الحفظ.
+    const hasRealDay = UUID_RE.test(r.id);
     setEditing(r);
     setForm({
-      first_check_in: r.first_check_in ? format(new Date(r.first_check_in), "HH:mm") : "",
-      last_check_out: r.last_check_out ? format(new Date(r.last_check_out), "HH:mm") : "",
+      first_check_in: r.first_check_in ? hebronHHmm(r.first_check_in) : "",
+      last_check_out: r.last_check_out ? hebronHHmm(r.last_check_out) : "",
       status: r.status || "present",
       notes: r.notes || "",
       reason: "",
     });
+    setTimeValid({ in: true, out: true });
+    setIgnoredEventIds([]);
+    setLeaveType("");
+    setSaveResult(null);
     setBreaks([]);
-    setBreaksLoading(true);
+    setBreaksLoading(hasRealDay);
     setRawEvents([]);
     setRawLoading(true);
     // 🛡️ نافذة يوم الدوام = نفس تعريف الخادم (06:00 → 06:00 اليوم التالي)،
@@ -1072,10 +1078,8 @@ export default function MonthlyAttendanceTab({
     // دخول/خروج اليوم المحفوظ (تعديلات الموارد البشرية) فلا يختفي أي وقت معتمد.
     (async () => {
       try {
-        const winStart = new Date(`${r.attendance_date}T00:00:00`);
-        winStart.setHours(6, 0, 0, 0);
-        const winEnd = new Date(winStart);
-        winEnd.setDate(winEnd.getDate() + 1);
+        const winStart = hebronLocalToDate(r.attendance_date, "06:00")!;
+        const winEnd = hebronLocalToDate(addDaysIso(r.attendance_date, 1), "06:00")!;
         const ciAt = r.first_check_in ? new Date(r.first_check_in) : null;
         const coAt = r.last_check_out ? new Date(r.last_check_out) : null;
         const from = ciAt && ciAt.getTime() < winStart.getTime() ? ciAt : winStart;
@@ -1186,14 +1190,13 @@ export default function MonthlyAttendanceTab({
    *  + 01:04 AM check-out is treated as ~8h15m (not a negative span). */
   const combineDT = useCallback((dateStr: string, hhmmRaw: string, anchor?: Date | null): Date | null => {
     // 🛡️ يقبل "13:10" أو "01:10 PM" — أي صيغة أخرى تُرفض بدل حفظ وقت خاطئ بصمت.
+    // الوقت دائمًا بتوقيت فلسطين (لا يعتمد على ساعة جهاز المستخدم، ويراعي التوقيت الشتوي).
     const hhmm = normalizeTime24(hhmmRaw);
     if (!hhmm) return null;
-    const [y, mo, d] = dateStr.split("-").map(Number);
-    const [h, mi] = hhmm.split(":").map(Number);
-    if (!y || !mo || !d) return null;
-    const dt = new Date(y, mo - 1, d, h || 0, mi || 0, 0, 0);
+    let dt = hebronLocalToDate(dateStr, hhmm);
+    if (!dt) return null;
     if (anchor && dt.getTime() < anchor.getTime()) {
-      dt.setDate(dt.getDate() + 1);
+      dt = hebronLocalToDate(addDaysIso(dateStr, 1), hhmm);
     }
     return dt;
   }, []);
