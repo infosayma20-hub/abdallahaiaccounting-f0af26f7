@@ -2145,8 +2145,9 @@ export default function MonthlyAttendanceTab({
                           </Badge>
                         )}
                         {(() => {
-                          if (isLockStatus) return null;
-                          const coAt = combineDT(editing!.attendance_date, form.last_check_out, ovn(combineDT(editing!.attendance_date, form.first_check_in)));
+                          // 🛡️ أثناء إغلاق النافذة يصبح editing = null بينما المحتوى ما زال يُرسم (حركة الإغلاق).
+                          if (isLockStatus || !editing) return null;
+                          const coAt = combineDT(editing.attendance_date, form.last_check_out, ovn(combineDT(editing.attendance_date, form.first_check_in)));
                           const after = !!coAt && new Date(e.event_time).getTime() > coAt.getTime();
                           const ignored = ignoredEventIds.includes(e.id);
                           if (!after && !ignored) return null;
