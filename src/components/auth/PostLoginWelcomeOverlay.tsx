@@ -86,7 +86,8 @@ const PostLoginWelcomeOverlay = () => {
       if (detail.releaseWelcome) setReadyToFinish(true);
     };
     const handleAppsReady = () => {
-      if (targetPath === "/apps") setReadyToFinish(true);
+      setTargetPath("/apps");
+      setReadyToFinish(true);
     };
     window.addEventListener(POST_LOGIN_WELCOME_START_EVENT, handleStart);
     window.addEventListener(POST_LOGIN_ROUTE_READY_EVENT, handleRouteReady);
@@ -96,7 +97,7 @@ const PostLoginWelcomeOverlay = () => {
       window.removeEventListener(POST_LOGIN_ROUTE_READY_EVENT, handleRouteReady);
       window.removeEventListener(POST_LOGIN_APPS_READY_EVENT, handleAppsReady);
     };
-  }, [targetPath]);
+  }, []);
 
   useEffect(() => {
     if (!visible || !readyToFinish) return;
