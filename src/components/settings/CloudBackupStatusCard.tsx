@@ -3,7 +3,9 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { Cloud, Search } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Cloud, HardDrive, RefreshCw, Search } from "lucide-react";
 
 const STATUS: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
   success: { label: "مكتملة", variant: "default" },
@@ -13,29 +15,51 @@ const STATUS: Record<string, { label: string; variant: "default" | "secondary" |
 };
 const ORDER: Record<string, number> = { failed: 0, partial: 1, running: 2, success: 3 };
 
-const fmtSize = (b: number) => (b > 1048576 ? `${(b / 1048576).toFixed(1)} MB` : `${Math.round(b / 1024)} KB`);
+const fmtSize = (b: number) =>
+  b > 1073741824 ? `${(b / 1073741824).toFixed(2)} GB` : b > 1048576 ? `${(b / 1048576).toFixed(1)} MB` : `${Math.round(b / 1024)} KB`;
 
-/** Daily automatic UNIFY cloud backup — all subscribers for the latest backup day. */
+/** Daily automatic UNIFY cloud backup — all subscribers, filterable by backup day. */
 export function CloudBackupStatusCard() {
   const [q, setQ] = useState("");
-  const { data, isLoading } = useQuery({
-    queryKey: ["cloud-backup-runs-latest-day"],
+  const [day, setDay] = useState<string | null>(null);
+
+  const { data: days } = useQuery({
+    queryKey: ["cloud-backup-days"],
     queryFn: async () => {
-      const { data: last, error: e1 } = await supabase
+      const { data, error } = await supabase
         .from("cloud_backup_runs")
         .select("backup_date")
         .order("backup_date", { ascending: false })
-        .limit(1);
-      if (e1) throw e1;
-      const day = last?.[0]?.backup_date;
-      if (!day) return { day: null as string | null, runs: [] as any[] };
+        .limit(4000);
+      if (error) throw error;
+      return [...new Set((data ?? []).map((r: any) => r.backup_date as string))].slice(0, 30);
+    },
+  });
+  const activeDay = day ?? days?.[0] ?? null;
+
+  const { data, isLoading } = useQuery({
+    queryKey: ["cloud-backup-runs", activeDay],
+    enabled: !!activeDay,
+    queryFn: async () => {
       const { data: runs, error } = await supabase
         .from("cloud_backup_runs")
         .select("id,company_name,backup_date,status,tables_count,records_count,files_count,size_bytes,started_at")
-        .eq("backup_date", day)
+        .eq("backup_date", activeDay!)
         .limit(1000);
       if (error) throw error;
-      return { day, runs: runs ?? [] };
+      return { day: activeDay!, runs: runs ?? [] };
+    },
+  });
+
+  const usage = useQuery({
+    queryKey: ["cloud-backup-b2-usage"],
+    enabled: false,
+    staleTime: 10 * 60 * 1000,
+    queryFn: async () => {
+      const { data, error } = await supabase.functions.invoke("cloud-backup", { body: { action: "usage" } });
+      if (error) throw error;
+      if (!data?.success) throw new Error(data?.error ?? "usage failed");
+      return data as { bytes: number; objects: number; truncated: boolean };
     },
   });
 
@@ -61,10 +85,51 @@ export function CloudBackupStatusCard() {
       <p className="text-sm text-muted-foreground">
         تُحفظ نسخة كاملة تلقائيًا كل يوم الساعة 5:00 صباحًا بتوقيت فلسطين بملف خاص بكل شركة، مرتبة حسب القسم ثم التاريخ، مع الصور والمرفقات.
       </p>
+
+      {/* Backblaze storage usage KPI */}
+      <div className="flex flex-wrap items-center gap-2 rounded-lg border border-border bg-muted/40 px-3 py-2 text-sm">
+        <HardDrive className="h-4 w-4 text-primary" />
+        <span className="font-medium text-foreground">استهلاك التخزين (Backblaze):</span>
+        {usage.data ? (
+          <span className="text-foreground">
+            {fmtSize(usage.data.bytes)} · {usage.data.objects.toLocaleString("en-US")} ملف
+            {usage.data.truncated && <span className="text-muted-foreground"> (تقدير جزئي)</span>}
+          </span>
+        ) : (
+          <span className="text-muted-foreground">اضغط تحديث لحساب الاستهلاك</span>
+        )}
+        <Button
+          size="sm"
+          variant="outline"
+          className="gap-1"
+          disabled={usage.isFetching}
+          onClick={() => usage.refetch()}
+        >
+          <RefreshCw className={`h-3.5 w-3.5 ${usage.isFetching ? "animate-spin" : ""}`} />
+          {usage.isFetching ? "جارِ الحساب…" : "تحديث"}
+        </Button>
+        {usage.isError && <span className="text-destructive">تعذّر حساب الاستهلاك</span>}
+      </div>
+
+      {/* Day filter */}
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="text-sm font-medium text-foreground">يوم النسخة:</span>
+        <Select dir="rtl" value={activeDay ?? ""} onValueChange={(v) => setDay(v)}>
+          <SelectTrigger className="w-44">
+            <SelectValue placeholder="اختر اليوم" />
+          </SelectTrigger>
+          <SelectContent>
+            {(days ?? []).map((d) => (
+              <SelectItem key={d} value={d}>{d}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
       {isLoading ? (
         <p className="text-sm text-muted-foreground">جارِ التحميل…</p>
       ) : runs.length === 0 ? (
-        <p className="text-sm text-muted-foreground">لا توجد نسخ بعد — أول نسخة الليلة.</p>
+        <p className="text-sm text-muted-foreground">لا توجد نسخ لهذا اليوم.</p>
       ) : (
         <>
           <div className="flex flex-wrap items-center gap-2 text-sm">
