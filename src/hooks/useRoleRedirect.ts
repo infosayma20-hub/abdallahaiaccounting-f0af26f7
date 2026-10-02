@@ -4,6 +4,7 @@ import { useAuth } from "./useAuth";
 import { useUserRoles } from "./useUserRoles";
 import { canUserCreateTenant } from "@/lib/tenantOwnerGuard";
 import { isAuthSessionExpiredError, redirectToSessionExpired } from "@/lib/sessionExpired";
+import { POST_LOGIN_ROUTE_READY_EVENT } from "@/components/auth/PostLoginWelcomeOverlay";
 
 const redirectCache = new Map<string, string | null>();
 
@@ -364,5 +365,11 @@ export function useRoleRedirect() {
     setStalled(false);
     setAttempt((n) => n + 1);
   };
+
+  useEffect(() => {
+    if (!user || checking || !targetPath) return;
+    window.dispatchEvent(new CustomEvent(POST_LOGIN_ROUTE_READY_EVENT, { detail: { targetPath } }));
+  }, [checking, targetPath, user]);
+
   return { targetPath, checking, user, stalled, retry };
 }

@@ -16,6 +16,7 @@ import { useTranslation } from "react-i18next";
 import LanguageSwitcher from "@/i18n/LanguageSwitcher";
 import { Loader2, ScanFace, Mail, Lock, Eye, EyeOff, Check, LifeBuoy, Info } from "lucide-react";
 import { startAuthentication, browserSupportsWebAuthn } from "@simplewebauthn/browser";
+import { markPostLoginWelcome } from "@/components/auth/PostLoginWelcomeOverlay";
 
 
 type Mode = "login" | "signup" | "forgot";
@@ -314,8 +315,10 @@ const AuthPage = () => {
             return;
           }
           const dest = await resolveRedirect(data.user.id);
+          markPostLoginWelcome(dest);
           navigate(dest);
         } else {
+          markPostLoginWelcome("/apps");
           navigate("/apps");
         }
       }
@@ -336,6 +339,7 @@ const AuthPage = () => {
       } catch {}
       await supabase.auth.signOut();
       localStorage.removeItem("trial_banner_dismissed");
+      markPostLoginWelcome();
       const { error } = await lovable.auth.signInWithOAuth("google", {
         redirect_uri: window.location.origin,
         extraParams: { prompt: "select_account" },
@@ -385,8 +389,10 @@ const AuthPage = () => {
       const { data: { user: currentUser } } = await supabase.auth.getUser();
       if (currentUser) {
         const dest = await resolveRedirect(currentUser.id);
+        markPostLoginWelcome(dest);
         navigate(dest);
       } else {
+        markPostLoginWelcome("/apps");
         navigate("/apps");
       }
     } catch (err: any) {
