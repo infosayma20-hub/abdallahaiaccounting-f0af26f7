@@ -23,7 +23,7 @@ import AppsHero from "@/pages/Apps/components/AppsHero";
 import CategoryPills, { type CategoryFilter } from "@/pages/Apps/components/CategoryPills";
 import CommandPalette from "@/pages/Apps/components/CommandPalette";
 import { useFavoriteApps } from "@/hooks/useFavoriteApps";
-import { Star, Command, ChevronDown, Megaphone, ShieldCheck } from "lucide-react";
+import { Star, Command, ChevronDown, Megaphone, ShieldCheck, LayoutGrid } from "lucide-react";
 import { useTT } from "@/i18n/dict";
 import { POST_LOGIN_APPS_READY_EVENT } from "@/components/auth/PostLoginWelcomeOverlay";
 import {
@@ -145,6 +145,12 @@ const AppsLauncher = ({ preloadOnly = false }: AppsLauncherProps) => {
   useEffect(() => {
     try { localStorage.setItem("amwali:apps:section:favorites:collapsed", favCollapsed ? "1" : "0"); } catch {}
   }, [favCollapsed]);
+  const [basicCollapsed, setBasicCollapsed] = useState<boolean>(() => {
+    try { return localStorage.getItem("amwali:apps:section:basic:collapsed") === "1"; } catch { return false; }
+  });
+  useEffect(() => {
+    try { localStorage.setItem("amwali:apps:section:basic:collapsed", basicCollapsed ? "1" : "0"); } catch {}
+  }, [basicCollapsed]);
   // expandedApp removed in Phase 1 — apps now navigate directly
   const cachedRoles = user?.id ? rolesCache.get(user.id) : undefined;
   const [userRoles, setUserRoles] = useState<string[]>(cachedRoles?.roles ?? []);
@@ -614,42 +620,72 @@ const AppsLauncher = ({ preloadOnly = false }: AppsLauncherProps) => {
               </motion.div>
             )}
 
-            {/* All enabled apps in one personally sortable grid. */}
+            {/* All enabled apps in one personally sortable grid, under a "basic cards" heading. */}
             {categoryFilter !== "favorites" && enabledApps.length > 0 && (
-              <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleAppDragEnd}>
-                <SortableContext items={enabledApps.map((app) => app.id)} strategy={rectSortingStrategy}>
-                  <motion.div
-                    className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5"
-                    initial="hidden"
-                    animate="visible"
-                    variants={{
-                      hidden: {},
-                      visible: {
-                        transition: reduceMotion ? { delayChildren: 0 } : { delayChildren: 0.04, staggerChildren: 0.018 },
-                      },
-                    }}
+              <>
+                <button
+                  type="button"
+                  onClick={() => setBasicCollapsed((c) => !c)}
+                  aria-expanded={!basicCollapsed}
+                  className="flex items-center gap-2 mb-3 px-1 py-1 w-full bg-transparent border-none cursor-pointer rounded-lg hover:bg-slate-50 transition-colors"
+                >
+                  <div
+                    className="flex items-center justify-center"
+                    style={{ width: 28, height: 28, borderRadius: 8, background: "rgba(37,99,235,0.10)" }}
                   >
-                    {enabledApps.map((app, idx) => {
-                    const meta = getSafeAppMeta(app);
-                    return (
-                      <SortableAppCard
-                        key={app.id}
-                        sortableId={app.id}
-                        app={app}
-                        meta={meta}
-                        index={enabledApps.length + idx}
-                        onNavigate={handleAppNavigate}
-                        disabled={false}
-                        isPremiumLocked={false}
-                        pendingActivation={false}
-                        isFavorite={isFavorite(app.id)}
-                        onToggleFavorite={() => toggleFavorite(app.id)}
-                      />
-                    );
-                    })}
-                  </motion.div>
-                </SortableContext>
-              </DndContext>
+                    <LayoutGrid size={15} style={{ color: "#2563eb" }} />
+                  </div>
+                  <h3 style={{ fontSize: 15, fontWeight: 700, color: "#0D1B2E", margin: 0 }}>
+                    {tt("البطاقات الأساسية")}
+                  </h3>
+                  <span style={{ fontSize: 11, color: "#94a3b8" }}>({enabledApps.length})</span>
+                  <ChevronDown
+                    size={16}
+                    style={{
+                      color: "#94a3b8",
+                      marginInlineStart: "auto",
+                      transition: "transform 0.2s",
+                      transform: basicCollapsed ? "rotate(-90deg)" : "rotate(0deg)",
+                    }}
+                  />
+                </button>
+                {!basicCollapsed && (
+                <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleAppDragEnd}>
+                  <SortableContext items={enabledApps.map((app) => app.id)} strategy={rectSortingStrategy}>
+                    <motion.div
+                      className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5"
+                      initial="hidden"
+                      animate="visible"
+                      variants={{
+                        hidden: {},
+                        visible: {
+                          transition: reduceMotion ? { delayChildren: 0 } : { delayChildren: 0.04, staggerChildren: 0.018 },
+                        },
+                      }}
+                    >
+                      {enabledApps.map((app, idx) => {
+                      const meta = getSafeAppMeta(app);
+                      return (
+                        <SortableAppCard
+                          key={app.id}
+                          sortableId={app.id}
+                          app={app}
+                          meta={meta}
+                          index={enabledApps.length + idx}
+                          onNavigate={handleAppNavigate}
+                          disabled={false}
+                          isPremiumLocked={false}
+                          pendingActivation={false}
+                          isFavorite={isFavorite(app.id)}
+                          onToggleFavorite={() => toggleFavorite(app.id)}
+                        />
+                      );
+                      })}
+                    </motion.div>
+                  </SortableContext>
+                </DndContext>
+                )}
+              </>
             )}
 
             {/* Only locked apps remain under the Advanced heading. */}
