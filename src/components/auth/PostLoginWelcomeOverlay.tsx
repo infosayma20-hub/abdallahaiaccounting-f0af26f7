@@ -5,6 +5,7 @@ export const POST_LOGIN_WELCOME_KEY = "unify:post-login-welcome";
 export const POST_LOGIN_WELCOME_START_EVENT = "unify:post-login-welcome-start";
 export const POST_LOGIN_ROUTE_READY_EVENT = "unify:post-login-route-ready";
 export const POST_LOGIN_APPS_READY_EVENT = "unify:post-login-apps-ready";
+export const POST_LOGIN_SHELL_READY_EVENT = "unify:post-login-shell-ready";
 export const POST_LOGIN_WELCOME_FINISHED_EVENT = "unify:post-login-welcome-finished";
 
 export const markPostLoginWelcome = (targetPath?: string) => {
@@ -59,7 +60,9 @@ const clearPendingWelcome = () => {
 const PostLoginWelcomeOverlay = () => {
   const [visible, setVisible] = useState(hasPendingPostLoginWelcome);
   const [targetPath, setTargetPath] = useState<string | null>(null);
-  const [readyToFinish, setReadyToFinish] = useState(false);
+  const [routeReady, setRouteReady] = useState(false);
+  const [appsReady, setAppsReady] = useState(false);
+  const [shellReady, setShellReady] = useState(false);
   const [success, setSuccess] = useState(false);
   const [leaving, setLeaving] = useState(false);
   const shownAtRef = useRef(Date.now());
@@ -71,30 +74,36 @@ const PostLoginWelcomeOverlay = () => {
       setVisible(true);
       setSuccess(false);
       setLeaving(false);
-      setReadyToFinish(false);
+      setRouteReady(false);
+      setAppsReady(false);
+      setShellReady(false);
       setTargetPath(targetPath);
     };
     const handleRouteReady = (event: Event) => {
       const detail = (event as CustomEvent<{ targetPath?: string; releaseWelcome?: boolean }>).detail;
       if (!detail?.targetPath) return;
       setTargetPath(detail.targetPath);
-      if (detail.releaseWelcome) setReadyToFinish(true);
+      if (detail.releaseWelcome) setRouteReady(true);
     };
     const handleAppsReady = () => {
       setTargetPath("/apps");
-      setReadyToFinish(true);
+      setAppsReady(true);
     };
+    const handleShellReady = () => setShellReady(true);
     window.addEventListener(POST_LOGIN_WELCOME_START_EVENT, handleStart);
     window.addEventListener(POST_LOGIN_ROUTE_READY_EVENT, handleRouteReady);
     window.addEventListener(POST_LOGIN_APPS_READY_EVENT, handleAppsReady);
+    window.addEventListener(POST_LOGIN_SHELL_READY_EVENT, handleShellReady);
     return () => {
       window.removeEventListener(POST_LOGIN_WELCOME_START_EVENT, handleStart);
       window.removeEventListener(POST_LOGIN_ROUTE_READY_EVENT, handleRouteReady);
       window.removeEventListener(POST_LOGIN_APPS_READY_EVENT, handleAppsReady);
+      window.removeEventListener(POST_LOGIN_SHELL_READY_EVENT, handleShellReady);
     };
   }, []);
 
   useEffect(() => {
+    const readyToFinish = targetPath === "/apps" ? appsReady && shellReady : routeReady;
     if (!visible || !readyToFinish) return;
     // دورتان كاملتان على الأقل (2 × 780ms)، ويستمر الدوران إن تأخر التجهيز.
     const minimumOrbitMs = 1560;
@@ -111,7 +120,7 @@ const PostLoginWelcomeOverlay = () => {
       window.clearTimeout(leaveTimer);
       window.clearTimeout(hideTimer);
     };
-  }, [readyToFinish, visible]);
+  }, [appsReady, routeReady, shellReady, targetPath, visible]);
 
   if (!visible) return null;
 
