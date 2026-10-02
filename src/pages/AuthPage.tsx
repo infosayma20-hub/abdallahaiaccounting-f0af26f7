@@ -314,11 +314,11 @@ const AuthPage = () => {
             navigate("/reset-password?force=1");
             return;
           }
-          markPostLoginWelcome();
           const dest = await resolveRedirect(data.user.id);
+          markPostLoginWelcome(dest);
           navigate(dest);
         } else {
-          markPostLoginWelcome();
+          markPostLoginWelcome("/apps");
           navigate("/apps");
         }
       }
@@ -388,11 +388,11 @@ const AuthPage = () => {
       localStorage.removeItem("trial_banner_dismissed");
       const { data: { user: currentUser } } = await supabase.auth.getUser();
       if (currentUser) {
-        markPostLoginWelcome();
         const dest = await resolveRedirect(currentUser.id);
+        markPostLoginWelcome(dest);
         navigate(dest);
       } else {
-        markPostLoginWelcome();
+        markPostLoginWelcome("/apps");
         navigate("/apps");
       }
     } catch (err: any) {

@@ -11,13 +11,13 @@ export const POST_LOGIN_WELCOME_START_EVENT = "unify:post-login-welcome-start";
 export const POST_LOGIN_ROUTE_READY_EVENT = "unify:post-login-route-ready";
 export const POST_LOGIN_APPS_READY_EVENT = "unify:post-login-apps-ready";
 
-export const markPostLoginWelcome = () => {
+export const markPostLoginWelcome = (targetPath?: string) => {
   try {
     sessionStorage.setItem(POST_LOGIN_WELCOME_KEY, String(Date.now()));
   } catch {
     // The welcome layer is cosmetic; authentication must continue if storage is unavailable.
   }
-  window.dispatchEvent(new Event(POST_LOGIN_WELCOME_START_EVENT));
+  window.dispatchEvent(new CustomEvent(POST_LOGIN_WELCOME_START_EVENT, { detail: { targetPath } }));
 };
 
 const hasPendingWelcome = () => {
@@ -53,12 +53,13 @@ const PostLoginWelcomeOverlay = () => {
   const [leaving, setLeaving] = useState(false);
 
   useEffect(() => {
-    const handleStart = () => {
+    const handleStart = (event: Event) => {
+      const targetPath = (event as CustomEvent<{ targetPath?: string }>).detail?.targetPath || null;
       setVisible(true);
       setLeaving(false);
       setStalled(false);
-      setRouteReady(false);
-      setResolvedTarget(null);
+      setRouteReady(!!targetPath);
+      setResolvedTarget(targetPath);
       setAppsReady(false);
     };
     const handleRouteReady = (event: Event) => {
