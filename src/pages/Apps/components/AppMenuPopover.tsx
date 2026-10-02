@@ -26,11 +26,14 @@ export default function AppMenuPopover({
   const popRef = useRef<HTMLDivElement>(null);
   const [pos, setPos] = useState<{ top: number; left: number; width: number; maxHeight: number } | null>(null);
   const [isMobile, setIsMobile] = useState<boolean>(
-    () => typeof window !== "undefined" && window.matchMedia("(max-width: 767px)").matches
+    () =>
+      typeof window !== "undefined" &&
+      (window.matchMedia("(max-width: 767px)").matches ||
+        window.matchMedia("(pointer: coarse)").matches)
   );
 
   useEffect(() => {
-    const mq = window.matchMedia("(max-width: 767px)");
+    const mq = window.matchMedia("(max-width: 767px), (pointer: coarse)");
     const onChange = () => setIsMobile(mq.matches);
     onChange();
     mq.addEventListener("change", onChange);
