@@ -1439,16 +1439,19 @@ export default function MonthlyAttendanceTab({
         }
       }
       fetchRows();
+      // النافذة بتسكّر دايمًا بعد الحفظ — التحذيرات بتوصل بالتوست بدل ما تبقى جوّا النافذة.
+      setEditing(null);
       if (warnings.length) {
-        // نبقي النافذة مفتوحة ليرى HR النتيجة الفعلية ويصحح إن لزم.
-        setSaveResult({ warnings, net: res.net_work_minutes ?? null, status: res.status ?? null });
-        toast({ title: "تم الحفظ مع ملاحظات", description: "راجع الملاحظات في النافذة." });
+        toast({
+          title: "تم الحفظ مع ملاحظات",
+          description: warnings.join(" "),
+          duration: 12000,
+        });
       } else {
         toast({
           title: "تم حفظ التعديل",
           description: res.net_work_minutes != null ? `صافي الساعات: ${fmtHM(res.net_work_minutes)}` : undefined,
         });
-        setEditing(null);
       }
     } catch (e: any) {
       toast({ title: "لم يتم الحفظ", description: e.message, variant: "destructive" });
