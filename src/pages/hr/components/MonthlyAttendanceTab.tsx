@@ -387,8 +387,13 @@ export default function MonthlyAttendanceTab({
   const [ignoredEventIds, setIgnoredEventIds] = useState<string[]>([]);
   const [leaveType, setLeaveType] = useState<string>("");
 
+  // 🛡️ رقم الطلب الأحدث: أي تحميل أقدم (مثل "كل الموظفين" عند مسح الاسم)
+  //    ينتهي متأخرًا يُتجاهل ولا يكتب فوق نتيجة الموظف الجديد.
+  const fetchSeqRef = useRef(0);
   const fetchRows = useCallback(async () => {
     if (!user) return;
+    const seq = ++fetchSeqRef.current;
+    const isStale = () => seq !== fetchSeqRef.current;
     setLoading(true);
     try {
       const { from, to } = period;
@@ -661,6 +666,7 @@ export default function MonthlyAttendanceTab({
           });
         }
       });
+      if (isStale()) return;
       setLeaveByEmp(leaveTally);
       // احتساب أيام المرضية السابقة داخل نفس السنة (قبل أول الشهر المعروض)
       const priorTally: Record<string, number> = {};
@@ -681,6 +687,7 @@ export default function MonthlyAttendanceTab({
           priorTally[lv.employee_id] = (priorTally[lv.employee_id] || 0) + 1;
         }
       });
+      if (isStale()) return;
       setPriorSickByEmp(priorTally);
       // 📅 تسلسل التاريخ في العرض اليومي: الأيام التي لا يوجد فيها أي بصمة
       //    ولا إجازة تظهر كصف صفري حتى لا تنقطع سلسلة الأيام أمام الموارد
@@ -730,12 +737,14 @@ export default function MonthlyAttendanceTab({
       const merged = [...days, ...synthetic, ...zeroDays].sort((a, b) =>
         a.attendance_date < b.attendance_date ? 1 : a.attendance_date > b.attendance_date ? -1 : 0,
       );
+      if (isStale()) return;
       setRows(merged);
     } catch (e: any) {
+      if (isStale()) return;
       console.error(e);
       toast({ title: "خطأ في التحميل", description: e.message, variant: "destructive" });
     } finally {
-      setLoading(false);
+      if (!isStale()) setLoading(false);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, period.from, period.to, employeeId, viewMode]);
