@@ -2021,16 +2021,6 @@ export default function MonthlyAttendanceTab({
           </DialogHeader>
           <div className="flex-1 overflow-y-auto px-4 py-3 grid grid-cols-1 lg:grid-cols-2 gap-3 items-start">
            <div className="space-y-3">
-            {saveResult && (
-              <div className="rounded-md border border-amber-300 bg-amber-50 p-2 text-[11px] text-amber-900 space-y-1">
-                <div className="font-semibold flex items-center gap-1.5">
-                  <AlertCircle className="h-3.5 w-3.5" /> تم الحفظ — النتيجة الفعلية:
-                  {saveResult.status && <span>{STATUS_LABEL[saveResult.status] || saveResult.status}</span>}
-                  {saveResult.net != null && <span>· صافي {fmtHM(saveResult.net)}</span>}
-                </div>
-                {saveResult.warnings.map((w, i) => <div key={i}>• {w}</div>)}
-              </div>
-            )}
             <div>
               <label className="text-xs text-muted-foreground mb-1 block">الحالة</label>
               <Select dir="rtl" value={form.status} onValueChange={(v) => setForm(p => ({ ...p, status: v }))}>
