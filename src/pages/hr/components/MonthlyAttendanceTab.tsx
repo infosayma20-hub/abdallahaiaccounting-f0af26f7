@@ -1316,6 +1316,38 @@ export default function MonthlyAttendanceTab({
     return null;
   };
 
+  // ── مراجعة الأيام القديمة المتأثرة ──
+  const [reviewOpen, setReviewOpen] = useState(false);
+  const [reviewLoading, setReviewLoading] = useState(false);
+  const [reviewRows, setReviewRows] = useState<any[]>([]);
+  const openReview = async () => {
+    setReviewOpen(true);
+    setReviewLoading(true);
+    try {
+      const { data, error } = await supabase.rpc("hr_attendance_review_days" as any, { p_from: period.from, p_to: period.to } as any);
+      if (error) throw error;
+      setReviewRows((data as any[]) || []);
+    } catch (e: any) {
+      toast({ title: "تعذر الفحص", description: e.message, variant: "destructive" });
+      setReviewRows([]);
+    } finally {
+      setReviewLoading(false);
+    }
+  };
+  const openReviewDay = async (dayId: string) => {
+    const { data, error } = await supabase
+      .from("attendance_days")
+      .select("id, employee_id, attendance_date, first_check_in, last_check_out, total_hours, overtime_hours, net_work_minutes, status, notes, is_manually_adjusted, employees!inner(full_name)")
+      .eq("id", dayId)
+      .maybeSingle();
+    if (error || !data) {
+      toast({ title: "تعذر فتح اليوم", description: error?.message, variant: "destructive" });
+      return;
+    }
+    setReviewOpen(false);
+    openEdit(data as any);
+  };
+
   const isLockStatus = ["leave", "absent", "holiday"].includes(form.status);
 
   const saveEdit = async () => {
