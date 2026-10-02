@@ -64,7 +64,7 @@ const clearPendingWelcome = () => {
 };
 
 const PostLoginWelcomeOverlay = () => {
-  const [visible, setVisible] = useState(hasPendingPostLoginWelcome);
+  const [visible, setVisible] = useState(false);
   const [targetPath, setTargetPath] = useState<string | null>(null);
   const [routeReady, setRouteReady] = useState(false);
   const [appsReady, setAppsReady] = useState(false);
