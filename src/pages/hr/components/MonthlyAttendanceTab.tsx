@@ -16,6 +16,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { toast } from "@/hooks/use-toast";
 import { useDepartureCap } from "@/hooks/useDepartureCap";
 import { fmtDateDisplay, cn } from "@/lib/utils";
+import { hebronLocalToDate, addDaysIso, hebronHHmm } from "@/lib/hebronTime";
 import { fetchAllRows } from "@/lib/fetch-all-rows";
 import { splitSickPayDays, SICK_FULL_PAY_DAYS, SICK_PAID_DAYS_CAP } from "@/lib/hr-utils";
 import {
@@ -1125,12 +1126,12 @@ export default function MonthlyAttendanceTab({
               .map((g) => ({
                 id: null,
                 break_type: "other" as const,
-                out: format(new Date(g.out), "HH:mm"),
-                in: format(new Date(g.in), "HH:mm"),
+                out: hebronHHmm(g.out),
+                in: hebronHHmm(g.in),
                 reason: "محسوبة تلقائياً من البصمات",
                 _derived: true,
-                _origOut: format(new Date(g.out), "HH:mm"),
-                _origIn: format(new Date(g.in), "HH:mm"),
+                _origOut: hebronHHmm(g.out),
+                _origIn: hebronHHmm(g.in),
               }));
             return extra.length ? [...prev, ...extra] : prev;
           });
@@ -1151,7 +1152,7 @@ export default function MonthlyAttendanceTab({
         setRawLoading(false);
       }
     })();
-    supabase
+    if (hasRealDay) supabase
       .from("attendance_breaks")
       .select("id, break_type, break_out, break_in, reason")
       .eq("attendance_day_id", r.id)
