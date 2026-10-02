@@ -1406,37 +1406,45 @@ export default function HRAttendancePage() {
 
   const saveEditRecord = async () => {
     if (!editRecord) return;
+    // الوقت دائمًا بتوقيت فلسطين بغض النظر عن ساعة الجهاز.
     const buildTs = (hhmm: string, anchor?: string | null) => {
       if (!hhmm) return null;
-      const [h, m] = hhmm.split(":").map(Number);
-      const d = new Date(editRecord.attendance_date);
-      d.setHours(h || 0, m || 0, 0, 0);
-      if (anchor && d.getTime() < new Date(anchor).getTime()) d.setDate(d.getDate() + 1);
-      return d.toISOString();
+      let d = hebronLocalToDate(editRecord.attendance_date, hhmm);
+      if (d && anchor && d.getTime() < new Date(anchor).getTime()) {
+        d = hebronLocalToDate(addDaysIso(editRecord.attendance_date, 1), hhmm);
+      }
+      return d ? d.toISOString() : null;
     };
-    const ci = buildTs(editRecordForm.first_check_in);
-    const co = buildTs(editRecordForm.last_check_out, ci);
-    const breaks = ci && co
-      ? editDayBreaks
-          .filter((row) => row.break_in)
-          .map((row) => ({
-            break_type: row.break_type || "other",
-            break_out: row.break_out,
-            break_in: row.break_in,
-            reason: row.reason || "تعديل يدوي من الموارد البشرية",
-          }))
-      : [];
-    const { error } = await supabase.rpc("hr_update_attendance_day" as any, {
+    const isLock = ["leave", "absent", "holiday"].includes(editRecordForm.status);
+    const ci = isLock ? null : buildTs(editRecordForm.first_check_in);
+    const co = isLock ? null : buildTs(editRecordForm.last_check_out, ci);
+    // الجلسات الحالية تُرسل برقمها كما هي — لا يُحذف شيء من هذه الشاشة.
+    const breaks = isLock ? [] : editDayBreaks.map((row) => ({
+      id: row.id,
+      break_type: row.break_type || "other",
+      break_out: row.break_out,
+      break_in: row.break_in,
+      reason: row.reason || "تعديل يدوي من الموارد البشرية",
+    }));
+    const { data, error } = await supabase.rpc("hr_save_attendance_day" as any, {
       p_day_id: editRecord.id,
+      p_employee_id: editRecord.employee_id,
+      p_date: editRecord.attendance_date,
       p_first_check_in: ci,
       p_last_check_out: co,
       p_status: editRecordForm.status,
       p_notes: editRecordForm.notes || null,
       p_reason: "تعديل يدوي من شاشة الحضور المباشر",
       p_breaks: breaks,
+      p_leave_type: editRecordForm.status === "leave" ? "أخرى" : null,
     } as any);
-    if (error) { toast({ title: "خطأ", description: error.message, variant: "destructive" }); return; }
-    toast({ title: "تم التحديث" });
+    if (error) { toast({ title: "لم يتم الحفظ", description: error.message, variant: "destructive" }); return; }
+    const warns = ((data as any)?.warnings || []) as any[];
+    const after = warns.find((w) => w.code === "punches_after_out");
+    toast({
+      title: "تم التحديث",
+      description: after ? `تنبيه: ${after.count} بصمة بعد وقت الخروج لم تُحتسب.` : undefined,
+    });
     const wasFromMissing = editFromMissing;
     const empId = editRecord.employee_id;
     const editedId = editRecord.id;
