@@ -1316,39 +1316,56 @@ export default function MonthlyAttendanceTab({
     return null;
   };
 
+  const isLockStatus = ["leave", "absent", "holiday"].includes(form.status);
+
   const saveEdit = async () => {
     if (!editing || !user) return;
     if (!form.reason.trim()) {
       toast({ title: "سبب التعديل إلزامي", variant: "destructive" });
       return;
     }
-    const vErr = validateBreaks();
-    if (vErr) {
-      toast({ title: "خطأ في الجلسات", description: vErr, variant: "destructive" });
+    if (breaksLoading || rawLoading) {
+      toast({ title: "انتظر اكتمال تحميل بيانات اليوم", variant: "destructive" });
       return;
+    }
+    if (!isLockStatus && (!timeValid.in || !timeValid.out)) {
+      toast({ title: "وقت غير مكتمل", description: "أكمل الوقت الملوّن بالأحمر أو امسحه قبل الحفظ.", variant: "destructive" });
+      return;
+    }
+    if (!isLockStatus) {
+      const vErr = validateBreaks();
+      if (vErr) {
+        toast({ title: "خطأ في الجلسات", description: vErr, variant: "destructive" });
+        return;
+      }
     }
     setSaving(true);
     try {
-      const ciDate = combineDT(editing.attendance_date, form.first_check_in);
-      const coDate = combineDT(editing.attendance_date, form.last_check_out, ovn(ciDate));
+      const ciDate = isLockStatus ? null : combineDT(editing.attendance_date, form.first_check_in);
+      const coDate = isLockStatus ? null : combineDT(editing.attendance_date, form.last_check_out, ovn(ciDate));
       const ci = ciDate ? ciDate.toISOString() : null;
       const co = coDate ? coDate.toISOString() : null;
-      const activeBreaks = ci && co ? breaks
-        .filter((b) => !b._deleted)
+
+      // نرسل فقط الجلسات الموجودة (مع رقمها) والجديدة، وقائمة صريحة بالمحذوف —
+      // لا شيء يُحذف إلا ما حذفه المستخدم فعلاً.
+      const activeBreaks = isLockStatus ? [] : breaks
+        .filter((b) => !b._deleted && b.out)
         .map((b) => {
           const breakOut = combineDT(editing.attendance_date, b.out, ovn(ciDate));
-          const breakIn = combineDT(editing.attendance_date, b.in, ovn(breakOut || ciDate));
+          const breakIn = b.in ? combineDT(editing.attendance_date, b.in, ovn(breakOut || ciDate)) : null;
           return {
+            id: b.id,
             break_type: b.break_type,
             break_out: breakOut?.toISOString() ?? "",
             break_in: breakIn?.toISOString() ?? "",
             reason: b.reason || BREAK_TYPE_LABEL[b.break_type],
           };
-        }) : [];
+        });
+      const deletedBreakIds = isLockStatus ? [] : breaks.filter((b) => b._deleted && b.id).map((b) => b.id as string);
 
       // 🛡️ المغادرات المشتقة من البصمات ليست صفوفاً مخزّنة، لذلك حذفها من
       // النافذة يتطلب تسجيل استبعاد دائم، وإلا تعود عند إعادة الحساب.
-      const dismissedGaps = breaks
+      const dismissedGaps = isLockStatus ? [] : breaks
         .filter((b) => b._deleted && b._derived && !b.id)
         .map((b) => {
           const gOut = combineDT(editing.attendance_date, b._origOut || b.out, ovn(ciDate));
@@ -1357,28 +1374,52 @@ export default function MonthlyAttendanceTab({
         })
         .filter(Boolean) as { gap_out: string; gap_in: string }[];
 
-      // معاملة واحدة في قاعدة البيانات: الصلاحية، اليوم، الجلسات، استبعاد
-      // المغادرات، الحساب والتدقيق — أي فشل يلغي كل شيء.
-      const { error: saveError } = await supabase.rpc(
-        "hr_update_attendance_day" as any,
+      // معاملة واحدة في قاعدة البيانات: الصلاحية، طبقة التصحيح، الجلسات،
+      // الإجازة، الحساب والتدقيق — أي فشل يلغي كل شيء. البصمات الأصلية لا تُمس.
+      const hasRealDay = UUID_RE.test(editing.id);
+      const { data, error: saveError } = await supabase.rpc(
+        "hr_save_attendance_day" as any,
         {
-          p_day_id: editing.id,
+          p_day_id: hasRealDay ? editing.id : null,
+          p_employee_id: editing.employee_id,
+          p_date: editing.attendance_date,
           p_first_check_in: ci,
           p_last_check_out: co,
           p_status: form.status,
           p_notes: form.notes || null,
           p_reason: form.reason.trim(),
           p_breaks: activeBreaks,
+          p_deleted_break_ids: deletedBreakIds,
           p_dismissed_gaps: dismissedGaps,
+          p_ignored_event_ids: isLockStatus ? [] : ignoredEventIds,
+          p_leave_type: form.status === "leave" ? (leaveType || null) : null,
         } as any,
       );
       if (saveError) throw saveError;
 
-      toast({ title: "تم حفظ التعديل" });
-      setEditing(null);
+      const res = (data || {}) as any;
+      const warnings: string[] = [];
+      for (const w of (res.warnings || []) as any[]) {
+        if (w.code === "punches_after_out") {
+          warnings.push(`يوجد ${w.count} بصمة بعد وقت الخروج الذي أدخلته ولم تُحتسب. إن كانت صحيحة عدّل وقت الخروج، وإن كانت خاطئة اختر «تجاهل» بجانبها.`);
+        } else if (w.code === "status_computed") {
+          warnings.push(`الحالة المحفوظة «${STATUS_LABEL[w.final] || w.final}» بدل «${STATUS_LABEL[w.requested] || w.requested}» لأنها تُحسب من الأوقات. لتثبيت حالة اختر إجازة أو غياب أو عطلة.`);
+        }
+      }
       fetchRows();
+      if (warnings.length) {
+        // نبقي النافذة مفتوحة ليرى HR النتيجة الفعلية ويصحح إن لزم.
+        setSaveResult({ warnings, net: res.net_work_minutes ?? null, status: res.status ?? null });
+        toast({ title: "تم الحفظ مع ملاحظات", description: "راجع الملاحظات في النافذة." });
+      } else {
+        toast({
+          title: "تم حفظ التعديل",
+          description: res.net_work_minutes != null ? `صافي الساعات: ${fmtMin(res.net_work_minutes)}` : undefined,
+        });
+        setEditing(null);
+      }
     } catch (e: any) {
-      toast({ title: "خطأ", description: e.message, variant: "destructive" });
+      toast({ title: "لم يتم الحفظ", description: e.message, variant: "destructive" });
     } finally {
       setSaving(false);
     }
