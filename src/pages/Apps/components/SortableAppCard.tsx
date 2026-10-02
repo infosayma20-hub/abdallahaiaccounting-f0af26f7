@@ -25,9 +25,11 @@ export default function SortableAppCard({ sortableId, ...cardProps }: Props) {
       ref={setNodeRef}
       className={cn("relative min-w-0", isDragging && "z-30 opacity-70")}
       style={{ transform: CSS.Transform.toString(transform), transition }}
-      initial={reduceMotion ? false : { opacity: 0, x: 34, y: 18, scale: 0.95 }}
-      animate={{ opacity: 1, x: 0, y: 0, scale: 1 }}
-      transition={{ delay: reduceMotion ? 0 : 0.12 + Math.min(cardProps.index, 8) * 0.06, duration: 0.62, ease: [0.2, 0.8, 0.2, 1] }}
+      variants={{
+        hidden: reduceMotion ? { opacity: 1 } : { opacity: 0, x: 26, y: 12, scale: 0.97 },
+        visible: { opacity: 1, x: 0, y: 0, scale: 1 },
+      }}
+      transition={{ duration: reduceMotion ? 0 : 0.38, ease: [0.2, 0.8, 0.2, 1] }}
       {...attributes}
       {...listeners}
     >

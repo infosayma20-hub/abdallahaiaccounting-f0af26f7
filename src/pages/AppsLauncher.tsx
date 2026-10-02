@@ -37,6 +37,7 @@ import {
 } from "@dnd-kit/core";
 import { SortableContext, arrayMove, rectSortingStrategy, sortableKeyboardCoordinates } from "@dnd-kit/sortable";
 import SortableAppCard from "@/pages/Apps/components/SortableAppCard";
+import { motion, useReducedMotion } from "framer-motion";
 
 /* Marketing-only extra apps gated by email allow-list.
    Kept here (not in navigationConfig) so it stays scoped and doesn't
@@ -109,6 +110,7 @@ type AppsLauncherProps = {
 
 const AppsLauncher = ({ preloadOnly = false }: AppsLauncherProps) => {
   const tt = useTT();
+  const reduceMotion = useReducedMotion();
   const navigate = useNavigate();
   const { user, loading: authLoading } = useAuth();
   const { settings, loading: settingsLoading } = useCompanySettings();
@@ -580,7 +582,17 @@ const AppsLauncher = ({ preloadOnly = false }: AppsLauncherProps) => {
             {categoryFilter !== "favorites" && enabledApps.length > 0 && (
               <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleAppDragEnd}>
                 <SortableContext items={enabledApps.map((app) => app.id)} strategy={rectSortingStrategy}>
-                  <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
+                  <motion.div
+                    className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5"
+                    initial="hidden"
+                    animate="visible"
+                    variants={{
+                      hidden: {},
+                      visible: {
+                        transition: reduceMotion ? { delayChildren: 0 } : { delayChildren: 0.06, staggerChildren: 0.035 },
+                      },
+                    }}
+                  >
                     {enabledApps.map((app, idx) => {
                     const meta = getSafeAppMeta(app);
                     return (
@@ -599,7 +611,7 @@ const AppsLauncher = ({ preloadOnly = false }: AppsLauncherProps) => {
                       />
                     );
                     })}
-                  </div>
+                  </motion.div>
                 </SortableContext>
               </DndContext>
             )}
