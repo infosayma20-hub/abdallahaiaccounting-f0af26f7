@@ -1,4 +1,5 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { X } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 /**
@@ -113,6 +114,20 @@ export function TimeTextInput({
 
   const hInvalid = hour !== "" && !(Number(hour) >= 1 && Number(hour) <= 12);
   const mInvalid = minute !== "" && !(Number(minute) >= 0 && Number(minute) <= 59);
+  // مسودة لم تُعتمد بعد (رقم غلط أو ساعة بدون دقائق) = غير صالح للحفظ
+  const pendingDraft = hDraft !== null || mDraft !== null;
+  const valid = !hInvalid && !mInvalid && !pendingDraft;
+
+  useEffect(() => {
+    onValidityChange?.(valid);
+  }, [valid, onValidityChange]);
+
+  const clear = () => {
+    setHDraft(null);
+    setMDraft(null);
+    setPmLocal(null);
+    onChange("");
+  };
 
   const box = "w-9 bg-transparent text-center outline-none tabular-nums";
 
@@ -121,7 +136,7 @@ export function TimeTextInput({
       dir="ltr"
       className={cn(
         "flex h-10 w-full items-center gap-1 rounded-md border border-input bg-background px-2 text-sm focus-within:ring-2 focus-within:ring-ring",
-        (hInvalid || mInvalid) && "border-destructive",
+        !valid && "border-destructive",
         className,
       )}
     >
@@ -133,7 +148,7 @@ export function TimeTextInput({
         value={hour}
         onFocus={(e) => selectAll(e.currentTarget)}
         onChange={(e) => {
-          const v = lastTwoDigits(e.target.value);
+          const v = takeTyped(e.target.value, hour);
           setHDraft(v);
           // لا نحفظ ساعة ناقصة (مثل "1" أثناء كتابة "12") — ننتظر اكتمالها أو الخروج من الخانة.
           if (hourComplete(v)) {
@@ -156,41 +171,62 @@ export function TimeTextInput({
         value={minute}
         onFocus={(e) => selectAll(e.currentTarget)}
         onChange={(e) => {
-          const v = lastTwoDigits(e.target.value);
+          const v = takeTyped(e.target.value, minute);
           setMDraft(v);
-          if (v.length === 2) emit(hDraftRef.current ?? hour, v, pm);
+          if (v.length === 2 && emit(hDraftRef.current ?? hour, v, pm)) {
+            setMDraft(null);
+            setHDraft(null);
+          }
         }}
         onBlur={() => {
           const d = mDraftRef.current;
-          if (d !== null && emit(hDraftRef.current ?? hour, d.padStart(2, "0"), pm)) setMDraft(null);
+          if (d !== null && emit(hDraftRef.current ?? hour, d.padStart(2, "0"), pm)) {
+            setMDraft(null);
+            setHDraft(null);
+          }
         }}
       />
-      <div className="ms-auto flex overflow-hidden rounded border border-input text-xs font-semibold">
-        {([false, true] as const).map((isPm) => (
+      <div className="ms-auto flex items-center gap-1">
+        <div className="flex overflow-hidden rounded border border-input text-xs font-semibold">
+          {([false, true] as const).map((isPm) => (
+            <button
+              key={String(isPm)}
+              type="button"
+              tabIndex={-1}
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={() => {
+                const h = hDraftRef.current ?? hour;
+                const m = mDraftRef.current !== null ? mDraftRef.current.padStart(2, "0") : minute;
+                if (emit(h, m, isPm)) {
+                  setPmLocal(null);
+                  setHDraft(null);
+                  setMDraft(null);
+                } else {
+                  setPmLocal(isPm);
+                }
+              }}
+              className={cn(
+                "px-2 py-1 transition-colors",
+                pm === isPm ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted",
+              )}
+            >
+              {isPm ? "PM" : "AM"}
+            </button>
+          ))}
+        </div>
+        {clearable && (hour !== "" || minute !== "" || value) && (
           <button
-            key={String(isPm)}
             type="button"
             tabIndex={-1}
             onMouseDown={(e) => e.preventDefault()}
-            onClick={() => {
-              const h = hDraftRef.current ?? hour;
-              const m = mDraftRef.current !== null ? mDraftRef.current.padStart(2, "0") : minute;
-              if (emit(h, m, isPm)) {
-                setPmLocal(null);
-                setHDraft(null);
-                setMDraft(null);
-              } else {
-                setPmLocal(isPm);
-              }
-            }}
-            className={cn(
-              "px-2 py-1 transition-colors",
-              pm === isPm ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted",
-            )}
+            onClick={clear}
+            aria-label="مسح الوقت"
+            title="مسح الوقت"
+            className="flex h-6 w-6 items-center justify-center rounded text-muted-foreground hover:bg-muted hover:text-destructive"
           >
-            {isPm ? "PM" : "AM"}
+            <X className="h-3.5 w-3.5" />
           </button>
-        ))}
+        )}
       </div>
     </div>
   );
