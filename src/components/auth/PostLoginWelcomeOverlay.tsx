@@ -96,7 +96,8 @@ const PostLoginWelcomeOverlay = () => {
 
   useEffect(() => {
     if (!visible || !readyToFinish) return;
-    const minimumOrbitMs = 1100;
+    // دورتان كاملتان على الأقل (2 × 780ms)، ويستمر الدوران إن تأخر التجهيز.
+    const minimumOrbitMs = 1560;
     const successDelay = Math.max(0, minimumOrbitMs - (Date.now() - shownAtRef.current));
     const successTimer = window.setTimeout(() => setSuccess(true), successDelay);
     const leaveTimer = window.setTimeout(() => setLeaving(true), successDelay + 750);

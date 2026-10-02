@@ -77,7 +77,7 @@
 }
 
 .post-login-welcome__check--success .post-login-welcome__orbit {
-  animation: postLoginOrbit 420ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  animation: none;
   border-color: hsl(var(--success));
 }
 
