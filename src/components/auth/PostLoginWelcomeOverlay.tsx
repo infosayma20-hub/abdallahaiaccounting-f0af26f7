@@ -6,7 +6,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useCompany } from "@/hooks/useCompanyContext";
 import { supabase } from "@/integrations/supabase/client";
 import authHeroMainAsset from "@/assets/auth-hero-main.png.asset.json";
-import unifyLogoVertical from "@/assets/unify-logo-vertical.webp";
+import unifyLogoVertical from "@/assets/unify/unify-logo-vertical.png";
 
 export const POST_LOGIN_WELCOME_KEY = "unify:post-login-welcome";
 export const POST_LOGIN_WELCOME_START_EVENT = "unify:post-login-welcome-start";
