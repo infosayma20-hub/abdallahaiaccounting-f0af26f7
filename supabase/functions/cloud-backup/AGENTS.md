@@ -1,0 +1,3 @@
+# Cloud Backup Rules
+
+- Daily cloud backup (retention: last 30 daily folders per tenant, older dated folders deleted at end of each run; `الملفات` never pruned): edge function `cloud-backup` (pg_cron `cloud-backup-daily`, 02:00 UTC = 05:00 Hebron summer time) writes read-only per-tenant exports to Backblaze B2 `unifyerp-storage` under `العملاء/<company>__<owner8>/النسخ-الاحتياطية/YYYY/MM/DD/<category>/<table>/part-NNN.json` plus incremental `الملفات/<bucket>/<path>`; resumable in 40s slices via `cloud_backup_runs.state`, auth via `cloud_backup_config.cron_token`. Why: stay under edge CPU limits and keep each tenant isolated and organized.
