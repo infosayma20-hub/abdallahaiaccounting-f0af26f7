@@ -44,6 +44,7 @@ import {
 import { checkBridgeStatus, checkBridgeHealth, testPrinterConnection, testWindowsPrinter } from "@/lib/print-bridge-client";
 import { withLocalNetworkAccess } from "@/lib/local-network-fetch";
 import PrinterRow from "@/components/pos/onboarding/PrinterRow";
+import POSLanguagePreviewDialog from "@/components/pos/onboarding/POSLanguagePreviewDialog";
 import ConvertToWindowsPrinterDialog from "@/components/pos/ConvertToWindowsPrinterDialog";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
@@ -158,6 +159,9 @@ export default function NewDeviceOnboardingPage() {
   const [loadingOptions, setLoadingOptions] = useState(true);
   const [saving, setSaving] = useState(false);
   const [deviceSaved, setDeviceSaved] = useState(isDeviceFullyConfigured());
+  // Station language: "inherit" = follow branch default
+  const [stationLang, setStationLang] = useState<"inherit" | "ar" | "en">("inherit");
+  const [showLangPreview, setShowLangPreview] = useState(false);
 
   // Quick-create dialogs
   const [showNewBranch, setShowNewBranch] = useState(false);
@@ -286,8 +290,8 @@ export default function NewDeviceOnboardingPage() {
       const { data: ownerIdRaw } = await supabase.rpc("get_team_owner_id", { _user_id: user.id });
       const ownerId = (ownerIdRaw as string | null) || user.id;
       const [br, term, cb, pr, st] = await Promise.all([
-        supabase.from("branches").select("id, name, is_active, user_id").eq("user_id", ownerId).eq("is_active", true).order("name"),
-        supabase.from("pos_terminals").select("id, name, branch_id, user_id, is_active").eq("user_id", ownerId).eq("is_active", true).order("name"),
+        supabase.from("branches").select("id, name, is_active, user_id, receipt_language, name_en").eq("user_id", ownerId).eq("is_active", true).order("name"),
+        supabase.from("pos_terminals").select("id, name, branch_id, user_id, is_active, receipt_language").eq("user_id", ownerId).eq("is_active", true).order("name"),
         supabase.from("cash_boxes").select("id, name, pos_terminal_id, currency, is_active").eq("user_id", ownerId).eq("is_active", true).order("name"),
         supabase.from("pos_printers").select("*").eq("is_active", true).order("is_default", { ascending: false }),
         supabase.from("kitchen_stations" as any).select("id, name").eq("is_active", true).order("display_order"),
@@ -425,6 +429,12 @@ export default function NewDeviceOnboardingPage() {
       if (term && !term.branch_id) {
         await supabase.from("pos_terminals").update({ branch_id: branchId } as any).eq("id", terminalId);
       }
+      const langVal = stationLang === "inherit" ? null : stationLang;
+      if ((term as any)?.receipt_language !== langVal) {
+        const { error: langErr } = await supabase.from("pos_terminals").update({ receipt_language: langVal } as any).eq("id", terminalId);
+        if (langErr) toast.error("تعذّر حفظ لغة المحطة");
+        else setTerminals(prev => prev.map(t => t.id === terminalId ? ({ ...t, receipt_language: langVal } as any) : t));
+      }
       setDeviceBranchId(branchId);
       setDeviceTerminalId(terminalId);
       setDeviceLabel(label.trim());
@@ -444,6 +454,11 @@ export default function NewDeviceOnboardingPage() {
       setSaving(false);
     }
   };
+
+  useEffect(() => {
+    const t: any = terminals.find(x => x.id === terminalId);
+    setStationLang(t?.receipt_language === "en" ? "en" : t?.receipt_language === "ar" ? "ar" : "inherit");
+  }, [terminalId, terminals]);
 
   const filteredTerminals = useMemo(
     () => terminals.filter(t => !branchId || !t.branch_id || t.branch_id === branchId),
@@ -1037,6 +1052,29 @@ export default function NewDeviceOnboardingPage() {
               </Select>
             </div>
           </div>
+
+          {/* Station language */}
+          <div className="space-y-1.5">
+            <Label className="text-xs">لغة الشاشة والطباعة لهذه المحطة</Label>
+            <div className="flex gap-2 items-center">
+              <Select dir="rtl" value={stationLang} onValueChange={(v) => setStationLang(v as any)} disabled={!terminalId}>
+                <SelectTrigger className="flex-1"><SelectValue /></SelectTrigger>
+                <SelectContent dir="rtl">
+                  <SelectItem value="inherit">حسب الفرع{(() => { const b: any = branches.find(x => x.id === branchId); return b ? (b.receipt_language === "en" ? " (English)" : " (عربي)") : ""; })()}</SelectItem>
+                  <SelectItem value="ar">عربي</SelectItem>
+                  <SelectItem value="en">English</SelectItem>
+                </SelectContent>
+              </Select>
+              <Button type="button" variant="outline" onClick={() => setShowLangPreview(true)}>معاينة</Button>
+            </div>
+            <p className="text-[11px] text-muted-foreground">بتنحفظ مع «حفظ ومزامنة الجهاز». نقطة البيع لازم تنفتح من جديد عشان تاخد اللغة.</p>
+          </div>
+          <POSLanguagePreviewDialog
+            open={showLangPreview}
+            onOpenChange={setShowLangPreview}
+            initialLang={stationLang === "en" || (stationLang === "inherit" && (branches.find(x => x.id === branchId) as any)?.receipt_language === "en") ? "en" : "ar"}
+            branchName={(branches.find(x => x.id === branchId) as any)?.name_en || branches.find(x => x.id === branchId)?.name}
+          />
 
           {/* Optional fields */}
           <Collapsible open={showOptional} onOpenChange={setShowOptional}>

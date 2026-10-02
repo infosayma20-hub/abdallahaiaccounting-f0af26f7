@@ -1,0 +1,2 @@
+ALTER TABLE public.pos_terminals ADD COLUMN IF NOT EXISTS receipt_language text NULL CHECK (receipt_language IN ('ar','en'));
+COMMENT ON COLUMN public.pos_terminals.receipt_language IS 'POS screen/print language for this station; NULL = inherit branches.receipt_language';

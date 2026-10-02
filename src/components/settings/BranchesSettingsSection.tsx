@@ -395,7 +395,7 @@ export default function BranchesSettingsSection() {
 
             {/* POS language (admin only) */}
             <div className="p-3 rounded-lg border border-border bg-muted/30 space-y-2">
-              <Label className="text-xs font-medium">لغة نقطة البيع والطباعة</Label>
+              <Label className="text-xs font-medium">اللغة الافتراضية لأجهزة الفرع</Label>
               <Select dir="rtl" value={posLang} onValueChange={(v) => setPosLang(v as "ar" | "en")}>
                 <SelectTrigger className="h-10"><SelectValue /></SelectTrigger>
                 <SelectContent dir="rtl">
