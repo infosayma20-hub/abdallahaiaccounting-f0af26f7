@@ -14,3 +14,4 @@
 
 - Barcodes are unique per tenant across products.barcode and product_barcodes (trigger enforce_unique_product_barcode); one product may have many barcodes. Why: a scan must resolve to exactly one product.
 - Fresh sign-ins keep login visible while `/apps` preloads; navigate after gates and animation settle, with a watchdog. The launcher has a persisted five-column grid sortable by long press, cached favorites, locked apps under `متقدمة`, and one large centered UNIFY mark. Why: synchronized cards without flashes or clutter.
+- POS boot: `initializePOS` fetches tenant/user lookups in one parallel batch (products/rates start immediately), `POSDeviceAuthGuard` mounts POS under the shared `POSBootOverlay` while device checks run (no shift claim until the guard resolves via `posBootLoading`), and the offline pre-cache is deferred 20s. Why: entry used to serialize ~15 round-trips plus the bridge probe.
