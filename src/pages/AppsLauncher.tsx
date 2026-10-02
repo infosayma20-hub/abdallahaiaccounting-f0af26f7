@@ -498,8 +498,29 @@ const AppsLauncher = ({ preloadOnly = false }: AppsLauncherProps) => {
   }
 
   return (
-    <div className="min-h-full min-w-0 bg-background" dir="rtl">
-      <div className="container mx-auto max-w-6xl min-w-0 space-y-6 p-4 pb-24 md:p-8 md:pb-24">
+    <div className="relative min-h-full min-w-0 overflow-hidden bg-background" dir="rtl">
+      <div aria-hidden="true" className="pointer-events-none absolute inset-0 overflow-hidden">
+        <div className="absolute inset-0 bg-secondary/35 dark:bg-secondary/15" />
+        <div className="absolute -start-16 top-12 h-60 w-60 rounded-full border-[24px] border-primary/[0.035] dark:border-primary/[0.06] md:h-80 md:w-80" />
+        <div className="absolute -start-28 top-44 h-60 w-60 rotate-45 rounded-[3rem] border border-primary/[0.06] dark:border-primary/[0.09] md:h-80 md:w-80" />
+        <div className="absolute -end-20 top-24 h-48 w-48 rotate-12 rounded-[2.5rem] border-[18px] border-accent/[0.045] dark:border-accent/[0.07] md:h-64 md:w-64" />
+        <div className="absolute end-[8%] top-[44%] h-px w-52 rotate-[-18deg] bg-primary/[0.07] dark:bg-primary/[0.1] md:w-96" />
+        <div className="absolute end-[4%] top-[48%] h-px w-60 rotate-[-18deg] bg-primary/[0.05] dark:bg-primary/[0.08] md:w-[28rem]" />
+        <div className="absolute start-[7%] top-[58%] h-px w-60 rotate-[16deg] bg-primary/[0.06] dark:bg-primary/[0.09] md:w-[30rem]" />
+        <div className="absolute start-[4%] top-[62%] h-px w-52 rotate-[16deg] bg-primary/[0.04] dark:bg-primary/[0.07] md:w-[26rem]" />
+        <img
+          src="/branding/unify/unify-mark.png"
+          alt=""
+          className="absolute -bottom-16 -start-16 w-64 opacity-[0.035] saturate-0 dark:opacity-[0.055] md:w-96"
+        />
+        <img
+          src="/branding/unify/unify-mark.png"
+          alt=""
+          className="absolute end-[2%] top-10 w-32 opacity-[0.025] saturate-0 dark:opacity-[0.045] md:w-52"
+        />
+      </div>
+
+      <div className="container relative z-10 mx-auto max-w-6xl min-w-0 space-y-6 p-4 pb-24 md:p-8 md:pb-24">
         {/* Compact header */}
         <div className="mb-4 flex items-baseline justify-between px-1">
           <div>
