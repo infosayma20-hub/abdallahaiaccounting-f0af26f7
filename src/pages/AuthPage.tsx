@@ -16,7 +16,7 @@ import { useTranslation } from "react-i18next";
 import LanguageSwitcher from "@/i18n/LanguageSwitcher";
 import { Loader2, ScanFace, Mail, Lock, Eye, EyeOff, Check, LifeBuoy, Info } from "lucide-react";
 import { startAuthentication, browserSupportsWebAuthn } from "@simplewebauthn/browser";
-import { markPostLoginWelcome } from "@/components/auth/PostLoginWelcomeOverlay";
+import { finishPostLoginWelcome, markPostLoginWelcome } from "@/components/auth/PostLoginWelcomeOverlay";
 
 
 type Mode = "login" | "signup" | "forgot";
@@ -301,6 +301,7 @@ const AuthPage = () => {
         }
         normalizeAuthSessionExpiry(data.session);
         normalizeStoredAuthSession();
+        markPostLoginWelcome();
         localStorage.removeItem("trial_banner_dismissed");
         if (rememberMe) localStorage.setItem("remembered_email", email.trim().toLowerCase());
         else localStorage.removeItem("remembered_email");
@@ -315,10 +316,10 @@ const AuthPage = () => {
             return;
           }
           const dest = await resolveRedirect(data.user.id);
-          markPostLoginWelcome(dest);
+          await finishPostLoginWelcome(dest);
           navigate(dest);
         } else {
-          markPostLoginWelcome("/apps");
+          await finishPostLoginWelcome("/apps");
           navigate("/apps");
         }
       }
@@ -385,14 +386,15 @@ const AuthPage = () => {
         if (verifyErr) throw verifyErr;
       }
       toast({ title: "تم تسجيل الدخول بنجاح ✅" });
+      markPostLoginWelcome();
       localStorage.removeItem("trial_banner_dismissed");
       const { data: { user: currentUser } } = await supabase.auth.getUser();
       if (currentUser) {
         const dest = await resolveRedirect(currentUser.id);
-        markPostLoginWelcome(dest);
+        await finishPostLoginWelcome(dest);
         navigate(dest);
       } else {
-        markPostLoginWelcome("/apps");
+        await finishPostLoginWelcome("/apps");
         navigate("/apps");
       }
     } catch (err: any) {

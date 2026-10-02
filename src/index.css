@@ -9,12 +9,10 @@
   to { opacity: 1; transform: translateY(0); }
 }
 
-@keyframes postLoginOrbit {
-  to { transform: rotate(360deg); }
-}
-
-@keyframes postLoginBreathe {
-  50% { transform: scale(1.08); opacity: 0.55; }
+@keyframes postLoginCheck {
+  from { opacity: 0; transform: scale(0.55) rotate(-12deg); }
+  65% { transform: scale(1.1) rotate(2deg); }
+  to { opacity: 1; transform: scale(1) rotate(0); }
 }
 
 .post-login-welcome {
@@ -27,19 +25,11 @@
   pointer-events: none;
 }
 
-.post-login-welcome__auth-background {
-  position: absolute;
-  inset: 0;
-  background-position: center;
-  background-size: cover;
-  transform: scale(1.02);
-}
-
 .post-login-welcome__scrim {
   position: absolute;
   inset: 0;
-  background: hsl(var(--primary) / 0.7);
-  backdrop-filter: blur(5px);
+  background: hsl(var(--primary) / 0.48);
+  backdrop-filter: blur(2px);
 }
 
 .post-login-welcome__dialog {
@@ -55,57 +45,15 @@
 .post-login-welcome h1 { animation-delay: 100ms; }
 .post-login-welcome p { animation-delay: 160ms; }
 
-.post-login-welcome__progress {
-  box-shadow: 0 0 12px hsl(var(--primary) / 0.4);
-}
-
-.post-login-welcome__pulse {
-  position: relative;
+.post-login-welcome__check {
   display: grid;
-  width: 4.5rem;
-  height: 4.5rem;
+  width: 3.75rem;
+  height: 3.75rem;
   place-items: center;
-}
-
-.post-login-welcome__pulse::before {
-  content: "";
-  position: absolute;
-  inset: 0.55rem;
   border-radius: 9999px;
-  background: hsl(var(--primary) / 0.1);
-  animation: postLoginBreathe 1.6s ease-in-out infinite;
-}
-
-.post-login-welcome__pulse span {
-  position: absolute;
-  inset: 0;
-  border-radius: 9999px;
-  border: 2px solid transparent;
-  border-top-color: hsl(var(--primary));
-  animation: postLoginOrbit 1.4s linear infinite;
-}
-
-.post-login-welcome__pulse span:nth-child(2) {
-  inset: 0.4rem;
-  border-top-color: transparent;
-  border-right-color: hsl(var(--accent));
-  animation-duration: 1s;
-  animation-direction: reverse;
-}
-
-.post-login-welcome__pulse span:nth-child(3) {
-  inset: 0.8rem;
-  border-top-color: hsl(var(--success));
-  animation-duration: 1.8s;
-}
-
-.post-login-welcome__pulse b {
-  position: relative;
-  z-index: 1;
-  direction: ltr;
-  font-size: 0.68rem;
-  font-weight: 800;
-  color: hsl(var(--foreground));
+  background: hsl(var(--success) / 0.12);
+  color: hsl(var(--success));
+  animation: postLoginCheck 480ms ease-out both;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -113,8 +61,7 @@
   .post-login-welcome h1,
   .post-login-welcome p,
   .post-login-welcome__dialog,
-  .post-login-welcome__pulse::before,
-  .post-login-welcome__pulse span {
+  .post-login-welcome__check {
     animation: none;
     transition: none;
   }
