@@ -31469,6 +31469,7 @@ export type Database = {
         }
         Returns: Json
       }
+      cloud_backup_dispatch: { Args: never; Returns: number }
       cloud_backup_list_files: {
         Args: { _owner: string }
         Returns: {
