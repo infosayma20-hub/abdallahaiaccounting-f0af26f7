@@ -26,6 +26,17 @@ import { useFavoriteApps } from "@/hooks/useFavoriteApps";
 import { Star, Command, ChevronDown, Megaphone, ShieldCheck } from "lucide-react";
 import { useTT } from "@/i18n/dict";
 import { POST_LOGIN_APPS_READY_EVENT } from "@/components/auth/PostLoginWelcomeOverlay";
+import {
+  DndContext,
+  KeyboardSensor,
+  PointerSensor,
+  closestCenter,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+import { SortableContext, arrayMove, rectSortingStrategy, sortableKeyboardCoordinates } from "@dnd-kit/sortable";
+import SortableAppCard from "@/pages/Apps/components/SortableAppCard";
 
 /* Marketing-only extra apps gated by email allow-list.
    Kept here (not in navigationConfig) so it stays scoped and doesn't
@@ -110,6 +121,22 @@ const AppsLauncher = ({ preloadOnly = false }: AppsLauncherProps) => {
   const [categoryFilter, setCategoryFilter] = useState<CategoryFilter>("all");
   const [paletteOpen, setPaletteOpen] = useState(false);
   const { favorites, isFavorite, toggleFavorite } = useFavoriteApps();
+  const orderStorageKey = user?.id ? `unify:apps:order:${user.id}` : "";
+  const [appOrder, setAppOrder] = useState<string[]>([]);
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+  );
+
+  useEffect(() => {
+    if (!orderStorageKey) { setAppOrder([]); return; }
+    try {
+      const saved = JSON.parse(localStorage.getItem(orderStorageKey) || "[]");
+      setAppOrder(Array.isArray(saved) ? saved.filter((id): id is string => typeof id === "string") : []);
+    } catch {
+      setAppOrder([]);
+    }
+  }, [orderStorageKey]);
   const [favCollapsed, setFavCollapsed] = useState<boolean>(() => {
     try { return localStorage.getItem("amwali:apps:section:favorites:collapsed") === "1"; } catch { return false; }
   });
@@ -408,6 +435,28 @@ const AppsLauncher = ({ preloadOnly = false }: AppsLauncherProps) => {
 
   const totalResults = groupedApps.total;
 
+  const enabledApps = useMemo(() => {
+    const apps = [...groupedApps.groups.core, ...groupedApps.groups.operations];
+    const positions = new Map(appOrder.map((id, index) => [id, index]));
+    return apps.sort((a, b) => {
+      const aPosition = positions.get(a.id) ?? Number.MAX_SAFE_INTEGER;
+      const bPosition = positions.get(b.id) ?? Number.MAX_SAFE_INTEGER;
+      return aPosition - bPosition;
+    });
+  }, [appOrder, groupedApps.groups.core, groupedApps.groups.operations]);
+
+  const handleAppDragEnd = ({ active, over }: DragEndEvent) => {
+    if (!over || active.id === over.id) return;
+    const oldIndex = enabledApps.findIndex((app) => app.id === active.id);
+    const newIndex = enabledApps.findIndex((app) => app.id === over.id);
+    if (oldIndex < 0 || newIndex < 0) return;
+    const nextOrder = arrayMove(enabledApps.map((app) => app.id), oldIndex, newIndex);
+    setAppOrder(nextOrder);
+    if (orderStorageKey) {
+      try { localStorage.setItem(orderStorageKey, JSON.stringify(nextOrder)); } catch {}
+    }
+  };
+
   /* Pill counts — sections recomputed AFTER hidden_apps remap (disabled → premium) */
   const pillCounts = useMemo(() => {
     const q = search.trim();
@@ -527,34 +576,57 @@ const AppsLauncher = ({ preloadOnly = false }: AppsLauncherProps) => {
               </div>
             )}
 
-            {/* Hierarchical sections — hide when filtering by favorites (already shown) */}
-            {categoryFilter !== "favorites" && (["core", "operations", "premium"] as SectionKey[]).map((sec) => {
-              const apps = groupedApps.groups[sec];
-              if (apps.length === 0) return null;
-              return (
-                <AppSectionBlock key={sec} section={sec} isPremium={sec === "premium"}>
-                  {apps.map((app, idx) => {
+            {/* All enabled apps in one personally sortable grid. */}
+            {categoryFilter !== "favorites" && enabledApps.length > 0 && (
+              <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleAppDragEnd}>
+                <SortableContext items={enabledApps.map((app) => app.id)} strategy={rectSortingStrategy}>
+                  <div className="grid grid-cols-3 gap-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-7">
+                    {enabledApps.map((app, idx) => {
                     const meta = getSafeAppMeta(app);
-                    const pendingActivation = isAppDisabled(app);
                     return (
-                      <AppCardV2
+                      <SortableAppCard
                         key={app.id}
+                        sortableId={app.id}
                         app={app}
                         meta={meta}
-                        index={allVisibleApps.findIndex((item) => item.id === app.id)}
+                        index={idx}
                         onNavigate={handleAppNavigate}
                         disabled={false}
-                        isPremiumLocked={pendingActivation || isAppPremiumLocked(app)}
-                        pendingActivation={pendingActivation}
-                        onPremiumClick={() => setUpgradeModal({ open: true, module: app.label, tier: pendingActivation ? "activation" : "pro" })}
+                        isPremiumLocked={false}
+                        pendingActivation={false}
                         isFavorite={isFavorite(app.id)}
                         onToggleFavorite={() => toggleFavorite(app.id)}
                       />
                     );
-                  })}
-                </AppSectionBlock>
-              );
-            })}
+                    })}
+                  </div>
+                </SortableContext>
+              </DndContext>
+            )}
+
+            {/* Only locked apps remain under the Advanced heading. */}
+            {categoryFilter !== "favorites" && groupedApps.groups.premium.length > 0 && (
+              <AppSectionBlock section="premium" isPremium>
+                {groupedApps.groups.premium.map((app, idx) => {
+                  const meta = getSafeAppMeta(app);
+                  return (
+                    <AppCardV2
+                      key={app.id}
+                      app={app}
+                      meta={meta}
+                      index={idx}
+                      onNavigate={handleAppNavigate}
+                      disabled={false}
+                      isPremiumLocked
+                      pendingActivation
+                      onPremiumClick={() => setUpgradeModal({ open: true, module: app.label, tier: "activation" })}
+                      isFavorite={isFavorite(app.id)}
+                      onToggleFavorite={() => toggleFavorite(app.id)}
+                    />
+                  );
+                })}
+              </AppSectionBlock>
+            )}
 
             {/* Favorites-only filter view (flat grid) */}
             {categoryFilter === "favorites" && groupedApps.favoritesList.length === 0 && favorites.length === 0 && (
