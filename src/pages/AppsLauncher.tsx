@@ -23,7 +23,7 @@ import AppsHero from "@/pages/Apps/components/AppsHero";
 import CategoryPills, { type CategoryFilter } from "@/pages/Apps/components/CategoryPills";
 import CommandPalette from "@/pages/Apps/components/CommandPalette";
 import { useFavoriteApps } from "@/hooks/useFavoriteApps";
-import { Star, Command, ChevronDown, Megaphone, ShieldCheck } from "lucide-react";
+import { Star, Command, ChevronDown, Megaphone, ShieldCheck, LayoutGrid } from "lucide-react";
 import { useTT } from "@/i18n/dict";
 import { POST_LOGIN_APPS_READY_EVENT } from "@/components/auth/PostLoginWelcomeOverlay";
 import {
