@@ -1340,6 +1340,7 @@ export default function MonthlyAttendanceTab({
       const { data, error } = await supabase.rpc("hr_attendance_review_days" as any, { p_from: period.from, p_to: period.to } as any);
       if (error) throw error;
       setReviewRows((data as any[]) || []);
+      setReviewCount(((data as any[]) || []).length);
     } catch (e: any) {
       toast({ title: "تعذر الفحص", description: e.message, variant: "destructive" });
       setReviewRows([]);
@@ -1589,9 +1590,11 @@ export default function MonthlyAttendanceTab({
               الفترة المطبَّقة: {fmtDateDisplay(period.from)} → {fmtDateDisplay(period.to)}
               {periodMode === "range" ? " (مخصصة)" : " (شهر كامل)"}
             </Badge>
-            <Button variant="outline" size="sm" onClick={openReview} className="gap-1 border-amber-300 text-amber-800">
-              <AlertCircle className="h-4 w-4" /> أيام قديمة تحتاج مراجعة
-            </Button>
+            {reviewCount > 0 && (
+              <Button variant="outline" size="sm" onClick={openReview} className="gap-1 border-amber-300 text-amber-800">
+                <AlertCircle className="h-4 w-4" /> أيام قديمة تحتاج مراجعة ({reviewCount})
+              </Button>
+            )}
             <Button variant="outline" size="sm" onClick={fetchRows} className="gap-1">
               <RefreshCw className="h-4 w-4" /> تحديث
             </Button>
