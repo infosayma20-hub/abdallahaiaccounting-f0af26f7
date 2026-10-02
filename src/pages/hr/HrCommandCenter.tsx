@@ -30,7 +30,7 @@ export default function HrCommandCenter() {
         className="text-right"
         initial={reduceMotion ? false : { opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.55, ease: [0.2, 0.8, 0.2, 1] }}
+        transition={{ duration: 0.35, ease: [0.2, 0.8, 0.2, 1] }}
       >
         <h1 className="text-2xl font-bold text-foreground">الموارد البشرية</h1>
         <p className="text-sm text-muted-foreground mt-1">اختر التطبيق</p>
@@ -45,7 +45,7 @@ export default function HrCommandCenter() {
           variants={{
             hidden: {},
             visible: {
-              transition: reduceMotion ? { delayChildren: 0 } : { delayChildren: 0.12, staggerChildren: 0.075 },
+              transition: reduceMotion ? { delayChildren: 0 } : { delayChildren: 0.04, staggerChildren: 0.018 },
             },
           }}
         >
@@ -56,7 +56,7 @@ export default function HrCommandCenter() {
                 hidden: reduceMotion ? { opacity: 1 } : { opacity: 0, x: 34, y: 18, scale: 0.95 },
                 visible: { opacity: 1, x: 0, y: 0, scale: 1 },
               }}
-              transition={{ duration: 0.62, ease: [0.2, 0.8, 0.2, 1] }}
+              transition={{ duration: 0.28, ease: [0.2, 0.8, 0.2, 1] }}
             >
               <Link
                 to={to}
