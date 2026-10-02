@@ -8,14 +8,20 @@ export const POST_LOGIN_APPS_READY_EVENT = "unify:post-login-apps-ready";
 export const POST_LOGIN_SHELL_READY_EVENT = "unify:post-login-shell-ready";
 export const POST_LOGIN_WELCOME_FINISHED_EVENT = "unify:post-login-welcome-finished";
 
-export const markPostLoginWelcome = (targetPath?: string) => {
+export const markPostLoginWelcome = (targetPath?: string, options?: { silent?: boolean }) => {
   try {
     sessionStorage.setItem(POST_LOGIN_WELCOME_KEY, String(Date.now()));
   } catch {
     // The welcome layer is cosmetic; authentication must continue if storage is unavailable.
   }
+  // silent: only remember the pending welcome (e.g. before leaving for Google);
+  // the popup appears once the user actually returns signed in.
+  if (options?.silent) return;
   window.dispatchEvent(new CustomEvent(POST_LOGIN_WELCOME_START_EVENT, { detail: { targetPath } }));
 };
+
+export const showPostLoginWelcome = () =>
+  window.dispatchEvent(new CustomEvent(POST_LOGIN_WELCOME_START_EVENT, { detail: {} }));
 
 export const hasPendingPostLoginWelcome = () => {
   try {
