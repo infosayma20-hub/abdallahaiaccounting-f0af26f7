@@ -145,6 +145,12 @@ const AppsLauncher = ({ preloadOnly = false }: AppsLauncherProps) => {
   useEffect(() => {
     try { localStorage.setItem("amwali:apps:section:favorites:collapsed", favCollapsed ? "1" : "0"); } catch {}
   }, [favCollapsed]);
+  const [basicCollapsed, setBasicCollapsed] = useState<boolean>(() => {
+    try { return localStorage.getItem("amwali:apps:section:basic:collapsed") === "1"; } catch { return false; }
+  });
+  useEffect(() => {
+    try { localStorage.setItem("amwali:apps:section:basic:collapsed", basicCollapsed ? "1" : "0"); } catch {}
+  }, [basicCollapsed]);
   // expandedApp removed in Phase 1 — apps now navigate directly
   const cachedRoles = user?.id ? rolesCache.get(user.id) : undefined;
   const [userRoles, setUserRoles] = useState<string[]>(cachedRoles?.roles ?? []);
