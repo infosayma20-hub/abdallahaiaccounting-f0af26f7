@@ -99,7 +99,7 @@ const AppsLauncher = () => {
   const { settings, loading: settingsLoading } = useCompanySettings();
   const { subscription, loading: subLoading } = useSubscription();
   const { isTrial, isSuperAdmin, loading: guardLoading } = useSubscriptionGuard();
-  const { allow: allowOverrides, deny: denyOverrides } = useMyAppOverrides();
+  const { allow: allowOverrides, deny: denyOverrides, loading: overridesLoading } = useMyAppOverrides();
   const { shouldShowWelcome, shouldShowTour, update, loading: onboardingLoading, businessType } = useOnboarding();
   const [tourActive, setTourActive] = useState(false);
   const [search, setSearch] = useState("");
@@ -145,6 +145,9 @@ const AppsLauncher = () => {
       .then(({ data }) => {
         if (cancelled) return;
         setAccountantPosAuditAllowed(((data as any)?.can_audit_pos_shifts as boolean) === true);
+      })
+      .catch(() => {
+        if (!cancelled) setAccountantPosAuditAllowed(false);
       });
     return () => { cancelled = true; };
   }, [user?.id]);
@@ -275,10 +278,24 @@ const AppsLauncher = () => {
     watchdogReady ||
     (!authLoading && !rolesLoading);
 
+  // Keep the card grid's fast auth+roles gate above. The welcome overlay uses
+  // this broader signal so the user lands after all card-affecting data has
+  // settled, while the watchdog still guarantees recovery from a stuck hook.
+  const launcherReady =
+    watchdogReady ||
+    (
+      isReady &&
+      !settingsLoading &&
+      subscriptionResolved &&
+      !onboardingLoading &&
+      !overridesLoading &&
+      accountantPosAuditAllowed !== null
+    );
+
   useEffect(() => {
-    if (!isReady) return;
+    if (!launcherReady) return;
     window.dispatchEvent(new Event(POST_LOGIN_APPS_READY_EVENT));
-  }, [isReady]);
+  }, [launcherReady]);
 
   // Hidden apps from super admin
   const hiddenApps: string[] = useMemo(() => {

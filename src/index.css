@@ -9,10 +9,15 @@
   to { opacity: 1; transform: translateY(0); }
 }
 
-@keyframes postLoginCheck {
-  from { opacity: 0; transform: scale(0.55) rotate(-12deg); }
-  65% { transform: scale(1.1) rotate(2deg); }
-  to { opacity: 1; transform: scale(1) rotate(0); }
+@keyframes postLoginOrbit {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+@keyframes postLoginCheckReveal {
+  from { opacity: 0; transform: scale(0.45) rotate(-35deg); }
+  70% { transform: scale(1.14) rotate(5deg); }
+  to { opacity: 1; transform: scale(1) rotate(0deg); }
 }
 
 .post-login-welcome {
@@ -46,6 +51,7 @@
 .post-login-welcome p { animation-delay: 160ms; }
 
 .post-login-welcome__check {
+  position: relative;
   display: grid;
   width: 3.75rem;
   height: 3.75rem;
@@ -53,7 +59,30 @@
   border-radius: 9999px;
   background: hsl(var(--success) / 0.12);
   color: hsl(var(--success));
-  animation: postLoginCheck 480ms ease-out both;
+}
+
+.post-login-welcome__orbit {
+  position: absolute;
+  inset: 0;
+  border: 3px solid hsl(var(--success) / 0.18);
+  border-top-color: hsl(var(--success));
+  border-inline-end-color: hsl(var(--success) / 0.55);
+  border-radius: 9999px;
+  animation: postLoginOrbit 780ms linear infinite;
+}
+
+.post-login-welcome__checkmark {
+  opacity: 0;
+  transform: scale(0.45);
+}
+
+.post-login-welcome__check--success .post-login-welcome__orbit {
+  animation: postLoginOrbit 420ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  border-color: hsl(var(--success));
+}
+
+.post-login-welcome__check--success .post-login-welcome__checkmark {
+  animation: postLoginCheckReveal 420ms 180ms ease-out both;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -61,10 +90,14 @@
   .post-login-welcome h1,
   .post-login-welcome p,
   .post-login-welcome__dialog,
-  .post-login-welcome__check {
+  .post-login-welcome__check,
+  .post-login-welcome__orbit,
+  .post-login-welcome__checkmark {
     animation: none;
     transition: none;
   }
+
+  .post-login-welcome__checkmark { opacity: 1; transform: none; }
 }
 
 @layer base {

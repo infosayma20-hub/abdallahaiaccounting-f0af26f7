@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Check } from "lucide-react";
 
 export const POST_LOGIN_WELCOME_KEY = "unify:post-login-welcome";
@@ -30,6 +30,18 @@ export const hasPendingPostLoginWelcome = () => {
 };
 
 export const finishPostLoginWelcome = (targetPath: string) => new Promise<void>((resolve) => {
+  const waitsForLauncher = targetPath === "/apps";
+  window.dispatchEvent(new CustomEvent(POST_LOGIN_ROUTE_READY_EVENT, {
+    detail: { targetPath, releaseWelcome: !waitsForLauncher },
+  }));
+
+  // The apps launcher must mount behind the overlay before it can report that
+  // its cards are ready. Do not make navigation wait for that same signal.
+  if (waitsForLauncher) {
+    resolve();
+    return;
+  }
+
   let settled = false;
   const finish = () => {
     if (settled) return;
@@ -38,8 +50,7 @@ export const finishPostLoginWelcome = (targetPath: string) => new Promise<void>(
     resolve();
   };
   window.addEventListener(POST_LOGIN_WELCOME_FINISHED_EVENT, finish, { once: true });
-  window.dispatchEvent(new CustomEvent(POST_LOGIN_ROUTE_READY_EVENT, { detail: { targetPath, releaseWelcome: true } }));
-  window.setTimeout(finish, 1800);
+  window.setTimeout(finish, 2400);
 });
 
 const clearPendingWelcome = () => {
@@ -52,41 +63,58 @@ const clearPendingWelcome = () => {
 
 const PostLoginWelcomeOverlay = () => {
   const [visible, setVisible] = useState(hasPendingPostLoginWelcome);
-  const [routeReady, setRouteReady] = useState(false);
+  const [targetPath, setTargetPath] = useState<string | null>(null);
+  const [readyToFinish, setReadyToFinish] = useState(false);
+  const [success, setSuccess] = useState(false);
   const [leaving, setLeaving] = useState(false);
+  const shownAtRef = useRef(Date.now());
 
   useEffect(() => {
     const handleStart = (event: Event) => {
       const targetPath = (event as CustomEvent<{ targetPath?: string }>).detail?.targetPath || null;
+      shownAtRef.current = Date.now();
       setVisible(true);
+      setSuccess(false);
       setLeaving(false);
-      setRouteReady(!!targetPath);
+      setReadyToFinish(false);
+      setTargetPath(targetPath);
     };
     const handleRouteReady = (event: Event) => {
       const detail = (event as CustomEvent<{ targetPath?: string; releaseWelcome?: boolean }>).detail;
-      if (detail?.targetPath && detail.releaseWelcome) setRouteReady(true);
+      if (!detail?.targetPath) return;
+      setTargetPath(detail.targetPath);
+      if (detail.releaseWelcome) setReadyToFinish(true);
+    };
+    const handleAppsReady = () => {
+      if (targetPath === "/apps") setReadyToFinish(true);
     };
     window.addEventListener(POST_LOGIN_WELCOME_START_EVENT, handleStart);
     window.addEventListener(POST_LOGIN_ROUTE_READY_EVENT, handleRouteReady);
+    window.addEventListener(POST_LOGIN_APPS_READY_EVENT, handleAppsReady);
     return () => {
       window.removeEventListener(POST_LOGIN_WELCOME_START_EVENT, handleStart);
       window.removeEventListener(POST_LOGIN_ROUTE_READY_EVENT, handleRouteReady);
+      window.removeEventListener(POST_LOGIN_APPS_READY_EVENT, handleAppsReady);
     };
-  }, []);
+  }, [targetPath]);
 
   useEffect(() => {
-    if (!visible || !routeReady) return;
-    const leaveTimer = window.setTimeout(() => setLeaving(true), 650);
+    if (!visible || !readyToFinish) return;
+    const minimumOrbitMs = 1100;
+    const successDelay = Math.max(0, minimumOrbitMs - (Date.now() - shownAtRef.current));
+    const successTimer = window.setTimeout(() => setSuccess(true), successDelay);
+    const leaveTimer = window.setTimeout(() => setLeaving(true), successDelay + 750);
     const hideTimer = window.setTimeout(() => {
       clearPendingWelcome();
       setVisible(false);
       window.dispatchEvent(new Event(POST_LOGIN_WELCOME_FINISHED_EVENT));
-    }, 1100);
+    }, successDelay + 1250);
     return () => {
+      window.clearTimeout(successTimer);
       window.clearTimeout(leaveTimer);
       window.clearTimeout(hideTimer);
     };
-  }, [routeReady, visible]);
+  }, [readyToFinish, visible]);
 
   if (!visible) return null;
 
@@ -100,8 +128,9 @@ const PostLoginWelcomeOverlay = () => {
     >
       <div className="post-login-welcome__scrim" aria-hidden="true" />
       <main className="post-login-welcome__dialog relative z-10 flex w-full max-w-[240px] flex-col items-center border border-primary-foreground/20 bg-background/95 px-5 py-5 text-center text-foreground shadow-2xl backdrop-blur-xl">
-        <div className="post-login-welcome__check" aria-hidden="true">
-          <Check className="h-8 w-8" strokeWidth={3} />
+        <div className={`post-login-welcome__check ${success ? "post-login-welcome__check--success" : ""}`} aria-hidden="true">
+          <span className="post-login-welcome__orbit" />
+          <Check className="post-login-welcome__checkmark h-8 w-8" strokeWidth={3} />
         </div>
         <h1 className="mt-3 text-xl font-bold text-foreground">أهلاً بك</h1>
       </main>
