@@ -74,14 +74,48 @@ Deno.serve(async (req) => {
 
   // Dispatcher: start one background job per tenant.
   if (!ownerId) {
-    const { data: cos } = await sb.from('companies').select('owner_id').not('owner_id', 'is', null)
-    const owners = [...new Set((cos ?? []).map((c: any) => c.owner_id))]
-    const results = await Promise.allSettled(owners.map((o) => fetch(`${url}/functions/v1/cloud-backup`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'x-backup-token': cronToken ?? '', Authorization: `Bearer ${Deno.env.get('SUPABASE_ANON_KEY') ?? ''}` },
-      body: JSON.stringify({ owner_id: o }),
-    })))
-    return json({ success: true, dispatched: owners.length, failed: results.filter((r) => r.status === 'rejected').length })
+    // Paginate companies (default API cap is 1000 rows) and skip tenants that
+    // already have a successful/running run today, so re-invoking is safe.
+    const owners = new Set<string>()
+    for (let from = 0; ; from += 1000) {
+      const { data: cos } = await sb.from('companies').select('owner_id').not('owner_id', 'is', null).range(from, from + 999)
+      for (const c of cos ?? []) owners.add((c as any).owner_id)
+      if (!cos || cos.length < 1000) break
+    }
+    const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Hebron' })
+    const { data: done } = await sb.from('cloud_backup_runs').select('owner_id')
+      .eq('backup_date', today).in('status', ['success', 'running'])
+    for (const r of done ?? []) owners.delete((r as any).owner_id)
+    const list = [...owners]
+    // Small batches with retries: firing every tenant at once dropped most
+    // requests (only ~30 of 136 started).
+    const dispatchAll = async () => {
+      let ok = 0, failed = 0
+      for (let i = 0; i < list.length; i += 8) {
+        const batch = list.slice(i, i + 8)
+        const res = await Promise.all(batch.map(async (o) => {
+          for (let attempt = 0; attempt < 3; attempt++) {
+            try {
+              const r = await fetch(`${url}/functions/v1/cloud-backup`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'x-backup-token': cronToken ?? '', Authorization: `Bearer ${Deno.env.get('SUPABASE_ANON_KEY') ?? ''}` },
+                body: JSON.stringify({ owner_id: o }),
+              })
+              await r.text().catch(() => '')
+              if (r.ok) return true
+            } catch { /* retry */ }
+            await new Promise((s) => setTimeout(s, 1500 * (attempt + 1)))
+          }
+          return false
+        }))
+        ok += res.filter(Boolean).length; failed += res.filter((x) => !x).length
+        await new Promise((s) => setTimeout(s, 1000))
+      }
+      console.log(`[cloud-backup] dispatched ${ok}/${list.length}, failed ${failed}`)
+    }
+    // @ts-ignore EdgeRuntime is provided by the platform
+    EdgeRuntime.waitUntil(dispatchAll())
+    return json({ success: true, dispatching: list.length }, 202)
   }
 
   const keyId = Deno.env.get('B2_KEY_ID'), appKey = Deno.env.get('B2_APPLICATION_KEY')
