@@ -38,7 +38,7 @@ const WebLayout = lazy(() => import("./components/layout/WebLayout"));
 import FeedbackShell from "./components/layout/FeedbackShell";
 import RoleGuard from "./components/RoleGuard";
 import { OnboardingGate } from "@/components/auth/OnboardingGate";
-import PostLoginWelcomeOverlay from "@/components/auth/PostLoginWelcomeOverlay";
+import PostLoginWelcomeOverlay, { hasPendingPostLoginWelcome } from "@/components/auth/PostLoginWelcomeOverlay";
 import HRPermGuard from "./components/HRPermGuard";
 const HRShell = lazy(() => import("./components/hr/HRShell"));
 const InvoicesPage = lazy(() => import("./pages/InvoicesPage"));
@@ -573,7 +573,7 @@ const AuthRoute = ({ children }: { children: React.ReactNode }) => {
   // Dark placeholder — matches the login background so there is no white flash
   // before the login screen appears.
   if (checking) return stalled ? <RoleResolveFallback onRetry={retry} /> : <AuthCheckSpinner dark />;
-  if (user && targetPath) return <Navigate to={targetPath} replace />;
+  if (user && targetPath && !hasPendingPostLoginWelcome()) return <Navigate to={targetPath} replace />;
 
   const isSpartaDomain = typeof window !== "undefined" && (
     window.location.hostname === "sparta-trade.com" || 
