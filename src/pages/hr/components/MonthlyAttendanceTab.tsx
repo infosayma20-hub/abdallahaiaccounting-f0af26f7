@@ -1076,7 +1076,6 @@ export default function MonthlyAttendanceTab({
     setTimeValid({ in: true, out: true });
     setIgnoredEventIds([]);
     setLeaveType("");
-    setSaveResult(null);
     setBreaks([]);
     setBreaksLoading(hasRealDay);
     setRawEvents([]);
