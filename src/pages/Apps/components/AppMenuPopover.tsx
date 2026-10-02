@@ -103,7 +103,7 @@ export default function AppMenuPopover({
         style={{
           padding: isMobile ? "14px 16px" : "10px 14px",
           borderBottom: "1px solid #f1f5f9",
-          background: `linear-gradient(135deg, ${accentColor}14, #ffffff 55%)`,
+          background: `linear-gradient(135deg, ${accentColor}14, #ffffff 55%), #ffffff`,
           borderRadius: isMobile ? "18px 18px 0 0" : "14px 14px 0 0",
           position: "sticky",
           top: 0,
