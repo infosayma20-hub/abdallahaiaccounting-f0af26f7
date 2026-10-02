@@ -122,11 +122,25 @@ Deno.serve(async (req) => {
   if (!keyId || !appKey) return json({ success: false, error: 'B2_NOT_CONFIGURED' }, 500)
   const s3 = new AwsClient({ accessKeyId: keyId, secretAccessKey: appKey, service: 's3', region: B2_REGION })
   // UNSIGNED-PAYLOAD avoids hashing large bodies (keeps CPU low).
+  // Retries transient network drops / 429 / 5xx (bodies are buffers/blobs/strings, safe to resend).
   const put = async (key: string, data: BodyInit, type = 'application/json') => {
-    const r = await s3.fetch(`${B2_ENDPOINT}/${B2_BUCKET}/${enc(key)}`, {
-      method: 'PUT', body: data, headers: { 'Content-Type': type, 'X-Amz-Content-Sha256': 'UNSIGNED-PAYLOAD' },
-    })
-    if (!r.ok) throw new Error(`B2 ${r.status}: ${(await r.text()).slice(0, 200)}`)
+    let last: unknown
+    for (let i = 0; i < 4; i++) {
+      if (i) await new Promise((res) => setTimeout(res, 800 * 2 ** (i - 1) + Math.random() * 300))
+      try {
+        const r = await s3.fetch(`${B2_ENDPOINT}/${B2_BUCKET}/${enc(key)}`, {
+          method: 'PUT', body: data, headers: { 'Content-Type': type, 'X-Amz-Content-Sha256': 'UNSIGNED-PAYLOAD' },
+        })
+        if (r.ok) { await r.body?.cancel(); return }
+        const msg = `B2 ${r.status}: ${(await r.text()).slice(0, 200)}`
+        if (r.status !== 429 && r.status < 500) throw Object.assign(new Error(msg), { fatal: true })
+        last = new Error(msg)
+      } catch (e) {
+        if ((e as { fatal?: boolean }).fatal) throw e
+        last = e
+      }
+    }
+    throw last
   }
   const exists = async (key: string) =>
     (await s3.fetch(`${B2_ENDPOINT}/${B2_BUCKET}/${enc(key)}`, { method: 'HEAD', headers: { 'X-Amz-Content-Sha256': 'UNSIGNED-PAYLOAD' } })).ok
