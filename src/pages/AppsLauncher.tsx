@@ -465,7 +465,7 @@ const AppsLauncher = ({ preloadOnly = false }: AppsLauncherProps) => {
 
         {/* Apps Grid — the post-login welcome layer covers this brief first load. */}
         {!isReady ? (
-          <div className="grid grid-cols-3 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
+          <div className="grid grid-cols-3 gap-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-7">
             {Array.from({ length: 12 }).map((_, i) => (
               <div
                 key={i}
@@ -509,7 +509,7 @@ const AppsLauncher = ({ preloadOnly = false }: AppsLauncherProps) => {
                     }}
                   />
                 </button>
-                {!favCollapsed && <div className="grid grid-cols-3 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
+                {!favCollapsed && <div className="grid grid-cols-3 gap-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-7">
                   {groupedApps.favoritesList.map((app, idx) => {
                     const meta = getSafeAppMeta(app);
                     const pendingActivation = isAppDisabled(app);
