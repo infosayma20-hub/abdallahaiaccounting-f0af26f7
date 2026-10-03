@@ -447,7 +447,7 @@ export default function JobApplicationsPage() {
         img.src = src;
       });
     const [logo, unifyLogo] = await Promise.all([
-      loadImg(malakyLogo.url),
+      tenantLogoUrl ? loadImg(tenantLogoUrl) : Promise.resolve(null),
       loadImg("/branding/unify/unify-logo-horizontal.png"),
     ]);
 
