@@ -188,6 +188,11 @@ const ItemSchema = z.object({
   final_unit_price: z.number().min(0).max(1000000).nullish(),
   line_total: z.number().min(0).max(10000000).nullish(),
   note: z.string().max(500).optional(),
+  // aliases some integrators use for the item note
+  notes: z.string().max(500).nullish(),
+  item_note: z.string().max(500).nullish(),
+  comment: z.string().max(500).nullish(),
+  remarks: z.string().max(500).nullish(),
   modifiers: z.array(ModifierSchema).max(40).optional(),
   options: z.array(ModifierSchema).max(40).optional(),
   addons: z.array(ModifierSchema).max(40).optional(),
@@ -239,6 +244,11 @@ const OrderSchema = z
     payment_method: z.enum(["cash", "visa", "card", "wallet"]).default("cash"),
     items: z.array(ItemSchema).min(1).max(100),
     order_note: z.string().max(1000).optional(),
+    // aliases for the order-level note
+    notes: z.string().max(1000).nullish(),
+    note: z.string().max(1000).nullish(),
+    customer_notes: z.string().max(1000).nullish(),
+    customer_note: z.string().max(1000).nullish(),
     scheduled_for: z.string().datetime({ offset: true }).optional(),
   })
   .refine((v) => v.branch_code || v.branch_id || v.branch_external_id != null, {
@@ -413,7 +423,7 @@ async function handleCreateOrder(req: Request, ownerId: string, environment: "li
       options_total: it.options_total ?? null,
       addons_total: it.addons_total ?? null,
       total: Math.round(lineTotal * 100) / 100,
-      note: it.note || "",
+      note: (it.note || it.notes || it.item_note || it.comment || it.remarks || "").trim(),
       modifiers: mods,
     };
   });
@@ -428,6 +438,21 @@ async function handleCreateOrder(req: Request, ownerId: string, environment: "li
     [body.delivery?.city, body.delivery?.area, body.delivery?.street].filter(Boolean).join("، ") ||
     body.delivery_address ||
     null;
+
+  // Order note printed on the ticket: merge note aliases + full delivery address
+  const pickNote = (body.order_note || body.notes || body.note || "").trim();
+  const custNote = (body.customer_notes || body.customer_note || "").trim();
+  const addrNote = (body.delivery?.address_note || "").trim();
+  const noteParts: string[] = [];
+  if (pickNote) noteParts.push(pickNote);
+  if (custNote && custNote !== pickNote) noteParts.push(custNote);
+  if (deliveryType === "delivery") {
+    const fullAddr = [address, body.delivery?.address ? [body.delivery?.city, body.delivery?.area, body.delivery?.street].filter(Boolean).join("، ") : ""]
+      .filter((x, i, a) => x && a.indexOf(x) === i).join(" — ");
+    if (fullAddr) noteParts.push(`العنوان: ${fullAddr}`);
+    if (addrNote) noteParts.push(`ملاحظة العنوان: ${addrNote}`);
+  }
+  const finalOrderNote = noteParts.join("\n").slice(0, 2000) || null;
 
 
   // 3.5) Dry-run mode (integration self-test): validate + resolve + price, but write nothing
@@ -464,7 +489,7 @@ async function handleCreateOrder(req: Request, ownerId: string, environment: "li
       payment_method: payment,
       items: items as any,
       total,
-      order_note: body.order_note || null,
+      order_note: finalOrderNote,
       status: "awaiting_call_center",
       dispatched_by_name: "تطبيق الجوال",
       delivery_fee: deliveryFee || 0,
