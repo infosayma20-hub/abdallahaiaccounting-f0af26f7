@@ -1,3 +1,4 @@
+import { normalizeBarcode } from "@/lib/barcode";
 import { parseScaleBarcode, type ScaleFormat } from "@/lib/scale-barcode";
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { usePOSOffline } from "@/hooks/usePOSOffline";
