@@ -32,6 +32,7 @@ import * as XLSX from "xlsx";
 import { toast } from "sonner";
 import { setNextExportBranding } from "@/lib/excel-export";
 import malakyLogo from "@/assets/malaky-logo.png.asset.json";
+import { isMalakyOwner } from "@/lib/malakyAccess";
 import JobFormBuilderDialog from "@/components/hr/JobFormBuilderDialog";
 import { parseCustomAnswers } from "@/lib/hr/jobApplicationForm";
 import JobApplicationPrintDocument from "@/components/hr/JobApplicationPrintDocument";
@@ -226,6 +227,7 @@ export default function JobApplicationsPage() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const { dataOwnerId } = useDataOwnerId();
+  const tenantLogoUrl = isMalakyOwner(dataOwnerId) ? malakyLogo.url : "";
   const [link, setLink] = useState<LinkRow | null>(null);
   const [rows, setRows] = useState<AppRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -384,7 +386,7 @@ export default function JobApplicationsPage() {
       // Preload both images before mounting the isolated print document. This
       // prevents a fast print dialog from capturing an empty photo/logo box.
       await Promise.all(
-        [malakyLogo.url, photoUrl].filter(Boolean).map((src) => new Promise<void>((resolve) => {
+        [tenantLogoUrl, photoUrl].filter(Boolean).map((src) => new Promise<void>((resolve) => {
           const image = new Image();
           image.onload = () => resolve();
           image.onerror = () => resolve();
@@ -396,7 +398,7 @@ export default function JobApplicationsPage() {
         <JobApplicationPrintDocument
           application={application}
           photoUrl={photoUrl}
-          logoUrl={malakyLogo.url}
+          logoUrl={tenantLogoUrl}
           statusLabel={statusMeta(application.status).label}
           formattedCreatedAt={AR_DT(application.created_at)}
         />,
@@ -847,11 +849,13 @@ export default function JobApplicationsPage() {
                 ref={qrWrapRef}
                 className="relative overflow-hidden rounded-3xl bg-white p-6 text-center border border-[#C9A227]/60 shadow-sm"
               >
-                <img
-                  src={malakyLogo.url}
-                  alt="شعار شركة الدجاج الملكي"
-                  className="mx-auto h-20 object-contain"
-                />
+                {tenantLogoUrl && (
+                  <img
+                    src={tenantLogoUrl}
+                    alt="شعار الشركة"
+                    className="mx-auto h-20 object-contain"
+                  />
+                )}
 
                 <div className="mt-3 text-[#0D1B2E] font-bold text-lg tracking-tight">{link.title}</div>
                 <div className="mx-auto my-2 h-[2px] w-14 rounded-full bg-[#C9A227]" />
