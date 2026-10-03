@@ -3566,6 +3566,40 @@ const POSPage = () => {
     toast.success(`✅ ${matched.name}`, { duration: 1500 });
   }, [products, addToCart]);
 
+  // ── Global USB scanner capture: مسح الباركود من أي مكان بالشاشة ──
+  // الماسح بيبعت أحرف سريعة متتالية (<60ms بينها) ويختم بـ Enter.
+  // إذا المؤشر مش داخل حقل إدخال، بنجمّع الأحرف ونضيف الصنف للسلة مباشرة.
+  const handleBarcodeScanRef = useRef(handleBarcodeScan);
+  useEffect(() => { handleBarcodeScanRef.current = handleBarcodeScan; }, [handleBarcodeScan]);
+  useEffect(() => {
+    let buffer = "";
+    let lastTs = 0;
+    const onKey = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement | null;
+      const tag = (target?.tagName || "").toLowerCase();
+      const inField = tag === "input" || tag === "textarea" || tag === "select" || target?.isContentEditable;
+      if (inField || e.ctrlKey || e.altKey || e.metaKey) { buffer = ""; return; }
+      const now = Date.now();
+      if (e.key === "Enter") {
+        const code = buffer;
+        buffer = "";
+        if (code.length >= 4 && now - lastTs < 1000) {
+          e.preventDefault();
+          handleBarcodeScanRef.current(code);
+        }
+        return;
+      }
+      if (e.key.length === 1) {
+        if (now - lastTs > 100) buffer = ""; // كتابة يدوية بطيئة → مش ماسح
+        buffer += e.key;
+        lastTs = now;
+        if (buffer.length > 64) buffer = buffer.slice(-64);
+      }
+    };
+    window.addEventListener("keydown", onKey, true);
+    return () => window.removeEventListener("keydown", onKey, true);
+  }, []);
+
 
   const removeFromCart = useCallback((index: number) => {
     setCart((prev) => prev.filter((_, i) => i !== index));
