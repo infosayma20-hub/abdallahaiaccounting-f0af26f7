@@ -7205,10 +7205,12 @@ const POSPage = () => {
         e.preventDefault();
         return;
       }
-      // F4 = Invoice history
+      // F4 = Invoice history (respects cashier permission)
       if (e.key === "F4") {
-        setShowInvoiceHistory(true);
         e.preventDefault();
+        if (isAdmin || posPerms.can_view_invoice_history || posPerms.view_invoice_log) {
+          setShowInvoiceHistory(true);
+        }
       }
       // F2 = Pay (not for call center)
       if (e.key === "F2" && cart.length > 0 && !isCallCenter) {
@@ -7332,7 +7334,7 @@ const POSPage = () => {
     };
     window.addEventListener("keydown", handleKey);
     return () => window.removeEventListener("keydown", handleKey);
-  }, [cart, posCategories, products, selectedCategory, addToCart, enforceDeviceGuard, openPaymentModal, isCallCenter, shouldThrottlePrint, buildCartHash, company, session, activeOrder, cartTotals, paymentMethod, showPayment, processing, customerName, selectedEmployee, mealDiscountType, mealDiscountMode, handleCompleteOrder]);
+  }, [cart, posCategories, products, selectedCategory, addToCart, enforceDeviceGuard, openPaymentModal, isCallCenter, shouldThrottlePrint, buildCartHash, company, session, activeOrder, cartTotals, paymentMethod, showPayment, processing, customerName, selectedEmployee, mealDiscountType, mealDiscountMode, handleCompleteOrder, isAdmin, posPerms]);
 
   if (loading) {
     return (
