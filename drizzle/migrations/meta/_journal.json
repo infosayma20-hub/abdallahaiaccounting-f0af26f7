@@ -491,6 +491,13 @@
       "when": 1791053139168,
       "tag": "0069_notification_broadcasts_tenant_scope",
       "breakpoints": true
+    },
+    {
+      "idx": 70,
+      "version": "7",
+      "when": 1791053781294,
+      "tag": "0070_cross_tenant_isolation_hardening",
+      "breakpoints": true
     }
   ]
 }
