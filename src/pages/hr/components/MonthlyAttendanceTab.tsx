@@ -1431,6 +1431,18 @@ export default function MonthlyAttendanceTab({
 
       // معاملة واحدة في قاعدة البيانات: الصلاحية، طبقة التصحيح، الجلسات،
       // الإجازة، الحساب والتدقيق — أي فشل يلغي كل شيء. البصمات الأصلية لا تُمس.
+      // النافذة بتوعد إن المعتمد = (الخروج − الدخول) − الجلسات. لما الموارد
+      // تحدد دخول وخروج والرقم مختلف عن البصمات، البصمات الواقعة بينهم تُتجاهل
+      // (بدون مسّها) والجلسات المدخلة هي اللي بتحدد الغياب داخل الدوام.
+      let effectiveIgnored = isLockStatus ? [] : [...ignoredEventIds];
+      if (!isLockStatus && ciDate && coDate && netDiffersFromPunches) {
+        const a = ciDate.getTime();
+        const b = coDate.getTime();
+        for (const e of rawEvents) {
+          const t = new Date(e.event_time).getTime();
+          if (t > a && t < b && !effectiveIgnored.includes(e.id)) effectiveIgnored.push(e.id);
+        }
+      }
       const hasRealDay = UUID_RE.test(editing.id);
       const { data, error: saveError } = await supabase.rpc(
         "hr_save_attendance_day" as any,
@@ -1446,7 +1458,7 @@ export default function MonthlyAttendanceTab({
           p_breaks: activeBreaks,
           p_deleted_break_ids: deletedBreakIds,
           p_dismissed_gaps: dismissedGaps,
-          p_ignored_event_ids: isLockStatus ? [] : ignoredEventIds,
+          p_ignored_event_ids: effectiveIgnored,
           p_leave_type: form.status === "leave" ? (leaveType || null) : null,
         } as any,
       );
