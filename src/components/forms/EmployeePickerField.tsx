@@ -126,7 +126,8 @@ export default function EmployeePickerField({ value, employeeId, disabled, place
           dir="rtl"
           data-ignore-dialog-outside
           className="fixed inset-0 z-[2000] bg-background flex flex-col"
-          style={{ height: "100dvh", paddingTop: "env(safe-area-inset-top, 0px)" }}
+          // pointerEvents: a modal Radix Dialog sets body{pointer-events:none}; this portal lives on body, so re-enable it.
+          style={{ height: "100dvh", paddingTop: "env(safe-area-inset-top, 0px)", pointerEvents: "auto" }}
         >
           <header className="flex items-center justify-between gap-2 px-3 h-14 border-b bg-card shrink-0">
             <button
