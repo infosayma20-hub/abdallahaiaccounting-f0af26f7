@@ -124,7 +124,7 @@ export default function JobApplicationPrintDocument({
       <div style={styles.topRule} />
       <header style={styles.header}>
         <div style={styles.identity}>
-          <img src={logoUrl} alt="شعار الشركة" style={styles.logo} />
+          {logoUrl ? <img src={logoUrl} alt="شعار الشركة" style={styles.logo} /> : null}
           <div>
             <h1 style={styles.title}>طلب توظيف</h1>
             <div style={styles.subtitle}>نموذج بيانات المتقدم للوظيفة</div>
