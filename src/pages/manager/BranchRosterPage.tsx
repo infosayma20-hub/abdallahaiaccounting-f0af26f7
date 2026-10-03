@@ -315,8 +315,33 @@ export default function BranchRosterPage() {
         </div>
       )}
 
-      {/* Mobile day picker */}
-      <div className="md:hidden">
+      {/* Mobile day picker — horizontal swipe changes day (RTL: swipe right = next day) */}
+      <div
+        className="md:hidden"
+        style={{ touchAction: "pan-y" }}
+        onTouchStart={(e) => {
+          const t = e.touches[0];
+          (e.currentTarget as any)._sw = { x: t.clientX, y: t.clientY, ts: Date.now() };
+        }}
+        onTouchEnd={(e) => {
+          const s = (e.currentTarget as any)._sw;
+          (e.currentTarget as any)._sw = null;
+          if (!s) return;
+          const t = e.changedTouches[0];
+          const dx = t.clientX - s.x;
+          const dy = t.clientY - s.y;
+          if (Math.abs(dx) < 60 || Math.abs(dx) < Math.abs(dy) * 1.5 || Date.now() - s.ts > 800) return;
+          const target = e.target as HTMLElement;
+          if (target.closest("input, textarea, [role='dialog'], .overflow-x-auto")) return;
+          if (dx > 0) {
+            if (mobileDayIdx === 6) { setWeekAnchor(addDays(weekAnchor, 7)); setMobileDayIdx(0); }
+            else setMobileDayIdx(mobileDayIdx + 1);
+          } else {
+            if (mobileDayIdx === 0) { setWeekAnchor(addDays(weekAnchor, -7)); setMobileDayIdx(6); }
+            else setMobileDayIdx(mobileDayIdx - 1);
+          }
+        }}
+      >
         <div className="flex items-center justify-between gap-2 mb-3">
           <Button variant="outline" size="icon" onClick={() => {
             if (mobileDayIdx === 0) { setWeekAnchor(addDays(weekAnchor, -7)); setMobileDayIdx(6); }
