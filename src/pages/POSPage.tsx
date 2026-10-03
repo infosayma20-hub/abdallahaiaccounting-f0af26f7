@@ -6115,7 +6115,7 @@ const POSPage = () => {
           orderNumber: res.order_number,
           queueNumber: queueNumber || undefined,
           shiftSeq: shiftSeq,
-          branchName: company?.name || "مطعم الملكي",
+          branchName: company?.name || "",
           cashier: session.cashier_name,
           tableNumber: activeOrder.tableName || undefined,
           orderType: activeOrder.orderType,
@@ -7242,7 +7242,7 @@ const POSPage = () => {
         const f8Order: BridgePrintOrder = {
           orderNumber: `F8-${cartHash}`,
           id: `f8-${cartHash}`,
-          branchName: company?.name || "مطعم الملكي - سفيان",
+          branchName: company?.name || "",
           cashier: session?.cashier_name || "",
           tableNumber: activeOrder.tableName || undefined,
           orderType: activeOrder.orderType,
@@ -10669,7 +10669,7 @@ const POSPage = () => {
               if (kitchenTicketData) {
                 const kitchenOrder: BridgePrintOrder = {
                   orderNumber: kitchenTicketData.orderNumber || Date.now().toString(),
-                  branchName: company?.name || "مطعم الملكي - سفيان",
+                  branchName: company?.name || "",
                   cashier: kitchenTicketData.cashierName || "",
                   items: [],
                   total: 0,

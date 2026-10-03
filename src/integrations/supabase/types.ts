@@ -33259,6 +33259,7 @@ export type Database = {
         Returns: boolean
       }
       is_sales_rep: { Args: never; Returns: boolean }
+      is_same_team: { Args: { _target: string }; Returns: boolean }
       is_self_employee: {
         Args: { _auth_uid: string; _employee_id: string }
         Returns: boolean

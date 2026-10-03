@@ -4,7 +4,7 @@ export type KioskLang = "ar" | "en";
 
 export const KIOSK_T = {
   ar: {
-    welcome_title: "أهلاً وسهلاً بكم في الملكي",
+    welcome_title: "أهلاً وسهلاً بكم",
     welcome_sub: "المس الشاشة للبدء",
     start_order: "ابدأ الطلب",
     choose_language: "اختر اللغة",
@@ -69,7 +69,7 @@ export const KIOSK_T = {
     add_note: "إضافة ملاحظة",
   },
   en: {
-    welcome_title: "Welcome to Malaky",
+    welcome_title: "Welcome",
     welcome_sub: "Touch to start",
     start_order: "Start Order",
     choose_language: "Choose Language",
