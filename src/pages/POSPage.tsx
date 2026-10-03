@@ -1,3 +1,4 @@
+import { normalizeBarcode } from "@/lib/barcode";
 import { parseScaleBarcode, type ScaleFormat } from "@/lib/scale-barcode";
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { usePOSOffline } from "@/hooks/usePOSOffline";
@@ -3538,15 +3539,52 @@ const POSPage = () => {
     return true;
   }, [products, setCart]);
 
+  // ── الباركودات الإضافية للصنف (product_barcodes): باركود → صنف، مع نسخة محلية للعمل بدون إنترنت ──
+  const extraBarcodeMapRef = useRef<Record<string, string>>({});
+  useEffect(() => {
+    let cancelled = false;
+    const CACHE_KEY = "unify:pos:extra-barcodes:v1";
+    try {
+      const cached = localStorage.getItem(CACHE_KEY);
+      if (cached) extraBarcodeMapRef.current = JSON.parse(cached) || {};
+    } catch { /* ignore */ }
+    (async () => {
+      const map: Record<string, string> = {};
+      const PAGE = 1000;
+      for (let from = 0; ; from += PAGE) {
+        const { data, error } = await (supabase as any)
+          .from("product_barcodes").select("barcode,product_id").order("id").range(from, from + PAGE - 1);
+        if (error || cancelled) return; // عند الفشل نبقي النسخة المحلية
+        (data || []).forEach((r: any) => {
+          const k = normalizeBarcode(r.barcode).toLowerCase();
+          if (k && r.product_id) map[k] = r.product_id;
+        });
+        if (!data || data.length < PAGE) break;
+      }
+      if (cancelled) return;
+      extraBarcodeMapRef.current = map;
+      try { localStorage.setItem(CACHE_KEY, JSON.stringify(map)); } catch { /* ignore */ }
+    })();
+    return () => { cancelled = true; };
+  }, []);
+
+  /** مطابقة دقيقة: الباركود الأساسي، ثم SKU، ثم الباركودات الإضافية للصنف. */
+  const findProductByCode = useCallback((rawCode: string) => {
+    const lc = normalizeBarcode(rawCode).toLowerCase();
+    if (!lc) return undefined;
+    const direct = products.find(
+      (p) => normalizeBarcode(p.barcode).toLowerCase() === lc || (p.sku || "").toLowerCase() === lc
+    );
+    if (direct) return direct;
+    const pid = extraBarcodeMapRef.current[lc];
+    return pid ? products.find((p) => p.id === pid) : undefined;
+  }, [products]);
+
   // ── Barcode scan handler (USB scanner Enter / Camera / Manual) ──
   const handleBarcodeScan = useCallback((rawCode: string) => {
-    const code = (rawCode || "").trim();
+    const code = normalizeBarcode(rawCode);
     if (!code) return;
-    // طابق بالباركود ثم SKU بالضبط (case-insensitive)
-    const lc = code.toLowerCase();
-    const matched = products.find(
-      (p) => (p.barcode || "").toLowerCase() === lc || (p.sku || "").toLowerCase() === lc
-    );
+    const matched = findProductByCode(code);
     if (!matched && tryScaleBarcode(code)) return;
     if (!matched) {
       toast.error(`المنتج غير موجود (${code})`, { duration: 3000 });
@@ -3564,7 +3602,7 @@ const POSPage = () => {
     setSearchQuery("");
     setDebouncedSearch("");
     toast.success(`✅ ${matched.name}`, { duration: 1500 });
-  }, [products, addToCart]);
+  }, [findProductByCode, tryScaleBarcode, addToCart]);
 
   // ── Global USB scanner capture: مسح الباركود من أي مكان بالشاشة ──
   // الماسح بيبعت أحرف سريعة متتالية (<60ms بينها) ويختم بـ Enter.
@@ -7551,10 +7589,7 @@ const POSPage = () => {
                   const q = searchQuery.trim();
                   if (!q) return;
                   // ابحث أولاً عن مطابقة دقيقة (سكانر USB يرسل الكود + Enter)
-                  const lc = q.toLowerCase();
-                  const exact = products.find(
-                    (p) => (p.barcode || "").toLowerCase() === lc || (p.sku || "").toLowerCase() === lc
-                  );
+                  const exact = findProductByCode(q);
                   if (exact) {
                     handleBarcodeScan(q);
                     return;
