@@ -49,7 +49,7 @@ export default function ChooseWorkspacePage() {
     (async () => {
       try {
         const [{ data: posUser }, { data: empRow }] = await Promise.all([
-          supabase.from("pos_users").select("is_call_center, is_waiter, hide_employee_workspace").eq("auth_user_id", user.id).maybeSingle(),
+          supabase.from("pos_users").select("is_call_center, is_waiter, hide_employee_workspace, is_active, account_status").eq("auth_user_id", user.id).maybeSingle(),
           supabase
             .from("employees")
             .select("id, is_active, is_terminated, is_receiver, can_direct_receive")
@@ -58,10 +58,13 @@ export default function ChooseWorkspacePage() {
         ]);
         // Roles come from the shared React Query cache — see useUserRoles.
         const roles = sharedRoles;
-        const linkedPosUser = posUser as { is_call_center?: boolean | null; is_waiter?: boolean | null; hide_employee_workspace?: boolean | null } | null;
+        const linkedPosUser = posUser as { is_call_center?: boolean | null; is_waiter?: boolean | null; hide_employee_workspace?: boolean | null; is_active?: boolean | null; account_status?: string | null } | null;
         const linkedEmployee = empRow as { is_active?: boolean | null; is_terminated?: boolean | null } | null;
         setHasRep(roles.includes("sales_rep"));
-        setHasCashier(roles.includes("cashier") || !!posUser);
+        // A disabled POS user (is_active=false / account not active) must not see POS,
+        // even if a stale "cashier" role row remains.
+        const posUserDisabled = !!linkedPosUser && (linkedPosUser.is_active === false || (linkedPosUser.account_status != null && linkedPosUser.account_status !== "active"));
+        setHasCashier(!posUserDisabled && (roles.includes("cashier") || !!posUser));
         setIsCallCenter(!!linkedPosUser && !!linkedPosUser.is_call_center);
         setIsWaiter(!!linkedPosUser && !!linkedPosUser.is_waiter);
         // Shared call-center company accounts (e.g. dial1@malaky.com) opt out
