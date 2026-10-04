@@ -540,6 +540,13 @@
       "when": 1791123801605,
       "tag": "0076_mixed_voucher_cheque_fk_link",
       "breakpoints": true
+    },
+    {
+      "idx": 77,
+      "version": "7",
+      "when": 1791133344953,
+      "tag": "0077_company_demo_mode",
+      "breakpoints": true
     }
   ]
 }

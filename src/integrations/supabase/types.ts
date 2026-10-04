@@ -3763,6 +3763,7 @@ export type Database = {
           id: string
           invoice_number_offset: number
           is_active: boolean
+          is_demo: boolean
           license_number: string
           logo_url: string | null
           name: string
@@ -3782,6 +3783,7 @@ export type Database = {
           id?: string
           invoice_number_offset?: number
           is_active?: boolean
+          is_demo?: boolean
           license_number?: string
           logo_url?: string | null
           name?: string
@@ -3801,6 +3803,7 @@ export type Database = {
           id?: string
           invoice_number_offset?: number
           is_active?: boolean
+          is_demo?: boolean
           license_number?: string
           logo_url?: string | null
           name?: string
@@ -33228,6 +33231,7 @@ export type Database = {
         Args: { _company: string; _user: string }
         Returns: boolean
       }
+      is_current_tenant_demo: { Args: never; Returns: boolean }
       is_employee_of_owner: { Args: { _owner: string }; Returns: boolean }
       is_employee_policy_file: {
         Args: { _auth_uid: string; _object_name: string }
