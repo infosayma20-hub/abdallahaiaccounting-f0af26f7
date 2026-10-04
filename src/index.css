@@ -1884,3 +1884,54 @@ select:focus-visible {
 .pos-v2-card:active { transform: scale(0.98); }
 .pos-v2-notif button { color: inherit !important; border-color: currentColor !important; background: transparent !important; }
 .pos-v2-notif button svg { color: inherit !important; }
+
+/* POS v2 invoice workspace — Dynamics-inspired list/detail view. */
+:root {
+  --pos-invoice-surface: 0 0% 100%;
+  --pos-invoice-canvas: 216 29% 97%;
+  --pos-invoice-navy: 210 69% 23%;
+  --pos-invoice-blue: 206 100% 42%;
+  --pos-invoice-danger: 16 99% 43%;
+  --pos-invoice-shadow: 0 18px 48px hsl(210 69% 12% / 0.22);
+}
+.pos-v2-invoice-list {
+  top: 16px;
+  right: 16px;
+  bottom: 16px;
+  height: auto;
+  border: 1px solid hsl(var(--border));
+  border-radius: 12px;
+  overflow: hidden;
+}
+.pos-v2-invoice-row {
+  margin: 8px 12px 0;
+  border: 1px solid hsl(var(--border));
+  border-radius: 10px;
+  background: hsl(var(--pos-invoice-surface));
+}
+.pos-v2-invoice-row:hover {
+  border-color: hsl(var(--pos-invoice-blue));
+  background: hsl(var(--pos-invoice-canvas));
+}
+.pos-v2-invoice-detail {
+  top: 16px !important;
+  bottom: 16px !important;
+  left: 16px !important;
+  right: 416px !important;
+  width: auto !important;
+  max-width: none !important;
+  max-height: none !important;
+  height: auto !important;
+  transform: none !important;
+  border-radius: 12px !important;
+  border-color: hsl(var(--border)) !important;
+  background: hsl(var(--pos-invoice-surface)) !important;
+  box-shadow: var(--pos-invoice-shadow) !important;
+  padding: 28px !important;
+}
+.pos-v2-invoice-detail > div:not([role="dialog"]) { min-width: 0; }
+body:has(.pos-v2-invoice-detail) [data-radix-dialog-overlay] { background: transparent; }
+@media (max-width: 900px) {
+  .pos-v2-invoice-detail { inset: 12px !important; }
+  .pos-v2-invoice-list { width: calc(100vw - 24px) !important; inset: 12px !important; }
+}

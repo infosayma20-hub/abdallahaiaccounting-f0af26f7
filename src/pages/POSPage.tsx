@@ -7771,8 +7771,6 @@ const POSPage = ({ variant = "v1" }: { variant?: "v1" | "v2" } = {}) => {
     { key: "sync", label: "سجل المزامنة", icon: v2MenuIcon(RefreshCw), onClick: () => setShowSyncLog(true) },
     { key: "keys", label: "اختصارات لوحة المفاتيح", icon: v2MenuIcon(Keyboard), onClick: () => setShowShortcutsGuide(true) },
     { key: "fs", label: "ملء الشاشة", icon: v2MenuIcon(Monitor), onClick: () => { if (!document.fullscreenElement) document.documentElement.requestFullscreen(); else document.exitFullscreen(); } },
-    ...((isAdmin || posPerms.can_close_register) && posFeatPerm.can("sell", "close_shift")
-      ? [{ key: "close", label: "إغلاق نقطة البيع", icon: v2MenuIcon(X), danger: true, onClick: v2CloseShift }] : []),
   ];
   const v2CatIdByName: Record<string, string> = Object.fromEntries(posCategories.map(c => [c.name, c.id]));
   const v2CartWidth = v2Width < 1180 ? 360 : 400;
@@ -7836,6 +7834,8 @@ const POSPage = ({ variant = "v1" }: { variant?: "v1" | "v2" } = {}) => {
       onInvoices={() => setShowInvoiceHistory(true)}
       menuItems={v2MenuItems}
       onToggleTheme={() => setV2Dark(d => !d)}
+      canCloseShift={(isAdmin || !!posPerms.can_close_register) && posFeatPerm.can("sell", "close_shift")}
+      onCloseShift={v2CloseShift}
     />
   ) : null;
 
@@ -11168,6 +11168,7 @@ const POSPage = ({ variant = "v1" }: { variant?: "v1" | "v2" } = {}) => {
             allowOrderTransfer={posAllowOrderTransfer}
             printInvoices={isAdmin || posPerms.print_invoices}
             resendInvoice={isAdmin || posPerms.resend_invoice}
+            experimentalLayout={isV2}
             onRecallToCart={(items, invoiceId, orderNumber, reason, approvedBy) => {
               setCart(items);
               setRecallBanner({ invoiceId, orderNumber, reason, approvedBy });

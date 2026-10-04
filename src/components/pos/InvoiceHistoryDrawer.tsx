@@ -156,6 +156,7 @@ interface InvoiceHistoryDrawerProps {
   resendInvoice?: boolean;
   onRecallToCart: (items: CartItem[], invoiceId: string, orderNumber: string, reason: string, approvedBy: string | null) => void;
   onLoadDraftToCart?: (items: CartItem[], orderId: string) => void;
+  experimentalLayout?: boolean;
 }
 
 const PAYMENT_LABELS: Record<string, string> = {
@@ -190,7 +191,7 @@ const RECALL_REASONS = [
 ];
 
 export default function InvoiceHistoryDrawer({
-  open, onClose, dataOwnerId, sessionId, cashierName, terminalName, canEditInvoices = true, canCancelInvoices = true, requireManagerForInvoices = true, requireManagerForRecall, requireManagerForCancel, requireManagerForReturn = false, cashierMode = false, cancelWindowMinutes = 30, amountVisibleMinutes = 60, onInvoiceCancelled, allowOrderTransfer = false, printInvoices = true, resendInvoice = true, onRecallToCart, onLoadDraftToCart,
+  open, onClose, dataOwnerId, sessionId, cashierName, terminalName, canEditInvoices = true, canCancelInvoices = true, requireManagerForInvoices = true, requireManagerForRecall, requireManagerForCancel, requireManagerForReturn = false, cashierMode = false, cancelWindowMinutes = 30, amountVisibleMinutes = 60, onInvoiceCancelled, allowOrderTransfer = false, printInvoices = true, resendInvoice = true, onRecallToCart, onLoadDraftToCart, experimentalLayout = false,
 }: InvoiceHistoryDrawerProps) {
   // Use specific flags if provided, otherwise fall back to general flag
   const needsManagerForRecall = requireManagerForRecall ?? requireManagerForInvoices;
@@ -1010,11 +1011,11 @@ export default function InvoiceHistoryDrawer({
         animate={{ x: 0 }}
         exit={{ x: "100%" }}
         transition={{ type: "spring", damping: 30, stiffness: 300 }}
-        className="fixed right-0 top-0 h-full z-[1000] flex flex-col pos-readable"
+        className={`fixed z-[1000] flex flex-col pos-readable ${experimentalLayout ? "pos-v2-invoice-list" : "right-0 top-0 h-full"}`}
         style={{
-          width: 480,
-          background: "white",
-          boxShadow: "-8px 0 32px rgba(10,35,66,0.2)",
+          width: experimentalLayout ? 384 : 480,
+          background: experimentalLayout ? "hsl(var(--pos-invoice-surface))" : "white",
+          boxShadow: experimentalLayout ? "var(--pos-invoice-shadow)" : "-8px 0 32px rgba(10,35,66,0.2)",
         }}
       >
         {/* Header */}
@@ -1148,8 +1149,8 @@ export default function InvoiceHistoryDrawer({
                 return (
                   <div
                     key={order.id}
-                    className="flex items-center px-4 py-3 border-b hover:bg-[#F8FAFC] transition-colors cursor-pointer"
-                    style={{ borderColor: "#F1F5F9", minHeight: 76 }}
+                    className={`flex items-center px-4 py-3 border-b transition-colors cursor-pointer ${experimentalLayout ? "pos-v2-invoice-row" : "hover:bg-[#F8FAFC]"}`}
+                    style={{ borderColor: "#F1F5F9", minHeight: experimentalLayout ? 92 : 76 }}
                     onClick={() => loadDetail(order)}
                   >
                     <div className="flex-1 min-w-0">
@@ -1306,7 +1307,7 @@ export default function InvoiceHistoryDrawer({
 
       {/* ══════ DETAIL MODAL ══════ */}
       <Dialog open={!!selectedOrder} onOpenChange={() => setSelectedOrder(null)}>
-        <DialogContent className="max-w-2xl w-[95vw] max-h-[90vh] overflow-y-auto z-[1100] bg-white" style={{ fontFamily: "Tajawal, sans-serif", color: "#0F172A" }}>
+        <DialogContent className={experimentalLayout ? "pos-v2-invoice-detail z-[1100] overflow-hidden" : "max-w-2xl w-[95vw] max-h-[90vh] overflow-y-auto z-[1100] bg-white"} style={{ fontFamily: "Tajawal, sans-serif", color: "#0F172A" }}>
           {selectedOrder && (
             <>
               {(() => {
