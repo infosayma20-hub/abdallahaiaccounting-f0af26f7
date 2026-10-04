@@ -604,6 +604,65 @@ async function handleCatalog(req: Request, ownerId: string) {
     .eq("is_active", true);
   const byInternal = new Map((maps || []).map((m) => [m.internal_id, m.external_id]));
 
+  // Variants (modifier groups + options) per product so the external app can
+  // send modifier_option_ids — required for products whose price comes from an
+  // option (e.g. sizes). Without this the catalog exposed no variant IDs.
+  const productIds = (products || []).map((p) => p.id);
+  const variantsByProduct = new Map<string, Array<Record<string, unknown>>>();
+  if (productIds.length) {
+    const { data: links } = await admin
+      .from("product_modifier_groups")
+      .select("product_id, group_id, sort_order")
+      .in("product_id", productIds)
+      .order("sort_order");
+    const groupIds = [...new Set((links || []).map((l) => l.group_id))];
+    const [{ data: groups }, { data: options }] = groupIds.length
+      ? await Promise.all([
+          admin
+            .from("modifier_groups")
+            .select("id, name, name_en, is_required, min_select, max_select, selection_type, is_active")
+            .in("id", groupIds)
+            .eq("user_id", ownerId),
+          admin
+            .from("modifier_options")
+            .select("id, group_id, name, name_en, extra_price, is_default, sort_order, is_active")
+            .in("group_id", groupIds)
+            .eq("user_id", ownerId)
+            .order("sort_order"),
+        ])
+      : [{ data: [] }, { data: [] }];
+    const groupById = new Map((groups || []).map((g) => [g.id, g]));
+    const optionsByGroup = new Map<string, typeof options>();
+    for (const o of options || []) {
+      if (o.is_active === false) continue;
+      const arr = optionsByGroup.get(o.group_id) || [];
+      arr.push(o);
+      optionsByGroup.set(o.group_id, arr);
+    }
+    for (const l of links || []) {
+      const g = groupById.get(l.group_id);
+      if (!g || g.is_active === false) continue;
+      const arr = variantsByProduct.get(l.product_id) || [];
+      arr.push({
+        group_id: g.id,
+        group_name: g.name,
+        group_name_en: g.name_en,
+        is_required: g.is_required,
+        min_select: g.min_select,
+        max_select: g.max_select,
+        selection_type: g.selection_type,
+        options: (optionsByGroup.get(g.id) || []).map((o) => ({
+          option_id: o.id,
+          name: o.name,
+          name_en: o.name_en,
+          extra_price: o.extra_price,
+          is_default: o.is_default,
+        })),
+      });
+      variantsByProduct.set(l.product_id, arr);
+    }
+  }
+
   return json({
     ok: true,
     count: products?.length || 0,
