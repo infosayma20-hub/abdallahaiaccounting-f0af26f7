@@ -1379,7 +1379,8 @@ const POSPage = ({ variant = "v1" }: { variant?: "v1" | "v2" } = {}) => {
   const [showExpenseManagerUnlock, setShowExpenseManagerUnlock] = useState(false);
   const [showExpenseDialog, setShowExpenseDialog] = useState(false);
   const [expenseManager, setExpenseManager] = useState<{ id: string; name: string } | null>(null);
-   const [showOpsDropdown, setShowOpsDropdown] = useState(false);
+   const [opsMenuPos, setOpsMenuPos] = useState({ top: 56, right: 8 });
+  const [showOpsDropdown, setShowOpsDropdown] = useState(false);
     const [showSyncLog, setShowSyncLog] = useState(false);
      const [showCallCenterDispatch, setShowCallCenterDispatch] = useState(false);
      const [showDispatchLog, setShowDispatchLog] = useState(false);
@@ -8041,7 +8042,7 @@ const POSPage = ({ variant = "v1" }: { variant?: "v1" | "v2" } = {}) => {
           {/* Tools dropdown */}
           <div className="relative">
             <button
-              onClick={() => setShowOpsDropdown(v => !v)}
+              onClick={(e) => { const r = e.currentTarget.getBoundingClientRect(); setOpsMenuPos({ top: r.bottom + 4, right: Math.max(8, window.innerWidth - r.right) }); setShowOpsDropdown(v => !v); }}
               onBlur={() => setTimeout(() => setShowOpsDropdown(false), 200)}
               className="h-9 w-9 rounded-lg flex items-center justify-center hover:bg-white/[0.08] transition-all shrink-0"
               title={pt("أدوات")}
@@ -8049,7 +8050,7 @@ const POSPage = ({ variant = "v1" }: { variant?: "v1" | "v2" } = {}) => {
               <MoreHorizontal className="h-5 w-5" style={{ color: "rgba(255,255,255,0.7)" }} />
             </button>
             {showOpsDropdown && (
-              <div className="absolute top-full mt-1 right-0 z-50 rounded-lg shadow-xl min-w-[200px] py-1 border" style={{ background: "#fff", color: "#1a1a1a" }} dir={posDir}>
+              <div className="fixed z-[1000] rounded-lg shadow-xl min-w-[220px] max-h-[80vh] overflow-y-auto py-1 border" style={{ background: "#fff", color: "#1a1a1a", top: opsMenuPos.top, right: opsMenuPos.right }} dir={posDir}>
                 {/* Compact nav entries — visible only when the icon shortcuts above are hidden (narrow screens) */}
                 <div className={isMalakyTenant ? "hidden" : "xl:hidden"}>
                   <button className="w-full text-right px-4 py-2 text-xs flex items-center gap-2 hover:bg-gray-100 transition-colors" onClick={() => { navigate("/pos/kitchen"); setShowOpsDropdown(false); }}>
