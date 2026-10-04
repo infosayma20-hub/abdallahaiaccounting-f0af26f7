@@ -1816,6 +1816,7 @@ const ChequesPage = () => {
         partyName={actionTarget?.party_name || ''}
         bankAccounts={bankAccounts}
         contacts={contacts}
+        ownerId={ownerId}
         sourceBankAccount={actionTarget?.source_bank_account_id ? bankAccounts.find(b => b.id === actionTarget.source_bank_account_id) : null}
         onConfirm={handleAction}
         submitting={actionSubmitting}

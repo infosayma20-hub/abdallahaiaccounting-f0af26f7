@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -62,6 +62,8 @@ interface ChequeActionModalProps {
   partyName: string;
   bankAccounts: BankAccount[];
   contacts: Contact[];
+  /** Tenant data owner id — contacts are searched/created under it. */
+  ownerId?: string | null;
   sourceBankAccount?: BankAccount | null;
   onConfirm: (data: ActionFormData) => void;
   submitting?: boolean;
@@ -93,7 +95,7 @@ const BOUNCE_REASONS = [
 
 const ChequeActionModal = ({
   open, onOpenChange, action, chequeNumber, chequeAmount, chequeCurrency,
-  chequeType, partyName, bankAccounts, contacts, sourceBankAccount, onConfirm, submitting
+  chequeType, partyName, bankAccounts, contacts, ownerId, sourceBankAccount, onConfirm, submitting
 }: ChequeActionModalProps) => {
   const { user } = useAuth();
   const [bankAccountId, setBankAccountId] = useState("");
@@ -117,7 +119,34 @@ const ChequeActionModal = ({
   const [recoverReason, setRecoverReason] = useState("");
   const [notes, setNotes] = useState("");
 
-  const allContacts = useMemo(() => [...extraContacts, ...contacts], [extraContacts, contacts]);
+  const tenantId = ownerId || user?.id || null;
+  // Server-side supplier search: the preloaded list is capped at 1000 rows
+  // while tenants can have 17k+ contacts, so suppliers went "missing".
+  const [remoteSuppliers, setRemoteSuppliers] = useState<Contact[]>([]);
+  const [searchingRemote, setSearchingRemote] = useState(false);
+  useEffect(() => {
+    const q = endorsedSearch.trim();
+    if (action !== 'endorse' || !tenantId || q.length < 2 || q === endorsedToName) { setRemoteSuppliers([]); return; }
+    let cancelled = false;
+    setSearchingRemote(true);
+    const t = setTimeout(async () => {
+      // Tolerate ة/ه, ى/ي and hamza variants (e.g. "شركة" vs "شركه").
+      const pattern = q.replace(/[%_\\]/g, '').replace(/[ةهىيأإآا]/g, '_').replace(/\s+/g, '%');
+      const { data } = await supabase.from('contacts')
+        .select('id, contact_name, contact_type')
+        .eq('user_id', tenantId).eq('is_active', true).neq('is_archived', true)
+        .in('contact_type', ['مورد', 'عميل ومورد'])
+        .ilike('contact_name', `%${pattern}%`)
+        .order('contact_name').limit(30);
+      if (!cancelled) { setRemoteSuppliers((data || []) as Contact[]); setSearchingRemote(false); }
+    }, 250);
+    return () => { cancelled = true; clearTimeout(t); };
+  }, [endorsedSearch, endorsedToName, action, tenantId]);
+
+  const allContacts = useMemo(() => {
+    const seen = new Set<string>();
+    return [...extraContacts, ...remoteSuppliers, ...contacts].filter(c => (seen.has(c.id) ? false : (seen.add(c.id), true)));
+  }, [extraContacts, remoteSuppliers, contacts]);
   const supplierContacts = useMemo(
     () => allContacts.filter(c => c.contact_type === 'مورد' || c.contact_type === 'عميل ومورد'),
     [allContacts],
@@ -127,11 +156,13 @@ const ChequeActionModal = ({
   const config = ACTION_CONFIGS[action];
   const Icon = config.icon;
   const endorsedQuery = endorsedSearch.trim().toLowerCase();
+  const normAr = (v: string) => v.trim().toLowerCase().replace(/[ةه]/g, 'ه').replace(/[ىي]/g, 'ي').replace(/[أإآ]/g, 'ا').replace(/\s+/g, ' ');
+  const nq = normAr(endorsedQuery);
   const filteredEndorsed = endorsedQuery.length >= 2
-    ? supplierContacts.filter(c => c.contact_name.toLowerCase().includes(endorsedQuery)).slice(0, 20)
+    ? supplierContacts.filter(c => nq.split(' ').every(w => normAr(c.contact_name).includes(w))).slice(0, 20)
     : [];
   const endorsedExact = endorsedQuery.length > 0 &&
-    supplierContacts.some(c => c.contact_name.trim().toLowerCase() === endorsedQuery);
+    supplierContacts.some(c => normAr(c.contact_name) === nq);
   const showEndorsedDropdown = endorsedDropdownOpen && endorsedQuery.length >= 2;
 
   const commitEndorsed = (c: Contact) => {
@@ -143,20 +174,21 @@ const ChequeActionModal = ({
 
   const handleQuickAddSupplier = async () => {
     const name = endorsedSearch.trim();
-    if (!name || name.length < 2 || !user) return;
+    if (!name || name.length < 2 || !user || !tenantId) return;
     setCreatingContact(true);
     try {
       const { data: existing } = await supabase
         .from('contacts')
         .select('id, contact_name, contact_type')
-        .eq('user_id', user.id)
+        .eq('user_id', tenantId)
         .eq('contact_name', name)
+        .limit(1)
         .maybeSingle();
       let created: any = existing;
       if (!existing) {
         const { data, error } = await supabase
           .from('contacts')
-          .insert({ user_id: user.id, contact_name: name, contact_type: 'مورد' })
+          .insert({ user_id: tenantId, contact_name: name, contact_type: 'مورد' })
           .select('id, contact_name, contact_type')
           .single();
         if (error) throw error;
