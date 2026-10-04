@@ -174,15 +174,19 @@ export default function ManagerDiscountDialog({
 
   return (
     <Dialog open={open} onOpenChange={v => { if (!v) onClose(); }}>
-      <DialogContent className="max-w-md z-[1200]" dir="rtl">
+      <DialogContent
+        className="max-w-md z-[1200]"
+        dir="rtl"
+        style={v2 ? { background: v2.surface, color: v2.text, borderColor: v2.border } : undefined}
+      >
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <Tag className="h-5 w-5 text-amber-500" />
+          <DialogTitle className="flex items-center gap-2" style={v2 ? { color: v2.text } : undefined}>
+            <Tag className="h-5 w-5" style={v2 ? { color: v2.accent } : { color: "#F59E0B" }} />
             خصم بإذن مدير الفرع
           </DialogTitle>
         </DialogHeader>
         <div className="py-2 space-y-4">
-          <p className="text-[11px] text-muted-foreground leading-relaxed">
+          <p className="text-[11px] text-muted-foreground leading-relaxed" style={v2MutedStyle}>
             هذا الخصم يُسجَّل محاسبياً كحساب مستقل (Contra-Revenue) ويُدرج في سجل
             التدقيق. الحد الأقصى المسموح به للنسبة: {maxPct}%.
           </p>
