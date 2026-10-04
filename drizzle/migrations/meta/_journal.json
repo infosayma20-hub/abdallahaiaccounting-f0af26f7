@@ -519,6 +519,13 @@
       "when": 1791057574985,
       "tag": "0073_revert_attendance_pending_gap",
       "breakpoints": true
+    },
+    {
+      "idx": 74,
+      "version": "7",
+      "when": 1791109723017,
+      "tag": "0074_employee_forms_delete_owner_admin_only",
+      "breakpoints": true
     }
   ]
 }
