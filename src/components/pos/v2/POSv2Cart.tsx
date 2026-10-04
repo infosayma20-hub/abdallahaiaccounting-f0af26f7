@@ -157,45 +157,45 @@ export default function POSv2Cart(p: Props) {
           </div>
         ) : (
           p.lines.map((l, i) => (
-            <div key={l.id} className="flex flex-wrap items-center gap-3 cursor-pointer" onClick={(e) => { if ((e.target as HTMLElement).closest("button, input")) return; p.onLineTap(i); }}
-              style={{ padding: c ? "5px 0" : "12px 0", rowGap: c ? 4 : undefined, borderBottom: `1px solid ${t.border}` }}>
-              <div className="flex-1 min-w-0">
-                <div className="truncate" style={{ fontSize: c ? 13 : 14, fontWeight: 800 }}>{p.lineName(l)}</div>
-                {p.canEditPrice ? (
-                  <div className="flex items-center gap-1 mt-1" style={{ color: t.muted, fontSize: 12 }}>
-                    <span>₪</span>
-                    <input
-                      type="number"
-                      min={0}
-                      step="0.01"
-                      value={l.unit_price}
-                      aria-label={`سعر ${p.lineName(l)}`}
-                      onClick={(e) => e.stopPropagation()}
-                      onFocus={(e) => e.currentTarget.select()}
-                      onChange={(e) => { const n = Number(e.target.value); if (Number.isFinite(n) && n >= 0) p.onPrice(i, n); }}
-                      onBlur={() => p.onPriceBlur(i)}
-                      className="w-20 text-center focus:outline-none"
-                      style={{ height: 28, borderRadius: 7, background: t.input, border: `1px solid ${t.border}`, color: t.text, direction: "ltr", fontWeight: 700 }}
-                    />
-                    {l.base_price != null && Math.abs(l.unit_price - l.base_price) >= 0.001 && (
-                      <span title={l.price_reason || "بانتظار تسجيل سبب تعديل السعر"} style={{ color: t.warnText, fontSize: 10, fontWeight: 700 }}>معدّل</span>
-                    )}
-                  </div>
-                ) : <div style={{ fontSize: 12, color: t.muted }}>{fmtMoney(l.unit_price)} للوحدة</div>}
-                {!!l.modifiers?.length && <div className="truncate" style={{ fontSize: 11, color: t.muted }}>{l.modifiers.map((m) => m.option_name).join("، ")}</div>}
-                {!!l.note?.trim() && <div className="truncate" style={{ fontSize: 11, color: t.price }}>{l.note}</div>}
+            <div key={l.id} className="flex flex-wrap items-center gap-2 cursor-pointer" onClick={(e) => { if ((e.target as HTMLElement).closest("button, input")) return; p.onLineTap(i); }}
+              style={{ padding: c ? "4px 0" : "7px 0", borderBottom: `1px solid ${t.border}` }}>
+              <div className="flex-1 min-w-0 flex items-center gap-1.5" title={[p.lineName(l), l.modifiers?.map((m) => m.option_name).join("، "), l.note].filter(Boolean).join(" — ")}>
+                <div className="truncate" style={{ fontSize: c ? 12 : 13, fontWeight: 800 }}>{p.lineName(l)}</div>
+                {!!l.note?.trim() && <StickyNote className="shrink-0" style={{ width: 12, height: 12, color: t.price }} />}
               </div>
+              {p.canEditPrice ? (
+                <div className="flex items-center shrink-0" style={{ color: t.muted, fontSize: 11 }}>
+                  <span>₪</span>
+                  <input
+                    type="number"
+                    min={0}
+                    step="0.01"
+                    value={l.unit_price}
+                    aria-label={`سعر ${p.lineName(l)}`}
+                    title={l.price_reason || "تعديل سعر الوحدة"}
+                    onClick={(e) => e.stopPropagation()}
+                    onFocus={(e) => e.currentTarget.select()}
+                    onChange={(e) => { const n = Number(e.target.value); if (Number.isFinite(n) && n >= 0) p.onPrice(i, n); }}
+                    onBlur={() => p.onPriceBlur(i)}
+                    className="w-16 text-center focus:outline-none"
+                    style={{ height: 28, borderRadius: 7, background: t.input, border: `1px solid ${t.border}`, color: t.text, direction: "ltr", fontSize: 12, fontWeight: 700 }}
+                  />
+                  {l.base_price != null && Math.abs(l.unit_price - l.base_price) >= 0.001 && (
+                    <span title={l.price_reason || "بانتظار تسجيل سبب تعديل السعر"} style={{ color: t.warnText, fontSize: 10, fontWeight: 800 }}>*</span>
+                  )}
+                </div>
+              ) : <div className="shrink-0" style={{ fontSize: 12, color: t.muted }}>{fmtMoney(l.unit_price)}</div>}
               {p.hasAddons(i) && (
-                <button type="button" onClick={(e) => { e.stopPropagation(); p.onAddons(i); }} style={{ height: 30, padding: "0 8px", borderRadius: 8, border: `1px dashed ${t.accent}`, color: t.accent, fontSize: 11, fontWeight: 700 }}>
-                  {!!l.modifiers?.length ? "تعديل الإضافات" : "إضافات"}
+                <button type="button" title={l.modifiers?.map((m) => m.option_name).join("، ") || "إضافات"} onClick={(e) => { e.stopPropagation(); p.onAddons(i); }} style={{ height: 28, padding: "0 6px", borderRadius: 7, border: `1px dashed ${t.accent}`, color: t.accent, fontSize: 10, fontWeight: 700 }}>
+                  إضافات
                 </button>
               )}
-              <div className="flex items-center shrink-0" style={{ height: c ? 32 : 40, borderRadius: 10, background: t.input, border: `1px solid ${t.border}` }}>
-                <button type="button" onClick={() => p.onQty(i, l.qty + 1)} style={{ width: c ? 30 : 36, height: c ? 30 : 38, color: t.text }} className="flex items-center justify-center"><Plus style={{ width: 15, height: 15 }} /></button>
-                <input type="number" min={1} max={9999} value={l.qty} aria-label={`كمية ${p.lineName(l)}`} onClick={(e) => { e.stopPropagation(); e.currentTarget.select(); }} onChange={(e) => { const n = Number.parseInt(e.target.value, 10); if (Number.isFinite(n) && n >= 1 && n <= 9999) p.onQty(i, n); }} className="tabular-nums text-center focus:outline-none" style={{ width: 34, background: "transparent", color: t.text, fontSize: 14, fontWeight: 800 }} />
-                <button type="button" onClick={() => (l.qty <= 1 ? (p.canRemove ? p.onRemove(i) : undefined) : p.onQty(i, l.qty - 1))} style={{ width: c ? 30 : 36, height: c ? 30 : 38, color: t.text }} className="flex items-center justify-center"><Minus style={{ width: 15, height: 15 }} /></button>
+              <div className="flex items-center shrink-0" style={{ height: 30, borderRadius: 8, background: t.input, border: `1px solid ${t.border}` }}>
+                <button type="button" onClick={() => p.onQty(i, l.qty + 1)} style={{ width: 27, height: 28, color: t.text }} className="flex items-center justify-center"><Plus style={{ width: 13, height: 13 }} /></button>
+                <input type="number" min={1} max={9999} value={l.qty} aria-label={`كمية ${p.lineName(l)}`} onClick={(e) => { e.stopPropagation(); e.currentTarget.select(); }} onChange={(e) => { const n = Number.parseInt(e.target.value, 10); if (Number.isFinite(n) && n >= 1 && n <= 9999) p.onQty(i, n); }} className="tabular-nums text-center focus:outline-none" style={{ width: 27, background: "transparent", color: t.text, fontSize: 12, fontWeight: 800 }} />
+                <button type="button" onClick={() => (l.qty <= 1 ? (p.canRemove ? p.onRemove(i) : undefined) : p.onQty(i, l.qty - 1))} style={{ width: 27, height: 28, color: t.text }} className="flex items-center justify-center"><Minus style={{ width: 13, height: 13 }} /></button>
               </div>
-              <div className="tabular-nums shrink-0 text-left" dir="ltr" style={{ minWidth: 70, fontSize: 14, fontWeight: 800 }}>{fmtMoney(l.total)}</div>
+              <div className="tabular-nums shrink-0 text-left" dir="ltr" style={{ minWidth: 55, fontSize: 13, fontWeight: 800 }}>{fmtMoney(l.total)}</div>
               {p.selectedLineIndex === i && (
                 <input
                   autoFocus
