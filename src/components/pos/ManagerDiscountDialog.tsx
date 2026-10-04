@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/dialog";
 import { verifyManagerCredentials } from "@/lib/pos/manager-verify";
 import { supabase } from "@/integrations/supabase/client";
+import type { PosV2Tokens } from "@/components/pos/v2/posV2Theme";
 
 /**
  * خصم على الفاتورة بإذن مدير الفرع.
@@ -41,6 +42,8 @@ interface Props {
   cashierName?: string;
   /** قيمة الفاتورة الحالية لعرض ما يعادل النسبة بالقيمة (₪). */
   orderSubtotal: number;
+  /** ثيم واجهة POS v2 التجريبية — عند تمريره تُرسم النافذة بألوان الشاشة الجديدة. */
+  v2Theme?: PosV2Tokens | null;
 }
 
 export default function ManagerDiscountDialog({
@@ -53,6 +56,7 @@ export default function ManagerDiscountDialog({
   sessionId,
   cashierName,
   orderSubtotal,
+  v2Theme,
 }: Props) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -87,6 +91,13 @@ export default function ManagerDiscountDialog({
       }
     })();
   }, [open, terminalId]);
+
+  // أنماط مضمنة لثيم POS v2 (لا تؤثر على الشاشة القديمة).
+  const v2 = v2Theme || null;
+  const v2FieldStyle: React.CSSProperties | undefined = v2
+    ? { background: v2.input, color: v2.text, borderColor: v2.border }
+    : undefined;
+  const v2MutedStyle: React.CSSProperties | undefined = v2 ? { color: v2.muted } : undefined;
 
   const numericAmount = Number(amount) || 0;
   const equivalentValue =
@@ -163,15 +174,19 @@ export default function ManagerDiscountDialog({
 
   return (
     <Dialog open={open} onOpenChange={v => { if (!v) onClose(); }}>
-      <DialogContent className="max-w-md z-[1200]" dir="rtl">
+      <DialogContent
+        className="max-w-md z-[1200]"
+        dir="rtl"
+        style={v2 ? { background: v2.surface, color: v2.text, borderColor: v2.border } : undefined}
+      >
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <Tag className="h-5 w-5 text-amber-500" />
+          <DialogTitle className="flex items-center gap-2" style={v2 ? { color: v2.text } : undefined}>
+            <Tag className="h-5 w-5" style={v2 ? { color: v2.accent } : { color: "#F59E0B" }} />
             خصم بإذن مدير الفرع
           </DialogTitle>
         </DialogHeader>
         <div className="py-2 space-y-4">
-          <p className="text-[11px] text-muted-foreground leading-relaxed">
+          <p className="text-[11px] text-muted-foreground leading-relaxed" style={v2MutedStyle}>
             هذا الخصم يُسجَّل محاسبياً كحساب مستقل (Contra-Revenue) ويُدرج في سجل
             التدقيق. الحد الأقصى المسموح به للنسبة: {maxPct}%.
           </p>
@@ -185,6 +200,11 @@ export default function ManagerDiscountDialog({
                   ? "bg-amber-500 text-white border-amber-500"
                   : "bg-background border-input hover:bg-accent"
               }`}
+              style={v2
+                ? type === "percent"
+                  ? { background: v2.accent, color: v2.onAccent, borderColor: v2.accent }
+                  : { background: v2.input, color: v2.text, borderColor: v2.border }
+                : undefined}
             >
               <Percent className="h-3.5 w-3.5" />
               نسبة %
@@ -197,6 +217,11 @@ export default function ManagerDiscountDialog({
                   ? "bg-amber-500 text-white border-amber-500"
                   : "bg-background border-input hover:bg-accent"
               }`}
+              style={v2
+                ? type === "fixed"
+                  ? { background: v2.accent, color: v2.onAccent, borderColor: v2.accent }
+                  : { background: v2.input, color: v2.text, borderColor: v2.border }
+                : undefined}
             >
               <Hash className="h-3.5 w-3.5" />
               قيمة ₪
@@ -204,7 +229,7 @@ export default function ManagerDiscountDialog({
           </div>
 
           <div>
-            <label className="text-xs font-medium text-muted-foreground mb-1 block">
+            <label className="text-xs font-medium text-muted-foreground mb-1 block" style={v2MutedStyle}>
               {type === "percent" ? `قيمة الخصم (%) — حد أقصى ${maxPct}%` : "قيمة الخصم (₪)"}
             </label>
             <Input
@@ -217,16 +242,17 @@ export default function ManagerDiscountDialog({
               placeholder="0"
               className="h-11 text-base tabular-nums"
               dir="ltr"
+              style={v2FieldStyle}
             />
             {numericAmount > 0 && orderSubtotal > 0 && (
-              <p className="text-[11px] text-muted-foreground mt-1 tabular-nums" dir="ltr">
+              <p className="text-[11px] text-muted-foreground mt-1 tabular-nums" dir="ltr" style={v2MutedStyle}>
                 ≈ ₪{equivalentValue.toFixed(2)}
               </p>
             )}
           </div>
 
           <div>
-            <label className="text-xs font-medium text-muted-foreground mb-1 block">
+            <label className="text-xs font-medium text-muted-foreground mb-1 block" style={v2MutedStyle}>
               سبب الخصم <span className="text-destructive">*</span>
             </label>
             <Textarea
@@ -235,11 +261,15 @@ export default function ManagerDiscountDialog({
               placeholder="مثلاً: مجاملة زبون دائم / تعويض عن تأخر"
               className="min-h-[60px] text-sm"
               rows={2}
+              style={v2FieldStyle}
             />
           </div>
 
-          <div className="pt-2 border-t border-border/60 space-y-3">
-            <p className="text-[11px] font-medium text-muted-foreground">
+          <div
+            className="pt-2 border-t border-border/60 space-y-3"
+            style={v2 ? { borderColor: v2.border } : undefined}
+          >
+            <p className="text-[11px] font-medium text-muted-foreground" style={v2MutedStyle}>
               تحقق المدير
             </p>
             <div>
@@ -250,6 +280,7 @@ export default function ManagerDiscountDialog({
                 placeholder="بريد المدير"
                 className="h-10 text-sm"
                 dir="ltr"
+                style={v2FieldStyle}
               />
             </div>
             <div>
@@ -261,19 +292,29 @@ export default function ManagerDiscountDialog({
                 className="h-10 text-sm"
                 dir="ltr"
                 onKeyDown={e => e.key === "Enter" && handleApprove()}
+                style={v2FieldStyle}
               />
             </div>
           </div>
 
           {error && (
-            <div className="flex items-center gap-2 p-2.5 rounded-lg bg-destructive/10 text-destructive text-xs">
+            <div
+              className="flex items-center gap-2 p-2.5 rounded-lg bg-destructive/10 text-destructive text-xs"
+              style={v2 ? { background: v2.warnBg, color: v2.warnText } : undefined}
+            >
               <AlertCircle className="h-4 w-4 shrink-0" />
               {error}
             </div>
           )}
         </div>
         <DialogFooter className="gap-2">
-          <Button variant="outline" size="sm" onClick={onClose} disabled={loading}>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={onClose}
+            disabled={loading}
+            style={v2 ? { background: "transparent", color: v2.text, borderColor: v2.border } : undefined}
+          >
             إلغاء
           </Button>
           <Button
@@ -281,6 +322,7 @@ export default function ManagerDiscountDialog({
             onClick={handleApprove}
             disabled={loading || !email.trim() || !password.trim() || numericAmount <= 0}
             className="bg-amber-500 hover:bg-amber-600 text-white"
+            style={v2 ? { background: v2.accent, color: v2.onAccent } : undefined}
           >
             {loading ? (
               <span className="flex items-center gap-1.5">
