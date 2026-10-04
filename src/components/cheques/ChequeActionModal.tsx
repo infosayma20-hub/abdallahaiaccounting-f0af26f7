@@ -388,7 +388,7 @@ const ChequeActionModal = ({
                         if (filteredEndorsed[endorsedHighlight]) {
                           e.preventDefault();
                           commitEndorsed(filteredEndorsed[endorsedHighlight]);
-                        } else if (!endorsedExact && endorsedQuery.length >= 2) {
+                        } else if (!endorsedExact && !searchingRemote && filteredEndorsed.length === 0 && endorsedQuery.length >= 2) {
                           e.preventDefault();
                           handleQuickAddSupplier();
                         }
