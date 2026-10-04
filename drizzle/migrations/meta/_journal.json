@@ -526,6 +526,20 @@
       "when": 1791109723017,
       "tag": "0074_employee_forms_delete_owner_admin_only",
       "breakpoints": true
+    },
+    {
+      "idx": 75,
+      "version": "7",
+      "when": 1791123683764,
+      "tag": "0075_mixed_voucher_cheque_currency_code",
+      "breakpoints": true
+    },
+    {
+      "idx": 76,
+      "version": "7",
+      "when": 1791123801605,
+      "tag": "0076_mixed_voucher_cheque_fk_link",
+      "breakpoints": true
     }
   ]
 }
