@@ -676,6 +676,7 @@ async function handleCatalog(req: Request, ownerId: string) {
       is_pos_product: p.is_pos_product,
       image_url: p.image_url,
       external_product_id: byInternal.get(p.id) ?? null,
+      variants: variantsByProduct.get(p.id) ?? [],
     })),
   });
 }
