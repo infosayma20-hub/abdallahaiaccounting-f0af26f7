@@ -268,13 +268,13 @@ const ChequesPage = () => {
     if (!user) return;
     const { data } = await supabase.from('bank_accounts').select('id, name, bank_name, gl_account_code').eq('user_id', ownerId).eq('is_active', true);
     setBankAccounts(data || []);
-  }, [user]);
+  }, [user, ownerId]);
 
   const fetchContacts = useCallback(async () => {
     if (!user) return;
     const { data } = await supabase.from('contacts').select('id, contact_name, contact_type, linked_account_code').eq('user_id', ownerId).eq('is_active', true).neq('is_archived', true);
     setContacts(data || []);
-  }, [user]);
+  }, [user, ownerId]);
 
   const fetchCheques = useCallback(async () => {
     if (!user) return;
@@ -283,7 +283,7 @@ const ChequesPage = () => {
     if (error) toast.error("خطأ في جلب الشيكات");
     else setCheques((data || []) as unknown as Cheque[]);
     setLoading(false);
-  }, [user]);
+  }, [user, ownerId]);
 
   const findContactId = (partyName: string): string | null => {
     return contacts.find(c => c.contact_name === partyName)?.id || null;
@@ -546,11 +546,11 @@ const ChequesPage = () => {
             if (bankCode) updatePayload.linked_account = bankCode;
           } else if (data.action === 'collected') {
             const bank = bankAccounts.find(b => b.id === cheque.deposit_bank_account_id);
-            bankCode = bank?.gl_account_code || (await resolveBankAccountCode(user.id));
+            bankCode = bank?.gl_account_code || (await resolveBankAccountCode(ownerId!));
             if (data.collectionDate) updatePayload.collection_date = data.collectionDate;
           } else if (data.action === 'cashed') {
             const sb = bankAccounts.find(b => b.id === cheque.source_bank_account_id);
-            bankCode = sb?.gl_account_code || (await resolveBankAccountCode(user.id));
+            bankCode = sb?.gl_account_code || (await resolveBankAccountCode(ownerId!));
             if (data.cashedDate) updatePayload.cashed_date = data.cashedDate;
           } else if (data.action === 'bounced' || data.action === 'outgoing_bounced') {
             if (data.bounceDate) updatePayload.bounce_date = data.bounceDate;
@@ -569,7 +569,7 @@ const ChequesPage = () => {
             data.bounceReason || data.cancelReason || data.returnReason || data.recoverReason || null;
 
           const result = await callChequeLifecycleRpc({
-            userId: user.id,
+            userId: ownerId!,
             chequeId: cheque.id,
             event: evt,
             eventDate,
@@ -620,7 +620,7 @@ const ChequesPage = () => {
       if (data.action === 'collected') {
         updatePayload.collection_date = data.collectionDate;
         const bank = bankAccounts.find(b => b.id === cheque.deposit_bank_account_id);
-        const bankCode = bank?.gl_account_code || (await resolveBankAccountCode(user.id));
+        const bankCode = bank?.gl_account_code || (await resolveBankAccountCode(ownerId!));
         const origin = await resolveChequeOrigin(cheque);
         const { data: txResult } = await supabase.from('transactions').insert({
           user_id: ownerId, transaction_date: data.collectionDate || new Date().toISOString().split('T')[0],
@@ -652,7 +652,7 @@ const ChequesPage = () => {
         }).select('id').single();
         txId = txResult?.id || null;
         if (data.bankFees && data.bankFees > 0) {
-          const feeBank = await resolveBankAccountCode(user.id);
+          const feeBank = await resolveBankAccountCode(ownerId!);
           await supabase.from('transactions').insert({
             user_id: ownerId, transaction_date: data.bounceDate || new Date().toISOString().split('T')[0],
             description: `رسوم بنكية - شيك مرتجع ${cheque.cheque_number || ''}`,
@@ -672,7 +672,7 @@ const ChequesPage = () => {
           throw new Error('تجيير الشيك يتطلب اختيار المورد المظهَّر إليه من القائمة (contact_id).');
         }
         const result = await callChequeLifecycleRpc({
-          userId: user.id,
+          userId: ownerId!,
           chequeId: cheque.id,
           event: 'endorse',
           eventDate: new Date().toISOString().split('T')[0],
@@ -748,7 +748,7 @@ const ChequesPage = () => {
         const origin = await resolveChequeOrigin(cheque);
         const contactId = cheque.contact_id || origin?.contact_id || findContactId(cheque.party_name);
         const sourceBank = bankAccounts.find(b => b.id === cheque.source_bank_account_id);
-        const bankGlCode = sourceBank?.gl_account_code || (await resolveBankAccountCode(user.id));
+        const bankGlCode = sourceBank?.gl_account_code || (await resolveBankAccountCode(ownerId!));
         const { data: txResult } = await supabase.from('transactions').insert({
           user_id: ownerId, transaction_date: data.cashedDate || new Date().toISOString().split('T')[0],
           description: `صرف شيك صادر - ${cheque.party_name} #${cheque.cheque_number || ''}`,
@@ -780,7 +780,7 @@ const ChequesPage = () => {
         }).select('id').single();
         txId = txResult?.id || null;
         if (data.bankFees && data.bankFees > 0) {
-          const feeBank = await resolveBankAccountCode(user.id);
+          const feeBank = await resolveBankAccountCode(ownerId!);
           await supabase.from('transactions').insert({
             user_id: ownerId, transaction_date: data.bounceDate || new Date().toISOString().split('T')[0],
             description: `رسوم بنكية - شيك صادر مرتجع ${cheque.cheque_number || ''}`,
@@ -994,7 +994,7 @@ const ChequesPage = () => {
   const totalPages = Math.max(1, Math.ceil(sorted.length / PER_PAGE));
   const paged = sorted.slice((page - 1) * PER_PAGE, page * PER_PAGE);
 
-  useEffect(() => { if (user) { fetchCheques(); fetchContacts(); fetchBankAccounts(); } }, [user]);
+  useEffect(() => { if (user && ownerId) { fetchCheques(); fetchContacts(); fetchBankAccounts(); } }, [user, ownerId]);
   useEffect(() => { setPage(1); }, [search, filterType, filterStatus, dateFrom, dateTo]);
 
   // Alert once per session for endorsed cheques due within 7 days (we remain liable)
