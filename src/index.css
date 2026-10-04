@@ -1884,6 +1884,9 @@ select:focus-visible {
 .pos-v2-card:active { transform: scale(0.98); }
 .pos-v2-notif button { color: inherit !important; border-color: currentColor !important; background: transparent !important; }
 .pos-v2-notif button svg { color: inherit !important; }
+.pos-v2-printer button { color: inherit !important; }
+.pos-v2-printer button svg { color: inherit !important; }
+.pos-v2-printer button span[aria-hidden] { box-shadow: none !important; }
 
 /* POS v2 invoice workspace — Dynamics-inspired list/detail view. */
 :root {
