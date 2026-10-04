@@ -1,5 +1,8 @@
 import { useState } from "react";
-import { Pencil } from "lucide-react";
+import { Pencil, GripVertical, Check } from "lucide-react";
+import { DndContext, closestCenter, type DragEndEvent, type SensorDescriptor, type SensorOptions } from "@dnd-kit/core";
+import { SortableContext, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 import type { PosV2Tokens } from "./posV2Theme";
 import { posV2CatColor, fmtMoney } from "./posV2Theme";
 
@@ -26,7 +29,25 @@ type Props = {
   isSortMode: boolean;
   catIdByName: Record<string, string>;
   narrow: boolean;
+  /** Shared per-user category order handler from POSPage (same as /pos). */
+  onCategoryDragEnd: (e: DragEndEvent) => void;
+  dndSensors: SensorDescriptor<SensorOptions>[];
 };
+
+function SortableChip(props: { id: string; sortMode: boolean; children: React.ReactNode }) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: props.id, disabled: !props.sortMode });
+  return (
+    <div
+      ref={setNodeRef}
+      {...(props.sortMode ? attributes : {})}
+      {...(props.sortMode ? listeners : {})}
+      className="relative"
+      style={{ transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.6 : 1, zIndex: isDragging ? 10 : undefined, touchAction: props.sortMode ? "none" : undefined, cursor: props.sortMode ? "grab" : undefined }}
+    >
+      {props.children}
+    </div>
+  );
+}
 
 function Chip({ t, active, color, label, count, onClick }: { t: PosV2Tokens; active: boolean; color?: string; label: string; count: number; onClick: () => void }) {
   return (
@@ -59,9 +80,17 @@ export default function POSv2Products(p: Props) {
       <aside className="shrink-0 min-h-0 flex flex-col" style={{ width: p.narrow ? 152 : 178, background: t.surface, borderInlineEnd: `1px solid ${t.border}` }}>
         <div className="flex-1 min-h-0 overflow-y-auto p-2 space-y-1.5">
           <Chip t={t} active={p.selected === "الكل"} label="الكل" count={p.allCount} onClick={() => p.onSelect("الكل")} />
-          {p.categories.map((c) => (
-            <Chip key={c.id} t={t} active={p.selected === c.name} color={posV2CatColor(c.id)} label={c.name} count={c.count} onClick={() => p.onSelect(c.name)} />
-          ))}
+          <DndContext sensors={p.dndSensors} collisionDetection={closestCenter} onDragEnd={p.onCategoryDragEnd}>
+            <SortableContext items={p.categories.map((c) => c.id)} strategy={verticalListSortingStrategy} disabled={!p.isSortMode}>
+              {p.categories.map((c) => (
+                <SortableChip key={c.id} id={c.id} sortMode={p.isSortMode}>
+                  <div style={p.isSortMode ? { outline: `1px dashed ${t.accent}`, borderRadius: 10 } : undefined}>
+                    <Chip t={t} active={p.selected === c.name} color={posV2CatColor(c.id)} label={c.name} count={c.count} onClick={() => { if (!p.isSortMode) p.onSelect(c.name); }} />
+                  </div>
+                </SortableChip>
+              ))}
+            </SortableContext>
+          </DndContext>
           {p.uncategorizedCount > 0 && (
             <Chip t={t} active={p.selected === "__uncategorized__"} color={t.muted} label="أخرى" count={p.uncategorizedCount} onClick={() => p.onSelect("__uncategorized__")} />
           )}
@@ -83,6 +112,17 @@ export default function POSv2Products(p: Props) {
             </button>
           ))}
         </div>
+        {/* Per-user sort toggle — available to every user, like /pos. */}
+        <button
+          type="button"
+          onClick={p.onSortMode}
+          className="flex items-center gap-1.5 shrink-0"
+          title={p.isSortMode ? "إنهاء وضع الترتيب" : "وضع الترتيب — اضغط مطولًا واسحب التصنيف"}
+          style={{ height: 44, padding: "0 14px", borderRadius: 12, background: p.isSortMode ? t.accent : t.card, color: p.isSortMode ? t.onAccent : t.text, border: `1px solid ${t.border}`, fontSize: 13, fontWeight: 700 }}
+        >
+          {p.isSortMode ? <Check style={{ width: 15, height: 15 }} /> : <GripVertical style={{ width: 15, height: 15 }} />}
+          {p.isSortMode ? "إنهاء الترتيب" : "ترتيب"}
+        </button>
         {p.canManage && (
           <div className="relative shrink-0">
             <button
@@ -92,7 +132,7 @@ export default function POSv2Products(p: Props) {
               style={{ height: 44, padding: "0 14px", borderRadius: 12, background: p.isSortMode ? t.accent : t.card, color: p.isSortMode ? t.onAccent : t.text, border: `1px solid ${t.border}`, fontSize: 13, fontWeight: 700 }}
             >
               <Pencil style={{ width: 15, height: 15 }} />
-              {p.isSortMode ? "إنهاء الترتيب" : "تعديل"}
+              تعديل
             </button>
             {editOpen && (
               <>
@@ -101,7 +141,6 @@ export default function POSv2Products(p: Props) {
                   {[
                     { k: "c", l: "+ تصنيف", f: p.onAddCategory },
                     { k: "p", l: "+ منتج", f: p.onAddProduct },
-                    { k: "s", l: p.isSortMode ? "إنهاء الترتيب" : "ترتيب", f: p.onSortMode },
                   ].map((i) => (
                     <button key={i.k} type="button" onClick={() => { setEditOpen(false); i.f(); }} className="w-full text-right" style={{ height: 44, padding: "0 14px", color: t.text, fontSize: 13 }}>
                       {i.l}
