@@ -414,9 +414,9 @@ const ChequeActionModal = ({
                         <span className="text-[10px] text-muted-foreground">{c.contact_type}</span>
                       </button>
                     )) : (
-                      <p className="text-xs text-muted-foreground text-center py-3">لا توجد نتائج</p>
+                      <p className="text-xs text-muted-foreground text-center py-3">{searchingRemote ? 'جاري البحث في كل الموردين...' : 'لا توجد نتائج'}</p>
                     )}
-                    {endorsedQuery.length >= 2 && !endorsedExact && (
+                    {endorsedQuery.length >= 2 && !endorsedExact && !searchingRemote && filteredEndorsed.length === 0 && (
                       <button type="button" disabled={creatingContact}
                         onMouseDown={e => { e.preventDefault(); handleQuickAddSupplier(); }}
                         className="w-full text-right px-3 py-2 text-sm flex items-center gap-2 text-primary font-medium border-t border-border hover:bg-primary/5 disabled:opacity-60">
