@@ -137,7 +137,7 @@ export default function POSDeviceAuthGuard({ children }: { children: ReactNode }
 
   // The tree shape stays identical across states so POS is never remounted.
   return (
-    <div className="flex flex-col min-h-[100dvh]">
+    <div className="flex flex-col h-[100dvh] overflow-hidden">
       {showAsViewOnly && (
         <ViewOnlyBanner onRecheck={recheck} bridgeUrl={bridgeUrl} />
       )}

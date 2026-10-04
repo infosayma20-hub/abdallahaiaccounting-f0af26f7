@@ -438,6 +438,15 @@ const POSPage = ({ variant = "v1" }: { variant?: "v1" | "v2" } = {}) => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { user } = useAuth();
+  const [isDemoTenant, setIsDemoTenant] = useState(false);
+  useEffect(() => {
+    let cancelled = false;
+    if (!user?.id) return;
+    void supabase.rpc("is_current_tenant_demo").then(({ data }) => {
+      if (!cancelled) setIsDemoTenant(!!data);
+    });
+    return () => { cancelled = true; };
+  }, [user?.id]);
   // Phase A — Generalization Hard Stop: drives restaurant vs retail UI
   // and replaces the hardcoded Malaky email check for Call Center.
   const { restaurantFeatures, callCenterEnabled, tablesEnabled, deliveryEnabled, employeeMealsEnabled, loyaltyEnabled } = usePosMode();
@@ -7766,6 +7775,42 @@ const POSPage = ({ variant = "v1" }: { variant?: "v1" | "v2" } = {}) => {
   const v2Pieces = cart.reduce((s, i) => s + (Number(i.qty) || 0), 0);
   const v2PayTotal = customerDataDiscount ? cartTotals.total - customerDataDiscount.discountAmount : cartTotals.total;
 
+  const v2TablePickerNode = isV2 && restaurantFeatures && tablesEnabled && showTablePicker ? (
+    <div className="mx-4 mb-2 shrink-0 rounded-xl p-2" style={{ background: v2t.input, border: `1px solid ${v2t.border}` }}>
+      <div className="flex items-center justify-between mb-2 px-1">
+        <span className="text-xs font-bold" style={{ color: v2t.text }}>اختيار الطاولة</span>
+        {activeOrder.tableId && <span className="text-[11px]" style={{ color: v2t.accent }}>نشط: {activeOrder.tableName}</span>}
+      </div>
+      <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
+        {activeOrder.tableId && (
+          <button type="button" onClick={() => {
+            updateActiveOrder(o => ({ ...o, tableId: null, tableName: null, orderType: "takeaway", orderTypeChosen: true, name: `طلب ${activeOrderIndex + 1}` }));
+            setShowTablePicker(false);
+          }} className="flex-none w-16 h-12 rounded-lg text-xs font-bold" style={{ background: v2t.warnBg, color: v2t.warnText }}>إلغاء</button>
+        )}
+        {availableTables.length === 0 && <span className="p-2 text-xs" style={{ color: v2t.muted }}>لا توجد طاولات متاحة</span>}
+        {availableTables.map(t => {
+          const occupied = t.status === "occupied";
+          const active = t.id === activeOrder.tableId;
+          return (
+            <button key={t.id} type="button" onClick={async () => {
+              const { data: openOrder } = await supabase.from("pos_orders").select("id").eq("table_id", t.id).in("state", ["draft", "open"] as any).maybeSingle();
+              if (openOrder || occupied) {
+                toast.info(`الطاولة ${t.name} محجوزة — جاري فتح الطلب الأصلي`);
+                await loadTableOrder(t.id, t.name);
+              } else {
+                updateActiveOrder(o => ({ ...o, tableId: t.id, tableName: t.name, orderType: "dine_in", orderTypeChosen: true, name: t.name }));
+              }
+              setShowTablePicker(false);
+            }} className="flex-none w-16 h-12 rounded-lg text-xs font-bold" style={{ background: active ? v2t.accent : occupied ? v2t.warnBg : v2t.card, color: active ? v2t.onAccent : occupied ? v2t.warnText : v2t.text, border: `1px solid ${active ? v2t.accent : v2t.border}` }}>
+              <span className="block text-[10px] font-medium opacity-70">{occupied ? "مشغولة" : "طاولة"}</span>{t.name}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  ) : null;
+
   const v2TopBarNode = isV2 ? (
     <POSv2TopBar
       t={v2t}
@@ -7833,6 +7878,14 @@ const POSPage = ({ variant = "v1" }: { variant?: "v1" | "v2" } = {}) => {
         onRemove={removeFromCart}
         canRemove={isAdmin || !!posPerms.can_remove_cart_items}
         onLineTap={(i) => { const it = cart[i]; if (it && productModifierMap[it.product_id]?.length) setEditAddonCartIndex(i); else setSelectedCartIndex(i); }}
+        selectedLineIndex={selectedCartIndex}
+        onLineNote={(i, note) => setCart(prev => {
+          const next = [...prev];
+          const item = next[i];
+          if (!item) return prev;
+          next[i] = { ...item, note };
+          return next;
+        })}
         discountActive={!!managerDiscountMeta}
         canDiscount={!isCallCenter && cart.length > 0}
         onDiscount={() => {
@@ -7856,12 +7909,13 @@ const POSPage = ({ variant = "v1" }: { variant?: "v1" | "v2" } = {}) => {
         showPrint={!isCallCenter && restaurantFeatures}
         onPrint={() => { if (shouldThrottlePrint("F9")) return; handleSendToKitchen(); }}
         onMore={() => setShowAllOrders(true)}
+        extraNode={v2TablePickerNode}
       />
     </div>
   ) : null;
 
   return (
-    <div className="h-screen flex flex-col overflow-hidden pos-container pos-page-root" dir={posDir} lang={posLangCtl.lang} data-pos-layout>
+    <div className={`${isV2 ? "h-full" : "h-screen"} flex flex-col overflow-hidden pos-container pos-page-root`} dir={posDir} lang={posLangCtl.lang} data-pos-layout>
       <GeneralManagerCelebration authUserId={userId} dataOwnerId={dataOwnerId} />
       {/* ⛔ Device-level guard — blocks selling when branch/terminal/bridge are missing or in conflict */}
       <POSDeviceGuard
@@ -8098,9 +8152,11 @@ const POSPage = ({ variant = "v1" }: { variant?: "v1" | "v2" } = {}) => {
                   )}
                 </button>
                 <div className="border-t border-gray-200 my-1" />
-                <button className="w-full text-right px-4 py-2 text-xs flex items-center gap-2 hover:bg-gray-100 transition-colors" onClick={() => { setShowOpsDropdown(false); navigate("/pos-v2"); }}>
-                  <Sparkles className="h-3.5 w-3.5" style={{ color: "#4A9EE8" }} /> تجربة الواجهة الجديدة
-                </button>
+                {isDemoTenant && (
+                  <button className="w-full text-right px-4 py-2 text-xs flex items-center gap-2 hover:bg-gray-100 transition-colors" onClick={() => { setShowOpsDropdown(false); navigate("/pos-v2"); }}>
+                    <Sparkles className="h-3.5 w-3.5" style={{ color: "#4A9EE8" }} /> تجربة الواجهة الجديدة
+                  </button>
+                )}
                 <button className="w-full text-right px-4 py-2 text-xs flex items-center gap-2 hover:bg-gray-100 transition-colors" onClick={() => setShowShortcutsGuide(true)}>
                   <Keyboard className="h-3.5 w-3.5" style={{ color: "#4A9EE8" }} /> اختصارات لوحة المفاتيح
                 </button>
