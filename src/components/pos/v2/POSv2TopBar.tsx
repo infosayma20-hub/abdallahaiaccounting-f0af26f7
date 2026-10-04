@@ -1,5 +1,5 @@
 import { useState, type ReactNode, type RefObject } from "react";
-import { Search, Barcode, Printer, PauseCircle, ChefHat, FileText, MoreHorizontal, Sun, Moon } from "lucide-react";
+import { Search, Barcode, Printer, PauseCircle, ChefHat, FileText, MoreHorizontal, Sun, Moon, CircleStop } from "lucide-react";
 import type { PosV2Tokens } from "./posV2Theme";
 import { usePrinterOnline } from "./usePrinterOnline";
 
@@ -24,6 +24,8 @@ type Props = {
   onInvoices: () => void;
   menuItems: PosV2MenuItem[];
   onToggleTheme: () => void;
+  canCloseShift: boolean;
+  onCloseShift: () => void;
 };
 
 function IconBtn({ t, label, badge, onClick, children }: { t: PosV2Tokens; label: string; badge?: number; onClick?: () => void; children: ReactNode }) {
@@ -141,6 +143,12 @@ export default function POSv2TopBar(p: Props) {
             </>
           )}
         </div>
+        {p.canCloseShift && (
+          <button type="button" onClick={p.onCloseShift} className="relative flex flex-col items-center justify-center shrink-0" style={{ minWidth: 62, height: 52, borderRadius: 10, color: t.warnText, gap: 2 }} title="إغلاق العهدة">
+            <CircleStop style={{ width: 21, height: 21 }} strokeWidth={1.9} />
+            <span style={{ fontSize: 11, fontWeight: 700 }}>إغلاق العهدة</span>
+          </button>
+        )}
       </div>
     </header>
   );
