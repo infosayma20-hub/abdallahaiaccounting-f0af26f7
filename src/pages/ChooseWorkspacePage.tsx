@@ -41,8 +41,14 @@ export default function ChooseWorkspacePage() {
   // Admins are allowed in (read-only mode is enforced inside POS).
   // Call Center does NOT print — it only forwards orders to cashier terminals,
   // so the Print Bridge is irrelevant for it.
+  const [isDemoTenant, setIsDemoTenant] = useState(false);
+  useEffect(() => {
+    let cancelled = false;
+    supabase.rpc("is_current_tenant_demo").then(({ data }) => { if (!cancelled) setIsDemoTenant(!!data); });
+    return () => { cancelled = true; };
+  }, []);
   const posBlocked =
-    !bridgeChecking && !bridgeAuthorized && !isDeviceAdmin && !isCallCenter;
+    !bridgeChecking && !bridgeAuthorized && !isDeviceAdmin && !isCallCenter && !isDemoTenant;
 
   useEffect(() => {
     if (!user?.id) return;
