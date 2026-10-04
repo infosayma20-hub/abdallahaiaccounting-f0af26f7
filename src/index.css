@@ -1912,6 +1912,25 @@ select:focus-visible {
   border-radius: 10px;
   background: hsl(var(--pos-invoice-surface));
 }
+.pos-v2-invoice-row {
+  flex-wrap: wrap;
+  align-items: flex-start !important;
+  row-gap: 10px;
+}
+.pos-v2-invoice-row > div:first-child { flex: 1 1 100%; }
+.pos-v2-invoice-row > div:first-child > div { flex-wrap: wrap; row-gap: 4px; }
+.pos-v2-invoice-row .truncate { white-space: normal; overflow: visible; text-overflow: clip; max-width: none; overflow-wrap: anywhere; }
+.pos-v2-invoice-row > div:last-child {
+  flex: 1 1 100%;
+  flex-direction: row !important;
+  flex-wrap: wrap;
+  align-items: center !important;
+  justify-content: space-between;
+  gap: 8px;
+  padding-top: 8px;
+  border-top: 1px dashed hsl(var(--border));
+}
+.pos-v2-invoice-row > div:last-child > div { flex-wrap: wrap; gap: 6px; }
 .pos-v2-invoice-row:hover {
   border-color: hsl(var(--pos-invoice-blue));
   background: hsl(var(--pos-invoice-canvas));
@@ -1920,7 +1939,8 @@ select:focus-visible {
   top: 16px !important;
   bottom: 16px !important;
   left: 16px !important;
-  right: 416px !important;
+  right: 492px !important;
+  text-align: right;
   width: auto !important;
   max-width: none !important;
   max-height: none !important;
