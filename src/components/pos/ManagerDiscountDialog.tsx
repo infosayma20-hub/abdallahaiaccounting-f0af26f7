@@ -229,7 +229,7 @@ export default function ManagerDiscountDialog({
           </div>
 
           <div>
-            <label className="text-xs font-medium text-muted-foreground mb-1 block">
+            <label className="text-xs font-medium text-muted-foreground mb-1 block" style={v2MutedStyle}>
               {type === "percent" ? `قيمة الخصم (%) — حد أقصى ${maxPct}%` : "قيمة الخصم (₪)"}
             </label>
             <Input
@@ -242,16 +242,17 @@ export default function ManagerDiscountDialog({
               placeholder="0"
               className="h-11 text-base tabular-nums"
               dir="ltr"
+              style={v2FieldStyle}
             />
             {numericAmount > 0 && orderSubtotal > 0 && (
-              <p className="text-[11px] text-muted-foreground mt-1 tabular-nums" dir="ltr">
+              <p className="text-[11px] text-muted-foreground mt-1 tabular-nums" dir="ltr" style={v2MutedStyle}>
                 ≈ ₪{equivalentValue.toFixed(2)}
               </p>
             )}
           </div>
 
           <div>
-            <label className="text-xs font-medium text-muted-foreground mb-1 block">
+            <label className="text-xs font-medium text-muted-foreground mb-1 block" style={v2MutedStyle}>
               سبب الخصم <span className="text-destructive">*</span>
             </label>
             <Textarea
@@ -260,6 +261,7 @@ export default function ManagerDiscountDialog({
               placeholder="مثلاً: مجاملة زبون دائم / تعويض عن تأخر"
               className="min-h-[60px] text-sm"
               rows={2}
+              style={v2FieldStyle}
             />
           </div>
 
