@@ -186,7 +186,7 @@ export default function POSv2Products(p: Props) {
                     </div>
                   )}
                   <div className="flex flex-col flex-1" style={{ padding: "10px 12px 12px", gap: 6 }}>
-                    <div style={{ fontSize: 15, fontWeight: 700, color: t.text, lineHeight: 1.35, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>{name}</div>
+                    <div style={{ fontSize: 15, fontWeight: 700, color: t.text, lineHeight: 1.35, overflowWrap: "anywhere" }}>{name}</div>
                     <div className="mt-auto flex items-end justify-between gap-2">
                       <div style={openPrice ? { fontSize: 13, color: t.muted, fontWeight: 600 } : { fontSize: 17, fontWeight: 800, color: t.price }} dir={openPrice ? "rtl" : "ltr"}>
                         {openPrice ? "سعر مفتوح" : fmtMoney(prod.sell_price)}
