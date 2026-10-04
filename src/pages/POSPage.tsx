@@ -7773,7 +7773,7 @@ const POSPage = ({ variant = "v1" }: { variant?: "v1" | "v2" } = {}) => {
     { key: "fs", label: "ملء الشاشة", icon: v2MenuIcon(Monitor), onClick: () => { if (!document.fullscreenElement) document.documentElement.requestFullscreen(); else document.exitFullscreen(); } },
   ];
   const v2CatIdByName: Record<string, string> = Object.fromEntries(posCategories.map(c => [c.name, c.id]));
-  const v2CartWidth = v2Width < 1180 ? 360 : 400;
+  const v2CartWidth = v2Width < 1180 ? 360 : Math.min(620, Math.max(420, Math.round(v2Width * 0.38)));
   const v2Subtotal = cart.reduce((s, i) => s + (Number(i.total) || 0), 0);
   const v2Pieces = cart.reduce((s, i) => s + (Number(i.qty) || 0), 0);
   const v2PayTotal = customerDataDiscount ? cartTotals.total - customerDataDiscount.discountAmount : cartTotals.total;
