@@ -8,6 +8,8 @@ type OrderPill = { id: string; label: string; count: number };
 type OrderType = "takeaway" | "delivery" | "dine_in";
 
 type Props = {
+  /** Short screens: tighter rows so cart lines stay visible without scrolling the page. */
+  compact?: boolean;
   t: PosV2Tokens;
   width: number;
   orders: OrderPill[];
@@ -69,7 +71,8 @@ export default function POSv2Cart(p: Props) {
   const { t } = p;
   const [noteOpen, setNoteOpen] = useState(false);
   const [customerOpen, setCustomerOpen] = useState(false);
-  const outlineBtn = { height: 44, borderRadius: 12, border: `1px solid ${t.border}`, background: "transparent", color: t.text, fontSize: 13, fontWeight: 700 } as const;
+  const c = !!p.compact;
+  const outlineBtn = { height: c ? 34 : 44, borderRadius: 12, border: `1px solid ${t.border}`, background: "transparent", color: t.text, fontSize: 13, fontWeight: 700 } as const;
   const empty = p.lines.length === 0;
 
   return (
@@ -155,9 +158,9 @@ export default function POSv2Cart(p: Props) {
         ) : (
           p.lines.map((l, i) => (
             <div key={l.id} className="flex flex-wrap items-center gap-3 cursor-pointer" onClick={(e) => { if ((e.target as HTMLElement).closest("button, input")) return; p.onLineTap(i); }}
-              style={{ padding: "12px 0", borderBottom: `1px solid ${t.border}` }}>
+              style={{ padding: c ? "5px 0" : "12px 0", rowGap: c ? 4 : undefined, borderBottom: `1px solid ${t.border}` }}>
               <div className="flex-1 min-w-0">
-                <div className="truncate" style={{ fontSize: 14, fontWeight: 800 }}>{p.lineName(l)}</div>
+                <div className="truncate" style={{ fontSize: c ? 13 : 14, fontWeight: 800 }}>{p.lineName(l)}</div>
                 {p.canEditPrice ? (
                   <div className="flex items-center gap-1 mt-1" style={{ color: t.muted, fontSize: 12 }}>
                     <span>₪</span>
@@ -187,10 +190,10 @@ export default function POSv2Cart(p: Props) {
                   {!!l.modifiers?.length ? "تعديل الإضافات" : "إضافات"}
                 </button>
               )}
-              <div className="flex items-center shrink-0" style={{ height: 40, borderRadius: 10, background: t.input, border: `1px solid ${t.border}` }}>
-                <button type="button" onClick={() => p.onQty(i, l.qty + 1)} style={{ width: 36, height: 38, color: t.text }} className="flex items-center justify-center"><Plus style={{ width: 15, height: 15 }} /></button>
+              <div className="flex items-center shrink-0" style={{ height: c ? 32 : 40, borderRadius: 10, background: t.input, border: `1px solid ${t.border}` }}>
+                <button type="button" onClick={() => p.onQty(i, l.qty + 1)} style={{ width: c ? 30 : 36, height: c ? 30 : 38, color: t.text }} className="flex items-center justify-center"><Plus style={{ width: 15, height: 15 }} /></button>
                 <input type="number" min={1} max={9999} value={l.qty} aria-label={`كمية ${p.lineName(l)}`} onClick={(e) => { e.stopPropagation(); e.currentTarget.select(); }} onChange={(e) => { const n = Number.parseInt(e.target.value, 10); if (Number.isFinite(n) && n >= 1 && n <= 9999) p.onQty(i, n); }} className="tabular-nums text-center focus:outline-none" style={{ width: 34, background: "transparent", color: t.text, fontSize: 14, fontWeight: 800 }} />
-                <button type="button" onClick={() => (l.qty <= 1 ? (p.canRemove ? p.onRemove(i) : undefined) : p.onQty(i, l.qty - 1))} style={{ width: 36, height: 38, color: t.text }} className="flex items-center justify-center"><Minus style={{ width: 15, height: 15 }} /></button>
+                <button type="button" onClick={() => (l.qty <= 1 ? (p.canRemove ? p.onRemove(i) : undefined) : p.onQty(i, l.qty - 1))} style={{ width: c ? 30 : 36, height: c ? 30 : 38, color: t.text }} className="flex items-center justify-center"><Minus style={{ width: 15, height: 15 }} /></button>
               </div>
               <div className="tabular-nums shrink-0 text-left" dir="ltr" style={{ minWidth: 70, fontSize: 14, fontWeight: 800 }}>{fmtMoney(l.total)}</div>
               {p.selectedLineIndex === i && (
@@ -210,7 +213,7 @@ export default function POSv2Cart(p: Props) {
       </div>
 
       {/* f) quick actions */}
-      <div className="px-4 pt-3 shrink-0">
+      <div className={`px-4 ${c ? "pt-1.5" : "pt-3"} shrink-0`}>
         {noteOpen || p.orderNote ? (
           <div className="flex items-center gap-2 mb-2">
             <input autoFocus={noteOpen && !p.orderNote} value={p.orderNote} onChange={(e) => p.onOrderNote(e.target.value)} placeholder="ملاحظة على الفاتورة"
@@ -232,21 +235,21 @@ export default function POSv2Cart(p: Props) {
       </div>
 
       {/* g) totals */}
-      <div className="px-4 pt-3 shrink-0" style={{ fontSize: 13 }}>
-        <div className="flex justify-between" style={{ color: t.muted, marginBottom: 4 }}><span>المجموع ({p.pieces} قطع)</span><span dir="ltr">{fmtMoney(p.subtotal)}</span></div>
-        <div className="flex justify-between" style={{ color: t.muted, marginBottom: 4 }}><span>الخصم</span><span dir="ltr">{fmtMoney(p.discount)}</span></div>
+      <div className={`px-4 ${c ? "pt-1.5" : "pt-3"} shrink-0`} style={{ fontSize: 13 }}>
+        {!c && <div className="flex justify-between" style={{ color: t.muted, marginBottom: 4 }}><span>المجموع ({p.pieces} قطع)</span><span dir="ltr">{fmtMoney(p.subtotal)}</span></div>}
+        {(!c || p.discount > 0) && <div className="flex justify-between" style={{ color: t.muted, marginBottom: 4 }}><span>الخصم</span><span dir="ltr">{fmtMoney(p.discount)}</span></div>}
         {p.tax > 0 && <div className="flex justify-between" style={{ color: t.muted, marginBottom: 4 }}><span>الضريبة</span><span dir="ltr">{fmtMoney(p.tax)}</span></div>}
         <div className="flex justify-between items-baseline" style={{ marginTop: 6 }}>
           <span style={{ fontSize: 16, fontWeight: 800 }}>الإجمالي</span>
-          <span dir="ltr" className="tabular-nums" style={{ fontSize: 28, fontWeight: 800 }}>{fmtMoney(p.total)}</span>
+          <span dir="ltr" className="tabular-nums" style={{ fontSize: c ? 22 : 28, fontWeight: 800 }}>{fmtMoney(p.total)}</span>
         </div>
       </div>
 
       {/* h/i) pay + secondary */}
-      <div className="px-4 pt-3 pb-4 shrink-0 space-y-2">
+      <div className={`px-4 ${c ? "pt-2 pb-2" : "pt-3 pb-4"} shrink-0 space-y-2`}>
         {p.showPay && (
           <button type="button" onClick={p.onPay} disabled={!p.canPay} className="w-full flex items-center justify-center gap-3"
-            style={{ height: 60, borderRadius: 14, background: p.t.pay, color: p.t.onPay, fontSize: 19, fontWeight: 800, opacity: p.canPay ? 1 : 0.4, cursor: p.canPay ? "pointer" : "not-allowed" }}>
+            style={{ height: c ? 46 : 60, borderRadius: 14, background: p.t.pay, color: p.t.onPay, fontSize: 19, fontWeight: 800, opacity: p.canPay ? 1 : 0.4, cursor: p.canPay ? "pointer" : "not-allowed" }}>
             <span>دفع <span dir="ltr">{fmtMoney(p.payTotal)}</span></span>
             <Key t={t} k="F2" onAccent={p.t.onPay} />
           </button>
