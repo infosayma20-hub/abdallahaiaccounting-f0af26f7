@@ -92,6 +92,13 @@ export default function ManagerDiscountDialog({
     })();
   }, [open, terminalId]);
 
+  // أنماط مضمنة لثيم POS v2 (لا تؤثر على الشاشة القديمة).
+  const v2 = v2Theme || null;
+  const v2FieldStyle: React.CSSProperties | undefined = v2
+    ? { background: v2.input, color: v2.text, borderColor: v2.border }
+    : undefined;
+  const v2MutedStyle: React.CSSProperties | undefined = v2 ? { color: v2.muted } : undefined;
+
   const numericAmount = Number(amount) || 0;
   const equivalentValue =
     type === "percent"
