@@ -38,8 +38,8 @@ import {
   Apple, Zap, Coffee, Box, BarChart3, TrendingUp, PlusCircle, Tag,
   Eye, EyeOff, UserCheck, LayoutGrid, Grid3X3, Grid2X2, GripVertical, Check,
   FileText, Keyboard, MoreHorizontal, RefreshCw, ChefHat, Sun, Moon, Phone, MapPin, Send, ClipboardList, Settings,
-  Split, Star, Smartphone,
-, Sparkles, Undo2 } from "lucide-react";
+  Split, Star, Smartphone, Sparkles, Undo2,
+} from "lucide-react";
 import { useTheme } from "@/hooks/useTheme";
 import TableSelectorBar, { type TableBarItem } from "@/components/pos/TableSelectorBar";
 import AllOrdersSheet from "@/components/pos/AllOrdersSheet";
