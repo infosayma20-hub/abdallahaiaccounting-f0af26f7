@@ -11531,6 +11531,7 @@ const POSPage = ({ variant = "v1" }: { variant?: "v1" | "v2" } = {}) => {
         sessionId={session?.id ?? null}
         cashierName={session?.cashier_name || undefined}
         orderSubtotal={cartTotals.subtotal}
+        v2Theme={isV2 ? v2t : null}
       />
 
       {/* ── Concurrent-shift safeguard ── */}
