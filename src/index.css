@@ -1912,7 +1912,7 @@ body[data-pos-skin="demo"][data-pos-theme="light"] .pos-order-panel [style*="rgb
 body[data-pos-skin="demo"][data-pos-theme="light"] .pos-order-panel [style*="background: rgba(255, 255, 255"],
 body[data-pos-skin="demo"][data-pos-theme="light"] .pos-order-panel [style*="background-color: rgba(255, 255, 255"] { background: #f1f5f9 !important; border-color: #e2e8f0 !important; }
 body[data-pos-skin="demo"][data-pos-theme="light"] .pos-order-panel svg { color: #475569; }
-body[data-pos-skin="demo"][data-pos-theme="light"] .pos-pay-btn { background: #16a34a !important; color: #fff !important; border-radius: 14px !important; height: 56px !important; font-size: 18px !important; }
+body[data-pos-skin="demo"][data-pos-theme="light"] .pos-order-panel .pos-pay-btn.pos-pay-btn { background: #16a34a !important; color: #fff !important; border-radius: 14px !important; height: 56px !important; font-size: 18px !important; }
 
 /* Dark (charcoal + orange) */
 body[data-pos-skin="demo"][data-pos-theme="dark"] .pos-topbar { background: #16181d !important; border-bottom: 1px solid #2a2d34 !important; }
@@ -1924,4 +1924,6 @@ body[data-pos-skin="demo"][data-pos-theme="dark"] .pos-product-card p[dir="ltr"]
 body[data-pos-skin="demo"][data-pos-theme="dark"] .pos-order-panel { background: #1a1c21 !important; border-inline-end: 1px solid #2a2d34; }
 body[data-pos-skin="demo"][data-pos-theme="dark"] .pos-order-panel [style*="background: rgb(29, 78, 216)"],
 body[data-pos-skin="demo"][data-pos-theme="dark"] .pos-order-panel .bg-blue-600 { background: #f97316 !important; }
-body[data-pos-skin="demo"][data-pos-theme="dark"] .pos-pay-btn { background: #f97316 !important; color: #fff !important; border-radius: 14px !important; height: 56px !important; font-size: 18px !important; }
+body[data-pos-skin="demo"][data-pos-theme="dark"] .pos-order-panel .pos-pay-btn { background: #f97316 !important; color: #fff !important; border-radius: 14px !important; height: 56px !important; font-size: 18px !important; }
+body[data-pos-skin="demo"][data-pos-theme="light"] .pos-order-panel [style*="background: rgb(29, 78, 216)"] { color: #fff !important; }
+body[data-pos-skin="demo"][data-pos-theme="light"] .pos-order-panel [style*="background: rgb(29, 78, 216)"] * { color: #fff !important; }
