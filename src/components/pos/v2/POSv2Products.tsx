@@ -33,16 +33,16 @@ function Chip({ t, active, color, label, count, onClick }: { t: PosV2Tokens; act
     <button
       type="button"
       onClick={onClick}
-      className="flex items-center gap-2 shrink-0 whitespace-nowrap"
+      className="flex items-center gap-2 shrink-0 whitespace-nowrap w-full"
       style={{
-        height: 44, padding: "0 16px", borderRadius: 12, fontSize: 14, fontWeight: 700,
+        minHeight: 44, padding: "8px 12px", borderRadius: 10, fontSize: 13, fontWeight: 700,
         background: active ? t.accent : t.card, color: active ? t.onAccent : t.text,
         border: `1px solid ${active ? t.accent : t.border}`,
       }}
     >
       {color && <span style={{ width: 8, height: 8, borderRadius: 4, background: color }} />}
       {label}
-      <span style={{ fontSize: 11, fontWeight: 600, color: active ? t.onAccent : t.muted, opacity: active ? 0.75 : 1 }}>{count}</span>
+      <span className="mr-auto" style={{ fontSize: 11, fontWeight: 600, color: active ? t.onAccent : t.muted, opacity: active ? 0.75 : 1 }}>{count}</span>
     </button>
   );
 }
@@ -54,10 +54,10 @@ export default function POSv2Products(p: Props) {
   const cols = Math.max(2, baseCols - (p.narrow ? 1 : 0));
 
   return (
-    <div dir="rtl" className="flex-1 min-h-0 min-w-0 flex flex-col" style={{ background: t.bg }}>
-      {/* Toolbar */}
-      <div className="flex items-center gap-2 px-4 pt-3 pb-2 shrink-0">
-        <div className="flex-1 min-w-0 flex items-center gap-2 overflow-x-auto no-scrollbar">
+    <div dir="rtl" className="flex-1 min-h-0 min-w-0 flex" style={{ background: t.bg }}>
+      {/* Vertical categories stay on the physical right in RTL. */}
+      <aside className="shrink-0 min-h-0 flex flex-col" style={{ width: p.narrow ? 152 : 178, background: t.surface, borderInlineEnd: `1px solid ${t.border}` }}>
+        <div className="flex-1 min-h-0 overflow-y-auto p-2 space-y-1.5">
           <Chip t={t} active={p.selected === "الكل"} label="الكل" count={p.allCount} onClick={() => p.onSelect("الكل")} />
           {p.categories.map((c) => (
             <Chip key={c.id} t={t} active={p.selected === c.name} color={posV2CatColor(c.id)} label={c.name} count={c.count} onClick={() => p.onSelect(c.name)} />
@@ -66,6 +66,11 @@ export default function POSv2Products(p: Props) {
             <Chip t={t} active={p.selected === "__uncategorized__"} color={t.muted} label="أخرى" count={p.uncategorizedCount} onClick={() => p.onSelect("__uncategorized__")} />
           )}
         </div>
+      </aside>
+
+      <div className="flex-1 min-h-0 min-w-0 flex flex-col">
+      {/* Toolbar */}
+      <div className="flex items-center justify-end gap-2 px-4 pt-3 pb-2 shrink-0">
         <div className="flex items-center shrink-0" style={{ height: 44, padding: 3, borderRadius: 12, background: t.card, border: `1px solid ${t.border}` }}>
           {(["S", "M", "L"] as const).map((s) => (
             <button
@@ -157,6 +162,7 @@ export default function POSv2Products(p: Props) {
             })}
           </div>
         )}
+      </div>
       </div>
     </div>
   );

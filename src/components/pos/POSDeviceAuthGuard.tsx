@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { Eye, Loader2, RefreshCw } from "lucide-react";
 import { useBridgeAuthorized } from "@/hooks/useBridgeAuthorized";
 import { useIsDeviceAdmin } from "@/hooks/useIsDeviceAdmin";
@@ -23,6 +23,7 @@ import POSBootOverlay from "./POSBootOverlay";
  */
 export default function POSDeviceAuthGuard({ children }: { children: ReactNode }) {
   const navigate = useNavigate();
+  const location = useLocation();
   // ⚡ Start downloading the (large) POS bundle immediately, in parallel with
   // the bridge probe / permission checks below. Previously the chunk only
   // began downloading AFTER the guard resolved, so a slow probe and the
@@ -119,6 +120,14 @@ export default function POSDeviceAuthGuard({ children }: { children: ReactNode }
   }, [resolving]);
   useEffect(() => () => setPosGuardResolving(true), []);
 
+  // The redesigned POS is a demo-only experiment. A direct URL must never
+  // expose it to a production tenant before the design is approved.
+  useEffect(() => {
+    if (!resolving && location.pathname === "/pos-v2" && !isDemoTenant) {
+      navigate("/pos", { replace: true });
+    }
+  }, [isDemoTenant, location.pathname, navigate, resolving]);
+
   // 2) Authorized OR (admin OR previously-authorized cashier) → render POS.
   //    In the non-authorized branches we render with canSell=false (view-only).
   const showAsViewOnly = !resolving && !effectiveAuthorized && (isDeviceAdmin || wasAuthorized);
@@ -128,7 +137,7 @@ export default function POSDeviceAuthGuard({ children }: { children: ReactNode }
 
   // The tree shape stays identical across states so POS is never remounted.
   return (
-    <div className="flex flex-col min-h-[100dvh]">
+    <div className="flex flex-col h-[100dvh] overflow-hidden">
       {showAsViewOnly && (
         <ViewOnlyBanner onRecheck={recheck} bridgeUrl={bridgeUrl} />
       )}

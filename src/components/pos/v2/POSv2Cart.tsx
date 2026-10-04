@@ -27,6 +27,8 @@ type Props = {
   onRemove: (index: number) => void;
   canRemove: boolean;
   onLineTap: (index: number) => void;
+  selectedLineIndex: number | null;
+  onLineNote: (index: number, note: string) => void;
   discountActive: boolean;
   onDiscount: () => void;
   canDiscount: boolean;
@@ -147,7 +149,7 @@ export default function POSv2Cart(p: Props) {
           </div>
         ) : (
           p.lines.map((l, i) => (
-            <div key={l.id} className="flex items-center gap-3 cursor-pointer" onClick={(e) => { if ((e.target as HTMLElement).closest("button")) return; p.onLineTap(i); }}
+            <div key={l.id} className="flex flex-wrap items-center gap-3 cursor-pointer" onClick={(e) => { if ((e.target as HTMLElement).closest("button, input")) return; p.onLineTap(i); }}
               style={{ padding: "12px 0", borderBottom: `1px solid ${t.border}` }}>
               <div className="flex-1 min-w-0">
                 <div className="truncate" style={{ fontSize: 14, fontWeight: 800 }}>{p.lineName(l)}</div>
@@ -161,6 +163,17 @@ export default function POSv2Cart(p: Props) {
                 <button type="button" onClick={() => (l.qty <= 1 ? (p.canRemove ? p.onRemove(i) : undefined) : p.onQty(i, l.qty - 1))} style={{ width: 36, height: 38, color: t.text }} className="flex items-center justify-center"><Minus style={{ width: 15, height: 15 }} /></button>
               </div>
               <div className="tabular-nums shrink-0 text-left" dir="ltr" style={{ minWidth: 70, fontSize: 14, fontWeight: 800 }}>{fmtMoney(l.total)}</div>
+              {p.selectedLineIndex === i && (
+                <input
+                  autoFocus
+                  value={l.note || ""}
+                  onChange={(e) => p.onLineNote(i, e.target.value)}
+                  onClick={(e) => e.stopPropagation()}
+                  placeholder="ملاحظة على الصنف..."
+                  className="w-full focus:outline-none"
+                  style={{ height: 38, borderRadius: 9, padding: "0 10px", background: t.input, border: `1px dashed ${t.border}`, color: t.text, fontSize: 12 }}
+                />
+              )}
             </div>
           ))
         )}

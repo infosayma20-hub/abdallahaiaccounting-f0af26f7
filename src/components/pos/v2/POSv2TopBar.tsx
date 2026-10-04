@@ -108,7 +108,7 @@ export default function POSv2TopBar(p: Props) {
         )}
         <IconBtn t={t} label="المعلّقة" badge={p.heldCount} onClick={p.onHeld}><PauseCircle style={{ width: 20, height: 20 }} strokeWidth={1.8} /></IconBtn>
         {p.showKitchen && <IconBtn t={t} label="المطبخ" onClick={p.onKitchen}><ChefHat style={{ width: 20, height: 20 }} strokeWidth={1.8} /></IconBtn>}
-        <div className="flex flex-col items-center justify-center shrink-0" style={{ minWidth: 56, height: 52, gap: 2 }}>
+        <div className="flex flex-col items-center justify-center shrink-0" style={{ minWidth: 56, height: 52, gap: 2 }} title="الطلبات والتنبيهات المعلقة">
           <div className="pos-v2-notif" style={{ color: t.text }}>{p.notificationsNode}</div>
           <span style={{ fontSize: 11, color: t.muted, fontWeight: 600 }}>التنبيهات</span>
         </div>
