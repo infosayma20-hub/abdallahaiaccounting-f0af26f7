@@ -1396,8 +1396,18 @@ export default function MonthlyAttendanceTab({
     }
     setSaving(true);
     try {
-      const ciDate = isLockStatus ? null : combineDT(editing.attendance_date, form.first_check_in);
-      const coDate = isLockStatus ? null : combineDT(editing.attendance_date, form.last_check_out, ovn(ciDate));
+      // حقل الوقت بالدقيقة فقط؛ إذا الوقت المُدخل بنفس دقيقة بصمة حقيقية من نفس النوع
+      // نعتمد وقت البصمة بالثانية، حتى ما تنعرض البصمة الحقيقية كأنها «بعد الخروج».
+      const snapToPunch = (d: Date | null, type: "check_in" | "check_out"): Date | null => {
+        if (!d) return d;
+        const m = Math.floor(d.getTime() / 60000);
+        const hit = rawEvents.find(
+          (e) => e.event_type === type && Math.floor(new Date(e.event_time).getTime() / 60000) === m,
+        );
+        return hit ? new Date(hit.event_time) : d;
+      };
+      const ciDate = isLockStatus ? null : snapToPunch(combineDT(editing.attendance_date, form.first_check_in), "check_in");
+      const coDate = isLockStatus ? null : snapToPunch(combineDT(editing.attendance_date, form.last_check_out, ovn(ciDate)), "check_out");
       const ci = ciDate ? ciDate.toISOString() : null;
       const co = coDate ? coDate.toISOString() : null;
 
@@ -2178,7 +2188,8 @@ export default function MonthlyAttendanceTab({
                           // 🛡️ أثناء إغلاق النافذة يصبح editing = null بينما المحتوى ما زال يُرسم (حركة الإغلاق).
                           if (isLockStatus || !editing) return null;
                           const coAt = combineDT(editing.attendance_date, form.last_check_out, ovn(combineDT(editing.attendance_date, form.first_check_in)));
-                          const after = !!coAt && new Date(e.event_time).getTime() > coAt.getTime();
+                          // المقارنة بالدقيقة: بصمة بنفس دقيقة الخروج المُدخل هي الخروج نفسه.
+                          const after = !!coAt && Math.floor(new Date(e.event_time).getTime() / 60000) > Math.floor(coAt.getTime() / 60000);
                           const ignored = ignoredEventIds.includes(e.id);
                           if (!after && !ignored) return null;
                           return (
