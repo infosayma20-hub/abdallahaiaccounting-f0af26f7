@@ -56,7 +56,19 @@ export default function POSDeviceAuthGuard({ children }: { children: ReactNode }
     })();
     return () => { cancelled = true; };
   }, [user?.id]);
-  const bypassBridge = callCenterEnabled || !!userIsCallCenter;
+  // Demo tenants (companies.is_demo, set by super_admin only) are used to
+  // present POS to prospects on machines without a Print Bridge.
+  const [isDemoTenant, setIsDemoTenant] = useState<boolean | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    if (!user?.id) { setIsDemoTenant(false); return; }
+    (async () => {
+      const { data } = await supabase.rpc("is_current_tenant_demo");
+      if (!cancelled) setIsDemoTenant(!!data);
+    })();
+    return () => { cancelled = true; };
+  }, [user?.id]);
+  const bypassBridge = callCenterEnabled || !!userIsCallCenter || !!isDemoTenant;
   const pageLoading = usePosPageLoading();
   const effectiveAuthorized = authorized || bypassBridge;
 
@@ -100,7 +112,7 @@ export default function POSDeviceAuthGuard({ children }: { children: ReactNode }
   //    so its data loads in parallel with the device checks (they used to be
   //    serialized). canSell stays false until authorization is confirmed, so
   //    nothing can be sold/printed while checks run.
-  const stillResolvingBase = checkingAdmin || posModeLoading || userIsCallCenter === null;
+  const stillResolvingBase = checkingAdmin || posModeLoading || userIsCallCenter === null || isDemoTenant === null;
   const resolving = stillResolvingBase || (!bypassBridge && checking);
   useEffect(() => {
     setPosGuardResolving(resolving);
@@ -119,6 +131,11 @@ export default function POSDeviceAuthGuard({ children }: { children: ReactNode }
     <div className="flex flex-col min-h-[100dvh]">
       {showAsViewOnly && (
         <ViewOnlyBanner onRecheck={recheck} bridgeUrl={bridgeUrl} />
+      )}
+      {isDemoTenant && !resolving && (
+        <div dir="rtl" className="px-3 py-1.5 text-[12px] font-semibold text-center border-b shrink-0 bg-primary text-primary-foreground">
+          وضع العرض التجريبي — حساب تجريبي، البيع يعمل بدون برنامج الطباعة
+        </div>
       )}
       {mustRedirect ? (
         <RedirectToChooseWorkspace />
