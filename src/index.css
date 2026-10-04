@@ -1882,3 +1882,5 @@ select:focus-visible {
 .pos-v2-card { transition: border-color .15s ease, transform .1s ease; }
 .pos-v2-card:hover { border-color: var(--pv2-accent) !important; }
 .pos-v2-card:active { transform: scale(0.98); }
+.pos-v2-notif button { color: inherit !important; border-color: currentColor !important; background: transparent !important; }
+.pos-v2-notif button svg { color: inherit !important; }

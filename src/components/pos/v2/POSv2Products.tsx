@@ -33,16 +33,16 @@ function Chip({ t, active, color, label, count, onClick }: { t: PosV2Tokens; act
     <button
       type="button"
       onClick={onClick}
-      className="flex items-center gap-2 shrink-0 whitespace-nowrap w-full"
+      className="flex items-center gap-2 shrink-0 w-full"
       style={{
-        minHeight: 44, padding: "8px 12px", borderRadius: 10, fontSize: 13, fontWeight: 700,
+        minHeight: 52, padding: "7px 10px", borderRadius: 10, fontSize: 13, fontWeight: 700,
         background: active ? t.accent : t.card, color: active ? t.onAccent : t.text,
         border: `1px solid ${active ? t.accent : t.border}`,
       }}
     >
       {color && <span style={{ width: 8, height: 8, borderRadius: 4, background: color }} />}
-      {label}
-      <span className="mr-auto" style={{ fontSize: 11, fontWeight: 600, color: active ? t.onAccent : t.muted, opacity: active ? 0.75 : 1 }}>{count}</span>
+      <span className="flex-1 min-w-0 text-right" style={{ lineHeight: 1.35, overflowWrap: "anywhere" }}>{label}</span>
+      <span className="shrink-0" style={{ fontSize: 11, fontWeight: 600, color: active ? t.onAccent : t.muted, opacity: active ? 0.75 : 1 }}>{count}</span>
     </button>
   );
 }
@@ -135,11 +135,6 @@ export default function POSv2Products(p: Props) {
                   className="pos-v2-card relative text-right flex flex-col overflow-hidden"
                   style={{ background: t.card, border: `1px solid ${t.border}`, borderTop: `5px solid ${color}`, borderRadius: 14, ["--pv2-accent" as any]: t.accent }}
                 >
-                  {qty > 0 && (
-                    <span className="absolute z-10 flex items-center justify-center" style={{ top: 10, insetInlineStart: 10, minWidth: 24, height: 24, padding: "0 6px", borderRadius: 12, background: t.accent, color: t.onAccent, fontSize: 12, fontWeight: 800 }}>
-                      {qty}
-                    </span>
-                  )}
                   {p.cardSize !== "S" && (
                     <div style={{ padding: 8, paddingBottom: 0 }}>
                       {prod.image_url ? (
@@ -153,8 +148,15 @@ export default function POSv2Products(p: Props) {
                   )}
                   <div className="flex flex-col flex-1" style={{ padding: "10px 12px 12px", gap: 6 }}>
                     <div style={{ fontSize: 15, fontWeight: 700, color: t.text, lineHeight: 1.35, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>{name}</div>
-                    <div className="mt-auto" style={openPrice ? { fontSize: 13, color: t.muted, fontWeight: 600 } : { fontSize: 17, fontWeight: 800, color: t.price }} dir={openPrice ? "rtl" : "ltr"}>
-                      {openPrice ? "سعر مفتوح" : fmtMoney(prod.sell_price)}
+                    <div className="mt-auto flex items-end justify-between gap-2">
+                      <div style={openPrice ? { fontSize: 13, color: t.muted, fontWeight: 600 } : { fontSize: 17, fontWeight: 800, color: t.price }} dir={openPrice ? "rtl" : "ltr"}>
+                        {openPrice ? "سعر مفتوح" : fmtMoney(prod.sell_price)}
+                      </div>
+                      {qty > 0 && (
+                        <span className="shrink-0 flex items-center justify-center" aria-label={`في السلة ${qty}`} style={{ minWidth: 24, height: 24, padding: "0 6px", borderRadius: 12, background: t.accent, color: t.onAccent, fontSize: 12, fontWeight: 800 }}>
+                          {qty}
+                        </span>
+                      )}
                     </div>
                   </div>
                 </button>

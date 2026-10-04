@@ -7891,6 +7891,11 @@ const POSPage = ({ variant = "v1" }: { variant?: "v1" | "v2" } = {}) => {
           next[i] = { ...item, note };
           return next;
         })}
+        canEditPrice={posFeatPerm.can("sell", "change_price") && (isAdmin || !!posPerms.can_edit_prices)}
+        onPrice={(i, price) => updateCartItem(i, "unit_price", price)}
+        onPriceBlur={handlePriceBlur}
+        hasAddons={(i) => { const item = cart[i]; return !!item && !!productModifierMap[item.product_id]?.length; }}
+        onAddons={setEditAddonCartIndex}
         discountActive={!!managerDiscountMeta}
         canDiscount={!isCallCenter && cart.length > 0}
         onDiscount={() => {
