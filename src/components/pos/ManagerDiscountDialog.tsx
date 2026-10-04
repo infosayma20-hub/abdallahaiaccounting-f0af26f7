@@ -200,6 +200,11 @@ export default function ManagerDiscountDialog({
                   ? "bg-amber-500 text-white border-amber-500"
                   : "bg-background border-input hover:bg-accent"
               }`}
+              style={v2
+                ? type === "percent"
+                  ? { background: v2.accent, color: v2.onAccent, borderColor: v2.accent }
+                  : { background: v2.input, color: v2.text, borderColor: v2.border }
+                : undefined}
             >
               <Percent className="h-3.5 w-3.5" />
               نسبة %
@@ -212,6 +217,11 @@ export default function ManagerDiscountDialog({
                   ? "bg-amber-500 text-white border-amber-500"
                   : "bg-background border-input hover:bg-accent"
               }`}
+              style={v2
+                ? type === "fixed"
+                  ? { background: v2.accent, color: v2.onAccent, borderColor: v2.accent }
+                  : { background: v2.input, color: v2.text, borderColor: v2.border }
+                : undefined}
             >
               <Hash className="h-3.5 w-3.5" />
               قيمة ₪
