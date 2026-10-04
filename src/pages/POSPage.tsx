@@ -38,7 +38,7 @@ import {
   Apple, Zap, Coffee, Box, BarChart3, TrendingUp, PlusCircle, Tag,
   Eye, EyeOff, UserCheck, LayoutGrid, Grid3X3, Grid2X2, GripVertical, Check,
   FileText, Keyboard, MoreHorizontal, RefreshCw, ChefHat, Sun, Moon, Phone, MapPin, Send, ClipboardList, Settings,
-  Split, Star, Smartphone,
+  Split, Star, Smartphone, Sparkles, Undo2,
 } from "lucide-react";
 import { useTheme } from "@/hooks/useTheme";
 import TableSelectorBar, { type TableBarItem } from "@/components/pos/TableSelectorBar";
@@ -73,6 +73,10 @@ import { printShiftSummaryImage } from "@/lib/image-print-service";
 import { usePrintBridge, type PrintOrder as BridgePrintOrder } from "@/hooks/usePrintBridge";
 import InventoryInputModal from "@/components/pos/InventoryInputModal";
 import { getPosBusinessDate, DEFAULT_POS_CUTOFF_HOUR } from "@/lib/pos/business-day";
+import POSv2TopBar from "@/components/pos/v2/POSv2TopBar";
+import POSv2Products from "@/components/pos/v2/POSv2Products";
+import POSv2Cart from "@/components/pos/v2/POSv2Cart";
+import { POS_V2_DARK, POS_V2_LIGHT } from "@/components/pos/v2/posV2Theme";
 import BridgeStatusIndicator from "@/components/pos/BridgeStatusIndicator";
 import POSDeliveryPanel from "@/components/pos/POSDeliveryPanel";
 import PurchaseModal from "@/components/pos/PurchaseModal";
@@ -427,7 +431,8 @@ const SortableProductCard = ({ id, children, isSortMode }: {
   return <>{children({ isDragging, style, ref: setNodeRef, listeners: isSortMode ? listeners : {}, attributes })}</>;
 };
 
-const POSPage = () => {
+const POSPage = ({ variant = "v1" }: { variant?: "v1" | "v2" } = {}) => {
+  const isV2 = variant === "v2";
   const posLangCtl = usePosLang();
   const posDir = posLangCtl.dir;
   const navigate = useNavigate();
@@ -519,11 +524,6 @@ const POSPage = () => {
     return (localStorage.getItem("pos-card-size") as "S" | "M" | "L") || "S";
   });
   const [posDarkMode, setPosDarkMode] = useState(() => localStorage.getItem("pos-theme") === "dark");
-  // Demo-skin hook: exposes the POS theme to scoped CSS (body[data-pos-skin]).
-  useEffect(() => {
-    document.body.setAttribute("data-pos-theme", posDarkMode ? "dark" : "light");
-    return () => { document.body.removeAttribute("data-pos-theme"); };
-  }, [posDarkMode]);
   const togglePosDark = useCallback(() => {
     setPosDarkMode(prev => {
       const next = !prev;
@@ -7379,6 +7379,28 @@ const POSPage = () => {
     return () => window.removeEventListener("keydown", handleKey);
   }, [cart, posCategories, products, selectedCategory, addToCart, enforceDeviceGuard, openPaymentModal, isCallCenter, shouldThrottlePrint, buildCartHash, company, session, activeOrder, cartTotals, paymentMethod, showPayment, processing, customerName, selectedEmployee, mealDiscountType, mealDiscountMode, handleCompleteOrder, isAdmin, posPerms]);
 
+  // ── POS v2 (experimental UI) — presentation state only, never persisted ──
+  const [v2Dark, setV2Dark] = useState(true);
+  const [v2CardSize, setV2CardSize] = useState<"S" | "M" | "L">("M");
+  const [v2Width, setV2Width] = useState(() => (typeof window !== "undefined" ? window.innerWidth : 1280));
+  useEffect(() => {
+    if (!isV2) return;
+    const onResize = () => setV2Width(window.innerWidth);
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, [isV2]);
+  useEffect(() => {
+    if (!isV2) return;
+    const onKey = (e: KeyboardEvent) => {
+      const tag = (e.target as HTMLElement)?.tagName;
+      const typing = tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT";
+      if (e.key === "/" && !typing) { e.preventDefault(); searchRef.current?.focus(); return; }
+      if (e.key === "Escape" && document.activeElement === searchRef.current) { setSearchQuery(""); setDebouncedSearch(""); }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [isV2]);
+
   if (loading) {
     return (
       <div className="h-screen flex items-center justify-center bg-background" dir={posDir}>
@@ -7393,50 +7415,108 @@ const POSPage = () => {
     );
   }
 
-  return (
-    <div className="h-screen flex flex-col overflow-hidden pos-container pos-page-root" dir={posDir} lang={posLangCtl.lang} data-pos-layout>
-      <GeneralManagerCelebration authUserId={userId} dataOwnerId={dataOwnerId} />
-      {/* ⛔ Device-level guard — blocks selling when branch/terminal/bridge are missing or in conflict */}
-      <POSDeviceGuard
-        config={deviceConfig}
-        terminalBranchId={terminalBranchId}
-        cashBoxBranchId={cashBoxBranchId}
-      />
-      {/* ⚠️ Soft banner — printing unavailable. Selling continues to work. */}
-      <PrintingNotReadyBanner />
-      {/* ══════ TOP BAR — 52px dark navy ══════ */}
-      <header
-        className="pos-topbar flex items-center px-2 sm:px-3 gap-1.5 sm:gap-2 shrink-0 text-white overflow-x-auto overflow-y-visible no-scrollbar"
-        style={{ height: 52, background: "#0D1B2E", borderBottom: "1px solid rgba(255,255,255,0.1)" }}
-      >
-        {/* ── Right Section: Branch Info ── */}
-        <div className="flex items-center gap-2 shrink-0">
-          <button
-            onClick={() => navigate("/apps", { replace: true })}
-            className="h-9 w-9 rounded-lg flex items-center justify-center hover:bg-white/[0.08] transition-all shrink-0"
-            title={pt("رجوع")}
-          >
-            <ArrowRight className="h-[18px] w-[18px]" style={{ color: "rgba(255,255,255,0.6)" }} />
-          </button>
-          {offlineMode.isOnline ? (
-            <Wifi className="h-[18px] w-[18px] text-white shrink-0" />
-          ) : (
-            <WifiOff className="h-[18px] w-[18px] text-red-400 shrink-0" />
-          )}
-          <BridgeStatusIndicator />
-          {company?.logo_url ? (
-            <img src={company.logo_url} alt={company.name} className="h-8 w-8 rounded-full object-cover shrink-0" style={{ border: '1.5px solid rgba(255,255,255,0.15)' }} />
-          ) : (
-            <div className="h-8 w-8 rounded-full flex items-center justify-center shrink-0" style={{ background: 'rgba(255,255,255,0.1)', border: '1.5px solid rgba(255,255,255,0.15)' }}>
-              <User className="h-4 w-4" style={{ color: 'rgba(255,255,255,0.6)' }} />
-            </div>
-          )}
-          <span className="text-[13px] font-medium whitespace-nowrap shrink-0" style={{ color: "white" }}>
-            {session ? session.cashier_name : (company?.name || "").slice(0, 20)}
-          </span>
-        </div>
-
-        {/* ── Center-Right: Customer Search ── */}
+  const pendingOrdersNode = (
+          <PendingOrdersPanel
+            dataOwnerId={dataOwnerId || ""}
+            branchId={deviceConfig.branchId || detectedBranchId}
+            sessionId={session?.id || null}
+            enabled={!!session && !isCallCenter}
+            onAcceptOrder={(order) => {
+              // 🛡️ Hard guard — never accept call-center orders when device isn't ready
+              if (!enforceDeviceGuard()) return;
+              // 🛡️ Branch match — order MUST belong to this device's branch
+              const expectedBranch = deviceConfig.branchId;
+              if (expectedBranch && order.target_branch_id && order.target_branch_id !== expectedBranch) {
+                toast.error(pt("⛔ هذا الطلب موجّه لفرع آخر — لا يمكن قبوله من هذا الجهاز"));
+                return;
+              }
+              orderCounter.current += 1;
+              const newOrder = createNewOrder(orderCounter.current);
+              newOrder.customerName = order.customer_name || "";
+              newOrder.customerPhone = order.customer_phone || "";
+              newOrder.orderType = order.delivery_type === "delivery" ? "delivery" : "takeaway";
+              newOrder.deliveryAddress = order.delivery_address || "";
+              newOrder.callCenterOrderId = order.id;
+              newOrder.callCenterPaymentMethod = order.payment_method || "cash";
+              newOrder.callCenterCustomerContactId = (order as any).customer_contact_id || null;
+    if ((order as any).customer_contact_id) newOrder.customerId = (order as any).customer_contact_id;
+              newOrder.callCenterSourceApp = order.source_app || null;
+              newOrder.callCenterVisaGlAccountCode = (order as any).visa_gl_account_code || null;
+              newOrder.callCenterSkipWheelsDispatch = !!(order as any).skip_wheels_dispatch;
+              // Build a clean delivery info block from structured data so
+              // cashier + kitchen prints get the same info without injecting
+              // a synthetic cart line.
+              const _info: any = (order as any).delivery_info || null;
+              const _fee = Number((order as any).delivery_fee || 0);
+              const isDelivery = order.delivery_type === "delivery";
+              const deliveryBlock = (isDelivery || _info) ? [
+                _info ? `توصيل: ${_info.city || ""} - ${_info.area || ""}` : "توصيل",
+                _info?.branch_name ? `الفرع: ${_info.branch_name}` : "",
+                _fee > 0 ? `رسوم التوصيل: ₪${_fee.toFixed(2)}${_info?.manually_adjusted ? " (معدّل)" : ""}` : "",
+                order.customer_name ? `الزبون: ${order.customer_name}` : "",
+                order.customer_phone ? `جوال: ${order.customer_phone}` : "",
+              ].filter(Boolean).join(" | ") : [
+                // Takeaway / استلام — still print customer name + phone on the receipt note
+                "استلام",
+                order.customer_name ? `الزبون: ${order.customer_name}` : "",
+                order.customer_phone ? `جوال: ${order.customer_phone}` : "",
+              ].filter(Boolean).join(" | ");
+              newOrder.orderNote = [
+                // Kiosk orders carry their own daily number (K###) so the cashier,
+                // receipt and kitchen ticket can tell them apart from call-center ones.
+                (_info?.source === "kiosk" && _info?.order_number)
+                  ? `طلبية كيوسك ${_info.order_number}`
+                  : "",
+                order.source_app ? `مصدر: ${order.source_app}` : "",
+                order.payment_method === "visa" ? "فيزا" : "نقدي",
+                deliveryBlock,
+                // Use only the customer's free-text portion of the note — the
+                // structured delivery/customer/phone fields are rebuilt above
+                // from `delivery_info`, so re-feeding the composed note here
+                // would duplicate them on every re-accept / re-edit cycle.
+                extractBaseNote(order.order_note),
+              ].filter(Boolean).join(" | ");
+              // Persist the delivery fee + structured info on the order tab so
+              // cartTotals adds it to the final total exactly once, and so the
+              // print/receipt path can render it as its own line — without it
+              // ever becoming a sales item.
+              newOrder.callCenterDeliveryFee = _fee > 0 ? _fee : null;
+              newOrder.callCenterDeliveryInfo = _info;
+              newOrder.cart = (order.items || []).map((item: any, i: number) => {
+                // 🛡️ Numeric hardening (root-cause fix): coerce every numeric
+                // field coming from the call-center JSON to a real number so
+                // a missing / string / null value can never propagate NaN into
+                // the cart totals, payment screen, or receipt template.
+                const qty = Number(item.qty);
+                const unitPrice = Number(item.unit_price);
+                const safeQty = Number.isFinite(qty) && qty > 0 ? qty : 1;
+                const safeUnitPrice = Number.isFinite(unitPrice) ? unitPrice : 0;
+                const rawTotal = Number(item.total);
+                const safeTotal = Number.isFinite(rawTotal) && rawTotal > 0
+                  ? rawTotal
+                  : safeUnitPrice * safeQty;
+                return {
+                  id: crypto.randomUUID(),
+                  product_id: item.product_id || null,
+                  name: item.name,
+                  qty: safeQty,
+                  unit_price: safeUnitPrice,
+                  cost_price: 0,
+                  discount_pct: 0,
+                  tax_rate: 0,
+                  unit: "قطعة",
+                  total: safeTotal,
+                  note: item.note || "",
+                  modifiers: Array.isArray(item.modifiers) ? item.modifiers : [],
+                };
+              });
+              newOrder.name = order.customer_name || "طلب كول سنتر";
+              setOrders(prev => [...prev, newOrder]);
+              setActiveOrderIndex(orders.length);
+            }}
+          />
+  );
+  const customerSearchNode = (
         <div className="relative w-[150px] sm:w-[200px] lg:w-[220px] shrink-0">
           <User className="absolute right-2.5 top-1/2 -translate-y-1/2 h-4 w-4 pointer-events-none" style={{ color: "rgba(255,255,255,0.4)" }} />
           <input
@@ -7579,6 +7659,251 @@ const POSPage = () => {
             </div>
           )}
         </div>
+  );
+  const allOrdersSheetNode = (
+          <AllOrdersSheet
+            open={showAllOrders}
+            onClose={() => setShowAllOrders(false)}
+            orders={orders.map(o => ({
+              id: o.id,
+              name: o.name,
+              itemCount: o.cart.reduce((s, i) => s + i.qty, 0),
+              total: o.cart.reduce((s, i) => s + i.total, 0),
+              tableId: o.tableId,
+              tableName: o.tableName,
+            }))}
+            activeOrderIndex={activeOrderIndex}
+            onSelectOrder={(idx) => setActiveOrderIndex(idx)}
+            onRemoveOrder={(idx) => removeOrder(idx)}
+          />
+  );
+  // ── POS v2 wiring: reuses the exact same state + handlers as v1 ──
+  const v2t = v2Dark ? POS_V2_DARK : POS_V2_LIGHT;
+  const v2OrderTypes: ("takeaway" | "delivery" | "dine_in")[] = (restaurantFeatures || deliveryEnabled)
+    ? [...(restaurantFeatures
+        ? (deliveryEnabled ? (["takeaway", "delivery", "dine_in"] as const) : (["takeaway", "dine_in"] as const))
+        : (["takeaway", "delivery"] as const))]
+    : [];
+  const v2ActiveType: "takeaway" | "delivery" | "dine_in" | null =
+    (activeOrder.orderType === "dine_in" || !!activeOrder.tableId) ? "dine_in"
+    : (activeOrder.orderTypeChosen ? (activeOrder.orderType as any) : null);
+  const v2SelectOrderType = (type: "takeaway" | "delivery" | "dine_in") => {
+    if (type === "dine_in") {
+      if (tablesEnabled) {
+        updateActiveOrder(o => ({ ...o, orderType: "dine_in", orderTypeChosen: true }));
+        setShowTablePicker(!showTablePicker);
+      } else {
+        updateActiveOrder(o => ({ ...o, orderType: "dine_in", orderTypeChosen: true, tableId: null, tableName: null }));
+      }
+    } else {
+      updateActiveOrder(o => ({ ...o, orderType: type, orderTypeChosen: true, tableId: null, tableName: null }));
+      setShowTablePicker(false);
+    }
+  };
+  const v2ClearOrder = async () => {
+    if (cart.length === 0) return;
+    if (!window.confirm("إفراغ الطلب الحالي؟")) return;
+    const tId = activeOrder.tableId;
+    setCart([]); setSelectedCartIndex(null); setOrderDiscount(0); setManagerDiscountMeta(null); setOrderNote(""); setCustomerName("", null, "", null); setCustomerSearch("");
+    updateActiveOrder(o => ({ ...o, orderType: "takeaway", orderTypeChosen: true, deliveryAddress: "", tableId: null, tableName: null, guestCount: 1, guestName: "", name: `طلب ${o.name.match(/\d+/)?.[0] || "1"}` }));
+    if (tId) {
+      await supabase.from("restaurant_tables").update({ status: "available" } as any).eq("id", tId);
+      setAvailableTables(prev => prev.map(t => t.id === tId ? { ...t, status: "available" } : t));
+    }
+  };
+  const v2NewOrder = () => {
+    orderCounter.current += 1;
+    const newOrder = createNewOrder(orderCounter.current);
+    setOrders(prev => [...prev, newOrder]);
+    setActiveOrderIndex(orders.length);
+  };
+  const v2SearchEnter = () => {
+    const q = searchQuery.trim();
+    if (!q) return;
+    const exact = findProductByCode(q);
+    if (exact) { handleBarcodeScan(q); return; }
+    if (/^\d{13}$/.test(q) && tryScaleBarcode(q)) return;
+    if (filteredProducts.length === 1) {
+      addToCart(filteredProducts[0]);
+      setSearchQuery("");
+      setDebouncedSearch("");
+    } else if (filteredProducts.length === 0) {
+      toast.error(`لا توجد نتائج لـ "${q}"`, { duration: 2500 });
+    }
+  };
+  const v2CloseShift = () => {
+    if (!window.confirm("إغلاق نقطة البيع وإنهاء الوردية؟")) return;
+    if (isCallCenter) { handleCallCenterCloseShift(); return; }
+    if (session && session.cash_box_id == null) {
+      toast.warning(pt("تنبيه: لا يوجد صندوق مرتبط بهذه الوردية. سيظهر مربع العد كالمعتاد — راجع الإدارة بعد الإغلاق."));
+    }
+    setShowCloseShift(true);
+  };
+  const v2ShiftLine = session?.opened_at
+    ? `وردية مفتوحة ${new Date(session.opened_at).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Hebron" })}`
+    : "";
+  const v2HeldCount = orders.filter((o, i) => i !== activeOrderIndex && o.cart.length > 0).length;
+  const v2MenuIcon = (I: any) => <I style={{ width: 16, height: 16 }} />;
+  const v2MenuItems = [
+    { key: "back-v1", label: "العودة للواجهة الحالية", icon: v2MenuIcon(Undo2), onClick: () => navigate("/pos") },
+    { key: "apps", label: "رجوع للتطبيقات", icon: v2MenuIcon(ArrowRight), onClick: () => navigate("/apps", { replace: true }) },
+    ...(loyaltyEnabled ? [{ key: "loyalty", label: "زبون الولاء", icon: v2MenuIcon(Star), onClick: () => setShowLoyaltyPicker(true) }] : []),
+    ...(!isMalakyTenant ? [{ key: "tables", label: "الطاولات", icon: v2MenuIcon(UtensilsCrossed), onClick: () => navigate("/pos/floor-plan") }] : []),
+    ...(session && (isAdmin || posPerms.can_add_inventory) ? [{ key: "inv", label: "إدخال بضاعة", icon: v2MenuIcon(Package), onClick: () => setShowInventoryInput(true) }] : []),
+    ...(session && (isAdmin || posPerms.can_record_purchases) ? [{ key: "pur", label: "تسجيل مشتريات", icon: v2MenuIcon(ShoppingBag), onClick: () => setShowPurchaseModal(true) }] : []),
+    ...(session ? [{ key: "exp", label: "صرف مصروف", icon: v2MenuIcon(Receipt), onClick: () => { if (expenseManager) setShowExpenseDialog(true); else setShowExpenseManagerUnlock(true); } }] : []),
+    { key: "cust", label: "قاعدة بيانات الزبائن", icon: v2MenuIcon(UserCheck), onClick: () => navigate("/pos-customers") },
+    { key: "sync", label: "سجل المزامنة", icon: v2MenuIcon(RefreshCw), onClick: () => setShowSyncLog(true) },
+    { key: "keys", label: "اختصارات لوحة المفاتيح", icon: v2MenuIcon(Keyboard), onClick: () => setShowShortcutsGuide(true) },
+    { key: "fs", label: "ملء الشاشة", icon: v2MenuIcon(Monitor), onClick: () => { if (!document.fullscreenElement) document.documentElement.requestFullscreen(); else document.exitFullscreen(); } },
+    ...((isAdmin || posPerms.can_close_register) && posFeatPerm.can("sell", "close_shift")
+      ? [{ key: "close", label: "إغلاق نقطة البيع", icon: v2MenuIcon(X), danger: true, onClick: v2CloseShift }] : []),
+  ];
+  const v2CatIdByName: Record<string, string> = Object.fromEntries(posCategories.map(c => [c.name, c.id]));
+  const v2CartWidth = v2Width < 1180 ? 360 : 400;
+  const v2Subtotal = cart.reduce((s, i) => s + (Number(i.total) || 0), 0);
+  const v2Pieces = cart.reduce((s, i) => s + (Number(i.qty) || 0), 0);
+  const v2PayTotal = customerDataDiscount ? cartTotals.total - customerDataDiscount.discountAmount : cartTotals.total;
+
+  const v2TopBarNode = isV2 ? (
+    <POSv2TopBar
+      t={v2t}
+      cashierName={session ? session.cashier_name : (company?.name || "")}
+      shiftLine={v2ShiftLine}
+      logoUrl={company?.logo_url || null}
+      searchRef={searchRef}
+      searchQuery={searchQuery}
+      onSearchChange={setSearchQuery}
+      onSearchEnter={v2SearchEnter}
+      onCameraScan={() => setShowBarcodeScanner(true)}
+      heldCount={v2HeldCount}
+      onHeld={() => setShowAllOrders(true)}
+      showKitchen={!isMalakyTenant}
+      onKitchen={() => navigate("/pos/kitchen")}
+      notificationsNode={pendingOrdersNode}
+      canInvoices={isAdmin || !!posPerms.can_view_invoice_history || !!posPerms.view_invoice_log}
+      onInvoices={() => setShowInvoiceHistory(true)}
+      menuItems={v2MenuItems}
+      onToggleTheme={() => setV2Dark(d => !d)}
+    />
+  ) : null;
+
+  const v2MainNode = isV2 ? (
+    <div className="flex-1 min-h-0 flex flex-row overflow-hidden" dir="rtl" style={{ background: v2t.bg, fontFamily: "Cairo, sans-serif" }}>
+      <POSv2Products
+        t={v2t}
+        categories={categoriesWithCounts.categories}
+        allCount={categoriesWithCounts.all}
+        uncategorizedCount={categoriesWithCounts.uncategorized}
+        selected={selectedCategory}
+        onSelect={setSelectedCategory}
+        products={filteredProducts as any}
+        displayName={(pr) => pname(pr as any)}
+        qtyMap={cartQtyMap}
+        onAdd={(pr) => { if (!isSortMode) addToCart(pr as any); }}
+        cardSize={v2CardSize}
+        onCardSize={setV2CardSize}
+        canManage={isAdmin || !!posPerms.manage_products_categories}
+        onAddCategory={() => setShowCategoryManager(true)}
+        onAddProduct={() => setShowAddProduct(true)}
+        onSortMode={() => setIsSortMode(!isSortMode)}
+        isSortMode={isSortMode}
+        catIdByName={v2CatIdByName}
+        narrow={v2Width < 1180}
+      />
+      {allOrdersSheetNode}
+      <POSv2Cart
+        t={v2t}
+        width={v2CartWidth}
+        orders={orders.map(o => ({ id: o.id, label: o.customerName || o.name, count: o.cart.reduce((s, i) => s + i.qty, 0) }))}
+        activeIndex={activeOrderIndex}
+        onSelectOrder={setActiveOrderIndex}
+        onNewOrder={v2NewOrder}
+        onClearOrder={v2ClearOrder}
+        orderTypes={v2OrderTypes}
+        activeType={v2ActiveType}
+        onOrderType={v2SelectOrderType}
+        customerName={customerName}
+        onClearCustomer={() => { setCustomerSearch(""); setCustomerName("", null, "", null); }}
+        customerNode={customerSearchNode}
+        lines={cart as any}
+        lineName={(l) => pname(l as any)}
+        onQty={(i, q) => updateCartItem(i, "qty", q)}
+        onRemove={removeFromCart}
+        canRemove={isAdmin || !!posPerms.can_remove_cart_items}
+        onLineTap={(i) => { const it = cart[i]; if (it && productModifierMap[it.product_id]?.length) setEditAddonCartIndex(i); else setSelectedCartIndex(i); }}
+        discountActive={!!managerDiscountMeta}
+        canDiscount={!isCallCenter && cart.length > 0}
+        onDiscount={() => {
+          if (managerDiscountMeta) { setOrderDiscount(0); setManagerDiscountMeta(null); setOrderDiscountType("fixed"); }
+          else setShowManagerDiscountDialog(true);
+        }}
+        orderNote={orderNote}
+        onOrderNote={setOrderNote}
+        onHold={v2NewOrder}
+        subtotal={v2Subtotal}
+        pieces={v2Pieces}
+        discount={cartTotals.discount || 0}
+        tax={cartTotals.tax || 0}
+        total={cartTotals.total}
+        payTotal={v2PayTotal}
+        showPay={!isCallCenter}
+        canPay={cart.length > 0 && !!session}
+        onPay={openPaymentModal}
+        onSave={handleSaveToTable}
+        saveDisabled={savingToTable || cart.length === 0}
+        showPrint={!isCallCenter && restaurantFeatures}
+        onPrint={() => { if (shouldThrottlePrint("F9")) return; handleSendToKitchen(); }}
+        onMore={() => setShowAllOrders(true)}
+      />
+    </div>
+  ) : null;
+
+  return (
+    <div className="h-screen flex flex-col overflow-hidden pos-container pos-page-root" dir={posDir} lang={posLangCtl.lang} data-pos-layout>
+      <GeneralManagerCelebration authUserId={userId} dataOwnerId={dataOwnerId} />
+      {/* ⛔ Device-level guard — blocks selling when branch/terminal/bridge are missing or in conflict */}
+      <POSDeviceGuard
+        config={deviceConfig}
+        terminalBranchId={terminalBranchId}
+        cashBoxBranchId={cashBoxBranchId}
+      />
+      {/* ⚠️ Soft banner — printing unavailable. Selling continues to work. */}
+      <PrintingNotReadyBanner />
+      {/* ══════ TOP BAR — 52px dark navy ══════ */}
+      {isV2 ? v2TopBarNode : (
+      <header
+        className="pos-topbar flex items-center px-2 sm:px-3 gap-1.5 sm:gap-2 shrink-0 text-white overflow-x-auto overflow-y-visible no-scrollbar"
+        style={{ height: 52, background: "#0D1B2E", borderBottom: "1px solid rgba(255,255,255,0.1)" }}
+      >
+        {/* ── Right Section: Branch Info ── */}
+        <div className="flex items-center gap-2 shrink-0">
+          <button
+            onClick={() => navigate("/apps", { replace: true })}
+            className="h-9 w-9 rounded-lg flex items-center justify-center hover:bg-white/[0.08] transition-all shrink-0"
+            title={pt("رجوع")}
+          >
+            <ArrowRight className="h-[18px] w-[18px]" style={{ color: "rgba(255,255,255,0.6)" }} />
+          </button>
+          {offlineMode.isOnline ? (
+            <Wifi className="h-[18px] w-[18px] text-white shrink-0" />
+          ) : (
+            <WifiOff className="h-[18px] w-[18px] text-red-400 shrink-0" />
+          )}
+          <BridgeStatusIndicator />
+          {company?.logo_url ? (
+            <img src={company.logo_url} alt={company.name} className="h-8 w-8 rounded-full object-cover shrink-0" style={{ border: '1.5px solid rgba(255,255,255,0.15)' }} />
+          ) : (
+            <div className="h-8 w-8 rounded-full flex items-center justify-center shrink-0" style={{ background: 'rgba(255,255,255,0.1)', border: '1.5px solid rgba(255,255,255,0.15)' }}>
+              <User className="h-4 w-4" style={{ color: 'rgba(255,255,255,0.6)' }} />
+            </div>
+          )}
+          <span className="text-[13px] font-medium whitespace-nowrap shrink-0" style={{ color: "white" }}>
+            {session ? session.cashier_name : (company?.name || "").slice(0, 20)}
+          </span>
+        </div>
+
+        {customerSearchNode}
 
         {/* ── Center: Search Bar + Camera Scan ── */}
         <div className="relative flex-1 min-w-0 max-w-[180px] sm:max-w-[240px] lg:max-w-[300px] flex items-center gap-1">
@@ -7680,106 +8005,7 @@ const POSPage = () => {
             </button>
           )}
 
-          {/* Notifications / Pending Orders */}
-          <PendingOrdersPanel
-            dataOwnerId={dataOwnerId || ""}
-            branchId={deviceConfig.branchId || detectedBranchId}
-            sessionId={session?.id || null}
-            enabled={!!session && !isCallCenter}
-            onAcceptOrder={(order) => {
-              // 🛡️ Hard guard — never accept call-center orders when device isn't ready
-              if (!enforceDeviceGuard()) return;
-              // 🛡️ Branch match — order MUST belong to this device's branch
-              const expectedBranch = deviceConfig.branchId;
-              if (expectedBranch && order.target_branch_id && order.target_branch_id !== expectedBranch) {
-                toast.error(pt("⛔ هذا الطلب موجّه لفرع آخر — لا يمكن قبوله من هذا الجهاز"));
-                return;
-              }
-              orderCounter.current += 1;
-              const newOrder = createNewOrder(orderCounter.current);
-              newOrder.customerName = order.customer_name || "";
-              newOrder.customerPhone = order.customer_phone || "";
-              newOrder.orderType = order.delivery_type === "delivery" ? "delivery" : "takeaway";
-              newOrder.deliveryAddress = order.delivery_address || "";
-              newOrder.callCenterOrderId = order.id;
-              newOrder.callCenterPaymentMethod = order.payment_method || "cash";
-              newOrder.callCenterCustomerContactId = (order as any).customer_contact_id || null;
-    if ((order as any).customer_contact_id) newOrder.customerId = (order as any).customer_contact_id;
-              newOrder.callCenterSourceApp = order.source_app || null;
-              newOrder.callCenterVisaGlAccountCode = (order as any).visa_gl_account_code || null;
-              newOrder.callCenterSkipWheelsDispatch = !!(order as any).skip_wheels_dispatch;
-              // Build a clean delivery info block from structured data so
-              // cashier + kitchen prints get the same info without injecting
-              // a synthetic cart line.
-              const _info: any = (order as any).delivery_info || null;
-              const _fee = Number((order as any).delivery_fee || 0);
-              const isDelivery = order.delivery_type === "delivery";
-              const deliveryBlock = (isDelivery || _info) ? [
-                _info ? `توصيل: ${_info.city || ""} - ${_info.area || ""}` : "توصيل",
-                _info?.branch_name ? `الفرع: ${_info.branch_name}` : "",
-                _fee > 0 ? `رسوم التوصيل: ₪${_fee.toFixed(2)}${_info?.manually_adjusted ? " (معدّل)" : ""}` : "",
-                order.customer_name ? `الزبون: ${order.customer_name}` : "",
-                order.customer_phone ? `جوال: ${order.customer_phone}` : "",
-              ].filter(Boolean).join(" | ") : [
-                // Takeaway / استلام — still print customer name + phone on the receipt note
-                "استلام",
-                order.customer_name ? `الزبون: ${order.customer_name}` : "",
-                order.customer_phone ? `جوال: ${order.customer_phone}` : "",
-              ].filter(Boolean).join(" | ");
-              newOrder.orderNote = [
-                // Kiosk orders carry their own daily number (K###) so the cashier,
-                // receipt and kitchen ticket can tell them apart from call-center ones.
-                (_info?.source === "kiosk" && _info?.order_number)
-                  ? `طلبية كيوسك ${_info.order_number}`
-                  : "",
-                order.source_app ? `مصدر: ${order.source_app}` : "",
-                order.payment_method === "visa" ? "فيزا" : "نقدي",
-                deliveryBlock,
-                // Use only the customer's free-text portion of the note — the
-                // structured delivery/customer/phone fields are rebuilt above
-                // from `delivery_info`, so re-feeding the composed note here
-                // would duplicate them on every re-accept / re-edit cycle.
-                extractBaseNote(order.order_note),
-              ].filter(Boolean).join(" | ");
-              // Persist the delivery fee + structured info on the order tab so
-              // cartTotals adds it to the final total exactly once, and so the
-              // print/receipt path can render it as its own line — without it
-              // ever becoming a sales item.
-              newOrder.callCenterDeliveryFee = _fee > 0 ? _fee : null;
-              newOrder.callCenterDeliveryInfo = _info;
-              newOrder.cart = (order.items || []).map((item: any, i: number) => {
-                // 🛡️ Numeric hardening (root-cause fix): coerce every numeric
-                // field coming from the call-center JSON to a real number so
-                // a missing / string / null value can never propagate NaN into
-                // the cart totals, payment screen, or receipt template.
-                const qty = Number(item.qty);
-                const unitPrice = Number(item.unit_price);
-                const safeQty = Number.isFinite(qty) && qty > 0 ? qty : 1;
-                const safeUnitPrice = Number.isFinite(unitPrice) ? unitPrice : 0;
-                const rawTotal = Number(item.total);
-                const safeTotal = Number.isFinite(rawTotal) && rawTotal > 0
-                  ? rawTotal
-                  : safeUnitPrice * safeQty;
-                return {
-                  id: crypto.randomUUID(),
-                  product_id: item.product_id || null,
-                  name: item.name,
-                  qty: safeQty,
-                  unit_price: safeUnitPrice,
-                  cost_price: 0,
-                  discount_pct: 0,
-                  tax_rate: 0,
-                  unit: "قطعة",
-                  total: safeTotal,
-                  note: item.note || "",
-                  modifiers: Array.isArray(item.modifiers) ? item.modifiers : [],
-                };
-              });
-              newOrder.name = order.customer_name || "طلب كول سنتر";
-              setOrders(prev => [...prev, newOrder]);
-              setActiveOrderIndex(orders.length);
-            }}
-          />
+          {pendingOrdersNode}
 
           {/* Kitchen — hidden for Malaky (unused) */}
           {!isMalakyTenant && (
@@ -7871,6 +8097,9 @@ const POSPage = () => {
                   )}
                 </button>
                 <div className="border-t border-gray-200 my-1" />
+                <button className="w-full text-right px-4 py-2 text-xs flex items-center gap-2 hover:bg-gray-100 transition-colors" onClick={() => { setShowOpsDropdown(false); navigate("/pos-v2"); }}>
+                  <Sparkles className="h-3.5 w-3.5" style={{ color: "#4A9EE8" }} /> تجربة الواجهة الجديدة
+                </button>
                 <button className="w-full text-right px-4 py-2 text-xs flex items-center gap-2 hover:bg-gray-100 transition-colors" onClick={() => setShowShortcutsGuide(true)}>
                   <Keyboard className="h-3.5 w-3.5" style={{ color: "#4A9EE8" }} /> اختصارات لوحة المفاتيح
                 </button>
@@ -7966,6 +8195,7 @@ const POSPage = () => {
           )}
         </div>
       </header>
+      )}
 
       {/* ══════ OFFLINE STATUS BAR — hidden, data kept in sync log ══════ */}
 
@@ -7985,6 +8215,7 @@ const POSPage = () => {
 
       {/* ══════ MAIN ══════ */}
       <div className="flex-1 flex flex-col md:flex-row overflow-hidden">
+        {isV2 ? v2MainNode : (<>
         {/* ── LEFT: Products ── */}
         <div className={`flex-1 min-h-0 flex flex-col min-w-0 ${posDarkMode ? 'pos-dark' : 'pos-light'}`} style={{ background: posDarkMode ? '#0a1628' : '#f1f5f9', transition: 'background-color 0.2s ease' }}>
 
@@ -8352,22 +8583,7 @@ const POSPage = () => {
             </button>
           </div>
 
-          {/* All Orders Sheet */}
-          <AllOrdersSheet
-            open={showAllOrders}
-            onClose={() => setShowAllOrders(false)}
-            orders={orders.map(o => ({
-              id: o.id,
-              name: o.name,
-              itemCount: o.cart.reduce((s, i) => s + i.qty, 0),
-              total: o.cart.reduce((s, i) => s + i.total, 0),
-              tableId: o.tableId,
-              tableName: o.tableName,
-            }))}
-            activeOrderIndex={activeOrderIndex}
-            onSelectOrder={(idx) => setActiveOrderIndex(idx)}
-            onRemoveOrder={(idx) => removeOrder(idx)}
-          />
+          {allOrdersSheetNode}
 
           {/* Order Type Pills */}
           {/* Phase A: in retail/service mode hide dine-in (tables) but keep takeaway+delivery.
@@ -9162,6 +9378,7 @@ const POSPage = () => {
             </div>
           </div>
         </div>
+        </>)}
       </div>
 
       {/* ══════ MODALS ══════ */}

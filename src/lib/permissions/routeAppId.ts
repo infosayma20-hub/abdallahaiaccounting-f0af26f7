@@ -8,6 +8,7 @@
 /** Simple prefix map: first match wins (longest prefixes listed first). */
 const ROUTE_TO_APP_ID: Array<[string, string]> = [
   ["/pos-users", "pos"],
+  ["/pos-v2", "pos"],
   ["/pos", "pos"],
   ["/employees", "hr"],
   ["/hr", "hr"],

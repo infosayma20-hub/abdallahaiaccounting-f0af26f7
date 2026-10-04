@@ -784,6 +784,7 @@ const App = () => (
               <Route path="/device-setup" element={<ProtectedRoute><DeviceSetupGuard><DeviceSetupPage /></DeviceSetupGuard></ProtectedRoute>} />
               <Route path="/onboarding/new-device" element={<ProtectedRoute><DeviceSetupGuard><NewDeviceOnboardingPage /></DeviceSetupGuard></ProtectedRoute>} />
               <Route path="/pos" element={<ProtectedRoute><ModuleGuard><POSDeviceAuthGuard><POSPage /></POSDeviceAuthGuard></ModuleGuard></ProtectedRoute>} />
+              <Route path="/pos-v2" element={<ProtectedRoute><ModuleGuard><POSDeviceAuthGuard><POSPage variant="v2" /></POSDeviceAuthGuard></ModuleGuard></ProtectedRoute>} />
               <Route path="/pos/floor-plan" element={<ProtectedRoute><ModuleGuard><FloorPlanPage /></ModuleGuard></ProtectedRoute>} />
               <Route path="/pos/diagnostics" element={<ProtectedRoute><POSDiagnosticsPage /></ProtectedRoute>} />
               <Route path="/pos/floor-plan/edit" element={<ProtectedRoute><ModuleGuard><FloorPlanEditorPage /></ModuleGuard></ProtectedRoute>} />
