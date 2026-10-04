@@ -2,6 +2,7 @@ import { useState, type ReactNode, type RefObject } from "react";
 import { Search, Barcode, Printer, PauseCircle, ChefHat, FileText, MoreHorizontal, Sun, Moon, CircleStop } from "lucide-react";
 import type { PosV2Tokens } from "./posV2Theme";
 import { usePrinterOnline } from "./usePrinterOnline";
+import BridgeStatusIndicator from "@/components/pos/BridgeStatusIndicator";
 
 export type PosV2MenuItem = { key: string; label: string; icon?: ReactNode; onClick: () => void; danger?: boolean };
 
@@ -116,6 +117,10 @@ export default function POSv2TopBar(p: Props) {
         <div className="flex flex-col items-center justify-center shrink-0" style={{ minWidth: 56, height: 52, gap: 2 }} title="الطلبات والتنبيهات المعلقة">
           <div className="pos-v2-notif" style={{ color: t.text }}>{p.notificationsNode}</div>
           <span style={{ fontSize: 11, color: t.muted, fontWeight: 600 }}>التنبيهات</span>
+        </div>
+        <div className="flex flex-col items-center justify-center shrink-0" style={{ minWidth: 56, height: 52, gap: 2 }} title="حالة الطابعات">
+          <div className="pos-v2-printer" style={{ color: t.text }}><BridgeStatusIndicator /></div>
+          <span style={{ fontSize: 11, color: t.muted, fontWeight: 600 }}>الطابعات</span>
         </div>
         {p.canInvoices && <IconBtn t={t} label="الفواتير" onClick={p.onInvoices}><FileText style={{ width: 20, height: 20 }} strokeWidth={1.8} /></IconBtn>}
         <div className="relative">
