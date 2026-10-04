@@ -7399,9 +7399,10 @@ const POSPage = ({ variant = "v1" }: { variant?: "v1" | "v2" } = {}) => {
   const [v2Dark, setV2Dark] = useState(true);
   const [v2CardSize, setV2CardSize] = useState<"S" | "M" | "L">("M");
   const [v2Width, setV2Width] = useState(() => (typeof window !== "undefined" ? window.innerWidth : 1280));
+  const [v2Height, setV2Height] = useState(() => (typeof window !== "undefined" ? window.innerHeight : 900));
   useEffect(() => {
     if (!isV2) return;
-    const onResize = () => setV2Width(window.innerWidth);
+    const onResize = () => { setV2Width(window.innerWidth); setV2Height(window.innerHeight); };
     window.addEventListener("resize", onResize);
     return () => window.removeEventListener("resize", onResize);
   }, [isV2]);
@@ -7865,10 +7866,30 @@ const POSPage = ({ variant = "v1" }: { variant?: "v1" | "v2" } = {}) => {
         onCategoryDragEnd={handleCategoryDragEnd}
         dndSensors={dndSensors}
       />
+      {/* Same addon picker as /pos: products with modifier groups open it instead of adding directly. */}
+      {(() => {
+        if (!openAddonProductId) return null;
+        const product = products.find(pr => pr.id === openAddonProductId);
+        const addonGroups = product ? modifierGroups.filter(g => productModifierMap[product.id]?.includes(g.id)) : [];
+        if (!product || addonGroups.length === 0) return null;
+        return (
+          <InlineAddonPanel
+            product={{ id: product.id, name: product.name, sell_price: product.sell_price }}
+            groups={addonGroups}
+            onConfirm={(data) => {
+              addToCartDirect(product, data.modifiers, data.note, data.quantity);
+              setOpenAddonProductId(null);
+              toast.success(`✓ أضيف للطلب — ${product.name}`);
+            }}
+            onClose={() => setOpenAddonProductId(null)}
+          />
+        );
+      })()}
       {allOrdersSheetNode}
       <POSv2Cart
         t={v2t}
         width={v2CartWidth}
+        compact={v2Height < 860}
         orders={orders.map(o => ({ id: o.id, label: o.customerName || o.name, count: o.cart.reduce((s, i) => s + i.qty, 0) }))}
         activeIndex={activeOrderIndex}
         onSelectOrder={setActiveOrderIndex}
