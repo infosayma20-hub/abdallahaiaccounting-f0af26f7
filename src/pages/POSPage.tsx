@@ -524,11 +524,6 @@ const POSPage = ({ variant = "v1" }: { variant?: "v1" | "v2" } = {}) => {
     return (localStorage.getItem("pos-card-size") as "S" | "M" | "L") || "S";
   });
   const [posDarkMode, setPosDarkMode] = useState(() => localStorage.getItem("pos-theme") === "dark");
-  // Demo-skin hook: exposes the POS theme to scoped CSS (body[data-pos-skin]).
-  useEffect(() => {
-    document.body.setAttribute("data-pos-theme", posDarkMode ? "dark" : "light");
-    return () => { document.body.removeAttribute("data-pos-theme"); };
-  }, [posDarkMode]);
   const togglePosDark = useCallback(() => {
     setPosDarkMode(prev => {
       const next = !prev;
