@@ -519,6 +519,11 @@ const POSPage = () => {
     return (localStorage.getItem("pos-card-size") as "S" | "M" | "L") || "S";
   });
   const [posDarkMode, setPosDarkMode] = useState(() => localStorage.getItem("pos-theme") === "dark");
+  // Demo-skin hook: exposes the POS theme to scoped CSS (body[data-pos-skin]).
+  useEffect(() => {
+    document.body.setAttribute("data-pos-theme", posDarkMode ? "dark" : "light");
+    return () => { document.body.removeAttribute("data-pos-theme"); };
+  }, [posDarkMode]);
   const togglePosDark = useCallback(() => {
     setPosDarkMode(prev => {
       const next = !prev;
@@ -7401,7 +7406,7 @@ const POSPage = () => {
       <PrintingNotReadyBanner />
       {/* ══════ TOP BAR — 52px dark navy ══════ */}
       <header
-        className="flex items-center px-2 sm:px-3 gap-1.5 sm:gap-2 shrink-0 text-white overflow-x-auto overflow-y-visible no-scrollbar"
+        className="pos-topbar flex items-center px-2 sm:px-3 gap-1.5 sm:gap-2 shrink-0 text-white overflow-x-auto overflow-y-visible no-scrollbar"
         style={{ height: 52, background: "#0D1B2E", borderBottom: "1px solid rgba(255,255,255,0.1)" }}
       >
         {/* ── Right Section: Branch Info ── */}
@@ -8148,6 +8153,7 @@ const POSPage = () => {
                               ...style,
                               borderBottomWidth: cardSize === "S" ? "2px" : "3px",
                               borderBottomColor: isSortMode ? "hsl(var(--primary))" : productColor + "60",
+                              ["--pos-cat" as any]: productColor,
                               zIndex: isAddonOpen ? 10 : "auto",
                             }}
                           >
@@ -9007,7 +9013,7 @@ const POSPage = () => {
               {!isCallCenter && (
                 <motion.button
                   whileTap={{ scale: 0.99 }}
-                  className="w-full h-[44px] rounded-lg text-[14px] font-bold flex items-center justify-center gap-2 disabled:opacity-40 disabled:pointer-events-none"
+                  className="pos-pay-btn w-full h-[44px] rounded-lg text-[14px] font-bold flex items-center justify-center gap-2 disabled:opacity-40 disabled:pointer-events-none"
                   style={{ backgroundColor: '#16a34a', color: 'white', border: 'none', transition: 'all 0.15s ease' }}
                   onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#15803d'; }}
                   onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = '#16a34a'; }}
