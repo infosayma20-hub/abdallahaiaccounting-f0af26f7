@@ -3207,14 +3207,14 @@ const POSPage = ({ variant = "v1" }: { variant?: "v1" | "v2" } = {}) => {
       // Hide categories that have no POS-available products (e.g. all their
       // items were switched off via "غير متاح في نقطة البيع"). Keep the
       // currently selected chip so the UI never loses its active tab.
-      .filter(c => c.count > 0 || c.name === selectedCategory);
+      .filter(c => isV2 || c.count > 0 || c.name === selectedCategory);
 
     const uncategorized = posProducts.filter(p =>
       !p.pos_category_id && p.category !== "عام" && !mergedCategories.some(c => c.name === p.category)
     ).length;
 
     return { all: totalCount, categories: catCounts, uncategorized };
-  }, [products, posCategories, visiblePosCategories, selectedCategory]);
+  }, [products, posCategories, visiblePosCategories, selectedCategory, isV2]);
 
   const filteredProducts = useMemo(() => {
     const hiddenCatIds = new Set(
