@@ -113,15 +113,29 @@ const TEMPLATE_CATEGORY_LABELS: Record<string, string> = {
 
 /** Legacy built-in "custom" form types have no template row — map them to a category. */
 const BUILTIN_CUSTOM_CATEGORY: Record<string, string> = {
-  facility_quality: 'quality',
+  // «جودة المرافق» reports come from branch staff (وسيم وغيره) — they are
+  // operational facility reports, not quality-manager reports.
+  facility_quality: 'operations',
   equipment_issue: 'operations',
   equipment_fault: 'operations',
   inventory_balance: 'operations',
   stock_balance: 'operations',
 };
 
-const customCategoryOf = (r: { formType: string; templateCategory?: string | null }) =>
-  r.templateCategory || BUILTIN_CUSTOM_CATEGORY[r.formType] || 'general';
+/**
+ * Quality managers whose custom reports belong under «جودة» regardless of the
+ * template's stored category (تقرير مدير الجودة اليومي is filed as operations
+ * in the templates table). Matched on stable name parts to avoid collisions
+ * (e.g. «شهد … سلطان» must not match).
+ */
+const QUALITY_MANAGER_NAME_PARTS = ['سلطان محمد مجدي', 'وضاح جودت'];
+const isQualityManager = (employeeName?: string | null) =>
+  !!employeeName && QUALITY_MANAGER_NAME_PARTS.some(p => employeeName.includes(p));
+
+const customCategoryOf = (r: { formType: string; employeeName?: string | null; templateCategory?: string | null }) => {
+  if (isQualityManager(r.employeeName)) return 'quality';
+  return r.templateCategory || BUILTIN_CUSTOM_CATEGORY[r.formType] || 'general';
+};
 
 const statusLabels: Record<string, { label: string; color: string; bg: string }> = {
   pending: { label: 'قيد المراجعة', color: '#FBBF24', bg: 'rgba(251,191,36,0.15)' },
