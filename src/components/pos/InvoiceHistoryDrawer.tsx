@@ -1011,9 +1011,10 @@ export default function InvoiceHistoryDrawer({
         animate={{ x: 0 }}
         exit={{ x: "100%" }}
         transition={{ type: "spring", damping: 30, stiffness: 300 }}
+        dir={experimentalLayout ? "rtl" : undefined}
         className={`fixed z-[1000] flex flex-col pos-readable ${experimentalLayout ? "pos-v2-invoice-list" : "right-0 top-0 h-full"}`}
         style={{
-          width: experimentalLayout ? 384 : 480,
+          width: experimentalLayout ? "min(460px, calc(100vw - 24px))" : 480,
           background: experimentalLayout ? "hsl(var(--pos-invoice-surface))" : "white",
           boxShadow: experimentalLayout ? "var(--pos-invoice-shadow)" : "-8px 0 32px rgba(10,35,66,0.2)",
         }}
@@ -1307,7 +1308,7 @@ export default function InvoiceHistoryDrawer({
 
       {/* ══════ DETAIL MODAL ══════ */}
       <Dialog open={!!selectedOrder} onOpenChange={() => setSelectedOrder(null)}>
-        <DialogContent className={experimentalLayout ? "pos-v2-invoice-detail z-[1100] overflow-y-auto" : "max-w-2xl w-[95vw] max-h-[90vh] overflow-y-auto z-[1100] bg-white"} style={{ fontFamily: "Tajawal, sans-serif", color: "#0F172A" }}>
+        <DialogContent dir={experimentalLayout ? "rtl" : undefined} className={experimentalLayout ? "pos-v2-invoice-detail z-[1100] overflow-y-auto" : "max-w-2xl w-[95vw] max-h-[90vh] overflow-y-auto z-[1100] bg-white"} style={{ fontFamily: "Tajawal, sans-serif", color: "#0F172A" }}>
           {selectedOrder && (
             <>
               {(() => {
