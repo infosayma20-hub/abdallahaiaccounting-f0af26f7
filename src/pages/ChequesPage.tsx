@@ -272,8 +272,18 @@ const ChequesPage = () => {
 
   const fetchContacts = useCallback(async () => {
     if (!user) return;
-    const { data } = await supabase.from('contacts').select('id, contact_name, contact_type, linked_account_code').eq('user_id', ownerId).eq('is_active', true).neq('is_archived', true);
-    setContacts(data || []);
+    // Paginate: tenants exceed PostgREST's 1000-row cap (17k+ contacts),
+    // otherwise suppliers/customers silently go missing from pickers.
+    const all: any[] = [];
+    for (let from = 0; ; from += 1000) {
+      const { data, error } = await supabase.from('contacts').select('id, contact_name, contact_type, linked_account_code')
+        .eq('user_id', ownerId).eq('is_active', true).neq('is_archived', true)
+        .order('id').range(from, from + 999);
+      if (error || !data) break;
+      all.push(...data);
+      if (data.length < 1000) break;
+    }
+    setContacts(all);
   }, [user, ownerId]);
 
   const fetchCheques = useCallback(async () => {
