@@ -56,6 +56,7 @@ export default function ManagerDiscountDialog({
   sessionId,
   cashierName,
   orderSubtotal,
+  v2Theme,
 }: Props) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
