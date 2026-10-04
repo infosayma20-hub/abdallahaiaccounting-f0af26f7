@@ -7906,7 +7906,7 @@ const POSPage = ({ variant = "v1" }: { variant?: "v1" | "v2" } = {}) => {
         onQty={(i, q) => updateCartItem(i, "qty", q)}
         onRemove={removeFromCart}
         canRemove={isAdmin || !!posPerms.can_remove_cart_items}
-        onLineTap={(i) => setSelectedCartIndex(prev => (prev === i ? null : i))}
+        onLineTap={(i) => setSelectedCartIndex(selectedCartIndex === i ? null : i)}
         selectedLineIndex={selectedCartIndex}
         onLineNote={(i, note) => setCart(prev => {
           const next = [...prev];
