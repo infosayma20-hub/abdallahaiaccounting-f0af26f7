@@ -74,6 +74,7 @@ import { usePrintBridge, type PrintOrder as BridgePrintOrder } from "@/hooks/use
 import InventoryInputModal from "@/components/pos/InventoryInputModal";
 import { getPosBusinessDate, DEFAULT_POS_CUTOFF_HOUR } from "@/lib/pos/business-day";
 import POSv2TopBar from "@/components/pos/v2/POSv2TopBar";
+import { isPosV2User, posV2OptOut } from "@/lib/posV2Access";
 import POSv2Products from "@/components/pos/v2/POSv2Products";
 import POSv2Cart from "@/components/pos/v2/POSv2Cart";
 import { POS_V2_DARK, POS_V2_LIGHT } from "@/components/pos/v2/posV2Theme";
@@ -7760,7 +7761,7 @@ const POSPage = ({ variant = "v1" }: { variant?: "v1" | "v2" } = {}) => {
   const v2HeldCount = orders.filter((o, i) => i !== activeOrderIndex && o.cart.length > 0).length;
   const v2MenuIcon = (I: any) => <I style={{ width: 16, height: 16 }} />;
   const v2MenuItems = [
-    { key: "back-v1", label: "العودة للواجهة الحالية", icon: v2MenuIcon(Undo2), onClick: () => navigate("/pos") },
+    { key: "back-v1", label: "العودة للواجهة الحالية", icon: v2MenuIcon(Undo2), onClick: () => { posV2OptOut.set(true); navigate("/pos"); } },
     { key: "apps", label: "رجوع للتطبيقات", icon: v2MenuIcon(ArrowRight), onClick: () => navigate("/apps", { replace: true }) },
     ...(loyaltyEnabled ? [{ key: "loyalty", label: "زبون الولاء", icon: v2MenuIcon(Star), onClick: () => setShowLoyaltyPicker(true) }] : []),
     ...(!isMalakyTenant ? [{ key: "tables", label: "الطاولات", icon: v2MenuIcon(UtensilsCrossed), onClick: () => navigate("/pos/floor-plan") }] : []),
@@ -7861,6 +7862,8 @@ const POSPage = ({ variant = "v1" }: { variant?: "v1" | "v2" } = {}) => {
         isSortMode={isSortMode}
         catIdByName={v2CatIdByName}
         narrow={v2Width < 1180}
+        onCategoryDragEnd={handleCategoryDragEnd}
+        dndSensors={dndSensors}
       />
       {allOrdersSheetNode}
       <POSv2Cart
@@ -8162,8 +8165,8 @@ const POSPage = ({ variant = "v1" }: { variant?: "v1" | "v2" } = {}) => {
                   )}
                 </button>
                 <div className="border-t border-gray-200 my-1" />
-                {isDemoTenant && (
-                  <button className="w-full text-right px-4 py-2 text-xs flex items-center gap-2 hover:bg-gray-100 transition-colors" onClick={() => { setShowOpsDropdown(false); navigate("/pos-v2"); }}>
+                {(isDemoTenant || isPosV2User(user?.email)) && (
+                  <button className="w-full text-right px-4 py-2 text-xs flex items-center gap-2 hover:bg-gray-100 transition-colors" onClick={() => { setShowOpsDropdown(false); posV2OptOut.set(false); navigate("/pos-v2"); }}>
                     <Sparkles className="h-3.5 w-3.5" style={{ color: "#4A9EE8" }} /> تجربة الواجهة الجديدة
                   </button>
                 )}
