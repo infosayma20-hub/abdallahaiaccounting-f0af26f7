@@ -68,6 +68,12 @@ export default function POSDeviceAuthGuard({ children }: { children: ReactNode }
     })();
     return () => { cancelled = true; };
   }, [user?.id]);
+  // Experimental POS skin — demo tenants only (scoped CSS in index.css).
+  useEffect(() => {
+    if (!isDemoTenant) return;
+    document.body.setAttribute("data-pos-skin", "demo");
+    return () => { document.body.removeAttribute("data-pos-skin"); };
+  }, [isDemoTenant]);
   const bypassBridge = callCenterEnabled || !!userIsCallCenter || !!isDemoTenant;
   const pageLoading = usePosPageLoading();
   const effectiveAuthorized = authorized || bypassBridge;
