@@ -265,8 +265,11 @@ export default function ManagerDiscountDialog({
             />
           </div>
 
-          <div className="pt-2 border-t border-border/60 space-y-3">
-            <p className="text-[11px] font-medium text-muted-foreground">
+          <div
+            className="pt-2 border-t border-border/60 space-y-3"
+            style={v2 ? { borderColor: v2.border } : undefined}
+          >
+            <p className="text-[11px] font-medium text-muted-foreground" style={v2MutedStyle}>
               تحقق المدير
             </p>
             <div>
@@ -277,6 +280,7 @@ export default function ManagerDiscountDialog({
                 placeholder="بريد المدير"
                 className="h-10 text-sm"
                 dir="ltr"
+                style={v2FieldStyle}
               />
             </div>
             <div>
@@ -288,19 +292,29 @@ export default function ManagerDiscountDialog({
                 className="h-10 text-sm"
                 dir="ltr"
                 onKeyDown={e => e.key === "Enter" && handleApprove()}
+                style={v2FieldStyle}
               />
             </div>
           </div>
 
           {error && (
-            <div className="flex items-center gap-2 p-2.5 rounded-lg bg-destructive/10 text-destructive text-xs">
+            <div
+              className="flex items-center gap-2 p-2.5 rounded-lg bg-destructive/10 text-destructive text-xs"
+              style={v2 ? { background: v2.warnBg, color: v2.warnText } : undefined}
+            >
               <AlertCircle className="h-4 w-4 shrink-0" />
               {error}
             </div>
           )}
         </div>
         <DialogFooter className="gap-2">
-          <Button variant="outline" size="sm" onClick={onClose} disabled={loading}>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={onClose}
+            disabled={loading}
+            style={v2 ? { background: "transparent", color: v2.text, borderColor: v2.border } : undefined}
+          >
             إلغاء
           </Button>
           <Button
@@ -308,6 +322,7 @@ export default function ManagerDiscountDialog({
             onClick={handleApprove}
             disabled={loading || !email.trim() || !password.trim() || numericAmount <= 0}
             className="bg-amber-500 hover:bg-amber-600 text-white"
+            style={v2 ? { background: v2.accent, color: v2.onAccent } : undefined}
           >
             {loading ? (
               <span className="flex items-center gap-1.5">
