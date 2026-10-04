@@ -107,6 +107,9 @@ export default function POSv2TopBar(p: Props) {
           </div>
         )}
         <IconBtn t={t} label="المعلّقة" badge={p.heldCount} onClick={p.onHeld}><PauseCircle style={{ width: 20, height: 20 }} strokeWidth={1.8} /></IconBtn>
+        <IconBtn t={t} label={t.dark ? "فاتح" : "داكن"} onClick={p.onToggleTheme}>
+          {t.dark ? <Sun style={{ width: 20, height: 20 }} strokeWidth={1.8} /> : <Moon style={{ width: 20, height: 20 }} strokeWidth={1.8} />}
+        </IconBtn>
         {p.showKitchen && <IconBtn t={t} label="المطبخ" onClick={p.onKitchen}><ChefHat style={{ width: 20, height: 20 }} strokeWidth={1.8} /></IconBtn>}
         <div className="flex flex-col items-center justify-center shrink-0" style={{ minWidth: 56, height: 52, gap: 2 }} title="الطلبات والتنبيهات المعلقة">
           <div className="pos-v2-notif" style={{ color: t.text }}>{p.notificationsNode}</div>
@@ -122,15 +125,6 @@ export default function POSv2TopBar(p: Props) {
                 className="absolute z-50 py-1"
                 style={{ top: "100%", insetInlineEnd: 0, marginTop: 6, minWidth: 240, borderRadius: 12, background: t.surface, border: `1px solid ${t.border}`, boxShadow: "0 12px 32px rgba(0,0,0,0.25)" }}
               >
-                <button
-                  type="button"
-                  onClick={() => { p.onToggleTheme(); setMenuOpen(false); }}
-                  className="w-full flex items-center gap-2.5 text-right"
-                  style={{ height: 44, padding: "0 14px", color: t.text, fontSize: 13 }}
-                >
-                  {t.dark ? <Sun style={{ width: 16, height: 16 }} /> : <Moon style={{ width: 16, height: 16 }} />}
-                  {t.dark ? "الوضع الفاتح" : "الوضع الغامق"}
-                </button>
                 {p.menuItems.map((m) => (
                   <button
                     key={m.key}
