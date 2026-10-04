@@ -1930,7 +1930,10 @@ select:focus-visible {
   padding: 28px !important;
 }
 .pos-v2-invoice-detail > div:not([role="dialog"]) { min-width: 0; }
-body:has(.pos-v2-invoice-detail) [data-radix-dialog-overlay] { background: transparent; }
+body:has(.pos-v2-invoice-detail) [data-dialog-overlay="true"] {
+  background: transparent;
+  pointer-events: none;
+}
 @media (max-width: 900px) {
   .pos-v2-invoice-detail { inset: 12px !important; }
   .pos-v2-invoice-list { width: calc(100vw - 24px) !important; inset: 12px !important; }

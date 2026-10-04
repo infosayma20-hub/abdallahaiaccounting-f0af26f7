@@ -1307,7 +1307,7 @@ export default function InvoiceHistoryDrawer({
 
       {/* ══════ DETAIL MODAL ══════ */}
       <Dialog open={!!selectedOrder} onOpenChange={() => setSelectedOrder(null)}>
-        <DialogContent className={experimentalLayout ? "pos-v2-invoice-detail z-[1100] overflow-hidden" : "max-w-2xl w-[95vw] max-h-[90vh] overflow-y-auto z-[1100] bg-white"} style={{ fontFamily: "Tajawal, sans-serif", color: "#0F172A" }}>
+        <DialogContent className={experimentalLayout ? "pos-v2-invoice-detail z-[1100] overflow-y-auto" : "max-w-2xl w-[95vw] max-h-[90vh] overflow-y-auto z-[1100] bg-white"} style={{ fontFamily: "Tajawal, sans-serif", color: "#0F172A" }}>
           {selectedOrder && (
             <>
               {(() => {
