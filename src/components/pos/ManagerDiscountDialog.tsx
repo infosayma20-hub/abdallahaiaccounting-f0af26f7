@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/dialog";
 import { verifyManagerCredentials } from "@/lib/pos/manager-verify";
 import { supabase } from "@/integrations/supabase/client";
+import type { PosV2Tokens } from "@/components/pos/v2/posV2Theme";
 
 /**
  * خصم على الفاتورة بإذن مدير الفرع.
@@ -41,6 +42,8 @@ interface Props {
   cashierName?: string;
   /** قيمة الفاتورة الحالية لعرض ما يعادل النسبة بالقيمة (₪). */
   orderSubtotal: number;
+  /** ثيم واجهة POS v2 التجريبية — عند تمريره تُرسم النافذة بألوان الشاشة الجديدة. */
+  v2Theme?: PosV2Tokens | null;
 }
 
 export default function ManagerDiscountDialog({
