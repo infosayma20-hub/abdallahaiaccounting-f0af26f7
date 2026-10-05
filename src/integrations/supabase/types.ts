@@ -2734,6 +2734,7 @@ export type Database = {
           attendance_mobile_only: boolean
           attendance_selfie_retention_days: number
           branch_code: string | null
+          business_unit_id: string | null
           created_at: string
           gl_cash_eur_account_code: string | null
           gl_cash_jod_account_code: string | null
@@ -2764,6 +2765,7 @@ export type Database = {
           attendance_mobile_only?: boolean
           attendance_selfie_retention_days?: number
           branch_code?: string | null
+          business_unit_id?: string | null
           created_at?: string
           gl_cash_eur_account_code?: string | null
           gl_cash_jod_account_code?: string | null
@@ -2794,6 +2796,7 @@ export type Database = {
           attendance_mobile_only?: boolean
           attendance_selfie_retention_days?: number
           branch_code?: string | null
+          business_unit_id?: string | null
           created_at?: string
           gl_cash_eur_account_code?: string | null
           gl_cash_jod_account_code?: string | null
@@ -2817,7 +2820,15 @@ export type Database = {
           updated_at?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "branches_business_unit_id_fkey"
+            columns: ["business_unit_id"]
+            isOneToOne: false
+            referencedRelation: "business_units"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       builtin_form_assignments: {
         Row: {
@@ -2986,6 +2997,47 @@ export type Database = {
           status?: string
         }
         Relationships: []
+      }
+      business_units: {
+        Row: {
+          code: string | null
+          cost_center_id: string | null
+          created_at: string
+          id: string
+          is_active: boolean
+          name: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          code?: string | null
+          cost_center_id?: string | null
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          code?: string | null
+          cost_center_id?: string | null
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "business_units_cost_center_id_fkey"
+            columns: ["cost_center_id"]
+            isOneToOne: false
+            referencedRelation: "cost_centers"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       call_center_order_edits: {
         Row: {
@@ -19793,6 +19845,42 @@ export type Database = {
           },
         ]
       }
+      product_business_units: {
+        Row: {
+          business_unit_id: string
+          created_at: string
+          product_id: string
+          user_id: string
+        }
+        Insert: {
+          business_unit_id: string
+          created_at?: string
+          product_id: string
+          user_id: string
+        }
+        Update: {
+          business_unit_id?: string
+          created_at?: string
+          product_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_business_units_business_unit_id_fkey"
+            columns: ["business_unit_id"]
+            isOneToOne: false
+            referencedRelation: "business_units"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_business_units_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       product_modifier_groups: {
         Row: {
           group_id: string
@@ -28590,6 +28678,7 @@ export type Database = {
         Row: {
           address: string | null
           branch_id: string | null
+          business_unit_id: string | null
           code: string
           created_at: string
           id: string
@@ -28606,6 +28695,7 @@ export type Database = {
         Insert: {
           address?: string | null
           branch_id?: string | null
+          business_unit_id?: string | null
           code: string
           created_at?: string
           id?: string
@@ -28622,6 +28712,7 @@ export type Database = {
         Update: {
           address?: string | null
           branch_id?: string | null
+          business_unit_id?: string | null
           code?: string
           created_at?: string
           id?: string
@@ -28648,6 +28739,13 @@ export type Database = {
             columns: ["branch_id"]
             isOneToOne: false
             referencedRelation: "branches_safe"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "warehouses_business_unit_id_fkey"
+            columns: ["business_unit_id"]
+            isOneToOne: false
+            referencedRelation: "business_units"
             referencedColumns: ["id"]
           },
           {
