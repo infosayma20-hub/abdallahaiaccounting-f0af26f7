@@ -7943,6 +7943,7 @@ const POSPage = ({ variant = "v1" }: { variant?: "v1" | "v2" } = {}) => {
         activeIndex={activeOrderIndex}
         onSelectOrder={setActiveOrderIndex}
         onNewOrder={v2NewOrder}
+        onCloseOrder={(idx) => removeOrder(idx)}
         onClearOrder={v2ClearOrder}
         orderTypes={v2OrderTypes}
         activeType={v2ActiveType}
