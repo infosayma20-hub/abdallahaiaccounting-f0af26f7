@@ -371,6 +371,33 @@ export default function JobApplicationsPage() {
     window.open(data.signedUrl, "_blank");
   };
 
+  const [pdfId, setPdfId] = useState<string | null>(null);
+  const saveApplicationPdf = async (application: AppRow) => {
+    setPdfId(application.id);
+    try {
+      let photoUrl = detailPhotoUrl;
+      if (application.photo_path && !photoUrl) {
+        const { data } = await supabase.storage.from("job-applications").createSignedUrl(application.photo_path, 600);
+        photoUrl = data?.signedUrl || "";
+      }
+      const { saveReactDocumentAsPdf } = await import("@/lib/print/saveReactDocumentAsPdf");
+      await saveReactDocumentAsPdf(
+        <JobApplicationPrintDocument
+          application={application}
+          photoUrl={photoUrl}
+          logoUrl={tenantLogoUrl}
+          statusLabel={statusMeta(application.status).label}
+          formattedCreatedAt={AR_DT(application.created_at)}
+        />,
+        application.full_name || "طلب توظيف",
+      );
+    } catch {
+      toast.error("تعذّر حفظ الطلب كملف PDF");
+    } finally {
+      setPdfId(null);
+    }
+  };
+
   const printApplication = async (application: AppRow) => {
     setPrintingId(application.id);
     try {
@@ -912,6 +939,14 @@ export default function JobApplicationsPage() {
                     ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
                     : <Printer className="w-3.5 h-3.5" />}
                   طباعة الطلب
+                </Button>
+                <Button size="sm" variant="outline" className="h-8 text-[12px] gap-1"
+                  disabled={pdfId === detail.id}
+                  onClick={() => void saveApplicationPdf(detail)}>
+                  {pdfId === detail.id
+                    ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    : <FileDown className="w-3.5 h-3.5" />}
+                  حفظ PDF
                 </Button>
                 <div className="min-w-[260px] flex-1 lg:max-w-sm">
                   <Label className="mb-1 block text-[11px] text-muted-foreground">المرحلة الحالية</Label>
