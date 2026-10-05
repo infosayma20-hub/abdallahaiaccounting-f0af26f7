@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Camera, Loader2, PackageSearch, Save, ScanLine } from "lucide-react";
+import { Camera, Loader2, PackageSearch, Save, ScanLine, TriangleAlert } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -28,6 +28,9 @@ export default function EmployeeStockCountTab({ onBack }: { onBack: () => void }
   const [price, setPrice] = useState("");
   const [qty, setQty] = useState("");
   const [saving, setSaving] = useState(false);
+  const [unknownCode, setUnknownCode] = useState<string | null>(null);
+  const [unknownNote, setUnknownNote] = useState("");
+  const [reporting, setReporting] = useState(false);
   const codeRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -44,13 +47,26 @@ export default function EmployeeStockCountTab({ onBack }: { onBack: () => void }
     const { data, error } = await supabase.rpc("stock_count_lookup", { p_code: c });
     setLooking(false);
     if (error) { toast.error(error.message); return; }
-    if (!data) { toast.error(`لا يوجد صنف بالرمز ${c}`); setProduct(null); return; }
+    if (!data) { setProduct(null); setUnknownCode(c); setUnknownNote(""); return; }
+    setUnknownCode(null);
     const p = data as any as Product;
     setProduct(p);
     setName("");
     setPrice("");
     setQty("");
     setCode("");
+  };
+
+  const reportUnknown = async () => {
+    if (!unknownCode) return;
+    setReporting(true);
+    const { error } = await (supabase.rpc as any)("stock_count_report_unknown", { p_code: unknownCode, p_note: unknownNote.trim() || null });
+    setReporting(false);
+    if (error) { toast.error(error.message); return; }
+    toast.success("سُجّل الباركود كغير معروف — سيظهر للإدارة في مراجعة الجرد");
+    setUnknownCode(null);
+    setUnknownNote("");
+    setTimeout(() => codeRef.current?.focus(), 50);
   };
 
   const save = async () => {
@@ -93,7 +109,27 @@ export default function EmployeeStockCountTab({ onBack }: { onBack: () => void }
 
             {looking && <div className="flex justify-center p-4"><Loader2 className="h-5 w-5 animate-spin" /></div>}
 
-            {!product && !looking && (
+            {unknownCode && !product && (
+              <Card className="rounded-2xl border-amber-500/40">
+                <CardContent className="space-y-3 p-4">
+                  <div className="flex items-start gap-3">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-amber-500/10 text-amber-600"><TriangleAlert className="h-5 w-5" /></div>
+                    <div className="min-w-0 flex-1">
+                      <div className="font-bold text-foreground">باركود غير معروف</div>
+                      <div className="font-mono text-xs text-muted-foreground">{unknownCode}</div>
+                    </div>
+                  </div>
+                  <p className="text-xs text-muted-foreground">هذا الرمز غير مسجّل على أي صنف. سجّله لتراجعه الإدارة وتعرّفه لاحقًا.</p>
+                  <div><Label>ملاحظة (اختياري)</Label><Input value={unknownNote} placeholder="مثال: علبة حليب مبخّر حجم كبير" onChange={(e) => setUnknownNote(e.target.value)} /></div>
+                  <div className="flex gap-2">
+                    <Button variant="outline" className="flex-1" onClick={() => { setUnknownCode(null); setUnknownNote(""); }}>تجاهل</Button>
+                    <Button className="flex-1" onClick={reportUnknown} disabled={reporting}>{reporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}تسجيل كغير معروف</Button>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {!product && !looking && !unknownCode && (
               <button type="button" onClick={() => setScanOpen(true)}
                 className="flex w-full flex-col items-center gap-3 rounded-2xl border-2 border-dashed border-primary/40 bg-primary/5 p-8 text-center transition active:scale-[0.98]">
                 <span className="flex h-16 w-16 items-center justify-center rounded-2xl bg-primary text-primary-foreground"><ScanLine className="h-8 w-8" /></span>

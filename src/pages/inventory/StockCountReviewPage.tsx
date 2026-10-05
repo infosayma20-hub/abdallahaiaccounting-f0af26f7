@@ -15,15 +15,17 @@ type Row = {
   warehouses: { name: string } | null;
 };
 type EditRow = { id: string; created_at: string; field: string; old_value: string | null; new_value: string | null; products: { name: string } | null; employees: { full_name: string } | null };
+type UnknownRow = { id: string; created_at: string; code: string; note: string | null; status: string; employees: { full_name: string } | null };
 
 const STATUS: Record<string, string> = { pending: "بانتظار المراجعة", approved: "معتمد", rejected: "مرفوض", superseded: "استُبدل بعدّ أحدث" };
 
 /** مراجعة جرد الموظفين: اعتماد الكمية يسجّل حركة تسوية بالفرق لحظة الاعتماد. */
 export default function StockCountReviewPage() {
   const { dataOwnerId } = useDataOwnerId();
-  const [tab, setTab] = useState<"pending" | "done" | "edits">("pending");
+  const [tab, setTab] = useState<"pending" | "done" | "edits" | "unknown">("pending");
   const [rows, setRows] = useState<Row[]>([]);
   const [edits, setEdits] = useState<EditRow[]>([]);
+  const [unknowns, setUnknowns] = useState<UnknownRow[]>([]);
   const [loading, setLoading] = useState(false);
   const [busy, setBusy] = useState<string | null>(null);
 
@@ -35,6 +37,11 @@ export default function StockCountReviewPage() {
         .select("id,created_at,field,old_value,new_value,products(name),employees(full_name)")
         .eq("user_id", dataOwnerId).order("created_at", { ascending: false }).limit(300);
       setEdits((data || []) as any);
+    } else if (tab === "unknown") {
+      const { data } = await (supabase.from as any)("stock_count_unknown_barcodes")
+        .select("id,created_at,code,note,status,employees(full_name)")
+        .eq("user_id", dataOwnerId).order("created_at", { ascending: false }).limit(300);
+      setUnknowns((data || []) as any);
     } else {
       let q = supabase.from("stock_count_entries")
         .select("id,created_at,status,system_qty,counted_qty,applied_delta,products(name,barcode),employees(full_name),warehouses(name)")
@@ -57,6 +64,15 @@ export default function StockCountReviewPage() {
     load();
   };
 
+  const resolveUnknown = async (id: string) => {
+    setBusy(id);
+    const { error } = await (supabase.from as any)("stock_count_unknown_barcodes").update({ status: "resolved" }).eq("id", id);
+    setBusy(null);
+    if (error) { toast({ title: "تعذّر التنفيذ", description: error.message, variant: "destructive" }); return; }
+    toast({ title: "عُلّم كمُعالَج" });
+    load();
+  };
+
   const fmt = (s: string) => new Date(s).toLocaleString("ar-PS-u-nu-latn", { dateStyle: "short", timeStyle: "short" });
 
   return (
@@ -72,9 +88,34 @@ export default function StockCountReviewPage() {
             <TabsTrigger value="pending">بانتظار المراجعة</TabsTrigger>
             <TabsTrigger value="done">المراجَعة</TabsTrigger>
             <TabsTrigger value="edits">تعديلات الأسماء والأسعار</TabsTrigger>
+            <TabsTrigger value="unknown">باركودات غير معروفة</TabsTrigger>
           </TabsList>
         </Tabs>
-        {loading ? <div className="flex justify-center p-8"><Loader2 className="h-6 w-6 animate-spin" /></div> : tab === "edits" ? (
+        {loading ? <div className="flex justify-center p-8"><Loader2 className="h-6 w-6 animate-spin" /></div> : tab === "unknown" ? (
+          <div className="overflow-auto rounded-md border border-border">
+            <table className="w-full text-sm">
+              <thead className="bg-muted"><tr><th className="p-2 text-right">التاريخ</th><th className="p-2 text-right">الباركود</th><th className="p-2 text-right">الملاحظة</th><th className="p-2 text-right">الموظف</th><th className="p-2 text-right">الحالة</th></tr></thead>
+              <tbody>
+                {unknowns.map((u) => (
+                  <tr key={u.id} className="border-t border-border">
+                    <td className="p-2 whitespace-nowrap">{fmt(u.created_at)}</td>
+                    <td className="p-2 font-mono font-medium">{u.code}</td>
+                    <td className="p-2">{u.note ?? "—"}</td>
+                    <td className="p-2">{u.employees?.full_name ?? "—"}</td>
+                    <td className="p-2">
+                      {u.status === "pending" ? (
+                        <Button size="sm" variant="outline" disabled={busy === u.id} onClick={() => resolveUnknown(u.id)}><Check className="h-4 w-4" />تمت المعالجة</Button>
+                      ) : (
+                        <Badge variant="secondary">مُعالَج</Badge>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+                {!unknowns.length && <tr><td colSpan={5} className="p-6 text-center text-muted-foreground">لا توجد باركودات غير معروفة</td></tr>}
+              </tbody>
+            </table>
+          </div>
+        ) : tab === "edits" ? (
           <div className="overflow-auto rounded-md border border-border">
             <table className="w-full text-sm">
               <thead className="bg-muted"><tr><th className="p-2 text-right">التاريخ</th><th className="p-2 text-right">الصنف</th><th className="p-2 text-right">الموظف</th><th className="p-2 text-right">الحقل</th><th className="p-2 text-right">قبل</th><th className="p-2 text-right">بعد</th></tr></thead>
