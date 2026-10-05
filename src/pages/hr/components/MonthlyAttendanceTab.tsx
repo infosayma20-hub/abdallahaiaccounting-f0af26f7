@@ -177,6 +177,20 @@ type SortKey =
   | "absentDays" | "missingPunchDays" | "annualLeave" | "sickLeave" | "annualHours" | "sickHours"
   | "totalHours" | "hourlyRate" | "amount";
 
+/** توحيد الحروف العربية للبحث: الهمزات (أإآؤئ) والتاء المربوطة والألف المقصورة. */
+const normAr = (s: string) =>
+  (s || "").toLowerCase()
+    .replace(/[أإآٱ]/g, "ا").replace(/ؤ/g, "و").replace(/ئ/g, "ي")
+    .replace(/ة/g, "ه").replace(/ى/g, "ي")
+    .replace(/[\u064B-\u0652\u0670]/g, "")
+    .trim();
+/** مطابقة بادئة: الاسم (أو أي كلمة فيه) تبدأ بكلمة البحث — وليس أي جزء من الاسم. */
+const nameStartsWith = (name: string, q: string) => {
+  const nq = normAr(q);
+  if (!nq) return true;
+  return normAr(name).split(/\s+/).some((w) => w.startsWith(nq));
+};
+
 const nf = (n: number, d = 2) =>
   Number(n || 0).toLocaleString("en-US", { minimumFractionDigits: d, maximumFractionDigits: d });
 
