@@ -7398,6 +7398,18 @@ const POSPage = ({ variant = "v1" }: { variant?: "v1" | "v2" } = {}) => {
   // the top edge or whenever a call-center order/edit is pending.
   const [v2BarHover, setV2BarHover] = useState(false);
   const [v2PendingCount, setV2PendingCount] = useState(0);
+  // Pin option («تعليق»): keeps the bar always visible — essential on touch
+  // POS screens with no mouse. Choice persists per device (localStorage).
+  const [v2BarPinned, setV2BarPinned] = useState(() => {
+    try { return window.localStorage.getItem("pos_v2_bar_pinned") === "1"; } catch { return false; }
+  });
+  const toggleV2BarPinned = useCallback(() => {
+    setV2BarPinned((v) => {
+      const next = !v;
+      try { window.localStorage.setItem("pos_v2_bar_pinned", next ? "1" : "0"); } catch { /* ignore */ }
+      return next;
+    });
+  }, []);
   // Grace timer: after the mouse leaves the bar, keep it ~3s so dropdowns
   // (e.g. «المزيد») stay usable; while any dropdown/popover is open the bar
   // never hides.
@@ -7420,7 +7432,7 @@ const POSPage = ({ variant = "v1" }: { variant?: "v1" | "v2" } = {}) => {
     setV2BarHover(true);
   }, []);
   const onV2PendingCount = useCallback((n: number) => setV2PendingCount(n), []);
-  const v2BarVisible = v2BarHover || v2PendingCount > 0;
+  const v2BarVisible = v2BarPinned || v2BarHover || v2PendingCount > 0;
   const [v2CardSize, setV2CardSize] = useState<"S" | "M" | "L">("M");
   const [v2Width, setV2Width] = useState(() => (typeof window !== "undefined" ? window.innerWidth : 1280));
   const [v2Height, setV2Height] = useState(() => (typeof window !== "undefined" ? window.innerHeight : 900));
