@@ -77,7 +77,7 @@ type MultiFilterKey = "desired_position" | "work_location" | "shift_preference";
 
 const MULTI_FILTERS: { key: MultiFilterKey; label: string; fields: string[] }[] = [
   { key: "desired_position", label: "الوظيفة المطلوبة", fields: ["desired_position"] },
-  { key: "work_location", label: "موقع العمل", fields: ["work_location", "birth_place"] },
+  { key: "work_location", label: "المدينة", fields: ["preferred_city", "work_location"] },
   { key: "shift_preference", label: "الفترة", fields: ["shift_preference"] },
 ];
 
