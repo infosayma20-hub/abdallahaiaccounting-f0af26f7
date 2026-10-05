@@ -67,6 +67,8 @@ interface Props {
   sessionId: string | null;
   enabled: boolean;
   onAcceptOrder: (order: CallCenterOrder) => void;
+  /** Optional: reports the total pending badge count (orders + edit proposals) so parents can react (e.g. auto-show the v2 top bar). */
+  onPendingCountChange?: (count: number) => void;
 }
 
 // Notification sound — preload AudioContext on first user interaction.
