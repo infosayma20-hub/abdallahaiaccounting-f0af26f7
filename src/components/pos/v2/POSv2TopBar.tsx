@@ -1,5 +1,5 @@
 import { useState, type ReactNode, type RefObject } from "react";
-import { Search, Barcode, Printer, PauseCircle, ChefHat, FileText, MoreHorizontal, Sun, Moon, CircleStop } from "lucide-react";
+import { Search, Barcode, Printer, PauseCircle, ChefHat, FileText, MoreHorizontal, Sun, Moon, CircleStop, Pin, PinOff } from "lucide-react";
 import type { PosV2Tokens } from "./posV2Theme";
 import { usePrinterOnline } from "./usePrinterOnline";
 import BridgeStatusIndicator from "@/components/pos/BridgeStatusIndicator";
@@ -25,6 +25,8 @@ type Props = {
   onInvoices: () => void;
   menuItems: PosV2MenuItem[];
   onToggleTheme: () => void;
+  barPinned: boolean;
+  onToggleBarPin: () => void;
   canCloseShift: boolean;
   onCloseShift: () => void;
 };
@@ -110,6 +112,11 @@ export default function POSv2TopBar(p: Props) {
           </div>
         )}
         <IconBtn t={t} label="المعلّقة" badge={p.heldCount} onClick={p.onHeld}><PauseCircle style={{ width: 20, height: 20 }} strokeWidth={1.8} /></IconBtn>
+        <IconBtn t={t} label={p.barPinned ? "مثبّت" : "تعليق"} onClick={p.onToggleBarPin}>
+          {p.barPinned
+            ? <Pin style={{ width: 20, height: 20, color: t.accent }} strokeWidth={1.8} fill={t.accent} />
+            : <PinOff style={{ width: 20, height: 20 }} strokeWidth={1.8} />}
+        </IconBtn>
         <IconBtn t={t} label={t.dark ? "فاتح" : "داكن"} onClick={p.onToggleTheme}>
           {t.dark ? <Sun style={{ width: 20, height: 20 }} strokeWidth={1.8} /> : <Moon style={{ width: 20, height: 20 }} strokeWidth={1.8} />}
         </IconBtn>
