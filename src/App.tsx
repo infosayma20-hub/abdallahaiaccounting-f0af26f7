@@ -90,6 +90,7 @@ const CreditDebitNoteCreatePage = lazy(() => import("./pages/CreditDebitNoteCrea
 const ReturnsListPage = lazy(() => import("./pages/ReturnsListPage"));
 const ReturnCreatePage = lazy(() => import("./pages/ReturnCreatePage"));
 const InventoryPage = lazy(() => import("./pages/InventoryPage"));
+const StockCountWorkspacePage = lazy(() => import("./pages/StockCountWorkspacePage"));
 const StockCountReviewPage = lazy(() => import("./pages/inventory/StockCountReviewPage"));
 const ProductEditPage = lazy(() => import("./pages/inventory/ProductEditPage"));
 const ProductProfitReportPage = lazy(() => import("./pages/inventory/ProductProfitReportPage"));
@@ -820,6 +821,7 @@ const App = () => (
               )}
               <Route path="/purchase-point" element={<Navigate to="/procurement/orders/new" replace />} />
               <Route path="/worker/procurement" element={<ProtectedRoute><WorkerProcurementPage /></ProtectedRoute>} />
+              <Route path="/worker/stock-count" element={<ProtectedRoute><StockCountWorkspacePage /></ProtectedRoute>} />
               <Route path="/worker/receiving" element={<ProtectedRoute><ReceivingPage /></ProtectedRoute>} />
               <Route path="/worker/receiving/:sessionId" element={<ProtectedRoute><ReceivingPage /></ProtectedRoute>} />
               <Route path="/worker/direct-receiving" element={<ProtectedRoute><DirectReceivingPage /></ProtectedRoute>} />

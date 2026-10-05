@@ -34,14 +34,14 @@ export function useHasMultipleWorkspaces(): { hasMultiple: boolean; loading: boo
             .maybeSingle(),
           supabase
             .from("employees")
-            .select("id, is_active, is_terminated, is_receiver, can_direct_receive")
+            .select("id, is_active, is_terminated, is_receiver, can_direct_receive, can_stock_count")
             .eq("auth_user_id", user.id)
             .maybeSingle(),
         ]);
         const roles = (rolesData || []).map((r) => String(r.role));
         const hasRep = roles.includes("sales_rep");
         const hasCashier = roles.includes("cashier") || !!posUser;
-        const linkedEmp = empRow as { is_active?: boolean | null; is_terminated?: boolean | null; is_receiver?: boolean | null; can_direct_receive?: boolean | null } | null;
+        const linkedEmp = empRow as { is_active?: boolean | null; is_terminated?: boolean | null; is_receiver?: boolean | null; can_direct_receive?: boolean | null; can_stock_count?: boolean | null } | null;
         const hasEmployee = !!linkedEmp && !!linkedEmp.is_active && !linkedEmp.is_terminated;
         // Warehouse receiving is its own workspace (/worker/receiving) — an
         // employee who is also a receiver must see the back-to-chooser arrow.
@@ -58,7 +58,7 @@ export function useHasMultipleWorkspaces(): { hasMultiple: boolean; loading: boo
         // count it only via cashier/call-center linkage above. If we later
         // want to include it, we can add the same permission check used in
         // ChooseWorkspacePage.
-        const count = (hasRep ? 1 : 0) + (hasCashier ? 1 : 0) + (hasEmployee ? 1 : 0) + (hasReceiver ? 1 : 0) + (hasFeedbackWorkspace ? 1 : 0);
+        const count = (hasRep ? 1 : 0) + (hasCashier ? 1 : 0) + (hasEmployee ? 1 : 0) + (hasReceiver ? 1 : 0) + (hasEmployee && linkedEmp?.can_stock_count ? 1 : 0) + (hasFeedbackWorkspace ? 1 : 0);
         if (!cancelled) setHasMultiple(count > 1);
       } catch {
         if (!cancelled) setHasMultiple(false);
