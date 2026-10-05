@@ -17,6 +17,7 @@ type Props = {
   onSelectOrder: (i: number) => void;
   onNewOrder: () => void;
   onClearOrder: () => void;
+  onCloseOrder?: (i: number) => void;
   orderTypes: OrderType[];
   activeType: OrderType | null;
   onOrderType: (t: OrderType) => void;
