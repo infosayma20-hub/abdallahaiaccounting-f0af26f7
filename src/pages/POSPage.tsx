@@ -7398,6 +7398,27 @@ const POSPage = ({ variant = "v1" }: { variant?: "v1" | "v2" } = {}) => {
   // the top edge or whenever a call-center order/edit is pending.
   const [v2BarHover, setV2BarHover] = useState(false);
   const [v2PendingCount, setV2PendingCount] = useState(0);
+  // Grace timer: after the mouse leaves the bar, keep it ~3s so dropdowns
+  // (e.g. «المزيد») stay usable; while any dropdown/popover is open the bar
+  // never hides.
+  const v2BarHideTimer = useRef<number | null>(null);
+  const scheduleV2BarHide = useCallback(() => {
+    if (v2BarHideTimer.current) window.clearTimeout(v2BarHideTimer.current);
+    v2BarHideTimer.current = window.setTimeout(() => {
+      v2BarHideTimer.current = null;
+      const openMenu = document.querySelector(
+        "[data-radix-popper-content-wrapper], [data-pos-v2-menu], [role='menu'][data-state='open'], [role='listbox'][data-state='open'], [role='dialog'][data-state='open']"
+      );
+      if (openMenu) { scheduleV2BarHideRef.current?.(); return; }
+      setV2BarHover(false);
+    }, 3000);
+  }, []);
+  const scheduleV2BarHideRef = useRef<() => void>(scheduleV2BarHide);
+  scheduleV2BarHideRef.current = scheduleV2BarHide;
+  const revealV2Bar = useCallback(() => {
+    if (v2BarHideTimer.current) { window.clearTimeout(v2BarHideTimer.current); v2BarHideTimer.current = null; }
+    setV2BarHover(true);
+  }, []);
   const onV2PendingCount = useCallback((n: number) => setV2PendingCount(n), []);
   const v2BarVisible = v2BarHover || v2PendingCount > 0;
   const [v2CardSize, setV2CardSize] = useState<"S" | "M" | "L">("M");
@@ -7413,10 +7434,10 @@ const POSPage = ({ variant = "v1" }: { variant?: "v1" | "v2" } = {}) => {
   // a window-level listener so it works even when a modal overlay covers the strip.
   useEffect(() => {
     if (!isV2) return;
-    const onMove = (e: MouseEvent) => { if (e.clientY <= 12) setV2BarHover(true); };
+    const onMove = (e: MouseEvent) => { if (e.clientY <= 12) revealV2Bar(); };
     window.addEventListener("mousemove", onMove);
     return () => window.removeEventListener("mousemove", onMove);
-  }, [isV2]);
+  }, [isV2, revealV2Bar]);
   useEffect(() => {
     if (!isV2) return;
     const onKey = (e: KeyboardEvent) => {
@@ -7981,14 +8002,14 @@ const POSPage = ({ variant = "v1" }: { variant?: "v1" | "v2" } = {}) => {
             <div
               className="fixed top-0 inset-x-0 z-[90]"
               style={{ height: 12 }}
-              onMouseEnter={() => setV2BarHover(true)}
-              onClick={() => setV2BarHover(true)}
+              onMouseEnter={() => revealV2Bar()}
+              onClick={() => revealV2Bar()}
             />
           )}
           <div
             className="shrink-0 relative z-[60]"
             style={{ height: v2BarVisible ? 68 : 0, overflow: v2BarVisible ? "visible" : "hidden", transition: "height 0.18s ease" }}
-            onMouseLeave={() => setV2BarHover(false)}
+            onMouseLeave={() => scheduleV2BarHide()}
           >
             {v2TopBarNode}
           </div>
