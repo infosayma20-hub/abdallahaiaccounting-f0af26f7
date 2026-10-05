@@ -1467,6 +1467,12 @@ const EmployeesPage = () => {
                     <Shield className="h-3.5 w-3.5 text-amber-500" /> مدير HR
                   </label>
                 </div>
+                  </div>
+                </div>
+                {/* المستودع والمشتريات */}
+                <div>
+                  <p className="text-[11px] font-bold text-muted-foreground mb-2 flex items-center gap-1"><ScanLine className="h-3 w-3" /> المستودع والمشتريات</p>
+                  <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
                 <div className="flex items-center gap-2">
                   <Switch
                     checked={!!(selectedEmployee as any).is_receiver}
