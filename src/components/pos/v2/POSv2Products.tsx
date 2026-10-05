@@ -1,5 +1,3 @@
-import { useState } from "react";
-import { Pencil, GripVertical, Check } from "lucide-react";
 import { DndContext, closestCenter, type DragEndEvent, type SensorDescriptor, type SensorOptions } from "@dnd-kit/core";
 import { SortableContext, useSortable, verticalListSortingStrategy, rectSortingStrategy } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
@@ -22,11 +20,6 @@ type Props = {
   qtyMap: Record<string, number>;
   onAdd: (p: PosV2Product) => void;
   cardSize: "S" | "M" | "L";
-  onCardSize: (s: "S" | "M" | "L") => void;
-  canManage: boolean;
-  onAddCategory: () => void;
-  onAddProduct: () => void;
-  onSortMode: () => void;
   isSortMode: boolean;
   catIdByName: Record<string, string>;
   narrow: boolean;
@@ -97,7 +90,6 @@ function Chip({ t, active, color, label, count, onClick }: { t: PosV2Tokens; act
 export default function POSv2Products(p: Props) {
   const { t } = p;
   const { dir, t: tr } = usePosLang();
-  const [editOpen, setEditOpen] = useState(false);
   const baseCols = p.cardSize === "S" ? 6 : p.cardSize === "M" ? 5 : 4;
   const cols = Math.max(2, baseCols - (p.narrow ? 1 : 0));
 
@@ -125,63 +117,8 @@ export default function POSv2Products(p: Props) {
       </aside>
 
       <div dir={dir} className="flex-1 min-h-0 min-w-0 flex flex-col">
-      {/* Toolbar */}
-      <div className="flex items-center justify-end gap-2 px-4 pt-3 pb-2 shrink-0">
-        <div className="flex items-center shrink-0" style={{ height: 44, padding: 3, borderRadius: 12, background: t.card, border: `1px solid ${t.border}` }}>
-          {(["S", "M", "L"] as const).map((s) => (
-            <button
-              key={s}
-              type="button"
-              onClick={() => p.onCardSize(s)}
-              style={{ width: 38, height: 36, borderRadius: 9, fontSize: 13, fontWeight: 800, background: p.cardSize === s ? t.accent : "transparent", color: p.cardSize === s ? t.onAccent : t.muted }}
-            >
-              {s}
-            </button>
-          ))}
-        </div>
-        {/* Per-user sort toggle — available to every user, like /pos. */}
-        <button
-          type="button"
-          onClick={p.onSortMode}
-          className="flex items-center gap-1.5 shrink-0"
-          title={tr(p.isSortMode ? "إنهاء وضع الترتيب" : "وضع الترتيب — اضغط مطولًا واسحب التصنيف أو الصنف")}
-          style={{ height: 44, padding: "0 14px", borderRadius: 12, background: p.isSortMode ? t.accent : t.card, color: p.isSortMode ? t.onAccent : t.text, border: `1px solid ${t.border}`, fontSize: 13, fontWeight: 700 }}
-        >
-          {p.isSortMode ? <Check style={{ width: 15, height: 15 }} /> : <GripVertical style={{ width: 15, height: 15 }} />}
-          {tr(p.isSortMode ? "إنهاء الترتيب" : "ترتيب")}
-        </button>
-        {p.canManage && (
-          <div className="relative shrink-0">
-            <button
-              type="button"
-              onClick={() => setEditOpen((v) => !v)}
-              className="flex items-center gap-1.5"
-              style={{ height: 44, padding: "0 14px", borderRadius: 12, background: p.isSortMode ? t.accent : t.card, color: p.isSortMode ? t.onAccent : t.text, border: `1px solid ${t.border}`, fontSize: 13, fontWeight: 700 }}
-            >
-              <Pencil style={{ width: 15, height: 15 }} />
-              {tr("تعديل")}
-            </button>
-            {editOpen && (
-              <>
-                <div className="fixed inset-0 z-40" onClick={() => setEditOpen(false)} />
-                <div className="absolute z-50 py-1" style={{ top: "100%", insetInlineEnd: 0, marginTop: 6, minWidth: 180, borderRadius: 12, background: t.surface, border: `1px solid ${t.border}`, boxShadow: "0 12px 32px rgba(0,0,0,0.25)" }}>
-                  {[
-                    { k: "c", l: "+ تصنيف", f: p.onAddCategory },
-                    { k: "p", l: "+ منتج", f: p.onAddProduct },
-                  ].map((i) => (
-                    <button key={i.k} type="button" onClick={() => { setEditOpen(false); i.f(); }} className="w-full text-right" style={{ height: 44, padding: "0 14px", color: t.text, fontSize: 13 }}>
-                      {tr(i.l)}
-                    </button>
-                  ))}
-                </div>
-              </>
-            )}
-          </div>
-        )}
-      </div>
-
       {/* Grid */}
-      <div className="flex-1 min-h-0 overflow-y-auto px-4 pb-4">
+      <div className="flex-1 min-h-0 overflow-y-auto px-4 py-4">
         {p.products.length === 0 ? (
           <div className="py-24 text-center" style={{ color: t.muted, fontSize: 14 }}>{tr("لا توجد منتجات مطابقة")}</div>
         ) : (

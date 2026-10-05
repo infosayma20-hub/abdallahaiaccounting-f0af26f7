@@ -7815,6 +7815,14 @@ const POSPage = ({ variant = "v1" }: { variant?: "v1" | "v2" } = {}) => {
   const v2HeldCount = orders.filter((o, i) => i !== activeOrderIndex && o.cart.length > 0).length;
   const v2MenuIcon = (I: any) => <I style={{ width: 16, height: 16 }} />;
   const v2MenuItems = [
+    { key: "size-s", label: `${posLangCtl.t("حجم الأصناف")}: S${v2CardSize === "S" ? " ✓" : ""}`, icon: v2MenuIcon(Grid3X3), onClick: () => setAndSaveV2CardSize("S") },
+    { key: "size-m", label: `${posLangCtl.t("حجم الأصناف")}: M${v2CardSize === "M" ? " ✓" : ""}`, icon: v2MenuIcon(Grid2X2), onClick: () => setAndSaveV2CardSize("M") },
+    { key: "size-l", label: `${posLangCtl.t("حجم الأصناف")}: L${v2CardSize === "L" ? " ✓" : ""}`, icon: v2MenuIcon(LayoutGrid), onClick: () => setAndSaveV2CardSize("L") },
+    { key: "sort", label: isSortMode ? "إنهاء الترتيب" : "ترتيب", icon: v2MenuIcon(isSortMode ? Check : GripVertical), onClick: () => setIsSortMode(!isSortMode) },
+    ...((isAdmin || !!posPerms.manage_products_categories) ? [
+      { key: "add-category", label: "+ تصنيف", icon: v2MenuIcon(Tag), onClick: () => setShowCategoryManager(true) },
+      { key: "add-product", label: "+ منتج", icon: v2MenuIcon(PlusCircle), onClick: () => setShowAddProduct(true) },
+    ] : []),
     { key: "back-v1", label: "الواجهة القديمة", icon: v2MenuIcon(Undo2), onClick: () => { posV2OptOut.set(true); navigate("/pos"); } },
     { key: "apps", label: "رجوع للتطبيقات", icon: v2MenuIcon(ArrowRight), onClick: () => navigate("/apps", { replace: true }) },
     ...(loyaltyEnabled ? [{ key: "loyalty", label: "زبون الولاء", icon: v2MenuIcon(Star), onClick: () => setShowLoyaltyPicker(true) }] : []),
@@ -7911,11 +7919,6 @@ const POSPage = ({ variant = "v1" }: { variant?: "v1" | "v2" } = {}) => {
         qtyMap={cartQtyMap}
         onAdd={(pr) => { if (!isSortMode) addToCart(pr as any); }}
         cardSize={v2CardSize}
-        onCardSize={setAndSaveV2CardSize}
-        canManage={isAdmin || !!posPerms.manage_products_categories}
-        onAddCategory={() => setShowCategoryManager(true)}
-        onAddProduct={() => setShowAddProduct(true)}
-        onSortMode={() => setIsSortMode(!isSortMode)}
         isSortMode={isSortMode}
         catIdByName={v2CatIdByName}
         narrow={v2Width < 1180}
