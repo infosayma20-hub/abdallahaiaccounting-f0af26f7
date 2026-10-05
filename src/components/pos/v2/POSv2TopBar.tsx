@@ -57,7 +57,6 @@ function IconBtn({ t, label, badge, onClick, children }: { t: PosV2Tokens; label
 export default function POSv2TopBar(p: Props) {
   const { t } = p;
   const [menuOpen, setMenuOpen] = useState(false);
-  const printerOnline = usePrinterOnline();
 
   return (
     <header
