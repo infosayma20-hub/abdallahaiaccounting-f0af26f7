@@ -372,6 +372,7 @@ const TravelBookingPrintPage = lazy(() => import("./pages/travel/TravelBookingPr
 const TravelSettingsPage = lazy(() => import("./pages/travel/TravelSettingsPage"));
 const PrinterSettingsPage = lazy(() => import("./pages/PrinterSettingsPage"));
 const DeliveryCompaniesPage = lazy(() => import("./pages/settings/DeliveryCompaniesPage"));
+const BusinessUnitsPage = lazy(() => import("./pages/settings/BusinessUnitsPage"));
 const BopPinpadPage = lazy(() => import("./pages/settings/BopPinpadPage"));
 const DeviceSetupPage = lazy(() => import("./pages/DeviceSetupPage"));
 const DeviceSetupGuard = lazy(() => import("./components/pos/DeviceSetupGuard"));
@@ -978,6 +979,7 @@ const App = () => (
                       <Route path="/settings" element={<SettingsPage />} />
                       <Route path="/settings/referrals" element={<ReferralPage />} />
                       <Route path="/settings/delivery-companies" element={<DeliveryCompaniesPage />} />
+                      <Route path="/settings/business-units" element={<BusinessUnitsPage />} />
                       <Route path="/settings/bop-pinpad" element={<BopPinpadPage />} />
                       <Route path="/settings/performance" element={<PerformanceMonitorPage />} />
                       <Route path="/referrals" element={<ReferralPage />} />

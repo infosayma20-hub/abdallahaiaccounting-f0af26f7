@@ -25,6 +25,7 @@ import CommandPalette from "@/pages/Apps/components/CommandPalette";
 import { useFavoriteApps } from "@/hooks/useFavoriteApps";
 import { Star, Command, ChevronDown, Megaphone, ShieldCheck, LayoutGrid } from "lucide-react";
 import { useTT } from "@/i18n/dict";
+import BusinessUnitPicker from "@/components/business-units/BusinessUnitPicker";
 import { POST_LOGIN_APPS_READY_EVENT } from "@/components/auth/PostLoginWelcomeOverlay";
 import {
   DndContext,
@@ -526,11 +527,14 @@ const AppsLauncher = ({ preloadOnly = false }: AppsLauncherProps) => {
 
       <div className="container relative z-10 mx-auto max-w-6xl min-w-0 space-y-6 p-4 pb-24 md:p-8 md:pb-24">
         {/* Compact header */}
-        <div className="mb-4 flex items-baseline justify-between px-1">
+        <div className="mb-4 flex items-baseline justify-start gap-4 px-1">
           <div>
             <h1 className="flex items-center gap-2.5 text-2xl font-bold tracking-tight text-primary dark:text-foreground"><span aria-hidden="true" className="h-6 w-1 rounded-full bg-accent" />{tt("التطبيقات")}</h1>
             <p className="mt-1 ps-3.5 text-sm text-muted-foreground">{tt("اختر تطبيقاً للبدء")}</p>
           </div>
+          {isReady && (
+            <BusinessUnitPicker canSeeAll={userRoles.some((r) => r === "admin" || r === "super_admin" || r.startsWith("accountant"))} />
+          )}
         </div>
 
         {/* Apps Grid — the post-login welcome layer covers this brief first load. */}
