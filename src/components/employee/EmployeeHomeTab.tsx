@@ -69,6 +69,7 @@ interface Props {
   isCashier?: boolean;
   isWaiter?: boolean;
   onOpenPOS?: () => void;
+  canStockCount?: boolean;
   canViewTeam?: boolean;
   canManageSchedule?: boolean;
   canManageAttendance?: boolean;
@@ -79,7 +80,7 @@ interface Props {
   onOpenManagerRoute?: (path: string) => void;
 }
 
-export default function EmployeeHomeTab({ employeeName, todayRecord, todayEvents = [], recentEvents = [], history, onScanTap, onNavigate, isCashier, isWaiter, onOpenPOS, canViewTeam, canManageSchedule, canManageAttendance, isManager, branchName, companyLogo, employeeId, onOpenManagerRoute }: Props) {
+export default function EmployeeHomeTab({ employeeName, todayRecord, todayEvents = [], recentEvents = [], history, onScanTap, onNavigate, isCashier, isWaiter, onOpenPOS, canViewTeam, canManageSchedule, canManageAttendance, canStockCount, isManager, branchName, companyLogo, employeeId, onOpenManagerRoute }: Props) {
   const hasMgmt = !!(canViewTeam || canManageSchedule || canManageAttendance);
   const mgmtBadge = isManager ? "مدير فرع" : (canManageSchedule ? "مشرف دوام" : "مشرف");
   const [currentTime, setCurrentTime] = useState(new Date());
@@ -726,6 +727,7 @@ export default function EmployeeHomeTab({ employeeName, todayRecord, todayEvents
           { icon: Send, label: "النماذج والطلبات", tab: "forms" },
           { icon: AlertTriangle, label: "تنبيهات وتصحيحات", tab: "alerts" },
           { icon: User, label: "ملفي الشخصي", tab: "profile" },
+          ...(canStockCount ? [{ icon: ScanLine, label: "جرد المخزون", tab: "stock-count" }] : []),
         ].map(link => (
           <Button
             key={link.tab}
