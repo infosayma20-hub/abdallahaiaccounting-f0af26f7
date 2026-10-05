@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Briefcase, Truck, LogOut, ShoppingCart, Headphones, Lock, RefreshCw, PhoneCall, MessageSquareWarning, HandCoins, ScanBarcode } from "lucide-react";
+import { Briefcase, Truck, LogOut, ShoppingCart, Headphones, Lock, RefreshCw, PhoneCall, MessageSquareWarning, HandCoins, ScanBarcode, ClipboardList } from "lucide-react";
 import { BarChart3 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -25,6 +25,7 @@ export default function ChooseWorkspacePage() {
   const [sharedCallCenterOnly, setSharedCallCenterOnly] = useState(false);
   const [hasEmployee, setHasEmployee] = useState(false);
   const [hasReceiver, setHasReceiver] = useState(false);
+  const [hasStockCount, setHasStockCount] = useState(false);
   const [rolesLoaded, setRolesLoaded] = useState(false);
   const { authorized: bridgeAuthorized, checking: bridgeChecking, recheck } = useBridgeAuthorized();
   const { isDeviceAdmin } = useIsDeviceAdmin();
@@ -58,7 +59,7 @@ export default function ChooseWorkspacePage() {
           supabase.from("pos_users").select("is_call_center, is_waiter, hide_employee_workspace, is_active, account_status").eq("auth_user_id", user.id).maybeSingle(),
           supabase
             .from("employees")
-            .select("id, is_active, is_terminated, is_receiver, can_direct_receive")
+            .select("id, is_active, is_terminated, is_receiver, can_direct_receive, can_stock_count")
             .eq("auth_user_id", user.id)
             .maybeSingle(),
         ]);
@@ -80,6 +81,7 @@ export default function ChooseWorkspacePage() {
         const hideEmployee = !!linkedPosUser && !!linkedPosUser.hide_employee_workspace;
         setSharedCallCenterOnly(hideEmployee && !!linkedPosUser?.is_call_center);
         setHasReceiver((!!(empRow as any)?.is_receiver || !!(empRow as any)?.can_direct_receive) && !!linkedEmployee?.is_active && !linkedEmployee?.is_terminated);
+        setHasStockCount(!!(empRow as any)?.can_stock_count && !!linkedEmployee?.is_active && !linkedEmployee?.is_terminated);
         setHasEmployee(
           !hideEmployee &&
           !!linkedEmployee &&
@@ -96,7 +98,7 @@ export default function ChooseWorkspacePage() {
     })();
   }, [user?.id, sharedRoles]);
 
-  const choose = (path: "/employee" | "/rep" | "/pos" | "/feedback" | "/pos-reports" | "/customer-complaints" | "/complaints-view" | "/compensations" | "/compensations-view" | "/worker/receiving") => {
+  const choose = (path: "/employee" | "/rep" | "/pos" | "/feedback" | "/pos-reports" | "/customer-complaints" | "/complaints-view" | "/compensations" | "/compensations-view" | "/worker/receiving" | "/worker/stock-count") => {
     try {
       if (user?.id) {
         sessionStorage.setItem(`workspace-choice:${user.id}`, path);
@@ -335,6 +337,25 @@ export default function ChooseWorkspacePage() {
             <p className="text-sm text-muted-foreground">استلام البضاعة بالباركود من طلبيات الشراء</p>
             <Button className="w-full mt-2" onClick={(e) => { e.stopPropagation(); choose("/worker/receiving"); }}>
               دخول الاستلام
+            </Button>
+          </Card>
+          )}
+
+          {hasStockCount && (
+          <Card
+            role="button"
+            tabIndex={0}
+            onClick={() => choose("/worker/stock-count")}
+            onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && choose("/worker/stock-count")}
+            className="p-6 cursor-pointer hover:border-primary hover:shadow-lg transition-all flex flex-col items-center text-center gap-3"
+          >
+            <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
+              <ClipboardList className="w-8 h-8 text-primary" />
+            </div>
+            <h2 className="text-lg font-semibold">جرد المخزون</h2>
+            <p className="text-sm text-muted-foreground">مسح الأصناف وتعديل الاسم والسعر وعدّ الكميات</p>
+            <Button className="w-full mt-2" onClick={(e) => { e.stopPropagation(); choose("/worker/stock-count"); }}>
+              دخول الجرد
             </Button>
           </Card>
           )}

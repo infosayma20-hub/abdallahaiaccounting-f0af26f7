@@ -39,6 +39,7 @@ const POS_WORKSPACE_PATHS = new Set([
   "/compensations",
   "/compensations-view",
   "/worker/receiving",
+  "/worker/stock-count",
 ]);
 
 const resolvePosWorkspaceChoice = (chosen: string | null): string =>
@@ -110,7 +111,7 @@ export function useRoleRedirect() {
             .maybeSingle(),
           supabase
             .from("employees")
-            .select("id, auth_user_id, user_id, is_active, is_terminated, is_manager, is_hr_manager, can_view_team, can_manage_schedule, can_manage_attendance, is_receiver, can_direct_receive")
+            .select("id, auth_user_id, user_id, is_active, is_terminated, is_manager, is_hr_manager, can_view_team, can_manage_schedule, can_manage_attendance, is_receiver, can_direct_receive, can_stock_count")
             .eq("auth_user_id", user.id)
             .maybeSingle(),
           supabase
@@ -218,7 +219,7 @@ export function useRoleRedirect() {
               .eq("access_state", "allow")
               .limit(1);
             // موظف مستودع (استلام بضاعة / استلام مباشر) عنده مساحتين: الموظف والمستودع
-            const isWarehouse = !!(empRow as any)?.is_receiver || !!(empRow as any)?.can_direct_receive;
+            const isWarehouse = !!(empRow as any)?.is_receiver || !!(empRow as any)?.can_direct_receive || !!(empRow as any)?.can_stock_count;
             if ((fbPerms && fbPerms.length > 0) || isWarehouse) {
               const chosen = readWorkspaceChoice(user.id);
               const resolved = resolvePosWorkspaceChoice(chosen);
