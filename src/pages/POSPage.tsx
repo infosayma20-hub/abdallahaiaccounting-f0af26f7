@@ -7422,6 +7422,7 @@ const POSPage = ({ variant = "v1" }: { variant?: "v1" | "v2" } = {}) => {
         const idx = parseInt(e.key) - 1;
         const visibleProducts = products.filter(p => {
           if (!p.is_pos_available) return false;
+          if (unitHiddenIds.has(p.id)) return false;
           if (selectedCategory === "__uncategorized__") return !p.pos_category_id && !posCategories.some(c => c.name === p.category);
           if (selectedCategory !== "الكل") {
             const cat = posCategories.find(c => c.name === selectedCategory);
