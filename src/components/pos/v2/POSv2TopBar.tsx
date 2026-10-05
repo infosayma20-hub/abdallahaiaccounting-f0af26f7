@@ -1,7 +1,6 @@
 import { useState, type ReactNode, type RefObject } from "react";
-import { Search, Barcode, Printer, PauseCircle, ChefHat, FileText, MoreHorizontal, Sun, Moon, CircleStop, Pin, PinOff } from "lucide-react";
+import { Search, Barcode, PauseCircle, ChefHat, FileText, MoreHorizontal, Sun, Moon, CircleStop, Pin, PinOff } from "lucide-react";
 import type { PosV2Tokens } from "./posV2Theme";
-import { usePrinterOnline } from "./usePrinterOnline";
 import BridgeStatusIndicator from "@/components/pos/BridgeStatusIndicator";
 
 export type PosV2MenuItem = { key: string; label: string; icon?: ReactNode; onClick: () => void; danger?: boolean };
@@ -57,7 +56,6 @@ function IconBtn({ t, label, badge, onClick, children }: { t: PosV2Tokens; label
 export default function POSv2TopBar(p: Props) {
   const { t } = p;
   const [menuOpen, setMenuOpen] = useState(false);
-  const printerOnline = usePrinterOnline();
 
   return (
     <header
@@ -103,14 +101,8 @@ export default function POSv2TopBar(p: Props) {
         </div>
       </div>
 
-      {/* Left: printer pill + 5 buttons */}
+      {/* Left: 5 buttons */}
       <div className="flex items-center gap-1 shrink-0">
-        {printerOnline === false && (
-          <div className="flex items-center gap-1.5 shrink-0" style={{ height: 34, padding: "0 12px", borderRadius: 17, background: t.warnBg, color: t.warnText, fontSize: 12, fontWeight: 700 }}>
-            <Printer style={{ width: 15, height: 15 }} />
-            الطابعة غير متصلة
-          </div>
-        )}
         <IconBtn t={t} label="المعلّقة" badge={p.heldCount} onClick={p.onHeld}><PauseCircle style={{ width: 20, height: 20 }} strokeWidth={1.8} /></IconBtn>
         <IconBtn t={t} label={p.barPinned ? "مثبّت" : "تعليق"} onClick={p.onToggleBarPin}>
           {p.barPinned
