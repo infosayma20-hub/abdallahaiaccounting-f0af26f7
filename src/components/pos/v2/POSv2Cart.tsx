@@ -1,5 +1,5 @@
 import { useState, type ReactNode } from "react";
-import { Plus, Minus, Trash2, User, X, Tag, StickyNote, PauseCircle, ShoppingCart, Save, Printer, MoreHorizontal } from "lucide-react";
+import { Plus, Minus, Trash2, User, X, Tag, StickyNote, PauseCircle, ShoppingCart, Save, Printer, MoreHorizontal, ShoppingBag, Truck, UtensilsCrossed } from "lucide-react";
 import type { PosV2Tokens } from "./posV2Theme";
 import { fmtMoney } from "./posV2Theme";
 
@@ -60,6 +60,7 @@ type Props = {
 };
 
 const TYPE_LABEL: Record<OrderType, string> = { takeaway: "سفري", delivery: "توصيل", dine_in: "طاولة" };
+const TYPE_ICON: Record<OrderType, typeof ShoppingBag> = { takeaway: ShoppingBag, delivery: Truck, dine_in: UtensilsCrossed };
 
 function Key({ t, k, onAccent }: { t: PosV2Tokens; k: string; onAccent?: string }) {
   return (
@@ -72,7 +73,7 @@ export default function POSv2Cart(p: Props) {
   const [noteOpen, setNoteOpen] = useState(false);
   const [customerOpen, setCustomerOpen] = useState(false);
   const c = !!p.compact;
-  const outlineBtn = { height: c ? 34 : 44, borderRadius: 12, border: `1px solid ${t.border}`, background: "transparent", color: t.text, fontSize: 13, fontWeight: 700 } as const;
+  const outlineBtn = { height: c ? 28 : 32, borderRadius: 9, border: `1px solid ${t.border}`, background: "transparent", color: t.text, fontSize: 11.5, fontWeight: 700 } as const;
   const empty = p.lines.length === 0;
 
   return (
@@ -107,13 +108,15 @@ export default function POSv2Cart(p: Props) {
 
       {/* b) order type */}
       {p.orderTypes.length > 0 && (
-        <div className="px-4 pb-2 shrink-0">
-          <div className="flex" style={{ padding: 4, borderRadius: 12, background: t.input, border: `1px solid ${t.border}` }}>
+        <div className="px-4 pb-1.5 shrink-0">
+          <div className="flex" style={{ padding: 2, borderRadius: 9, background: t.input, border: `1px solid ${t.border}` }}>
             {p.orderTypes.map((ty) => {
               const a = p.activeType === ty;
+              const Icon = TYPE_ICON[ty];
               return (
-                <button key={ty} type="button" onClick={() => p.onOrderType(ty)} className="flex-1"
-                  style={{ height: 40, borderRadius: 9, fontSize: 14, fontWeight: 800, background: a ? t.accent : "transparent", color: a ? t.onAccent : t.muted }}>
+                <button key={ty} type="button" onClick={() => p.onOrderType(ty)} className="flex-1 flex items-center justify-center gap-1"
+                  style={{ height: 28, borderRadius: 7, fontSize: 11.5, fontWeight: 800, background: a ? t.accent : "transparent", color: a ? t.onAccent : t.muted }}>
+                  <Icon style={{ width: 13, height: 13 }} />
                   {TYPE_LABEL[ty]}
                 </button>
               );
@@ -213,58 +216,58 @@ export default function POSv2Cart(p: Props) {
       </div>
 
       {/* f) quick actions */}
-      <div className={`px-4 ${c ? "pt-1.5" : "pt-3"} shrink-0`}>
+      <div className={`px-4 ${c ? "pt-1" : "pt-1.5"} shrink-0`}>
         {noteOpen || p.orderNote ? (
-          <div className="flex items-center gap-2 mb-2">
+          <div className="flex items-center gap-2 mb-1.5">
             <input autoFocus={noteOpen && !p.orderNote} value={p.orderNote} onChange={(e) => p.onOrderNote(e.target.value)} placeholder="ملاحظة على الفاتورة"
-              className="flex-1 focus:outline-none" style={{ height: 40, borderRadius: 10, padding: "0 12px", background: t.input, border: `1px solid ${t.border}`, color: t.text, fontSize: 13 }} />
+              className="flex-1 focus:outline-none" style={{ height: 32, borderRadius: 8, padding: "0 10px", background: t.input, border: `1px solid ${t.border}`, color: t.text, fontSize: 12 }} />
             <button type="button" onClick={() => { p.onOrderNote(""); setNoteOpen(false); }} style={{ color: t.muted }}><X style={{ width: 16, height: 16 }} /></button>
           </div>
         ) : null}
-        <div className="grid grid-cols-3 gap-2">
-          <button type="button" onClick={p.onDiscount} disabled={!p.canDiscount} className="flex items-center justify-center gap-1.5 disabled:opacity-40" style={{ ...outlineBtn, ...(p.discountActive ? { borderColor: t.accent, color: t.accent } : {}) }}>
-            <Tag style={{ width: 15, height: 15 }} />{p.discountActive ? "إلغاء الخصم" : "خصم"}
+        <div className="grid grid-cols-3 gap-1.5">
+          <button type="button" onClick={p.onDiscount} disabled={!p.canDiscount} className="flex items-center justify-center gap-1 disabled:opacity-40" style={{ ...outlineBtn, ...(p.discountActive ? { borderColor: t.accent, color: t.accent } : {}) }}>
+            <Tag style={{ width: 13, height: 13 }} />{p.discountActive ? "إلغاء الخصم" : "خصم"}
           </button>
-          <button type="button" onClick={() => setNoteOpen(true)} className="flex items-center justify-center gap-1.5" style={outlineBtn}>
-            <StickyNote style={{ width: 15, height: 15 }} />ملاحظة
+          <button type="button" onClick={() => setNoteOpen(true)} className="flex items-center justify-center gap-1" style={outlineBtn}>
+            <StickyNote style={{ width: 13, height: 13 }} />ملاحظة
           </button>
-          <button type="button" onClick={p.onHold} disabled={empty} className="flex items-center justify-center gap-1.5 disabled:opacity-40" style={outlineBtn}>
-            <PauseCircle style={{ width: 15, height: 15 }} />تعليق
+          <button type="button" onClick={p.onHold} disabled={empty} className="flex items-center justify-center gap-1 disabled:opacity-40" style={outlineBtn}>
+            <PauseCircle style={{ width: 13, height: 13 }} />تعليق
           </button>
         </div>
       </div>
 
       {/* g) totals */}
-      <div className={`px-4 ${c ? "pt-1.5" : "pt-3"} shrink-0`} style={{ fontSize: 13 }}>
-        {!c && <div className="flex justify-between" style={{ color: t.muted, marginBottom: 4 }}><span>المجموع ({p.pieces} قطع)</span><span dir="ltr">{fmtMoney(p.subtotal)}</span></div>}
-        {(!c || p.discount > 0) && <div className="flex justify-between" style={{ color: t.muted, marginBottom: 4 }}><span>الخصم</span><span dir="ltr">{fmtMoney(p.discount)}</span></div>}
-        {p.tax > 0 && <div className="flex justify-between" style={{ color: t.muted, marginBottom: 4 }}><span>الضريبة</span><span dir="ltr">{fmtMoney(p.tax)}</span></div>}
-        <div className="flex justify-between items-baseline" style={{ marginTop: 6 }}>
-          <span style={{ fontSize: 16, fontWeight: 800 }}>الإجمالي</span>
-          <span dir="ltr" className="tabular-nums" style={{ fontSize: c ? 22 : 28, fontWeight: 800 }}>{fmtMoney(p.total)}</span>
+      <div className={`px-4 ${c ? "pt-1" : "pt-1.5"} shrink-0`} style={{ fontSize: 12 }}>
+        {!c && <div className="flex justify-between" style={{ color: t.muted, marginBottom: 2 }}><span>المجموع ({p.pieces} قطع)</span><span dir="ltr">{fmtMoney(p.subtotal)}</span></div>}
+        {(!c || p.discount > 0) && <div className="flex justify-between" style={{ color: t.muted, marginBottom: 2 }}><span>الخصم</span><span dir="ltr">{fmtMoney(p.discount)}</span></div>}
+        {p.tax > 0 && <div className="flex justify-between" style={{ color: t.muted, marginBottom: 2 }}><span>الضريبة</span><span dir="ltr">{fmtMoney(p.tax)}</span></div>}
+        <div className="flex justify-between items-baseline" style={{ marginTop: 2 }}>
+          <span style={{ fontSize: 13, fontWeight: 800 }}>الإجمالي</span>
+          <span dir="ltr" className="tabular-nums" style={{ fontSize: c ? 18 : 22, fontWeight: 800 }}>{fmtMoney(p.total)}</span>
         </div>
       </div>
 
       {/* h/i) pay + secondary */}
-      <div className={`px-4 ${c ? "pt-2 pb-2" : "pt-3 pb-4"} shrink-0 space-y-2`}>
+      <div className={`px-4 ${c ? "pt-1.5 pb-2" : "pt-2 pb-2.5"} shrink-0 space-y-1.5`}>
         {p.showPay && (
-          <button type="button" onClick={p.onPay} disabled={!p.canPay} className="w-full flex items-center justify-center gap-3"
-            style={{ height: c ? 46 : 60, borderRadius: 14, background: p.t.pay, color: p.t.onPay, fontSize: 19, fontWeight: 800, opacity: p.canPay ? 1 : 0.4, cursor: p.canPay ? "pointer" : "not-allowed" }}>
+          <button type="button" onClick={p.onPay} disabled={!p.canPay} className="w-full flex items-center justify-center gap-2"
+            style={{ height: c ? 38 : 44, borderRadius: 11, background: p.t.pay, color: p.t.onPay, fontSize: 16, fontWeight: 800, opacity: p.canPay ? 1 : 0.4, cursor: p.canPay ? "pointer" : "not-allowed" }}>
             <span>دفع <span dir="ltr">{fmtMoney(p.payTotal)}</span></span>
             <Key t={t} k="F2" onAccent={p.t.onPay} />
           </button>
         )}
-        <div className="flex gap-2">
-          <button type="button" onClick={p.onSave} disabled={p.saveDisabled} className="flex-1 flex items-center justify-center gap-2 disabled:opacity-40" style={outlineBtn}>
-            <Save style={{ width: 15, height: 15 }} />حفظ<Key t={t} k="F10" />
+        <div className="flex gap-1.5">
+          <button type="button" onClick={p.onSave} disabled={p.saveDisabled} className="flex-1 flex items-center justify-center gap-1.5 disabled:opacity-40" style={outlineBtn}>
+            <Save style={{ width: 13, height: 13 }} />حفظ<Key t={t} k="F10" />
           </button>
           {p.showPrint && (
-            <button type="button" onClick={p.onPrint} disabled={empty} className="flex-1 flex items-center justify-center gap-2 disabled:opacity-40" style={outlineBtn}>
-              <Printer style={{ width: 15, height: 15 }} />طباعة<Key t={t} k="F9" />
+            <button type="button" onClick={p.onPrint} disabled={empty} className="flex-1 flex items-center justify-center gap-1.5 disabled:opacity-40" style={outlineBtn}>
+              <Printer style={{ width: 13, height: 13 }} />طباعة<Key t={t} k="F9" />
             </button>
           )}
-          <button type="button" onClick={p.onMore} className="flex items-center justify-center" style={{ ...outlineBtn, width: 44 }} title="المزيد">
-            <MoreHorizontal style={{ width: 16, height: 16 }} />
+          <button type="button" onClick={p.onMore} className="flex items-center justify-center" style={{ ...outlineBtn, width: 36 }} title="المزيد">
+            <MoreHorizontal style={{ width: 15, height: 15 }} />
           </button>
         </div>
       </div>
