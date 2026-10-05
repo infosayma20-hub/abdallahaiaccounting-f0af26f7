@@ -15,7 +15,7 @@ import { Label } from "@/components/ui/label";
 import { QRCodeCanvas } from "qrcode.react";
 import {
   ArrowRight, RefreshCw, Search, Loader2, QrCode, Copy, Download,
-  Paperclip, CheckCircle2, Printer, SlidersHorizontal,
+  Paperclip, CheckCircle2, Printer, FileDown, SlidersHorizontal,
   MoreHorizontal, Archive, ArchiveRestore, Trash2, ArrowUpDown, ArrowUp, ArrowDown,
   Users, UserCheck, CalendarCheck2, BriefcaseBusiness, Filter,
 } from "lucide-react";
