@@ -1475,13 +1475,12 @@ const POSPage = ({ variant = "v1" }: { variant?: "v1" | "v2" } = {}) => {
         const myUnit = (br as any)?.business_unit_id as string | null;
         const units = new Map<string, Set<string>>();
         if (myUnit) {
-          let after: string | null = null;
           for (let page = 0; page < 100; page++) {
-            let q = supabase.from("product_business_units" as any)
+            const { data, error } = await supabase.from("product_business_units" as any)
               .select("product_id, business_unit_id")
-              .eq("user_id", dataOwnerId).order("product_id").limit(1000);
-            if (after) q = q.gt("product_id", after);
-            const { data, error } = await q;
+              .eq("user_id", dataOwnerId)
+              .order("product_id").order("business_unit_id")
+              .range(page * 1000, page * 1000 + 999);
             if (error) return;
             const chunk = (data || []) as any[];
             chunk.forEach(r => {
@@ -1489,7 +1488,6 @@ const POSPage = ({ variant = "v1" }: { variant?: "v1" | "v2" } = {}) => {
               units.get(r.product_id)!.add(r.business_unit_id);
             });
             if (chunk.length < 1000) break;
-            after = chunk[chunk.length - 1].product_id;
           }
         }
         const hidden: string[] = [];
