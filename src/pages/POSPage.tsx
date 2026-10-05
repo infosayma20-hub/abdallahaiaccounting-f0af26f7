@@ -7999,11 +7999,24 @@ const POSPage = ({ variant = "v1" }: { variant?: "v1" | "v2" } = {}) => {
         showPay={!isCallCenter}
         canPay={cart.length > 0 && !!session}
         onPay={openPaymentModal}
+        showDispatch={isCallCenter}
+        onDispatch={() => setShowCallCenterDispatch(true)}
         onSave={handleSaveToTable}
         saveDisabled={savingToTable || cart.length === 0}
         showPrint={!isCallCenter && restaurantFeatures}
         onPrint={() => { if (shouldThrottlePrint("F9")) return; handleSendToKitchen(); }}
         onMore={() => setShowAllOrders(true)}
+        onAppInbox={() => setShowAppInbox(true)}
+        appInboxCount={appInboxCount}
+        onDispatchLog={() => setShowDispatchLog(true)}
+        pendingDispatchCount={pendingDispatchCount}
+        dispatchLateCount={dispatchLateCount}
+        onSchedule={() => {
+          if (cart.length === 0) { toast.error(posLangCtl.t("أضف أصناف للسلة أولاً")); return; }
+          setShowScheduleOrder(true);
+        }}
+        onScheduled={() => setShowScheduledPanel(true)}
+        scheduledCount={scheduledCount}
         extraNode={v2TablePickerNode}
       />
     </div>
