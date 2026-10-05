@@ -144,7 +144,7 @@ export default function POSDeviceAuthGuard({ children }: { children: ReactNode }
       {showAsViewOnly && (
         <ViewOnlyBanner onRecheck={recheck} bridgeUrl={bridgeUrl} />
       )}
-      {isDemoTenant && !resolving && (
+      {isDemoTenant && !resolving && demoBannerVisible && (
         <div dir="rtl" className="px-3 py-1.5 text-[12px] font-semibold text-center border-b shrink-0 bg-primary text-primary-foreground">
           وضع العرض التجريبي — حساب تجريبي، البيع يعمل بدون برنامج الطباعة
         </div>
