@@ -7434,10 +7434,10 @@ const POSPage = ({ variant = "v1" }: { variant?: "v1" | "v2" } = {}) => {
   // a window-level listener so it works even when a modal overlay covers the strip.
   useEffect(() => {
     if (!isV2) return;
-    const onMove = (e: MouseEvent) => { if (e.clientY <= 12) setV2BarHover(true); };
+    const onMove = (e: MouseEvent) => { if (e.clientY <= 12) revealV2Bar(); };
     window.addEventListener("mousemove", onMove);
     return () => window.removeEventListener("mousemove", onMove);
-  }, [isV2]);
+  }, [isV2, revealV2Bar]);
   useEffect(() => {
     if (!isV2) return;
     const onKey = (e: KeyboardEvent) => {
@@ -8002,8 +8002,8 @@ const POSPage = ({ variant = "v1" }: { variant?: "v1" | "v2" } = {}) => {
             <div
               className="fixed top-0 inset-x-0 z-[90]"
               style={{ height: 12 }}
-              onMouseEnter={() => setV2BarHover(true)}
-              onClick={() => setV2BarHover(true)}
+              onMouseEnter={() => revealV2Bar()}
+              onClick={() => revealV2Bar()}
             />
           )}
           <div
