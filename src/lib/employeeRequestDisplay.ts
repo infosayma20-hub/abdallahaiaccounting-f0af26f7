@@ -171,6 +171,15 @@ export function getRequestSummary(r: AnyRequest): string {
       return [name, t, desc].filter(Boolean).join(" • ");
     }
     default: {
+      // النماذج المخصصة ذات الترويسة (مثل HRM-06 تقييم الموظفين): أظهر اسم الموظف المُقيَّم
+      const hdr = f.header || {};
+      if (hdr.employee_name) {
+        return [
+          `الموظف المُقيَّم: ${hdr.employee_name}`,
+          hdr.eval_type,
+          fmtDate(hdr.eval_date),
+        ].filter(Boolean).join(" • ");
+      }
       const reason = (f.reason || r.reason || "").toString().slice(0, 80);
       return reason || tRequestType(kind);
     }
