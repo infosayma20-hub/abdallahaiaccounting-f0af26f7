@@ -547,6 +547,13 @@
       "when": 1791133344953,
       "tag": "0077_company_demo_mode",
       "breakpoints": true
+    },
+    {
+      "idx": 78,
+      "version": "7",
+      "when": 1791210180490,
+      "tag": "0078_business_units_separation",
+      "breakpoints": true
     }
   ]
 }
