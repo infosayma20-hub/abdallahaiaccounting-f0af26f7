@@ -93,6 +93,17 @@ export default function POSv2Cart(p: Props) {
                 style={{ height: 40, padding: "0 14px", borderRadius: 10, fontSize: 13, fontWeight: 800, background: a ? t.accent : t.input, color: a ? t.onAccent : t.text, border: `1px solid ${a ? t.accent : t.border}` }}>
                 {o.label}
                 {o.count > 0 && <span style={{ fontSize: 10, opacity: 0.75 }}>{o.count}</span>}
+                {p.onCloseOrder && p.orders.length > 1 && (
+                  <span
+                    role="button"
+                    aria-label="إغلاق الطلب"
+                    onClick={(e) => { e.stopPropagation(); p.onCloseOrder!(i); }}
+                    className="flex items-center justify-center rounded-full"
+                    style={{ width: 18, height: 18, marginInlineStart: 2, background: a ? "rgba(0,0,0,0.18)" : "rgba(128,128,128,0.25)", color: a ? t.onAccent : t.muted }}
+                  >
+                    <X style={{ width: 11, height: 11 }} />
+                  </span>
+                )}
               </button>
             );
           })}
