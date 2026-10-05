@@ -1375,10 +1375,6 @@ export default function MonthlyAttendanceTab({
 
   const saveEdit = async () => {
     if (!editing || !user) return;
-    if (!form.reason.trim()) {
-      toast({ title: "سبب التعديل إلزامي", variant: "destructive" });
-      return;
-    }
     if (breaksLoading || rawLoading) {
       toast({ title: "انتظر اكتمال تحميل بيانات اليوم", variant: "destructive" });
       return;
@@ -1464,7 +1460,7 @@ export default function MonthlyAttendanceTab({
           p_last_check_out: co,
           p_status: form.status,
           p_notes: form.notes || null,
-          p_reason: form.reason.trim(),
+          p_reason: form.notes.trim() || "تعديل يدوي",
           p_breaks: activeBreaks,
           p_deleted_break_ids: deletedBreakIds,
           p_dismissed_gaps: dismissedGaps,
@@ -2361,13 +2357,6 @@ export default function MonthlyAttendanceTab({
                   </span>
                 </div>
               )}
-            </div>
-            <div className="lg:col-span-2">
-              <label className="text-xs text-destructive mb-1 block">سبب التعديل (إلزامي) *</label>
-              <Textarea rows={2} value={form.reason} onChange={e => setForm(p => ({ ...p, reason: e.target.value }))} placeholder="اكتب سبب التعديل هنا..." />
-              <p className="mt-1 text-[10px] text-muted-foreground flex items-center gap-1">
-                <AlertCircle className="h-3 w-3 shrink-0" /> سيتم وسم السجل كمعدّل يدوياً وحفظ السبب في سجل التدقيق.
-              </p>
             </div>
           </div>
           <DialogFooter className="px-4 py-3 border-t shrink-0 sm:justify-start gap-2">
