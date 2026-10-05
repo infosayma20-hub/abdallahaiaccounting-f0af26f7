@@ -7407,7 +7407,7 @@ const POSPage = ({ variant = "v1" }: { variant?: "v1" | "v2" } = {}) => {
     v2BarHideTimer.current = window.setTimeout(() => {
       v2BarHideTimer.current = null;
       const openMenu = document.querySelector(
-        "[data-radix-popper-content-wrapper], [role='menu'][data-state='open'], [role='listbox'][data-state='open'], [role='dialog'][data-state='open']"
+        "[data-radix-popper-content-wrapper], [data-pos-v2-menu], [role='menu'][data-state='open'], [role='listbox'][data-state='open'], [role='dialog'][data-state='open']"
       );
       if (openMenu) { scheduleV2BarHideRef.current?.(); return; }
       setV2BarHover(false);

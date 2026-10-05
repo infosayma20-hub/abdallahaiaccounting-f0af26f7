@@ -129,6 +129,7 @@ export default function POSv2TopBar(p: Props) {
             <>
               <div className="fixed inset-0 z-40" onClick={() => setMenuOpen(false)} />
               <div
+                data-pos-v2-menu
                 className="absolute z-50 py-1"
                 style={{ top: "100%", insetInlineEnd: 0, marginTop: 6, minWidth: 240, borderRadius: 12, background: t.surface, border: `1px solid ${t.border}`, boxShadow: "0 12px 32px rgba(0,0,0,0.25)" }}
               >
