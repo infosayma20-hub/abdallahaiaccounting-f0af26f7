@@ -1839,11 +1839,6 @@ const POSPage = ({ variant = "v1" }: { variant?: "v1" | "v2" } = {}) => {
     if (!posCategories.length) return;
     const guardKey = session?.id || "no-session";
     if (defaultCategoryAppliedRef.current === guardKey) return;
-    if (isV2) {
-      setSelectedCategory("الكل");
-      defaultCategoryAppliedRef.current = guardKey;
-      return;
-    }
     const companyName = (company?.name || "").toLowerCase();
     const isMalaky = /malaky|ملكي/.test(companyName);
     if (isMalaky) {
@@ -1853,7 +1848,7 @@ const POSPage = ({ variant = "v1" }: { variant?: "v1" | "v2" } = {}) => {
       setSelectedCategory(posCategories[0].name);
     }
     defaultCategoryAppliedRef.current = guardKey;
-  }, [session?.id, company?.name, posCategories, isV2]);
+  }, [session?.id, company?.name, posCategories]);
 
   // Auto-load order from URL params (when coming from floor plan)
   useEffect(() => {
@@ -7864,6 +7859,7 @@ const POSPage = ({ variant = "v1" }: { variant?: "v1" | "v2" } = {}) => {
         catIdByName={v2CatIdByName}
         narrow={v2Width < 1180}
         onCategoryDragEnd={handleCategoryDragEnd}
+        onProductDragEnd={handleProductDragEnd}
         dndSensors={dndSensors}
       />
       {/* Same addon picker as /pos: products with modifier groups open it instead of adding directly. */}

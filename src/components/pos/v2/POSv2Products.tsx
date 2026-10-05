@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Pencil, GripVertical, Check } from "lucide-react";
 import { DndContext, closestCenter, type DragEndEvent, type SensorDescriptor, type SensorOptions } from "@dnd-kit/core";
-import { SortableContext, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
+import { SortableContext, useSortable, verticalListSortingStrategy, rectSortingStrategy } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import type { PosV2Tokens } from "./posV2Theme";
 import { posV2CatColor, fmtMoney } from "./posV2Theme";
@@ -31,6 +31,8 @@ type Props = {
   narrow: boolean;
   /** Shared per-user category order handler from POSPage (same as /pos). */
   onCategoryDragEnd: (e: DragEndEvent) => void;
+  /** Shared per-user product order handler from POSPage (same as /pos). */
+  onProductDragEnd: (e: DragEndEvent) => void;
   dndSensors: SensorDescriptor<SensorOptions>[];
 };
 
@@ -43,6 +45,27 @@ function SortableChip(props: { id: string; sortMode: boolean; children: React.Re
       {...(props.sortMode ? listeners : {})}
       className="relative"
       style={{ transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.6 : 1, zIndex: isDragging ? 10 : undefined, touchAction: props.sortMode ? "none" : undefined, cursor: props.sortMode ? "grab" : undefined }}
+    >
+      {props.children}
+    </div>
+  );
+}
+
+function SortableProduct(props: { id: string; sortMode: boolean; children: React.ReactNode }) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: props.id, disabled: !props.sortMode });
+  return (
+    <div
+      ref={setNodeRef}
+      {...(props.sortMode ? attributes : {})}
+      {...(props.sortMode ? listeners : {})}
+      style={{
+        transform: CSS.Transform.toString(transform),
+        transition,
+        opacity: isDragging ? 0.65 : 1,
+        zIndex: isDragging ? 20 : undefined,
+        touchAction: props.sortMode ? "none" : undefined,
+        cursor: props.sortMode ? "grab" : undefined,
+      }}
     >
       {props.children}
     </div>
@@ -117,7 +140,7 @@ export default function POSv2Products(p: Props) {
           type="button"
           onClick={p.onSortMode}
           className="flex items-center gap-1.5 shrink-0"
-          title={p.isSortMode ? "إنهاء وضع الترتيب" : "وضع الترتيب — اضغط مطولًا واسحب التصنيف"}
+          title={p.isSortMode ? "إنهاء وضع الترتيب" : "وضع الترتيب — اضغط مطولًا واسحب التصنيف أو الصنف"}
           style={{ height: 44, padding: "0 14px", borderRadius: 12, background: p.isSortMode ? t.accent : t.card, color: p.isSortMode ? t.onAccent : t.text, border: `1px solid ${t.border}`, fontSize: 13, fontWeight: 700 }}
         >
           {p.isSortMode ? <Check style={{ width: 15, height: 15 }} /> : <GripVertical style={{ width: 15, height: 15 }} />}
@@ -158,6 +181,8 @@ export default function POSv2Products(p: Props) {
         {p.products.length === 0 ? (
           <div className="py-24 text-center" style={{ color: t.muted, fontSize: 14 }}>لا توجد منتجات مطابقة</div>
         ) : (
+          <DndContext sensors={p.dndSensors} collisionDetection={closestCenter} onDragEnd={p.onProductDragEnd}>
+            <SortableContext items={p.products.map((product) => product.id)} strategy={rectSortingStrategy} disabled={!p.isSortMode}>
           <div style={{ display: "grid", gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))`, gap: 12 }}>
             {p.products.map((prod) => {
               const catKey = prod.pos_category_id || (prod.category ? p.catIdByName[prod.category] : "") || prod.category || "";
@@ -167,12 +192,12 @@ export default function POSv2Products(p: Props) {
               const initial = (prod.category || name || "?").trim().charAt(0);
               const openPrice = !prod.sell_price || prod.sell_price === 0;
               return (
+                <SortableProduct key={prod.id} id={prod.id} sortMode={p.isSortMode}>
                 <button
-                  key={prod.id}
                   type="button"
                   onClick={() => p.onAdd(prod)}
                   className="pos-v2-card relative text-right flex flex-col overflow-hidden"
-                  style={{ background: t.card, border: `1px solid ${t.border}`, borderTop: `5px solid ${color}`, borderRadius: 14, ["--pv2-accent" as any]: t.accent }}
+                  style={{ width: "100%", height: "100%", background: t.card, border: `1px solid ${t.border}`, borderTop: `5px solid ${color}`, borderRadius: 14, outline: p.isSortMode ? `1px dashed ${t.accent}` : undefined, ["--pv2-accent" as any]: t.accent }}
                 >
                   {p.cardSize !== "S" && (
                     <div style={{ padding: 8, paddingBottom: 0 }}>
@@ -199,9 +224,12 @@ export default function POSv2Products(p: Props) {
                     </div>
                   </div>
                 </button>
+                </SortableProduct>
               );
             })}
           </div>
+            </SortableContext>
+          </DndContext>
         )}
       </div>
       </div>
