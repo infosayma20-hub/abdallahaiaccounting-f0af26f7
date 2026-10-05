@@ -1887,6 +1887,11 @@ export default function EmployeeFormsManagementPage() {
                                     <span className="inline-flex items-center gap-1.5">
                                       <Icon className="h-3.5 w-3.5 text-[#605E5C] shrink-0" />
                                       <span>{label}</span>
+                                      {f.form_type === "dynamic_template" && (f as any).form_data?.header?.employee_name && (
+                                        <span className="text-[10px] rounded-sm px-1 py-0 border border-sky-200 bg-sky-50 text-sky-700 whitespace-nowrap">
+                                          تقييم: {(f as any).form_data.header.employee_name}
+                                        </span>
+                                      )}
                                       {f.form_type === "complaints" && (
                                         <span className="text-[10px] rounded-sm px-1 py-0 border border-[#EDEBE9] text-[#605E5C]">
                                           {((f as any).complaint_target || "executive") === "hr" ? "موجّهة لـ HR" : "الإدارة العليا 🔒"}
