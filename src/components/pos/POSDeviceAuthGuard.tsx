@@ -1,4 +1,4 @@
-import { isPosV2User, posV2OptOut } from "@/lib/posV2Access";
+import { posV2OptOut } from "@/lib/posV2Access";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { Eye, Loader2, RefreshCw } from "lucide-react";
@@ -121,18 +121,15 @@ export default function POSDeviceAuthGuard({ children }: { children: ReactNode }
   }, [resolving]);
   useEffect(() => () => setPosGuardResolving(true), []);
 
-  // The redesigned POS is a demo-only experiment. A direct URL must never
-  // expose it to a production tenant before the design is approved.
-  const v2Allowed = !!isDemoTenant || isPosV2User(user?.email);
+  // The redesigned POS is the default for every POS user. The legacy screen
+  // remains available for the current tab through the v2 "المزيد" menu.
   useEffect(() => {
     if (resolving) return;
-    if (location.pathname === "/pos-v2" && !v2Allowed) {
-      navigate("/pos", { replace: true });
-    } else if (location.pathname === "/pos" && isPosV2User(user?.email) && !posV2OptOut.get()) {
-      // Allow-listed users land on the new design; "العودة للواجهة الحالية" opts out for this session.
+    if (location.pathname === "/pos" && !posV2OptOut.get()) {
+      // All users land on the new design; choosing the legacy screen opts out for this tab.
       navigate(`/pos-v2${location.search}`, { replace: true });
     }
-  }, [v2Allowed, user?.email, location.pathname, location.search, navigate, resolving]);
+  }, [location.pathname, location.search, navigate, resolving]);
 
   // 2) Authorized OR (admin OR previously-authorized cashier) → render POS.
   //    In the non-authorized branches we render with canSell=false (view-only).
