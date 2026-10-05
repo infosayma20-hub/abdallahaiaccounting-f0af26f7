@@ -64,6 +64,15 @@ export default function StockCountReviewPage() {
     load();
   };
 
+  const resolveUnknown = async (id: string) => {
+    setBusy(id);
+    const { error } = await supabase.from("stock_count_unknown_barcodes").update({ status: "resolved" } as any).eq("id", id);
+    setBusy(null);
+    if (error) { toast({ title: "تعذّر التنفيذ", description: error.message, variant: "destructive" }); return; }
+    toast({ title: "عُلّم كمُعالَج" });
+    load();
+  };
+
   const fmt = (s: string) => new Date(s).toLocaleString("ar-PS-u-nu-latn", { dateStyle: "short", timeStyle: "short" });
 
   return (
@@ -79,9 +88,34 @@ export default function StockCountReviewPage() {
             <TabsTrigger value="pending">بانتظار المراجعة</TabsTrigger>
             <TabsTrigger value="done">المراجَعة</TabsTrigger>
             <TabsTrigger value="edits">تعديلات الأسماء والأسعار</TabsTrigger>
+            <TabsTrigger value="unknown">باركودات غير معروفة</TabsTrigger>
           </TabsList>
         </Tabs>
-        {loading ? <div className="flex justify-center p-8"><Loader2 className="h-6 w-6 animate-spin" /></div> : tab === "edits" ? (
+        {loading ? <div className="flex justify-center p-8"><Loader2 className="h-6 w-6 animate-spin" /></div> : tab === "unknown" ? (
+          <div className="overflow-auto rounded-md border border-border">
+            <table className="w-full text-sm">
+              <thead className="bg-muted"><tr><th className="p-2 text-right">التاريخ</th><th className="p-2 text-right">الباركود</th><th className="p-2 text-right">الملاحظة</th><th className="p-2 text-right">الموظف</th><th className="p-2 text-right">الحالة</th></tr></thead>
+              <tbody>
+                {unknowns.map((u) => (
+                  <tr key={u.id} className="border-t border-border">
+                    <td className="p-2 whitespace-nowrap">{fmt(u.created_at)}</td>
+                    <td className="p-2 font-mono font-medium">{u.code}</td>
+                    <td className="p-2">{u.note ?? "—"}</td>
+                    <td className="p-2">{u.employees?.full_name ?? "—"}</td>
+                    <td className="p-2">
+                      {u.status === "pending" ? (
+                        <Button size="sm" variant="outline" disabled={busy === u.id} onClick={() => resolveUnknown(u.id)}><Check className="h-4 w-4" />تمت المعالجة</Button>
+                      ) : (
+                        <Badge variant="secondary">مُعالَج</Badge>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+                {!unknowns.length && <tr><td colSpan={5} className="p-6 text-center text-muted-foreground">لا توجد باركودات غير معروفة</td></tr>}
+              </tbody>
+            </table>
+          </div>
+        ) : tab === "edits" ? (
           <div className="overflow-auto rounded-md border border-border">
             <table className="w-full text-sm">
               <thead className="bg-muted"><tr><th className="p-2 text-right">التاريخ</th><th className="p-2 text-right">الصنف</th><th className="p-2 text-right">الموظف</th><th className="p-2 text-right">الحقل</th><th className="p-2 text-right">قبل</th><th className="p-2 text-right">بعد</th></tr></thead>
