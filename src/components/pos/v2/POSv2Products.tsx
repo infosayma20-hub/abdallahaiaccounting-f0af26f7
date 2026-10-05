@@ -102,9 +102,9 @@ export default function POSv2Products(p: Props) {
   const cols = Math.max(2, baseCols - (p.narrow ? 1 : 0));
 
   return (
-    <div dir={dir} className="flex-1 min-h-0 min-w-0 flex" style={{ background: t.bg }}>
+    <div dir="rtl" className="flex-1 min-h-0 min-w-0 flex" style={{ background: t.bg }}>
       {/* Vertical categories stay on the physical right in RTL. */}
-      <aside className="shrink-0 min-h-0 flex flex-col" style={{ width: p.narrow ? 152 : 178, background: t.surface, borderInlineEnd: `1px solid ${t.border}` }}>
+      <aside dir={dir} className="shrink-0 min-h-0 flex flex-col" style={{ width: p.narrow ? 152 : 178, background: t.surface, borderInlineEnd: `1px solid ${t.border}` }}>
         <div className="flex-1 min-h-0 overflow-y-auto p-2 space-y-1.5">
           {!p.hideAll && <Chip t={t} active={p.selected === "الكل"} label={tr("الكل")} count={p.allCount} onClick={() => p.onSelect("الكل")} />}
           <DndContext sensors={p.dndSensors} collisionDetection={closestCenter} onDragEnd={p.onCategoryDragEnd}>
@@ -124,7 +124,7 @@ export default function POSv2Products(p: Props) {
         </div>
       </aside>
 
-      <div className="flex-1 min-h-0 min-w-0 flex flex-col">
+      <div dir={dir} className="flex-1 min-h-0 min-w-0 flex flex-col">
       {/* Toolbar */}
       <div className="flex items-center justify-end gap-2 px-4 pt-3 pb-2 shrink-0">
         <div className="flex items-center shrink-0" style={{ height: 44, padding: 3, borderRadius: 12, background: t.card, border: `1px solid ${t.border}` }}>

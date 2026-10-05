@@ -24,7 +24,7 @@ import { usePermission } from "@/hooks/usePermission";
 import { assertPermission } from "@/lib/permissions/assertPermission";
 import { usePosMode } from "@/hooks/usePosMode";
 import { supabase } from "@/integrations/supabase/client";
-import { pt, pname, usePosLang, setPosLang } from "@/i18n/pos-lang";
+import { pt, usePosLang } from "@/i18n/pos-lang";
 import { setReceiptLanguage, setEnglishReceiptHeader, registerEnglishNames, bridgeSupportsEnglish } from "@/lib/print-english";
 import { getDeviceBranchId as getDeviceBranchIdForLang } from "@/lib/device-config";
 import { toast } from "sonner";
@@ -1139,14 +1139,13 @@ const POSPage = ({ variant = "v1" }: { variant?: "v1" | "v2" } = {}) => {
         if (list && list.length === 1) bid = (list[0] as any).id;
       }
       if (cancelled) return;
-      if (!bid) { const l = terminalLang ?? "ar"; setReceiptLanguage(l); setPosLang(l); return; }
+      if (!bid) { setReceiptLanguage(terminalLang ?? "ar"); return; }
       const { data } = await supabase.from("branches").select("receipt_language, name_en, address_en, receipt_footer_en").eq("id", bid).maybeSingle();
       if (cancelled) return;
       const d: any = data || {};
       // Station (pos_terminals) language wins; branch is the default.
       const lang = terminalLang ?? (d.receipt_language === "en" ? "en" : "ar");
       setReceiptLanguage(lang);
-      setPosLang(lang);
       if (lang === "en") {
         bridgeSupportsEnglish().then((ok) => {
           if (!ok) toast.warning("This device's print bridge is Arabic-only. Install the bilingual print bridge for full English printing.", { duration: 8000 });
@@ -7433,7 +7432,16 @@ const POSPage = ({ variant = "v1" }: { variant?: "v1" | "v2" } = {}) => {
   }, []);
   const onV2PendingCount = useCallback((n: number) => setV2PendingCount(n), []);
   const v2BarVisible = v2BarPinned || v2BarHover || v2PendingCount > 0;
-  const [v2CardSize, setV2CardSize] = useState<"S" | "M" | "L">("M");
+  const [v2CardSize, setV2CardSize] = useState<"S" | "M" | "L">(() => {
+    try {
+      const saved = window.localStorage.getItem("pos_v2_card_size");
+      return saved === "S" || saved === "L" ? saved : "M";
+    } catch { return "M"; }
+  });
+  const setAndSaveV2CardSize = useCallback((size: "S" | "M" | "L") => {
+    setV2CardSize(size);
+    try { window.localStorage.setItem("pos_v2_card_size", size); } catch { /* ignore */ }
+  }, []);
   const [v2Width, setV2Width] = useState(() => (typeof window !== "undefined" ? window.innerWidth : 1280));
   const [v2Height, setV2Height] = useState(() => (typeof window !== "undefined" ? window.innerHeight : 900));
   useEffect(() => {
@@ -7764,7 +7772,7 @@ const POSPage = ({ variant = "v1" }: { variant?: "v1" | "v2" } = {}) => {
   };
   const v2ClearOrder = async () => {
     if (cart.length === 0) return;
-    if (!window.confirm("إفراغ الطلب الحالي؟")) return;
+    if (!window.confirm(posLangCtl.t("إفراغ الطلب الحالي؟"))) return;
     const tId = activeOrder.tableId;
     setCart([]); setSelectedCartIndex(null); setOrderDiscount(0); setManagerDiscountMeta(null); setOrderNote(""); setCustomerName("", null, "", null); setCustomerSearch("");
     updateActiveOrder(o => ({ ...o, orderType: "takeaway", orderTypeChosen: true, deliveryAddress: "", tableId: null, tableName: null, guestCount: 1, guestName: "", name: `طلب ${o.name.match(/\d+/)?.[0] || "1"}` }));
@@ -7790,11 +7798,11 @@ const POSPage = ({ variant = "v1" }: { variant?: "v1" | "v2" } = {}) => {
       setSearchQuery("");
       setDebouncedSearch("");
     } else if (filteredProducts.length === 0) {
-      toast.error(`لا توجد نتائج لـ "${q}"`, { duration: 2500 });
+      toast.error(`${posLangCtl.t("لا توجد نتائج لـ")} "${q}"`, { duration: 2500 });
     }
   };
   const v2CloseShift = () => {
-    if (!window.confirm("إغلاق نقطة البيع وإنهاء الوردية؟")) return;
+    if (!window.confirm(posLangCtl.t("إغلاق نقطة البيع وإنهاء الوردية؟"))) return;
     if (isCallCenter) { handleCallCenterCloseShift(); return; }
     if (session && session.cash_box_id == null) {
       toast.warning(pt("تنبيه: لا يوجد صندوق مرتبط بهذه الوردية. سيظهر مربع العد كالمعتاد — راجع الإدارة بعد الإغلاق."));
@@ -7802,7 +7810,7 @@ const POSPage = ({ variant = "v1" }: { variant?: "v1" | "v2" } = {}) => {
     setShowCloseShift(true);
   };
   const v2ShiftLine = session?.opened_at
-    ? `وردية مفتوحة ${new Date(session.opened_at).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Hebron" })}`
+    ? `${posLangCtl.t("وردية مفتوحة")} ${new Date(session.opened_at).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Hebron" })}`
     : "";
   const v2HeldCount = orders.filter((o, i) => i !== activeOrderIndex && o.cart.length > 0).length;
   const v2MenuIcon = (I: any) => <I style={{ width: 16, height: 16 }} />;
@@ -7828,17 +7836,17 @@ const POSPage = ({ variant = "v1" }: { variant?: "v1" | "v2" } = {}) => {
   const v2TablePickerNode = isV2 && restaurantFeatures && tablesEnabled && showTablePicker ? (
     <div className="mx-4 mb-2 shrink-0 rounded-xl p-2" style={{ background: v2t.input, border: `1px solid ${v2t.border}` }}>
       <div className="flex items-center justify-between mb-2 px-1">
-        <span className="text-xs font-bold" style={{ color: v2t.text }}>اختيار الطاولة</span>
-        {activeOrder.tableId && <span className="text-[11px]" style={{ color: v2t.accent }}>نشط: {activeOrder.tableName}</span>}
+        <span className="text-xs font-bold" style={{ color: v2t.text }}>{posLangCtl.t("اختيار الطاولة")}</span>
+        {activeOrder.tableId && <span className="text-[11px]" style={{ color: v2t.accent }}>{posLangCtl.t("نشط:")} {activeOrder.tableName}</span>}
       </div>
       <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
         {activeOrder.tableId && (
           <button type="button" onClick={() => {
             updateActiveOrder(o => ({ ...o, tableId: null, tableName: null, orderType: "takeaway", orderTypeChosen: true, name: `طلب ${activeOrderIndex + 1}` }));
             setShowTablePicker(false);
-          }} className="flex-none w-16 h-12 rounded-lg text-xs font-bold" style={{ background: v2t.warnBg, color: v2t.warnText }}>إلغاء</button>
+          }} className="flex-none w-16 h-12 rounded-lg text-xs font-bold" style={{ background: v2t.warnBg, color: v2t.warnText }}>{posLangCtl.t("إلغاء")}</button>
         )}
-        {availableTables.length === 0 && <span className="p-2 text-xs" style={{ color: v2t.muted }}>لا توجد طاولات متاحة</span>}
+        {availableTables.length === 0 && <span className="p-2 text-xs" style={{ color: v2t.muted }}>{posLangCtl.t("لا توجد طاولات متاحة")}</span>}
         {availableTables.map(t => {
           const occupied = t.status === "occupied";
           const active = t.id === activeOrder.tableId;
@@ -7853,7 +7861,7 @@ const POSPage = ({ variant = "v1" }: { variant?: "v1" | "v2" } = {}) => {
               }
               setShowTablePicker(false);
             }} className="flex-none w-16 h-12 rounded-lg text-xs font-bold" style={{ background: active ? v2t.accent : occupied ? v2t.warnBg : v2t.card, color: active ? v2t.onAccent : occupied ? v2t.warnText : v2t.text, border: `1px solid ${active ? v2t.accent : v2t.border}` }}>
-              <span className="block text-[10px] font-medium opacity-70">{occupied ? "مشغولة" : "طاولة"}</span>{t.name}
+              <span className="block text-[10px] font-medium opacity-70">{posLangCtl.t(occupied ? "مشغولة" : "طاولة")}</span>{t.name}
             </button>
           );
         })}
@@ -7899,11 +7907,11 @@ const POSPage = ({ variant = "v1" }: { variant?: "v1" | "v2" } = {}) => {
         hideAll={hideAllCategoryTab}
         onSelect={setSelectedCategory}
         products={filteredProducts as any}
-        displayName={(pr) => pname(pr as any)}
+        displayName={(pr) => pr.name || ""}
         qtyMap={cartQtyMap}
         onAdd={(pr) => { if (!isSortMode) addToCart(pr as any); }}
         cardSize={v2CardSize}
-        onCardSize={setV2CardSize}
+        onCardSize={setAndSaveV2CardSize}
         canManage={isAdmin || !!posPerms.manage_products_categories}
         onAddCategory={() => setShowCategoryManager(true)}
         onAddProduct={() => setShowAddProduct(true)}
@@ -7952,7 +7960,7 @@ const POSPage = ({ variant = "v1" }: { variant?: "v1" | "v2" } = {}) => {
         onClearCustomer={() => { setCustomerSearch(""); setCustomerName("", null, "", null); }}
         customerNode={customerSearchNode}
         lines={cart as any}
-        lineName={(l) => pname(l as any)}
+        lineName={(l) => l.name || ""}
         onQty={(i, q) => updateCartItem(i, "qty", q)}
         onRemove={removeFromCart}
         canRemove={isAdmin || !!posPerms.can_remove_cart_items}
@@ -8022,7 +8030,7 @@ const POSPage = ({ variant = "v1" }: { variant?: "v1" | "v2" } = {}) => {
             />
           )}
           <div
-            className="shrink-0 relative z-[60]"
+            className="shrink-0 relative z-40"
             style={{ height: v2BarVisible ? 68 : 0, overflow: v2BarVisible ? "visible" : "hidden", transition: "height 0.18s ease" }}
             onMouseLeave={() => scheduleV2BarHide()}
           >
@@ -9820,7 +9828,7 @@ const POSPage = ({ variant = "v1" }: { variant?: "v1" | "v2" } = {}) => {
               }}
             >
               <div className="flex flex-col">
-                <span className="text-[10px] uppercase tracking-wider" style={{ color: '#605E5C', letterSpacing: '0.08em' }}>POS · Payment</span>
+                <span className="text-[10px] uppercase tracking-wider" style={{ color: '#605E5C', letterSpacing: '0.08em' }}>POS · {pt("الدفع")}</span>
                 <span className="text-[15px] font-semibold" style={{ color: '#201F1E' }}>{pt("طريقة الدفع")}</span>
               </div>
               <button
@@ -9859,10 +9867,10 @@ const POSPage = ({ variant = "v1" }: { variant?: "v1" | "v2" } = {}) => {
                 }}
               >
                 <div className="flex flex-col">
-                  <span className="text-[10px] uppercase tracking-wider" style={{ color: '#605E5C', letterSpacing: '0.08em' }}>Amount due</span>
+                  <span className="text-[10px] uppercase tracking-wider" style={{ color: '#605E5C', letterSpacing: '0.08em' }}>{pt("المبلغ المطلوب")}</span>
                   <span className="text-[12px]" style={{ color: '#605E5C' }}>{pt("المبلغ المطلوب")}</span>
                   {customerDataDiscount && (
-                    <span className="text-[11px] mt-0.5" style={{ color: '#107C10' }}>خصم {customerDataDiscount.discountPct}% = −₪{customerDataDiscount.discountAmount.toFixed(2)}</span>
+                    <span className="text-[11px] mt-0.5" style={{ color: '#107C10' }}>{pt("خصم")} {customerDataDiscount.discountPct}% = −₪{customerDataDiscount.discountAmount.toFixed(2)}</span>
                   )}
                 </div>
                 <motion.span key={cartTotals.total} initial={{ scale: 1.04 }} animate={{ scale: 1 }} className="text-[28px] font-semibold tabular-nums" style={{ color: '#201F1E', fontVariantNumeric: 'tabular-nums' }}>
@@ -9954,7 +9962,7 @@ const POSPage = ({ variant = "v1" }: { variant?: "v1" | "v2" } = {}) => {
                       }}
                     >
                       <m.icon className="h-5 w-5" style={{ color: isActive ? m.selColor : '#605E5C' }} />
-                      <span className="text-[11px] font-semibold text-center leading-tight" style={{ color: isActive ? m.selColor : '#323130' }}>{m.label}</span>
+                      <span className="text-[11px] font-semibold text-center leading-tight" style={{ color: isActive ? m.selColor : '#323130' }}>{pt(m.label)}</span>
                     </motion.button>
                   );
                 })}
@@ -9981,7 +9989,7 @@ const POSPage = ({ variant = "v1" }: { variant?: "v1" | "v2" } = {}) => {
                       }}
                     >
                       <CreditCard className="h-3.5 w-3.5" />
-                      فيزا عادية
+                      {pt("فيزا عادية")}
                     </button>
                     {posVisaApps.map((app) => {
                       const key = `card:${app.gl}`;
@@ -10072,7 +10080,7 @@ const POSPage = ({ variant = "v1" }: { variant?: "v1" | "v2" } = {}) => {
                   {/* Amount received */}
                   <div>
                     <p className="text-[12px] mb-1.5" style={{ color: '#6b7280' }}>
-                      المبلغ المستلم ({currencies.find(c => c.code === paymentCurrency)?.name})
+                      {pt("المبلغ المستلم")} ({pt(currencies.find(c => c.code === paymentCurrency)?.name || "")})
                     </p>
                     <input
                       type="number"
@@ -10631,7 +10639,7 @@ const POSPage = ({ variant = "v1" }: { variant?: "v1" | "v2" } = {}) => {
                 ) : (
                   <CheckCircle className="h-5 w-5" />
                 )}
-                {processing ? "جاري المعالجة..." : "F2 — إتمام البيع ✅"}
+                {processing ? pt("جاري المعالجة...") : `F2 — ${pt("إتمام البيع")} ✅`}
               </motion.button>
               {/* Secondary action — save WITHOUT printing (e.g. water/cola lines that don't need a receipt). */}
               <button
@@ -10655,7 +10663,7 @@ const POSPage = ({ variant = "v1" }: { variant?: "v1" | "v2" } = {}) => {
                 style={{ height: 40, borderRadius: 10, background: '#f1f5f9', color: '#0f172a', border: '1px solid #cbd5e1' }}
                 title={pt("حفظ وترحيل الفاتورة بدون طباعة وصل ولا تذكرة مطبخ")}
               >
-                💾 حفظ بدون طباعة
+                💾 {pt("حفظ بدون طباعة")}
               </button>
             </div>
           </div>
