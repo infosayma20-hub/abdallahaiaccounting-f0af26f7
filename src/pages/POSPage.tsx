@@ -1841,13 +1841,15 @@ const POSPage = ({ variant = "v1" }: { variant?: "v1" | "v2" } = {}) => {
     if (defaultCategoryAppliedRef.current === guardKey) return;
     const companyName = (company?.name || "").toLowerCase();
     const isMalaky = /malaky|ملكي/.test(companyName);
-    if (isMalaky) {
-      if (!posCategories.some((c) => c.name === "كرسبي فردي")) return;
+    // Fall back to the user's first (ordered) visible category — never "الكل".
+    const firstVisible = (visiblePosCategories[0] || posCategories[0]).name;
+    if (isMalaky && visiblePosCategories.some((c) => c.name === "كرسبي فردي")) {
       setSelectedCategory("كرسبي فردي");
     } else {
-      setSelectedCategory(posCategories[0].name);
+      setSelectedCategory(firstVisible);
     }
     defaultCategoryAppliedRef.current = guardKey;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [session?.id, company?.name, posCategories]);
 
   // Auto-load order from URL params (when coming from floor plan)
@@ -7844,6 +7846,7 @@ const POSPage = ({ variant = "v1" }: { variant?: "v1" | "v2" } = {}) => {
         allCount={categoriesWithCounts.all}
         uncategorizedCount={categoriesWithCounts.uncategorized}
         selected={selectedCategory}
+        hideAll={hideAllCategoryTab}
         onSelect={setSelectedCategory}
         products={filteredProducts as any}
         displayName={(pr) => pname(pr as any)}

@@ -34,6 +34,8 @@ type Props = {
   /** Shared per-user product order handler from POSPage (same as /pos). */
   onProductDragEnd: (e: DragEndEvent) => void;
   dndSensors: SensorDescriptor<SensorOptions>[];
+  /** Per-user "hide الكل" preference shared with /pos. */
+  hideAll?: boolean;
 };
 
 function SortableChip(props: { id: string; sortMode: boolean; children: React.ReactNode }) {
@@ -102,7 +104,7 @@ export default function POSv2Products(p: Props) {
       {/* Vertical categories stay on the physical right in RTL. */}
       <aside className="shrink-0 min-h-0 flex flex-col" style={{ width: p.narrow ? 152 : 178, background: t.surface, borderInlineEnd: `1px solid ${t.border}` }}>
         <div className="flex-1 min-h-0 overflow-y-auto p-2 space-y-1.5">
-          <Chip t={t} active={p.selected === "الكل"} label="الكل" count={p.allCount} onClick={() => p.onSelect("الكل")} />
+          {!p.hideAll && <Chip t={t} active={p.selected === "الكل"} label="الكل" count={p.allCount} onClick={() => p.onSelect("الكل")} />}
           <DndContext sensors={p.dndSensors} collisionDetection={closestCenter} onDragEnd={p.onCategoryDragEnd}>
             <SortableContext items={p.categories.map((c) => c.id)} strategy={verticalListSortingStrategy} disabled={!p.isSortMode}>
               {p.categories.map((c) => (
