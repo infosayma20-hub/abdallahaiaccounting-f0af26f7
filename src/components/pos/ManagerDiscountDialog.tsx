@@ -10,7 +10,7 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
-import { verifyManagerCredentials } from "@/lib/pos/manager-verify";
+import { verifyManagerCredentials, getCurrentUserManagerIdentity } from "@/lib/pos/manager-verify";
 import { supabase } from "@/integrations/supabase/client";
 import type { PosV2Tokens } from "@/components/pos/v2/posV2Theme";
 
@@ -66,6 +66,18 @@ export default function ManagerDiscountDialog({
   const [maxPct, setMaxPct] = useState<number>(100);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  // إذا كان الكاشير الحالي نفسه مديرًا مخوّلًا على الفرع، يعتمد باسمه مباشرة.
+  const [selfManager, setSelfManager] = useState<Awaited<ReturnType<typeof getCurrentUserManagerIdentity>>>(null);
+  const [useOtherManager, setUseOtherManager] = useState(false);
+
+  useEffect(() => {
+    if (!open) return;
+    setUseOtherManager(false);
+    let alive = true;
+    getCurrentUserManagerIdentity(branchId).then(r => { if (alive) setSelfManager(r); });
+    return () => { alive = false; };
+  }, [open, branchId]);
+  const selfMode = !!selfManager && !useOtherManager;
 
   useEffect(() => {
     if (!open) return;
@@ -125,7 +137,9 @@ export default function ManagerDiscountDialog({
     }
 
     setLoading(true);
-    const res = await verifyManagerCredentials(email, password);
+    const res = selfMode && selfManager
+      ? ({ ok: true as const, ...selfManager })
+      : await verifyManagerCredentials(email, password);
     if (res.ok !== true) {
       setError((res as { reason: string }).reason);
       setLoading(false);
@@ -265,6 +279,25 @@ export default function ManagerDiscountDialog({
             />
           </div>
 
+          {selfMode ? (
+            <div
+              className="pt-2 border-t border-border/60 space-y-2"
+              style={v2 ? { borderColor: v2.border } : undefined}
+            >
+              <p className="text-xs flex items-center gap-1.5" style={v2 ? { color: v2.text } : undefined}>
+                <ShieldCheck className="h-4 w-4" style={v2 ? { color: v2.accent } : { color: "#F59E0B" }} />
+                سيُعتمد الخصم باسمك كمدير: <b>{selfManager?.managerName}</b>
+              </p>
+              <button
+                type="button"
+                className="text-[11px] underline text-muted-foreground"
+                style={v2MutedStyle}
+                onClick={() => setUseOtherManager(true)}
+              >
+                اعتماد بحساب مدير آخر
+              </button>
+            </div>
+          ) : (
           <div
             className="pt-2 border-t border-border/60 space-y-3"
             style={v2 ? { borderColor: v2.border } : undefined}
@@ -296,6 +329,7 @@ export default function ManagerDiscountDialog({
               />
             </div>
           </div>
+          )}
 
           {error && (
             <div
@@ -320,7 +354,7 @@ export default function ManagerDiscountDialog({
           <Button
             size="sm"
             onClick={handleApprove}
-            disabled={loading || !email.trim() || !password.trim() || numericAmount <= 0}
+            disabled={loading || numericAmount <= 0 || (!selfMode && (!email.trim() || !password.trim()))}
             className="bg-amber-500 hover:bg-amber-600 text-white"
             style={v2 ? { background: v2.accent, color: v2.onAccent } : undefined}
           >

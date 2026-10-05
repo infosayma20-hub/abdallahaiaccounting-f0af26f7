@@ -111,11 +111,11 @@ export async function verifyManagerCredentials(
 
     if (!isAdmin && branchIds.length === 0) {
       // Sign out the throwaway just to be tidy
-      try { await probe.auth.signOut(); } catch { /* ignore */ }
+      try { await probe.auth.signOut({ scope: "local" }); } catch { /* ignore */ }
       return { ok: false, reason: "هذا الحساب ليس لديه صلاحية مدير" };
     }
 
-    try { await probe.auth.signOut(); } catch { /* ignore */ }
+    try { await probe.auth.signOut({ scope: "local" }); } catch { /* ignore */ }
 
     return {
       ok: true,
@@ -126,5 +126,51 @@ export async function verifyManagerCredentials(
     };
   } catch (e: any) {
     return { ok: false, reason: e?.message || "حدث خطأ أثناء التحقق" };
+  }
+}
+
+/**
+ * هل المستخدم المسجّل حاليًا على نقطة البيع مدير مخوّل على هذا الفرع؟
+ * يُستخدم ليعتمد المدير الشغّال كاشير الخصم باسمه مباشرة دون إعادة إدخال
+ * بريده وكلمة مروره (جلسته موثّقة أصلًا). نفس قواعد الصلاحية أعلاه.
+ */
+export async function getCurrentUserManagerIdentity(
+  branchId?: string | null,
+): Promise<{ managerUserId: string; managerName: string; isAdmin: boolean; branchIds: string[] } | null> {
+  try {
+    const { data: { session } } = await supabase.auth.getSession();
+    const uid = session?.user?.id;
+    if (!uid) return null;
+    const [{ data: roles }, { data: assignments }, { data: profile }, { data: empRows }] = await Promise.all([
+      supabase.from("user_roles").select("role").eq("user_id", uid),
+      supabase.from("branch_manager_assignments").select("branch_id").eq("user_id", uid),
+      supabase.from("profiles").select("display_name").eq("user_id", uid).maybeSingle(),
+      supabase.from("employees").select("id, branch_id, is_manager, full_name").eq("auth_user_id", uid),
+    ]);
+    const isAdmin = (roles || []).some((r: any) => r.role === "admin" || r.role === "super_admin");
+    const mgrEmps = (empRows || []).filter((e: any) => e.is_manager);
+    let allowed: string[] = [];
+    if (mgrEmps.length > 0) {
+      const { data } = await supabase
+        .from("employee_allowed_branches")
+        .select("branch_id")
+        .in("employee_id", mgrEmps.map((e: any) => e.id));
+      allowed = (data || []).map((a: any) => a.branch_id).filter(Boolean);
+    }
+    const branchIds = Array.from(new Set([
+      ...(assignments || []).map((a: any) => a.branch_id).filter(Boolean),
+      ...mgrEmps.map((e: any) => e.branch_id).filter(Boolean),
+      ...allowed,
+    ]));
+    if (!isAdmin && branchIds.length === 0) return null;
+    if (!isAdmin && branchId && !branchIds.includes(branchId)) return null;
+    return {
+      managerUserId: uid,
+      managerName: profile?.display_name || mgrEmps[0]?.full_name || session.user.email || "مدير",
+      isAdmin,
+      branchIds,
+    };
+  } catch {
+    return null;
   }
 }
