@@ -3001,8 +3001,10 @@ export type Database = {
       business_units: {
         Row: {
           code: string | null
+          color: string | null
           cost_center_id: string | null
           created_at: string
+          description: string | null
           id: string
           is_active: boolean
           name: string
@@ -3011,8 +3013,10 @@ export type Database = {
         }
         Insert: {
           code?: string | null
+          color?: string | null
           cost_center_id?: string | null
           created_at?: string
+          description?: string | null
           id?: string
           is_active?: boolean
           name: string
@@ -3021,8 +3025,10 @@ export type Database = {
         }
         Update: {
           code?: string | null
+          color?: string | null
           cost_center_id?: string | null
           created_at?: string
+          description?: string | null
           id?: string
           is_active?: boolean
           name?: string
