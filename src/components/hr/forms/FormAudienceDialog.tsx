@@ -177,7 +177,7 @@ export default function FormAudienceDialog({
                         اطلاع
                         <Switch
                           checked={r.can_view}
-                          disabled={saving || r.can_fill || r.view_source === "default"}
+                          disabled={saving}
                           onCheckedChange={(v) => single(r.employee_id, "view", v)}
                         />
                       </label>
