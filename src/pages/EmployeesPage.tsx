@@ -1433,8 +1433,12 @@ const EmployeesPage = () => {
                 <Button size="sm" variant="destructive" onClick={() => handleDelete(selectedEmployee.id)}><Trash2 className="h-3 w-3" /></Button>
               </div>
 
-              {/* Manager Role Toggles */}
-              <div className="flex flex-wrap items-center gap-4 mb-4 p-3 bg-muted/30 rounded-xl border border-border">
+              {/* Permissions — grouped */}
+              <div className="mb-4 p-3 bg-muted/30 rounded-xl border border-border space-y-3">
+                {/* الإدارة */}
+                <div>
+                  <p className="text-[11px] font-bold text-muted-foreground mb-2 flex items-center gap-1"><Shield className="h-3 w-3" /> الإدارة</p>
+                  <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
                 <div className="flex items-center gap-2">
                   <Switch
                     checked={!!(selectedEmployee as any).is_manager}
@@ -1463,6 +1467,12 @@ const EmployeesPage = () => {
                     <Shield className="h-3.5 w-3.5 text-amber-500" /> مدير HR
                   </label>
                 </div>
+                  </div>
+                </div>
+                {/* المستودع والمشتريات */}
+                <div>
+                  <p className="text-[11px] font-bold text-muted-foreground mb-2 flex items-center gap-1"><ScanLine className="h-3 w-3" /> المستودع والمشتريات</p>
+                  <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
                 <div className="flex items-center gap-2">
                   <Switch
                     checked={!!(selectedEmployee as any).is_receiver}
@@ -1507,7 +1517,13 @@ const EmployeesPage = () => {
                     <ScanLine className="h-3.5 w-3.5 text-primary" /> جرد المخزون (مسح وتعديل الاسم والسعر والكمية)
                   </label>
                 </div>
-                <SalesRepToggleSection
+                  </div>
+                </div>
+                {/* المبيعات وخدمة الزبائن */}
+                <div>
+                  <p className="text-[11px] font-bold text-muted-foreground mb-2 flex items-center gap-1"><Users className="h-3 w-3" /> المبيعات وخدمة الزبائن</p>
+                  <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
+                 <SalesRepToggleSection
                   employeeId={selectedEmployee.id}
                   employeeName={selectedEmployee.full_name}
                   authUserId={(selectedEmployee as any).auth_user_id || null}
@@ -1529,6 +1545,8 @@ const EmployeesPage = () => {
                   employeeName={selectedEmployee.full_name}
                   authUserId={(selectedEmployee as any).auth_user_id || null}
                 />
+                  </div>
+                </div>
               </div>
 
               <Tabs value={activeTab} onValueChange={setActiveTab}>
