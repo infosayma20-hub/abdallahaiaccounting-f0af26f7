@@ -174,7 +174,7 @@ const OVERTIME_MULTIPLIER = 1.5;
 
 type SortKey =
   | "employeeNumber" | "name" | "branchName" | "departmentName" | "workDays" | "regular" | "overtime" | "overtimeWeighted"
-  | "absentDays" | "missingPunchDays" | "annualHours" | "sickHours"
+  | "absentDays" | "missingPunchDays" | "annualLeave" | "sickLeave" | "annualHours" | "sickHours"
   | "totalHours" | "hourlyRate" | "amount";
 
 const nf = (n: number, d = 2) =>
@@ -971,7 +971,9 @@ export default function MonthlyAttendanceTab({
           "ساعات إضافية": Number(r.overtime.toFixed(2)),
           "الإضافي مع النسبة": Number(r.overtimeWeighted.toFixed(2)),
           "أيام غياب": r.absentDays,
+          "إجازة سنوية (يوم)": Number((r.annualLeave || 0).toFixed(2)),
           "إجازة سنوية (ساعة)": Number(r.annualHours.toFixed(2)),
+          "إجازة مرضية (يوم)": Number((r.sickLeave || 0).toFixed(2)),
           "إجازة مرضية (ساعة)": Number(r.sickHours.toFixed(2)),
           "مرضية بأجر كامل (يوم)": Number((r.sickFullDays || 0).toFixed(2)),
           "مرضية بنصف أجر (يوم)": Number((r.sickHalfDays || 0).toFixed(2)),
@@ -990,7 +992,9 @@ export default function MonthlyAttendanceTab({
           "ساعات إضافية": Number(summaryTotals.overtime.toFixed(2)),
           "الإضافي مع النسبة": Number(summaryTotals.overtimeWeighted.toFixed(2)),
           "أيام غياب": summaryTotals.absentDays,
+          "إجازة سنوية (يوم)": Number(summaryTotals.annualLeave.toFixed(2)),
           "إجازة سنوية (ساعة)": Number(summaryTotals.annualHours.toFixed(2)),
+          "إجازة مرضية (يوم)": Number(summaryTotals.sickLeave.toFixed(2)),
           "إجازة مرضية (ساعة)": Number(summaryTotals.sickHours.toFixed(2)),
           "مرضية بأجر كامل (يوم)": "",
           "مرضية بنصف أجر (يوم)": "",
@@ -1699,7 +1703,9 @@ export default function MonthlyAttendanceTab({
                     <SortHead label="ساعات إضافية" k="overtime" sortKey={sortKey} sortDir={sortDir} onSort={setSort} />
                     <SortHead label="الإضافي مع النسبة" k="overtimeWeighted" sortKey={sortKey} sortDir={sortDir} onSort={setSort} />
                     <SortHead label="أيام غياب" k="absentDays" sortKey={sortKey} sortDir={sortDir} onSort={setSort} />
+                    <SortHead label="إجازة سنوية (يوم)" k="annualLeave" sortKey={sortKey} sortDir={sortDir} onSort={setSort} />
                     <SortHead label="إجازة سنوية (ساعة)" k="annualHours" sortKey={sortKey} sortDir={sortDir} onSort={setSort} />
+                    <SortHead label="إجازة مرضية (يوم)" k="sickLeave" sortKey={sortKey} sortDir={sortDir} onSort={setSort} />
                     <SortHead label="إجازة مرضية (ساعة)" k="sickHours" sortKey={sortKey} sortDir={sortDir} onSort={setSort} />
                     <SortHead label="مجموع الساعات" k="totalHours" sortKey={sortKey} sortDir={sortDir} onSort={setSort} />
                     <SortHead label="معدل الساعة" k="hourlyRate" sortKey={sortKey} sortDir={sortDir} onSort={setSort} />
@@ -1718,7 +1724,9 @@ export default function MonthlyAttendanceTab({
                       <TableCell className="tabular-nums">{nf(r.overtime)}</TableCell>
                       <TableCell className="tabular-nums text-amber-700">{nf(r.overtimeWeighted)}</TableCell>
                       <TableCell className={cn("tabular-nums", r.absentDays > 0 && "text-red-600 font-medium")}>{r.absentDays}</TableCell>
+                      <TableCell className="tabular-nums text-sky-700 font-medium">{nf(r.annualLeave)}</TableCell>
                       <TableCell className="tabular-nums text-sky-700">{nf(r.annualHours)}</TableCell>
+                      <TableCell className="tabular-nums text-violet-700 font-medium">{nf(r.sickLeave)}</TableCell>
                       <TableCell className="tabular-nums text-violet-700 whitespace-nowrap">
                         {nf(r.sickHours)}
                         {r.sickHalfDays > 0 && (
@@ -1768,7 +1776,9 @@ export default function MonthlyAttendanceTab({
                     <TableCell className="tabular-nums">{nf(summaryTotals.overtime)}</TableCell>
                     <TableCell className="tabular-nums">{nf(summaryTotals.overtimeWeighted)}</TableCell>
                     <TableCell className="tabular-nums">{summaryTotals.absentDays}</TableCell>
+                    <TableCell className="tabular-nums">{nf(summaryTotals.annualLeave)}</TableCell>
                     <TableCell className="tabular-nums">{nf(summaryTotals.annualHours)}</TableCell>
+                    <TableCell className="tabular-nums">{nf(summaryTotals.sickLeave)}</TableCell>
                     <TableCell className="tabular-nums">{nf(summaryTotals.sickHours)}</TableCell>
                     <TableCell className="tabular-nums">{nf(summaryTotals.totalHours)}</TableCell>
                     <TableCell />
