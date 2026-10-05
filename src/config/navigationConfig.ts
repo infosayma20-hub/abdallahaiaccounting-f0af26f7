@@ -271,6 +271,7 @@ export const navigationSections: NavSection[] = [
             groupLabel: "الحركات والتقييم",
             children: [
               { label: "حركات المخزون", path: "/inventory-movements" },
+              { label: "جرد الموظفين", path: "/inventory/stock-counts" },
               { label: "تقييم المخزون", path: "/inventory-valuation" },
             ],
           },
