@@ -24,6 +24,7 @@ import { sendToBridge } from "@/lib/print-bridge-client";
 import type { PrintOrder, PrintItem } from "@/hooks/usePrintBridge";
 import { printReceiptImage, printStationTicketImage, printKitchenTicketsImage } from "@/lib/image-print-service";
 import { getServerNow, initServerClock, isClockSkewed, getClockSkewMs } from "@/lib/pos/server-clock";
+import { usePosLang } from "@/i18n/pos-lang";
 
 // ── Types ──
 interface InvoiceOrder {
@@ -193,6 +194,7 @@ const RECALL_REASONS = [
 export default function InvoiceHistoryDrawer({
   open, onClose, dataOwnerId, sessionId, cashierName, terminalName, canEditInvoices = true, canCancelInvoices = true, requireManagerForInvoices = true, requireManagerForRecall, requireManagerForCancel, requireManagerForReturn = false, cashierMode = false, cancelWindowMinutes = 30, amountVisibleMinutes = 60, onInvoiceCancelled, allowOrderTransfer = false, printInvoices = true, resendInvoice = true, onRecallToCart, onLoadDraftToCart, experimentalLayout = false,
 }: InvoiceHistoryDrawerProps) {
+  const { dir: posDir, t: tr } = usePosLang();
   // Use specific flags if provided, otherwise fall back to general flag
   const needsManagerForRecall = requireManagerForRecall ?? requireManagerForInvoices;
   const needsManagerForCancel = requireManagerForCancel ?? requireManagerForInvoices;
@@ -1011,7 +1013,7 @@ export default function InvoiceHistoryDrawer({
         animate={{ x: 0 }}
         exit={{ x: "100%" }}
         transition={{ type: "spring", damping: 30, stiffness: 300 }}
-        dir={experimentalLayout ? "rtl" : undefined}
+        dir={experimentalLayout ? posDir : undefined}
         className={`fixed z-[1000] flex flex-col pos-readable ${experimentalLayout ? "pos-v2-invoice-list" : "right-0 top-0 h-full"}`}
         style={{
           width: experimentalLayout ? "min(460px, calc(100vw - 24px))" : 480,
@@ -1024,7 +1026,7 @@ export default function InvoiceHistoryDrawer({
           <div className="flex items-center gap-2">
             <FileText className="h-5 w-5" style={{ color: "#0A2342" }} />
             <span className="text-base font-bold" style={{ fontFamily: "Tajawal, sans-serif", color: "#0A2342" }}>
-              سجل الفواتير
+              {tr("سجل الفواتير")}
             </span>
             {cashierMode && (
               managerMode.active ? (
@@ -1077,7 +1079,7 @@ export default function InvoiceHistoryDrawer({
         <div className="px-5 py-3 border-b space-y-2.5" style={{ borderColor: "#E2E8F0" }}>
           <div className="flex items-center gap-2 text-xs font-medium" style={{ fontFamily: "Tajawal, sans-serif", color: "#64748B" }}>
             <ShoppingCart className="h-3.5 w-3.5" />
-            <span>{sessionId ? "فواتير ورديتي فقط (معزولة عن باقي الورديات)" : "جميع الفواتير"}</span>
+            <span>{tr(sessionId ? "فواتير ورديتي فقط (معزولة عن باقي الورديات)" : "جميع الفواتير")}</span>
           </div>
 
           {/* Status filter */}
@@ -1101,7 +1103,7 @@ export default function InvoiceHistoryDrawer({
                   border: statusFilter === f.key ? "1px solid #4A9EE8" : "1px solid transparent",
                 }}
               >
-                {f.label}
+                {tr(f.label)}
               </button>
             ))}
           </div>
@@ -1113,7 +1115,7 @@ export default function InvoiceHistoryDrawer({
               ref={searchInputRef}
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
-              placeholder="بحث برقم الفاتورة، اسم الزبون، الجوال، أو قيمة الفاتورة..."
+              placeholder={tr("بحث برقم الفاتورة، اسم الزبون، الجوال، أو قيمة الفاتورة...")}
               className="w-full h-9 pr-9 pl-3 rounded-lg border text-xs"
               style={{ fontFamily: "Tajawal, sans-serif", borderColor: "#E2E8F0" }}
             />
@@ -1123,20 +1125,20 @@ export default function InvoiceHistoryDrawer({
         {/* Summary bar — hidden for cashiers */}
         {!cashierMode && (
           <div className="flex items-center justify-between px-5 py-2.5 text-xs" style={{ background: "#F8FAFC", fontFamily: "Tajawal, sans-serif" }}>
-            <span style={{ color: "#64748B" }}>إجمالي: <strong style={{ color: "#0A2342", fontFamily: "JetBrains Mono, monospace" }}>₪{summary.totalToday.toFixed(2)}</strong></span>
-            <span style={{ color: "#64748B" }}>الفواتير: <strong style={{ color: "#0A2342" }}>{summary.count}</strong></span>
-            <span style={{ color: "#DC2626" }}>ملغية: <strong>{summary.cancelled}</strong></span>
+            <span style={{ color: "#64748B" }}>{tr("إجمالي:")} <strong style={{ color: "#0A2342", fontFamily: "JetBrains Mono, monospace" }}>₪{summary.totalToday.toFixed(2)}</strong></span>
+            <span style={{ color: "#64748B" }}>{tr("الفواتير:")} <strong style={{ color: "#0A2342" }}>{summary.count}</strong></span>
+            <span style={{ color: "#DC2626" }}>{tr("ملغية:")} <strong>{summary.cancelled}</strong></span>
           </div>
         )}
 
         {/* Invoice list */}
         <ScrollArea className="flex-1">
           {loading ? (
-            <div className="flex items-center justify-center py-20 text-sm text-gray-400">جاري التحميل...</div>
+            <div className="flex items-center justify-center py-20 text-sm text-gray-400">{tr("جاري التحميل...")}</div>
           ) : filtered.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-20 text-gray-400">
               <FileText className="h-10 w-10 mb-2 opacity-30" />
-              <span className="text-sm">لا توجد فواتير</span>
+              <span className="text-sm">{tr("لا توجد فواتير")}</span>
             </div>
           ) : (
             <div>
@@ -1157,7 +1159,7 @@ export default function InvoiceHistoryDrawer({
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-0.5">
                         <span style={{ fontFamily: "JetBrains Mono, monospace", fontSize: 13, fontWeight: 600, color: "#0A2342" }}>
-                          رقم الطلب #{printedOrderNumber}
+                          {tr("رقم الطلب")} #{printedOrderNumber}
                         </span>
                         <span className="text-[10px]" style={{ color: "#64748B" }}>وردية #{order.session_seq ?? "—"}</span>
                         <span
@@ -1171,7 +1173,7 @@ export default function InvoiceHistoryDrawer({
                           className="px-2 py-0.5 rounded-full text-[10px] font-semibold"
                           style={{ background: status.bg, color: status.text }}
                         >
-                          {status.label}
+                          {tr(status.label)}
                         </span>
                       </div>
                       <div className="flex items-center gap-2 text-[11px]" style={{ color: "#94A3B8" }}>
@@ -1181,7 +1183,7 @@ export default function InvoiceHistoryDrawer({
                       <div className="text-[11px] mt-0.5 flex items-center gap-2" style={{ color: "#64748B" }}>
                         {canSeeDetails(order) ? (
                           <>
-                            <span>{order.customer_name || "زبون"}</span>
+                            <span>{order.customer_name || tr("زبون")}</span>
                             {order.contacts?.phone && (
                               <span className="font-mono text-[10px]" dir="ltr">{order.contacts.phone}</span>
                             )}
@@ -1191,7 +1193,7 @@ export default function InvoiceHistoryDrawer({
                         )}
                         {!cashierMode && order.pos_payments && order.pos_payments.length > 0 && (
                           <span className="px-1.5 py-0.5 rounded text-[10px] font-medium" style={{ background: "#F1F5F9", color: "#475569" }}>
-                            {order.pos_payments.map(p => PAYMENT_LABELS[p.payment_method] || p.payment_method).filter((v, i, a) => a.indexOf(v) === i).join(" + ")}
+                            {order.pos_payments.map(p => tr(PAYMENT_LABELS[p.payment_method] || p.payment_method)).filter((v, i, a) => a.indexOf(v) === i).join(" + ")}
                           </span>
                         )}
                       </div>
@@ -1257,7 +1259,7 @@ export default function InvoiceHistoryDrawer({
                             className="flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-medium transition-colors"
                             style={{ background: "#F1F5F9", color: "#64748B" }}
                           >
-                            <Eye className="h-3 w-3" /> عرض
+                            <Eye className="h-3 w-3" /> {tr("عرض")}
                           </button>
                         ) : (
                           <span
@@ -1265,7 +1267,7 @@ export default function InvoiceHistoryDrawer({
                             style={{ background: "#F1F5F9", color: "#CBD5E1" }}
                             title={`انتهت مهلة العرض (${amountVisibleMinutes} دقيقة)`}
                           >
-                            <Eye className="h-3 w-3" /> مغلق
+                            <Eye className="h-3 w-3" /> {tr("مغلق")}
                           </span>
                         )}
                         {!cashierMode && canEditInvoices && order.state === "paid" && !order.recall_status && !isTransferredOut(order) && (
@@ -1274,7 +1276,7 @@ export default function InvoiceHistoryDrawer({
                             className="flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-medium transition-colors"
                             style={{ background: "#4A9EE820", color: "#4A9EE8" }}
                           >
-                            <RotateCcw className="h-3 w-3" /> استدعاء
+                            <RotateCcw className="h-3 w-3" /> {tr("استدعاء")}
                           </button>
                         )}
                         {!cashierMode && canCancelInvoices && order.state === "paid" && !order.is_return && !isTransferredOut(order) && (
@@ -1284,7 +1286,7 @@ export default function InvoiceHistoryDrawer({
                             style={{ background: "#FEE2E220", color: "#DC2626" }}
                             title="ارتجاع جزئي أو كلي"
                           >
-                            <RotateCcw className="h-3 w-3" /> ارتجاع
+                            <RotateCcw className="h-3 w-3" /> {tr("ارتجاع")}
                           </button>
                         )}
                         {canCancelInvoices && (order.state === "paid" || order.recall_status === "recalled") && !isTransferredOut(order) && (!cashierMode || isWithinCancelGrace(order)) && (
@@ -1293,7 +1295,7 @@ export default function InvoiceHistoryDrawer({
                             className="flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-medium transition-colors"
                             style={{ background: "#FEE2E220", color: "#DC2626" }}
                           >
-                            <Ban className="h-3 w-3" /> إلغاء
+                            <Ban className="h-3 w-3" /> {tr("إلغاء")}
                           </button>
                         )}
                       </div>
@@ -1308,14 +1310,14 @@ export default function InvoiceHistoryDrawer({
 
       {/* ══════ DETAIL MODAL ══════ */}
       <Dialog open={!!selectedOrder} onOpenChange={() => setSelectedOrder(null)}>
-        <DialogContent dir={experimentalLayout ? "rtl" : undefined} className={experimentalLayout ? "pos-v2-invoice-detail z-[1100] overflow-y-auto" : "max-w-2xl w-[95vw] max-h-[90vh] overflow-y-auto z-[1100] bg-white"} style={{ fontFamily: "Tajawal, sans-serif", color: "#0F172A" }}>
+        <DialogContent dir={experimentalLayout ? posDir : undefined} className={experimentalLayout ? "pos-v2-invoice-detail z-[1100] overflow-y-auto" : "max-w-2xl w-[95vw] max-h-[90vh] overflow-y-auto z-[1100] bg-white"} style={{ fontFamily: "Tajawal, sans-serif", color: "#0F172A" }}>
           {selectedOrder && (
             <>
               {(() => {
                 const st = getStatusDisplay(selectedOrder);
                 const printedOrderNumber = getPrintedOrderNumber(selectedOrder);
-                const orderTypeLabel = ({ delivery: "توصيل", takeaway: "استلام", takeout: "استلام", dine_in: "طاولة", table: "طاولة" } as Record<string, string>)[selectedOrder.order_type || ""] || (selectedOrder.is_delivery ? "توصيل" : (selectedOrder.order_type || "—"));
-                const paymentLabel = orderPayments.map(p => PAYMENT_LABELS[p.payment_method] || p.payment_method).join("، ") || "—";
+                const orderTypeLabel = tr(({ delivery: "توصيل", takeaway: "استلام", takeout: "استلام", dine_in: "طاولة", table: "طاولة" } as Record<string, string>)[selectedOrder.order_type || ""] || (selectedOrder.is_delivery ? "توصيل" : (selectedOrder.order_type || "—")));
+                const paymentLabel = orderPayments.map(p => tr(PAYMENT_LABELS[p.payment_method] || p.payment_method)).join("، ") || "—";
                 const deliveryFee = Number(selectedOrder.delivery_fee || 0);
                 // `total` on new orders is already items-only (delivery fee is
                 // informational and NOT collected by the cashier — the driver
@@ -1343,14 +1345,14 @@ export default function InvoiceHistoryDrawer({
                     <DialogHeader className="pb-3 border-b" style={{ borderColor: "#E5E7EB" }}>
                       <DialogTitle className="flex items-center gap-2 text-right">
                         <span style={{ fontFamily: "JetBrains Mono, monospace", color: "#0F172A", fontSize: 14, fontWeight: 600 }}>
-                          رقم الطلب #{printedOrderNumber}
+                          {tr("رقم الطلب")} #{printedOrderNumber}
                         </span>
                         <span className="text-[11px]" style={{ color: "#64748B" }}>وردية #{selectedOrder.session_seq ?? "—"}</span>
                         <span className="font-mono text-[10px] px-1.5 py-0.5 rounded" style={{ background: "#F1F5F9", color: "#64748B" }} title="الرقم العالمي للفاتورة">
                           {selectedOrder.order_number || "---"}
                         </span>
                         <span className="px-2 py-0.5 rounded text-[10px] font-medium border" style={{ borderColor: "#E5E7EB", background: "#F8FAFC", color: "#475569" }}>
-                          {st.label}
+                          {tr(st.label)}
                         </span>
                         <span className="text-[11px] mr-auto" style={{ color: "#94A3B8" }}>
                           {(() => {
@@ -1365,22 +1367,22 @@ export default function InvoiceHistoryDrawer({
 
                     {/* Section: identity */}
                     <div className="grid grid-cols-3 gap-x-4 gap-y-3 py-3 border-b" style={{ borderColor: "#F1F5F9" }}>
-                      <Field label="الفرع">{terminalName || "—"}</Field>
-                      <Field label="طريقة الدفع">{paymentLabel}</Field>
-                      <Field label="نوع الطلب">{orderTypeLabel}</Field>
+                      <Field label={tr("الفرع")}>{terminalName || "—"}</Field>
+                      <Field label={tr("طريقة الدفع")}>{paymentLabel}</Field>
+                      <Field label={tr("نوع الطلب")}>{orderTypeLabel}</Field>
                     </div>
 
                     {/* Section: customer */}
                     {canSeeDetails(selectedOrder) ? (
                       <div className="grid grid-cols-3 gap-x-4 gap-y-3 py-3 border-b" style={{ borderColor: "#F1F5F9" }}>
-                        <Field label="اسم الزبون">{selectedOrder.customer_name || "زبون نقدي"}</Field>
-                        <Field label="رقم الجوال">
+                        <Field label={tr("اسم الزبون")}>{selectedOrder.customer_name || tr("زبون نقدي")}</Field>
+                        <Field label={tr("رقم الجوال")}>
                           {(selectedOrder.contacts?.phone || ccoPhone) ? (
                             <span className="font-mono" dir="ltr">{selectedOrder.contacts?.phone || ccoPhone}</span>
                           ) : "—"}
                         </Field>
                         {selectedOrder.recall_status && (
-                          <Field label="سبب التعديل">{selectedOrder.recall_reason || "—"}</Field>
+                          <Field label={tr("سبب التعديل")}>{selectedOrder.recall_reason || "—"}</Field>
                         )}
                         {(ccoDispatcher || ccoSourceApp) && (
                           <Field label="مصدر الطلب (كول سنتر)">
@@ -1402,7 +1404,7 @@ export default function InvoiceHistoryDrawer({
                     {/* Section: delivery */}
                     {showDelivery && (
                       <div className="py-3 border-b" style={{ borderColor: "#F1F5F9" }}>
-                        <div className="text-[10px] mb-2" style={{ color: "#94A3B8" }}>بيانات التوصيل</div>
+                        <div className="text-[10px] mb-2" style={{ color: "#94A3B8" }}>{tr("بيانات التوصيل")}</div>
                         <div className="grid grid-cols-3 gap-x-4 gap-y-2 text-[12px]" style={{ color: "#0F172A" }}>
                           {selectedOrder.area_name && (
                             <div><span className="text-[10px]" style={{ color: "#94A3B8" }}>المنطقة · </span>{selectedOrder.area_name}</div>
@@ -1420,7 +1422,7 @@ export default function InvoiceHistoryDrawer({
                     {/* Section: note */}
                     {showNote && (
                       <div className="py-3 border-b" style={{ borderColor: "#F1F5F9" }}>
-                        <div className="text-[10px] mb-1" style={{ color: "#94A3B8" }}>ملاحظة الطلبية</div>
+                        <div className="text-[10px] mb-1" style={{ color: "#94A3B8" }}>{tr("ملاحظة الطلبية")}</div>
                         <div className="text-[12px] whitespace-pre-wrap leading-relaxed break-words" style={{ color: "#334155" }}>
                           {selectedOrder.order_note || selectedOrder.notes}
                         </div>
@@ -1429,17 +1431,17 @@ export default function InvoiceHistoryDrawer({
 
                     {/* Section: items */}
                     {loadingDetail ? (
-                      <div className="py-8 text-center text-sm" style={{ color: "#94A3B8" }}>جاري التحميل...</div>
+                      <div className="py-8 text-center text-sm" style={{ color: "#94A3B8" }}>{tr("جاري التحميل...")}</div>
                     ) : canSeeDetails(selectedOrder) ? (
                       <div className="mt-3">
-                        <div className="text-[10px] mb-1.5" style={{ color: "#94A3B8" }}>الأصناف</div>
+                        <div className="text-[10px] mb-1.5" style={{ color: "#94A3B8" }}>{tr("الأصناف")}</div>
                         <table className="w-full text-[12px] border-collapse">
                           <thead>
                             <tr className="border-y" style={{ borderColor: "#E5E7EB" }}>
-                              <th className="py-1.5 px-2 text-right font-medium" style={{ color: "#64748B" }}>الصنف</th>
-                              <th className="py-1.5 px-2 text-center font-medium w-14" style={{ color: "#64748B" }}>الكمية</th>
-                              <th className="py-1.5 px-2 text-center font-medium w-20" style={{ color: "#64748B" }}>السعر</th>
-                              <th className="py-1.5 px-2 text-left font-medium w-24" style={{ color: "#64748B" }}>الإجمالي</th>
+                              <th className="py-1.5 px-2 text-right font-medium" style={{ color: "#64748B" }}>{tr("الصنف")}</th>
+                              <th className="py-1.5 px-2 text-center font-medium w-14" style={{ color: "#64748B" }}>{tr("الكمية")}</th>
+                              <th className="py-1.5 px-2 text-center font-medium w-20" style={{ color: "#64748B" }}>{tr("السعر")}</th>
+                              <th className="py-1.5 px-2 text-left font-medium w-24" style={{ color: "#64748B" }}>{tr("الإجمالي")}</th>
                             </tr>
                           </thead>
                           <tbody>

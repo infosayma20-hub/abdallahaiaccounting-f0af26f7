@@ -5,6 +5,7 @@ import { SortableContext, useSortable, verticalListSortingStrategy, rectSortingS
 import { CSS } from "@dnd-kit/utilities";
 import type { PosV2Tokens } from "./posV2Theme";
 import { posV2CatColor, fmtMoney } from "./posV2Theme";
+import { usePosLang } from "@/i18n/pos-lang";
 
 export type PosV2Product = { id: string; name: string; sell_price: number; image_url?: string | null; pos_category_id?: string | null; category?: string | null };
 export type PosV2Cat = { id: string; name: string; count: number };
@@ -95,6 +96,7 @@ function Chip({ t, active, color, label, count, onClick }: { t: PosV2Tokens; act
 
 export default function POSv2Products(p: Props) {
   const { t } = p;
+  const { dir, t: tr } = usePosLang();
   const [editOpen, setEditOpen] = useState(false);
   const baseCols = p.cardSize === "S" ? 6 : p.cardSize === "M" ? 5 : 4;
   const cols = Math.max(2, baseCols - (p.narrow ? 1 : 0));
@@ -102,9 +104,9 @@ export default function POSv2Products(p: Props) {
   return (
     <div dir="rtl" className="flex-1 min-h-0 min-w-0 flex" style={{ background: t.bg }}>
       {/* Vertical categories stay on the physical right in RTL. */}
-      <aside className="shrink-0 min-h-0 flex flex-col" style={{ width: p.narrow ? 152 : 178, background: t.surface, borderInlineEnd: `1px solid ${t.border}` }}>
+      <aside dir={dir} className="shrink-0 min-h-0 flex flex-col" style={{ width: p.narrow ? 152 : 178, background: t.surface, borderInlineEnd: `1px solid ${t.border}` }}>
         <div className="flex-1 min-h-0 overflow-y-auto p-2 space-y-1.5">
-          {!p.hideAll && <Chip t={t} active={p.selected === "الكل"} label="الكل" count={p.allCount} onClick={() => p.onSelect("الكل")} />}
+          {!p.hideAll && <Chip t={t} active={p.selected === "الكل"} label={tr("الكل")} count={p.allCount} onClick={() => p.onSelect("الكل")} />}
           <DndContext sensors={p.dndSensors} collisionDetection={closestCenter} onDragEnd={p.onCategoryDragEnd}>
             <SortableContext items={p.categories.map((c) => c.id)} strategy={verticalListSortingStrategy} disabled={!p.isSortMode}>
               {p.categories.map((c) => (
@@ -117,12 +119,12 @@ export default function POSv2Products(p: Props) {
             </SortableContext>
           </DndContext>
           {p.uncategorizedCount > 0 && (
-            <Chip t={t} active={p.selected === "__uncategorized__"} color={t.muted} label="أخرى" count={p.uncategorizedCount} onClick={() => p.onSelect("__uncategorized__")} />
+            <Chip t={t} active={p.selected === "__uncategorized__"} color={t.muted} label={tr("أخرى")} count={p.uncategorizedCount} onClick={() => p.onSelect("__uncategorized__")} />
           )}
         </div>
       </aside>
 
-      <div className="flex-1 min-h-0 min-w-0 flex flex-col">
+      <div dir={dir} className="flex-1 min-h-0 min-w-0 flex flex-col">
       {/* Toolbar */}
       <div className="flex items-center justify-end gap-2 px-4 pt-3 pb-2 shrink-0">
         <div className="flex items-center shrink-0" style={{ height: 44, padding: 3, borderRadius: 12, background: t.card, border: `1px solid ${t.border}` }}>
@@ -142,11 +144,11 @@ export default function POSv2Products(p: Props) {
           type="button"
           onClick={p.onSortMode}
           className="flex items-center gap-1.5 shrink-0"
-          title={p.isSortMode ? "إنهاء وضع الترتيب" : "وضع الترتيب — اضغط مطولًا واسحب التصنيف أو الصنف"}
+          title={tr(p.isSortMode ? "إنهاء وضع الترتيب" : "وضع الترتيب — اضغط مطولًا واسحب التصنيف أو الصنف")}
           style={{ height: 44, padding: "0 14px", borderRadius: 12, background: p.isSortMode ? t.accent : t.card, color: p.isSortMode ? t.onAccent : t.text, border: `1px solid ${t.border}`, fontSize: 13, fontWeight: 700 }}
         >
           {p.isSortMode ? <Check style={{ width: 15, height: 15 }} /> : <GripVertical style={{ width: 15, height: 15 }} />}
-          {p.isSortMode ? "إنهاء الترتيب" : "ترتيب"}
+          {tr(p.isSortMode ? "إنهاء الترتيب" : "ترتيب")}
         </button>
         {p.canManage && (
           <div className="relative shrink-0">
@@ -157,7 +159,7 @@ export default function POSv2Products(p: Props) {
               style={{ height: 44, padding: "0 14px", borderRadius: 12, background: p.isSortMode ? t.accent : t.card, color: p.isSortMode ? t.onAccent : t.text, border: `1px solid ${t.border}`, fontSize: 13, fontWeight: 700 }}
             >
               <Pencil style={{ width: 15, height: 15 }} />
-              تعديل
+              {tr("تعديل")}
             </button>
             {editOpen && (
               <>
@@ -168,7 +170,7 @@ export default function POSv2Products(p: Props) {
                     { k: "p", l: "+ منتج", f: p.onAddProduct },
                   ].map((i) => (
                     <button key={i.k} type="button" onClick={() => { setEditOpen(false); i.f(); }} className="w-full text-right" style={{ height: 44, padding: "0 14px", color: t.text, fontSize: 13 }}>
-                      {i.l}
+                      {tr(i.l)}
                     </button>
                   ))}
                 </div>
@@ -181,7 +183,7 @@ export default function POSv2Products(p: Props) {
       {/* Grid */}
       <div className="flex-1 min-h-0 overflow-y-auto px-4 pb-4">
         {p.products.length === 0 ? (
-          <div className="py-24 text-center" style={{ color: t.muted, fontSize: 14 }}>لا توجد منتجات مطابقة</div>
+          <div className="py-24 text-center" style={{ color: t.muted, fontSize: 14 }}>{tr("لا توجد منتجات مطابقة")}</div>
         ) : (
           <DndContext sensors={p.dndSensors} collisionDetection={closestCenter} onDragEnd={p.onProductDragEnd}>
             <SortableContext items={p.products.map((product) => product.id)} strategy={rectSortingStrategy} disabled={!p.isSortMode}>
@@ -216,10 +218,10 @@ export default function POSv2Products(p: Props) {
                     <div style={{ fontSize: 15, fontWeight: 700, color: t.text, lineHeight: 1.35, overflowWrap: "anywhere" }}>{name}</div>
                     <div className="mt-auto flex items-end justify-between gap-2">
                       <div style={openPrice ? { fontSize: 13, color: t.muted, fontWeight: 600 } : { fontSize: 17, fontWeight: 800, color: t.price }} dir={openPrice ? "rtl" : "ltr"}>
-                        {openPrice ? "سعر مفتوح" : fmtMoney(prod.sell_price)}
+                        {openPrice ? tr("سعر مفتوح") : fmtMoney(prod.sell_price)}
                       </div>
                       {qty > 0 && (
-                        <span className="shrink-0 flex items-center justify-center" aria-label={`في السلة ${qty}`} style={{ minWidth: 24, height: 24, padding: "0 6px", borderRadius: 12, background: t.accent, color: t.onAccent, fontSize: 12, fontWeight: 800 }}>
+                        <span className="shrink-0 flex items-center justify-center" aria-label={`${tr("في السلة")} ${qty}`} style={{ minWidth: 24, height: 24, padding: "0 6px", borderRadius: 12, background: t.accent, color: t.onAccent, fontSize: 12, fontWeight: 800 }}>
                           {qty}
                         </span>
                       )}

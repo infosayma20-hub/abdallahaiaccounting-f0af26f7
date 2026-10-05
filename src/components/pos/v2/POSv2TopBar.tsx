@@ -1,7 +1,8 @@
 import { useState, type ReactNode, type RefObject } from "react";
-import { Search, Barcode, PauseCircle, ChefHat, FileText, MoreHorizontal, Sun, Moon, CircleStop, Pin, PinOff } from "lucide-react";
+import { Search, Barcode, PauseCircle, ChefHat, FileText, MoreHorizontal, Sun, Moon, CircleStop, Pin, PinOff, Languages } from "lucide-react";
 import type { PosV2Tokens } from "./posV2Theme";
 import BridgeStatusIndicator from "@/components/pos/BridgeStatusIndicator";
+import { usePosLang } from "@/i18n/pos-lang";
 
 export type PosV2MenuItem = { key: string; label: string; icon?: ReactNode; onClick: () => void; danger?: boolean };
 
@@ -55,11 +56,12 @@ function IconBtn({ t, label, badge, onClick, children }: { t: PosV2Tokens; label
 
 export default function POSv2TopBar(p: Props) {
   const { t } = p;
+  const { lang, setLang, dir, t: tr } = usePosLang();
   const [menuOpen, setMenuOpen] = useState(false);
 
   return (
     <header
-      dir="rtl"
+      dir={dir}
       className="flex items-center gap-3 px-4 shrink-0"
       style={{ height: 68, background: t.surface, borderBottom: `1px solid ${t.border}`, color: t.text }}
     >
@@ -85,7 +87,7 @@ export default function POSv2TopBar(p: Props) {
             value={p.searchQuery}
             onChange={(e) => p.onSearchChange(e.target.value)}
             onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); p.onSearchEnter(); } }}
-            placeholder="ابحث عن منتج أو امسح الباركود"
+            placeholder={tr("ابحث عن منتج أو امسح الباركود")}
             className="w-full focus:outline-none"
             style={{ height: 46, borderRadius: 12, background: t.input, border: `1px solid ${t.border}`, color: t.text, paddingInlineStart: 42, paddingInlineEnd: 46, fontSize: 14 }}
           />
@@ -94,7 +96,7 @@ export default function POSv2TopBar(p: Props) {
             onClick={p.onCameraScan}
             className="absolute top-1/2 -translate-y-1/2 flex items-center justify-center"
             style={{ insetInlineEnd: 6, width: 36, height: 36, borderRadius: 8, color: t.muted }}
-            title="مسح باركود بالكاميرا"
+            title={tr("مسح باركود بالكاميرا")}
           >
             <Barcode style={{ width: 18, height: 18 }} />
           </button>
@@ -103,27 +105,28 @@ export default function POSv2TopBar(p: Props) {
 
       {/* Left: 5 buttons */}
       <div className="flex items-center gap-1 shrink-0">
-        <IconBtn t={t} label="المعلّقة" badge={p.heldCount} onClick={p.onHeld}><PauseCircle style={{ width: 20, height: 20 }} strokeWidth={1.8} /></IconBtn>
-        <IconBtn t={t} label={p.barPinned ? "مثبّت" : "تعليق"} onClick={p.onToggleBarPin}>
+        <IconBtn t={t} label={tr("المعلّقة")} badge={p.heldCount} onClick={p.onHeld}><PauseCircle style={{ width: 20, height: 20 }} strokeWidth={1.8} /></IconBtn>
+        <IconBtn t={t} label={tr(p.barPinned ? "مثبّت" : "تعليق")} onClick={p.onToggleBarPin}>
           {p.barPinned
             ? <Pin style={{ width: 20, height: 20, color: t.accent }} strokeWidth={1.8} fill={t.accent} />
             : <PinOff style={{ width: 20, height: 20 }} strokeWidth={1.8} />}
         </IconBtn>
-        <IconBtn t={t} label={t.dark ? "فاتح" : "داكن"} onClick={p.onToggleTheme}>
+        <IconBtn t={t} label={tr(t.dark ? "فاتح" : "داكن")} onClick={p.onToggleTheme}>
           {t.dark ? <Sun style={{ width: 20, height: 20 }} strokeWidth={1.8} /> : <Moon style={{ width: 20, height: 20 }} strokeWidth={1.8} />}
         </IconBtn>
-        {p.showKitchen && <IconBtn t={t} label="المطبخ" onClick={p.onKitchen}><ChefHat style={{ width: 20, height: 20 }} strokeWidth={1.8} /></IconBtn>}
-        <div className="flex flex-col items-center justify-center shrink-0" style={{ minWidth: 56, height: 52, gap: 2 }} title="الطلبات والتنبيهات المعلقة">
+        <IconBtn t={t} label={lang === "ar" ? "English" : "عربي"} onClick={() => setLang(lang === "ar" ? "en" : "ar")}><Languages style={{ width: 20, height: 20 }} strokeWidth={1.8} /></IconBtn>
+        {p.showKitchen && <IconBtn t={t} label={tr("المطبخ")} onClick={p.onKitchen}><ChefHat style={{ width: 20, height: 20 }} strokeWidth={1.8} /></IconBtn>}
+        <div className="flex flex-col items-center justify-center shrink-0" style={{ minWidth: 56, height: 52, gap: 2 }} title={tr("الطلبات والتنبيهات المعلقة")}>
           <div className="pos-v2-notif" style={{ color: t.text }}>{p.notificationsNode}</div>
-          <span style={{ fontSize: 11, color: t.muted, fontWeight: 600 }}>التنبيهات</span>
+          <span style={{ fontSize: 11, color: t.muted, fontWeight: 600 }}>{tr("التنبيهات")}</span>
         </div>
-        <div className="flex flex-col items-center justify-center shrink-0" style={{ minWidth: 56, height: 52, gap: 2 }} title="حالة الطابعات">
+        <div className="flex flex-col items-center justify-center shrink-0" style={{ minWidth: 56, height: 52, gap: 2 }} title={tr("حالة الطابعات")}>
           <div className="pos-v2-printer" style={{ color: t.text }}><BridgeStatusIndicator /></div>
-          <span style={{ fontSize: 11, color: t.muted, fontWeight: 600 }}>الطابعات</span>
+          <span style={{ fontSize: 11, color: t.muted, fontWeight: 600 }}>{tr("الطابعات")}</span>
         </div>
-        {p.canInvoices && <IconBtn t={t} label="الفواتير" onClick={p.onInvoices}><FileText style={{ width: 20, height: 20 }} strokeWidth={1.8} /></IconBtn>}
+        {p.canInvoices && <IconBtn t={t} label={tr("الفواتير")} onClick={p.onInvoices}><FileText style={{ width: 20, height: 20 }} strokeWidth={1.8} /></IconBtn>}
         <div className="relative">
-          <IconBtn t={t} label="المزيد" onClick={() => setMenuOpen((v) => !v)}><MoreHorizontal style={{ width: 20, height: 20 }} strokeWidth={1.8} /></IconBtn>
+          <IconBtn t={t} label={tr("المزيد")} onClick={() => setMenuOpen((v) => !v)}><MoreHorizontal style={{ width: 20, height: 20 }} strokeWidth={1.8} /></IconBtn>
           {menuOpen && (
             <>
               <div className="fixed inset-0 z-40" onClick={() => setMenuOpen(false)} />
@@ -141,7 +144,7 @@ export default function POSv2TopBar(p: Props) {
                     style={{ height: 44, padding: "0 14px", color: m.danger ? t.warnText : t.text, fontSize: 13, borderTop: m.danger ? `1px solid ${t.border}` : undefined }}
                   >
                     {m.icon}
-                    {m.label}
+                    {tr(m.label)}
                   </button>
                 ))}
               </div>
@@ -149,9 +152,9 @@ export default function POSv2TopBar(p: Props) {
           )}
         </div>
         {p.canCloseShift && (
-          <button type="button" onClick={p.onCloseShift} className="relative flex flex-col items-center justify-center shrink-0" style={{ minWidth: 62, height: 52, borderRadius: 10, color: t.warnText, gap: 2 }} title="إغلاق العهدة">
+          <button type="button" onClick={p.onCloseShift} className="relative flex flex-col items-center justify-center shrink-0" style={{ minWidth: 62, height: 52, borderRadius: 10, color: t.warnText, gap: 2 }} title={tr("إغلاق العهدة")}>
             <CircleStop style={{ width: 21, height: 21 }} strokeWidth={1.9} />
-            <span style={{ fontSize: 11, fontWeight: 700 }}>إغلاق العهدة</span>
+            <span style={{ fontSize: 11, fontWeight: 700 }}>{tr("إغلاق العهدة")}</span>
           </button>
         )}
       </div>
