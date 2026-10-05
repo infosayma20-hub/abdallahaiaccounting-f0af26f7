@@ -1849,6 +1849,7 @@ const POSPage = ({ variant = "v1" }: { variant?: "v1" | "v2" } = {}) => {
       setSelectedCategory(firstVisible);
     }
     defaultCategoryAppliedRef.current = guardKey;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [session?.id, company?.name, posCategories]);
 
   // Auto-load order from URL params (when coming from floor plan)
