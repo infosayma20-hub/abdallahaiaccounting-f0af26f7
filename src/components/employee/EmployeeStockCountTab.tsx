@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Camera, Loader2, PackageSearch, Save, ScanLine } from "lucide-react";
+import { Camera, Loader2, PackageSearch, Save, ScanLine, TriangleAlert } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -28,6 +28,9 @@ export default function EmployeeStockCountTab({ onBack }: { onBack: () => void }
   const [price, setPrice] = useState("");
   const [qty, setQty] = useState("");
   const [saving, setSaving] = useState(false);
+  const [unknownCode, setUnknownCode] = useState<string | null>(null);
+  const [unknownNote, setUnknownNote] = useState("");
+  const [reporting, setReporting] = useState(false);
   const codeRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -44,7 +47,8 @@ export default function EmployeeStockCountTab({ onBack }: { onBack: () => void }
     const { data, error } = await supabase.rpc("stock_count_lookup", { p_code: c });
     setLooking(false);
     if (error) { toast.error(error.message); return; }
-    if (!data) { toast.error(`لا يوجد صنف بالرمز ${c}`); setProduct(null); return; }
+    if (!data) { setProduct(null); setUnknownCode(c); setUnknownNote(""); return; }
+    setUnknownCode(null);
     const p = data as any as Product;
     setProduct(p);
     setName("");
