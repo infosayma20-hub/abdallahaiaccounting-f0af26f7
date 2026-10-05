@@ -94,10 +94,12 @@ export default function EmployeeStockCountTab({ onBack }: { onBack: () => void }
             {looking && <div className="flex justify-center p-4"><Loader2 className="h-5 w-5 animate-spin" /></div>}
 
             {!product && !looking && (
-              <div className="flex flex-col items-center gap-2 rounded-2xl border border-dashed border-border p-8 text-center text-sm text-muted-foreground">
-                <ScanLine className="h-8 w-8" />
-                امسح باركود أو QR الصنف لعرضه وتعديله
-              </div>
+              <button type="button" onClick={() => setScanOpen(true)}
+                className="flex w-full flex-col items-center gap-3 rounded-2xl border-2 border-dashed border-primary/40 bg-primary/5 p-8 text-center transition active:scale-[0.98]">
+                <span className="flex h-16 w-16 items-center justify-center rounded-2xl bg-primary text-primary-foreground"><ScanLine className="h-8 w-8" /></span>
+                <span className="font-bold text-foreground">اضغط لفتح الماسح</span>
+                <span className="text-xs text-muted-foreground">باركود أو QR — بالكاميرا</span>
+              </button>
             )}
 
             {product && (
