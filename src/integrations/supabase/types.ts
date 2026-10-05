@@ -25389,6 +25389,54 @@ export type Database = {
           },
         ]
       }
+      stock_count_unknown_barcodes: {
+        Row: {
+          branch_id: string | null
+          code: string
+          created_at: string
+          employee_id: string | null
+          id: string
+          note: string | null
+          status: string
+          user_id: string
+        }
+        Insert: {
+          branch_id?: string | null
+          code: string
+          created_at?: string
+          employee_id?: string | null
+          id?: string
+          note?: string | null
+          status?: string
+          user_id: string
+        }
+        Update: {
+          branch_id?: string | null
+          code?: string
+          created_at?: string
+          employee_id?: string | null
+          id?: string
+          note?: string | null
+          status?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stock_count_unknown_barcodes_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stock_count_unknown_barcodes_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees_safe"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       stock_document_items: {
         Row: {
           created_at: string
@@ -34675,6 +34723,10 @@ export type Database = {
       }
       stock_count_context: { Args: never; Returns: Json }
       stock_count_lookup: { Args: { p_code: string }; Returns: Json }
+      stock_count_report_unknown: {
+        Args: { p_code: string; p_note?: string }
+        Returns: string
+      }
       stock_count_review: {
         Args: { p_approve: boolean; p_entry_id: string; p_note?: string }
         Returns: Json
