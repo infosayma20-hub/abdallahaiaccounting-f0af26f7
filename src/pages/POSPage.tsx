@@ -7881,6 +7881,8 @@ const POSPage = ({ variant = "v1" }: { variant?: "v1" | "v2" } = {}) => {
       onInvoices={() => setShowInvoiceHistory(true)}
       menuItems={v2MenuItems}
       onToggleTheme={() => setV2Dark(d => !d)}
+      barPinned={v2BarPinned}
+      onToggleBarPin={toggleV2BarPinned}
       canCloseShift={(isAdmin || !!posPerms.can_close_register) && posFeatPerm.can("sell", "close_shift")}
       onCloseShift={v2CloseShift}
     />
