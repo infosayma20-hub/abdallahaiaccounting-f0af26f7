@@ -1545,6 +1545,8 @@ const EmployeesPage = () => {
                   employeeName={selectedEmployee.full_name}
                   authUserId={(selectedEmployee as any).auth_user_id || null}
                 />
+                  </div>
+                </div>
               </div>
 
               <Tabs value={activeTab} onValueChange={setActiveTab}>
