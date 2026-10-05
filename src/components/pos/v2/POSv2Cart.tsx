@@ -2,6 +2,7 @@ import { useState, type ReactNode } from "react";
 import { Plus, Minus, Trash2, User, X, Tag, StickyNote, PauseCircle, ShoppingCart, Save, Printer, MoreHorizontal, ShoppingBag, Truck, UtensilsCrossed } from "lucide-react";
 import type { PosV2Tokens } from "./posV2Theme";
 import { fmtMoney } from "./posV2Theme";
+import { usePosLang } from "@/i18n/pos-lang";
 
 export type PosV2Line = { id: string; name: string; qty: number; unit_price: number; base_price?: number; price_reason?: string | null; total: number; note?: string; modifiers?: { option_name: string }[] };
 type OrderPill = { id: string; label: string; count: number };
@@ -71,6 +72,7 @@ function Key({ t, k, onAccent }: { t: PosV2Tokens; k: string; onAccent?: string 
 
 export default function POSv2Cart(p: Props) {
   const { t } = p;
+  const { dir, t: tr } = usePosLang();
   const [noteOpen, setNoteOpen] = useState(false);
   const [customerOpen, setCustomerOpen] = useState(false);
   const c = !!p.compact;
@@ -79,7 +81,7 @@ export default function POSv2Cart(p: Props) {
 
   return (
     <aside
-      dir="rtl"
+      dir={dir}
       className="pos-v2-cart flex flex-col min-h-0 shrink-0"
       style={{ width: p.width, background: t.surface, borderInlineEnd: `1px solid ${t.border}`, color: t.text }}
     >
@@ -96,8 +98,8 @@ export default function POSv2Cart(p: Props) {
                 {p.onCloseOrder && p.orders.length > 1 && (
                   <span
                     role="button"
-                    aria-label="إغلاق الطلب"
-                    onClick={(e) => { e.stopPropagation(); p.onCloseOrder!(i); }}
+                    aria-label={tr("إغلاق الطلب")}
+                    onClick={(e) => { e.stopPropagation(); p.onCloseOrder?.(i); }}
                     className="flex items-center justify-center rounded-full"
                     style={{ width: 18, height: 18, marginInlineStart: 2, background: a ? "rgba(0,0,0,0.18)" : "rgba(128,128,128,0.25)", color: a ? t.onAccent : t.muted }}
                   >
@@ -107,12 +109,12 @@ export default function POSv2Cart(p: Props) {
               </button>
             );
           })}
-          <button type="button" onClick={p.onNewOrder} className="shrink-0 flex items-center justify-center" title="طلب جديد"
+          <button type="button" onClick={p.onNewOrder} className="shrink-0 flex items-center justify-center" title={tr("طلب جديد")}
             style={{ width: 40, height: 40, borderRadius: 10, border: `1.5px dashed ${t.border}`, color: t.muted }}>
             <Plus style={{ width: 16, height: 16 }} />
           </button>
         </div>
-        <button type="button" onClick={p.onClearOrder} disabled={empty} className="shrink-0 flex items-center justify-center disabled:opacity-40" title="إفراغ الطلب"
+        <button type="button" onClick={p.onClearOrder} disabled={empty} className="shrink-0 flex items-center justify-center disabled:opacity-40" title={tr("إفراغ الطلب")}
           style={{ width: 40, height: 40, borderRadius: 10, color: t.muted }}>
           <Trash2 style={{ width: 18, height: 18 }} />
         </button>
@@ -129,7 +131,7 @@ export default function POSv2Cart(p: Props) {
                 <button key={ty} type="button" onClick={() => p.onOrderType(ty)} className="flex-1 flex items-center justify-center gap-1"
                   style={{ height: 28, borderRadius: 7, fontSize: 11.5, fontWeight: 800, background: a ? t.accent : "transparent", color: a ? t.onAccent : t.muted }}>
                   <Icon style={{ width: 13, height: 13 }} />
-                  {TYPE_LABEL[ty]}
+                  {tr(TYPE_LABEL[ty])}
                 </button>
               );
             })}
@@ -143,7 +145,7 @@ export default function POSv2Cart(p: Props) {
           <div className="flex items-center gap-2" style={{ height: 44, padding: "0 12px", borderRadius: 12, background: t.input, border: `1px solid ${t.border}` }}>
             <User style={{ width: 16, height: 16, color: t.muted }} />
             <span className="flex-1 truncate" style={{ fontSize: 13, fontWeight: 700 }}>{p.customerName}</span>
-            <button type="button" onClick={p.onClearCustomer} style={{ color: t.muted }} title="إزالة الزبون"><X style={{ width: 16, height: 16 }} /></button>
+            <button type="button" onClick={p.onClearCustomer} style={{ color: t.muted }} title={tr("إزالة الزبون")}><X style={{ width: 16, height: 16 }} /></button>
           </div>
         ) : customerOpen ? (
           <div className="flex items-center gap-2">
@@ -154,8 +156,8 @@ export default function POSv2Cart(p: Props) {
           <button type="button" onClick={() => setCustomerOpen(true)} className="w-full flex items-center gap-2"
             style={{ height: 44, padding: "0 12px", borderRadius: 12, border: `1.5px dashed ${t.border}`, color: t.text, fontSize: 13, fontWeight: 700 }}>
             <User style={{ width: 16, height: 16 }} />
-            إضافة زبون
-            <span className="mr-auto" style={{ color: t.muted, fontWeight: 500 }}>زبون نقدي</span>
+            {tr("إضافة زبون")}
+            <span className="ms-auto" style={{ color: t.muted, fontWeight: 500 }}>{tr("زبون نقدي")}</span>
           </button>
         )}
       </div>
@@ -167,8 +169,8 @@ export default function POSv2Cart(p: Props) {
         {empty ? (
           <div className="text-center" style={{ paddingTop: 36 }}>
             <ShoppingCart style={{ width: 40, height: 40, color: t.muted, opacity: 0.5, margin: "0 auto 10px" }} strokeWidth={1.6} />
-            <div style={{ fontSize: 14, fontWeight: 700, color: t.text }}>ابدأ بإضافة المنتجات</div>
-            <div style={{ fontSize: 12, color: t.muted, marginTop: 4 }}>أو امسح الباركود</div>
+            <div style={{ fontSize: 14, fontWeight: 700, color: t.text }}>{tr("ابدأ بإضافة المنتجات")}</div>
+            <div style={{ fontSize: 12, color: t.muted, marginTop: 4 }}>{tr("أو امسح الباركود")}</div>
           </div>
         ) : (
           p.lines.map((l, i) => (
@@ -186,8 +188,8 @@ export default function POSv2Cart(p: Props) {
                     min={0}
                     step="0.01"
                     value={l.unit_price}
-                    aria-label={`سعر ${p.lineName(l)}`}
-                    title={l.price_reason || "تعديل سعر الوحدة"}
+                    aria-label={`${tr("السعر")} ${p.lineName(l)}`}
+                    title={l.price_reason || tr("تعديل سعر الوحدة")}
                     onClick={(e) => e.stopPropagation()}
                     onFocus={(e) => e.currentTarget.select()}
                     onChange={(e) => { const n = Number(e.target.value); if (Number.isFinite(n) && n >= 0) p.onPrice(i, n); }}
@@ -196,13 +198,13 @@ export default function POSv2Cart(p: Props) {
                     style={{ height: 28, borderRadius: 7, background: t.input, border: `1px solid ${t.border}`, color: t.text, direction: "ltr", fontSize: 12, fontWeight: 700 }}
                   />
                   {l.base_price != null && Math.abs(l.unit_price - l.base_price) >= 0.001 && (
-                    <span title={l.price_reason || "بانتظار تسجيل سبب تعديل السعر"} style={{ color: t.warnText, fontSize: 10, fontWeight: 800 }}>*</span>
+                    <span title={l.price_reason || tr("بانتظار تسجيل سبب تعديل السعر")} style={{ color: t.warnText, fontSize: 10, fontWeight: 800 }}>*</span>
                   )}
                 </div>
               ) : <div className="shrink-0" style={{ fontSize: 12, color: t.muted }}>{fmtMoney(l.unit_price)}</div>}
               {p.hasAddons(i) && (
-                <button type="button" title={l.modifiers?.map((m) => m.option_name).join("، ") || "إضافات"} onClick={(e) => { e.stopPropagation(); p.onAddons(i); }} style={{ height: 28, padding: "0 6px", borderRadius: 7, border: `1px dashed ${t.accent}`, color: t.accent, fontSize: 10, fontWeight: 700 }}>
-                  إضافات
+                <button type="button" title={l.modifiers?.map((m) => m.option_name).join("، ") || tr("إضافات")} onClick={(e) => { e.stopPropagation(); p.onAddons(i); }} style={{ height: 28, padding: "0 6px", borderRadius: 7, border: `1px dashed ${t.accent}`, color: t.accent, fontSize: 10, fontWeight: 700 }}>
+                  {tr("إضافات")}
                 </button>
               )}
               <div className="flex items-center shrink-0" style={{ height: 30, borderRadius: 8, background: t.input, border: `1px solid ${t.border}` }}>
@@ -217,7 +219,7 @@ export default function POSv2Cart(p: Props) {
                   value={l.note || ""}
                   onChange={(e) => p.onLineNote(i, e.target.value)}
                   onClick={(e) => e.stopPropagation()}
-                  placeholder="ملاحظة على الصنف..."
+                  placeholder={tr("ملاحظة على الصنف...")}
                   className="w-full focus:outline-none"
                   style={{ height: 38, borderRadius: 9, padding: "0 10px", background: t.input, border: `1px dashed ${t.border}`, color: t.text, fontSize: 12 }}
                 />
@@ -231,31 +233,31 @@ export default function POSv2Cart(p: Props) {
       <div className={`px-4 ${c ? "pt-1" : "pt-1.5"} shrink-0`}>
         {noteOpen || p.orderNote ? (
           <div className="flex items-center gap-2 mb-1.5">
-            <input autoFocus={noteOpen && !p.orderNote} value={p.orderNote} onChange={(e) => p.onOrderNote(e.target.value)} placeholder="ملاحظة على الفاتورة"
+            <input autoFocus={noteOpen && !p.orderNote} value={p.orderNote} onChange={(e) => p.onOrderNote(e.target.value)} placeholder={tr("ملاحظة على الفاتورة")}
               className="flex-1 focus:outline-none" style={{ height: 32, borderRadius: 8, padding: "0 10px", background: t.input, border: `1px solid ${t.border}`, color: t.text, fontSize: 12 }} />
             <button type="button" onClick={() => { p.onOrderNote(""); setNoteOpen(false); }} style={{ color: t.muted }}><X style={{ width: 16, height: 16 }} /></button>
           </div>
         ) : null}
         <div className="grid grid-cols-3 gap-1.5">
           <button type="button" onClick={p.onDiscount} disabled={!p.canDiscount} className="flex items-center justify-center gap-1 disabled:opacity-40" style={{ ...outlineBtn, ...(p.discountActive ? { borderColor: t.accent, color: t.accent } : {}) }}>
-            <Tag style={{ width: 13, height: 13 }} />{p.discountActive ? "إلغاء الخصم" : "خصم"}
+            <Tag style={{ width: 13, height: 13 }} />{tr(p.discountActive ? "إلغاء الخصم" : "خصم")}
           </button>
           <button type="button" onClick={() => setNoteOpen(true)} className="flex items-center justify-center gap-1" style={outlineBtn}>
-            <StickyNote style={{ width: 13, height: 13 }} />ملاحظة
+            <StickyNote style={{ width: 13, height: 13 }} />{tr("ملاحظة")}
           </button>
           <button type="button" onClick={p.onHold} disabled={empty} className="flex items-center justify-center gap-1 disabled:opacity-40" style={outlineBtn}>
-            <PauseCircle style={{ width: 13, height: 13 }} />تعليق
+            <PauseCircle style={{ width: 13, height: 13 }} />{tr("تعليق")}
           </button>
         </div>
       </div>
 
       {/* g) totals */}
       <div className={`px-4 ${c ? "pt-1" : "pt-1.5"} shrink-0`} style={{ fontSize: 12 }}>
-        {!c && <div className="flex justify-between" style={{ color: t.muted, marginBottom: 2 }}><span>المجموع ({p.pieces} قطع)</span><span dir="ltr">{fmtMoney(p.subtotal)}</span></div>}
-        {(!c || p.discount > 0) && <div className="flex justify-between" style={{ color: t.muted, marginBottom: 2 }}><span>الخصم</span><span dir="ltr">{fmtMoney(p.discount)}</span></div>}
-        {p.tax > 0 && <div className="flex justify-between" style={{ color: t.muted, marginBottom: 2 }}><span>الضريبة</span><span dir="ltr">{fmtMoney(p.tax)}</span></div>}
+        {!c && <div className="flex justify-between" style={{ color: t.muted, marginBottom: 2 }}><span>{tr("المجموع")} ({p.pieces} {tr("قطع")})</span><span dir="ltr">{fmtMoney(p.subtotal)}</span></div>}
+        {(!c || p.discount > 0) && <div className="flex justify-between" style={{ color: t.muted, marginBottom: 2 }}><span>{tr("الخصم")}</span><span dir="ltr">{fmtMoney(p.discount)}</span></div>}
+        {p.tax > 0 && <div className="flex justify-between" style={{ color: t.muted, marginBottom: 2 }}><span>{tr("الضريبة")}</span><span dir="ltr">{fmtMoney(p.tax)}</span></div>}
         <div className="flex justify-between items-baseline" style={{ marginTop: 2 }}>
-          <span style={{ fontSize: 13, fontWeight: 800 }}>الإجمالي</span>
+          <span style={{ fontSize: 13, fontWeight: 800 }}>{tr("الإجمالي")}</span>
           <span dir="ltr" className="tabular-nums" style={{ fontSize: c ? 18 : 22, fontWeight: 800 }}>{fmtMoney(p.total)}</span>
         </div>
       </div>
@@ -265,20 +267,20 @@ export default function POSv2Cart(p: Props) {
         {p.showPay && (
           <button type="button" onClick={p.onPay} disabled={!p.canPay} className="w-full flex items-center justify-center gap-2"
             style={{ height: c ? 38 : 44, borderRadius: 11, background: p.t.pay, color: p.t.onPay, fontSize: 16, fontWeight: 800, opacity: p.canPay ? 1 : 0.4, cursor: p.canPay ? "pointer" : "not-allowed" }}>
-            <span>دفع <span dir="ltr">{fmtMoney(p.payTotal)}</span></span>
+            <span>{tr("دفع")} <span dir="ltr">{fmtMoney(p.payTotal)}</span></span>
             <Key t={t} k="F2" onAccent={p.t.onPay} />
           </button>
         )}
         <div className="flex gap-1.5">
           <button type="button" onClick={p.onSave} disabled={p.saveDisabled} className="flex-1 flex items-center justify-center gap-1.5 disabled:opacity-40" style={outlineBtn}>
-            <Save style={{ width: 13, height: 13 }} />حفظ<Key t={t} k="F10" />
+            <Save style={{ width: 13, height: 13 }} />{tr("حفظ")}<Key t={t} k="F10" />
           </button>
           {p.showPrint && (
             <button type="button" onClick={p.onPrint} disabled={empty} className="flex-1 flex items-center justify-center gap-1.5 disabled:opacity-40" style={outlineBtn}>
-              <Printer style={{ width: 13, height: 13 }} />طباعة<Key t={t} k="F9" />
+              <Printer style={{ width: 13, height: 13 }} />{tr("طباعة")}<Key t={t} k="F9" />
             </button>
           )}
-          <button type="button" onClick={p.onMore} className="flex items-center justify-center" style={{ ...outlineBtn, width: 36 }} title="المزيد">
+          <button type="button" onClick={p.onMore} className="flex items-center justify-center" style={{ ...outlineBtn, width: 36 }} title={tr("المزيد")}>
             <MoreHorizontal style={{ width: 15, height: 15 }} />
           </button>
         </div>

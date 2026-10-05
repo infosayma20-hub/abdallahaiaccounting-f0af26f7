@@ -28,7 +28,6 @@ export function pt(text: string, lang: PosLang = getPosLang()): string {
 /** Pick the display name for a product/category in the active POS language. */
 export function pname(row: { name?: string | null; name_en?: string | null } | null | undefined, lang: PosLang = getPosLang()): string {
   if (!row) return "";
-  if (lang === "en" && row.name_en && row.name_en.trim()) return row.name_en;
   return row.name || "";
 }
 
