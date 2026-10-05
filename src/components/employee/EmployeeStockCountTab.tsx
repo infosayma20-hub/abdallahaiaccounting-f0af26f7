@@ -60,7 +60,7 @@ export default function EmployeeStockCountTab({ onBack }: { onBack: () => void }
   const reportUnknown = async () => {
     if (!unknownCode) return;
     setReporting(true);
-    const { error } = await supabase.rpc("stock_count_report_unknown", { p_code: unknownCode, p_note: unknownNote.trim() || null });
+    const { error } = await (supabase.rpc as any)("stock_count_report_unknown", { p_code: unknownCode, p_note: unknownNote.trim() || null });
     setReporting(false);
     if (error) { toast.error(error.message); return; }
     toast.success("سُجّل الباركود كغير معروف — سيظهر للإدارة في مراجعة الجرد");
