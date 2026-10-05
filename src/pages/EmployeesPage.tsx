@@ -1517,7 +1517,13 @@ const EmployeesPage = () => {
                     <ScanLine className="h-3.5 w-3.5 text-primary" /> جرد المخزون (مسح وتعديل الاسم والسعر والكمية)
                   </label>
                 </div>
-                <SalesRepToggleSection
+                  </div>
+                </div>
+                {/* المبيعات وخدمة الزبائن */}
+                <div>
+                  <p className="text-[11px] font-bold text-muted-foreground mb-2 flex items-center gap-1"><Users className="h-3 w-3" /> المبيعات وخدمة الزبائن</p>
+                  <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
+                 <SalesRepToggleSection
                   employeeId={selectedEmployee.id}
                   employeeName={selectedEmployee.full_name}
                   authUserId={(selectedEmployee as any).auth_user_id || null}
