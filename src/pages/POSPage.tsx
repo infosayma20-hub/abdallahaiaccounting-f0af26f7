@@ -1452,6 +1452,56 @@ const POSPage = ({ variant = "v1" }: { variant?: "v1" | "v2" } = {}) => {
     return () => { cancelled = true; clearInterval(timer); };
   }, [dataOwnerId, isCallCenter, deviceConfig.branchId, terminalBranchId, cashBoxBranchId, detectedBranchId]);
 
+  // 🏪 Business-unit assortment: a product linked to other units (and not to
+  // this branch's unit) is hidden from the grid. Unlinked products are shared.
+  // Display-only — barcode scans still resolve every product. Cached per
+  // branch in localStorage so offline devices keep the same assortment.
+  const [unitHiddenIds, setUnitHiddenIds] = useState<Set<string>>(new Set());
+  useEffect(() => {
+    if (!dataOwnerId) return;
+    const branchScope = deviceConfig.branchId || terminalBranchId || cashBoxBranchId || detectedBranchId;
+    if (!branchScope || isCallCenter) { setUnitHiddenIds(new Set()); return; }
+    const cacheKey = `pos_unit_hidden_${branchScope}`;
+    try {
+      const cached = localStorage.getItem(cacheKey);
+      if (cached) setUnitHiddenIds(new Set(JSON.parse(cached)));
+    } catch { /* ignore */ }
+    let cancelled = false;
+    (async () => {
+      try {
+        const { data: br, error: brErr } = await supabase
+          .from("branches").select("business_unit_id").eq("id", branchScope).maybeSingle();
+        if (brErr) return;
+        const myUnit = (br as any)?.business_unit_id as string | null;
+        const units = new Map<string, Set<string>>();
+        if (myUnit) {
+          let after: string | null = null;
+          for (let page = 0; page < 100; page++) {
+            let q = supabase.from("product_business_units" as any)
+              .select("product_id, business_unit_id")
+              .eq("user_id", dataOwnerId).order("product_id").limit(1000);
+            if (after) q = q.gt("product_id", after);
+            const { data, error } = await q;
+            if (error) return;
+            const chunk = (data || []) as any[];
+            chunk.forEach(r => {
+              if (!units.has(r.product_id)) units.set(r.product_id, new Set());
+              units.get(r.product_id)!.add(r.business_unit_id);
+            });
+            if (chunk.length < 1000) break;
+            after = chunk[chunk.length - 1].product_id;
+          }
+        }
+        const hidden: string[] = [];
+        if (myUnit) units.forEach((set, pid) => { if (!set.has(myUnit)) hidden.push(pid); });
+        if (cancelled) return;
+        setUnitHiddenIds(new Set(hidden));
+        try { localStorage.setItem(cacheKey, JSON.stringify(hidden)); } catch { /* quota */ }
+      } catch { /* offline: keep cached */ }
+    })();
+    return () => { cancelled = true; };
+  }, [dataOwnerId, isCallCenter, deviceConfig.branchId, terminalBranchId, cashBoxBranchId, detectedBranchId]);
+
   // Load tables when picker opens
   useEffect(() => {
     if (!showTablePicker || !dataOwnerId) return;
@@ -3227,6 +3277,7 @@ const POSPage = ({ variant = "v1" }: { variant?: "v1" | "v2" } = {}) => {
     );
     let filtered = products.filter((p) => {
       if (!p.is_pos_available) return false;
+      if (unitHiddenIds.has(p.id)) return false;
       if (p.pos_category_id && hiddenCatIds.has(p.pos_category_id)) return false;
       if (!p.pos_category_id && p.category && hiddenCatNames.has(p.category)) return false;
       return true;
@@ -3330,7 +3381,7 @@ const POSPage = ({ variant = "v1" }: { variant?: "v1" | "v2" } = {}) => {
       }
     }
     return filtered;
-  }, [products, selectedCategory, debouncedSearch, posCategories, productOrderByCategory, visiblePosCategories]);
+  }, [products, selectedCategory, debouncedSearch, posCategories, productOrderByCategory, visiblePosCategories, unitHiddenIds]);
 
   const getProductCatColor = useCallback((product: Product) => {
     if (product.pos_category_id) {
