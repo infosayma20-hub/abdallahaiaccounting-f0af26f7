@@ -1,7 +1,6 @@
 import { useState, type ReactNode, type RefObject } from "react";
-import { Search, Barcode, Printer, PauseCircle, ChefHat, FileText, MoreHorizontal, Sun, Moon, CircleStop, Pin, PinOff } from "lucide-react";
+import { Search, Barcode, PauseCircle, ChefHat, FileText, MoreHorizontal, Sun, Moon, CircleStop, Pin, PinOff } from "lucide-react";
 import type { PosV2Tokens } from "./posV2Theme";
-import { usePrinterOnline } from "./usePrinterOnline";
 import BridgeStatusIndicator from "@/components/pos/BridgeStatusIndicator";
 
 export type PosV2MenuItem = { key: string; label: string; icon?: ReactNode; onClick: () => void; danger?: boolean };
