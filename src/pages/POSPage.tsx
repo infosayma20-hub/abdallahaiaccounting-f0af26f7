@@ -7986,8 +7986,8 @@ const POSPage = ({ variant = "v1" }: { variant?: "v1" | "v2" } = {}) => {
             />
           )}
           <div
-            className="shrink-0 overflow-hidden"
-            style={{ height: v2BarVisible ? 68 : 0, transition: "height 0.18s ease" }}
+            className="shrink-0 relative z-[60]"
+            style={{ height: v2BarVisible ? 68 : 0, overflow: v2BarVisible ? "visible" : "hidden", transition: "height 0.18s ease" }}
             onMouseLeave={() => setV2BarHover(false)}
           >
             {v2TopBarNode}
