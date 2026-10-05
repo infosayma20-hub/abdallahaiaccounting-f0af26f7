@@ -24,7 +24,7 @@ import { usePermission } from "@/hooks/usePermission";
 import { assertPermission } from "@/lib/permissions/assertPermission";
 import { usePosMode } from "@/hooks/usePosMode";
 import { supabase } from "@/integrations/supabase/client";
-import { pt, usePosLang } from "@/i18n/pos-lang";
+import { pname, pt, usePosLang } from "@/i18n/pos-lang";
 import { setReceiptLanguage, setEnglishReceiptHeader, registerEnglishNames, bridgeSupportsEnglish } from "@/lib/print-english";
 import { getDeviceBranchId as getDeviceBranchIdForLang } from "@/lib/device-config";
 import { toast } from "sonner";
