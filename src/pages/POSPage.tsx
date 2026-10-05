@@ -7394,6 +7394,12 @@ const POSPage = ({ variant = "v1" }: { variant?: "v1" | "v2" } = {}) => {
 
   // ── POS v2 (experimental UI) — presentation state only, never persisted ──
   const [v2Dark, setV2Dark] = useState(true);
+  // v2 top bar auto-hides to free vertical space; it reappears on hover near
+  // the top edge or whenever a call-center order/edit is pending.
+  const [v2BarHover, setV2BarHover] = useState(false);
+  const [v2PendingCount, setV2PendingCount] = useState(0);
+  const onV2PendingCount = useCallback((n: number) => setV2PendingCount(n), []);
+  const v2BarVisible = v2BarHover || v2PendingCount > 0;
   const [v2CardSize, setV2CardSize] = useState<"S" | "M" | "L">("M");
   const [v2Width, setV2Width] = useState(() => (typeof window !== "undefined" ? window.innerWidth : 1280));
   const [v2Height, setV2Height] = useState(() => (typeof window !== "undefined" ? window.innerHeight : 900));
@@ -7402,6 +7408,14 @@ const POSPage = ({ variant = "v1" }: { variant?: "v1" | "v2" } = {}) => {
     const onResize = () => { setV2Width(window.innerWidth); setV2Height(window.innerHeight); };
     window.addEventListener("resize", onResize);
     return () => window.removeEventListener("resize", onResize);
+  }, [isV2]);
+  // Reveal the hidden v2 top bar whenever the mouse reaches the top edge —
+  // a window-level listener so it works even when a modal overlay covers the strip.
+  useEffect(() => {
+    if (!isV2) return;
+    const onMove = (e: MouseEvent) => { if (e.clientY <= 12) setV2BarHover(true); };
+    window.addEventListener("mousemove", onMove);
+    return () => window.removeEventListener("mousemove", onMove);
   }, [isV2]);
   useEffect(() => {
     if (!isV2) return;
@@ -7435,6 +7449,7 @@ const POSPage = ({ variant = "v1" }: { variant?: "v1" | "v2" } = {}) => {
             branchId={deviceConfig.branchId || detectedBranchId}
             sessionId={session?.id || null}
             enabled={!!session && !isCallCenter}
+            onPendingCountChange={onV2PendingCount}
             onAcceptOrder={(order) => {
               // 🛡️ Hard guard — never accept call-center orders when device isn't ready
               if (!enforceDeviceGuard()) return;
@@ -7959,7 +7974,26 @@ const POSPage = ({ variant = "v1" }: { variant?: "v1" | "v2" } = {}) => {
       {/* ⚠️ Soft banner — printing unavailable. Selling continues to work. */}
       <PrintingNotReadyBanner />
       {/* ══════ TOP BAR — 52px dark navy ══════ */}
-      {isV2 ? v2TopBarNode : (
+      {isV2 ? (
+        <>
+          {/* Invisible hover strip at the very top edge — reveals the hidden top bar. */}
+          {!v2BarVisible && (
+            <div
+              className="fixed top-0 inset-x-0 z-[90]"
+              style={{ height: 12 }}
+              onMouseEnter={() => setV2BarHover(true)}
+              onClick={() => setV2BarHover(true)}
+            />
+          )}
+          <div
+            className="shrink-0 overflow-hidden"
+            style={{ height: v2BarVisible ? 68 : 0, transition: "height 0.18s ease" }}
+            onMouseLeave={() => setV2BarHover(false)}
+          >
+            {v2TopBarNode}
+          </div>
+        </>
+      ) : (
       <header
         className="pos-topbar flex items-center px-2 sm:px-3 gap-1.5 sm:gap-2 shrink-0 text-white overflow-x-auto overflow-y-visible no-scrollbar"
         style={{ height: 52, background: "#0D1B2E", borderBottom: "1px solid rgba(255,255,255,0.1)" }}

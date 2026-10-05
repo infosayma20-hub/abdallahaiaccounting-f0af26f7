@@ -67,6 +67,8 @@ interface Props {
   sessionId: string | null;
   enabled: boolean;
   onAcceptOrder: (order: CallCenterOrder) => void;
+  /** Optional: reports the total pending badge count (orders + edit proposals) so parents can react (e.g. auto-show the v2 top bar). */
+  onPendingCountChange?: (count: number) => void;
 }
 
 // Notification sound — preload AudioContext on first user interaction.
@@ -144,7 +146,7 @@ const playNotificationSound = () => {
   }
 };
 
-const PendingOrdersPanel = ({ dataOwnerId, branchId, sessionId, enabled, onAcceptOrder }: Props) => {
+const PendingOrdersPanel = ({ dataOwnerId, branchId, sessionId, enabled, onAcceptOrder, onPendingCountChange }: Props) => {
   const [orders, setOrders] = useState<CallCenterOrder[]>([]);
   const [edits, setEdits] = useState<OrderEdit[]>([]);
   const [editsOrderMap, setEditsOrderMap] = useState<Record<string, CallCenterOrder>>({});
@@ -388,6 +390,11 @@ const PendingOrdersPanel = ({ dataOwnerId, branchId, sessionId, enabled, onAccep
   const pendingCount = orders.length;
   const pendingEditsCount = edits.length;
   const totalBadge = pendingCount + pendingEditsCount;
+
+  // Report the badge count upward (used by POS v2 to auto-reveal the hidden top bar).
+  useEffect(() => {
+    onPendingCountChange?.(totalBadge);
+  }, [totalBadge, onPendingCountChange]);
 
   const handleAcceptEdit = async (edit: OrderEdit) => {
     setDeciding(edit.id);
