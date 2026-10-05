@@ -31,6 +31,7 @@ export const POS_DICT: Record<string, string> = {
   "وضع الترتيب — اضغط مطولًا واسحب التصنيف أو الصنف": "Arrange mode — press and drag a category or item",
   "إنهاء الترتيب": "Finish",
   "ترتيب": "Arrange",
+  "حجم الأصناف": "Item size",
   "تعديل": "Edit",
   "لا توجد منتجات مطابقة": "No matching products",
   "الواجهة القديمة": "Legacy interface",
