@@ -140,7 +140,7 @@ export default function POSv2Products(p: Props) {
           type="button"
           onClick={p.onSortMode}
           className="flex items-center gap-1.5 shrink-0"
-          title={p.isSortMode ? "إنهاء وضع الترتيب" : "وضع الترتيب — اضغط مطولًا واسحب التصنيف"}
+          title={p.isSortMode ? "إنهاء وضع الترتيب" : "وضع الترتيب — اضغط مطولًا واسحب التصنيف أو الصنف"}
           style={{ height: 44, padding: "0 14px", borderRadius: 12, background: p.isSortMode ? t.accent : t.card, color: p.isSortMode ? t.onAccent : t.text, border: `1px solid ${t.border}`, fontSize: 13, fontWeight: 700 }}
         >
           {p.isSortMode ? <Check style={{ width: 15, height: 15 }} /> : <GripVertical style={{ width: 15, height: 15 }} />}
