@@ -901,12 +901,12 @@ export default function MonthlyAttendanceTab({
     }), [summary, empMeta, priorSickByEmp]);
 
   const filteredSummary = useMemo(() => {
-    const s = summarySearch.trim().toLowerCase();
+    const s = normAr(summarySearch);
     const base = !s
       ? derivedSummary
       : derivedSummary.filter((r) =>
-          r.name.toLowerCase().includes(s) || String(r.employeeNumber).toLowerCase().includes(s) ||
-          (r.branchName || "").toLowerCase().includes(s) || (r.departmentName || "").toLowerCase().includes(s));
+          nameStartsWith(r.name, s) || normAr(String(r.employeeNumber)).includes(s) ||
+          normAr(r.branchName || "").includes(s) || normAr(r.departmentName || "").includes(s));
     const dir = sortDir === "asc" ? 1 : -1;
     return [...base].sort((a, b) => {
       const av: any = (a as any)[sortKey];
@@ -1553,7 +1553,7 @@ export default function MonthlyAttendanceTab({
               {empQuery.trim() && employeeId === "all" && (
                 <div className="absolute z-30 mt-1 w-full max-h-56 overflow-y-auto rounded-xl border bg-popover shadow-md">
                   {employees
-                    .filter((emp) => emp.full_name?.toLowerCase().includes(empQuery.trim().toLowerCase()))
+                    .filter((emp) => nameStartsWith(emp.full_name || "", empQuery))
                     .slice(0, 20)
                     .map((emp) => (
                       <button
@@ -1565,7 +1565,7 @@ export default function MonthlyAttendanceTab({
                         {emp.full_name}
                       </button>
                     ))}
-                  {employees.filter((emp) => emp.full_name?.toLowerCase().includes(empQuery.trim().toLowerCase())).length === 0 && (
+                  {employees.filter((emp) => nameStartsWith(emp.full_name || "", empQuery)).length === 0 && (
                     <p className="px-3 py-2 text-xs text-muted-foreground">لا يوجد موظف مطابق</p>
                   )}
                 </div>
