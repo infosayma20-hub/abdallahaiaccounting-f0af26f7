@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Banknote, CreditCard, X, Plus, Split, Wand2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { usePosLang } from "@/i18n/pos-lang";
 
 export type SplitTender = {
   method: "cash" | "card";
@@ -34,6 +35,7 @@ interface Props {
  * Backward compatible: parent component drives whether to use split tenders or single-tender flow.
  */
 export default function SplitPaymentPanel({ total, tenders, setTenders, userId, defaultCardGlAccountCode, exchangeRates = {}, currencies = [] }: Props) {
+  const { dir, t: tr } = usePosLang();
   const [cardOptions, setCardOptions] = useState<BankAccountOption[]>([]);
 
   useEffect(() => {
@@ -136,28 +138,28 @@ export default function SplitPaymentPanel({ total, tenders, setTenders, userId, 
   };
 
   return (
-    <div className="mx-4 mt-3" style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 10, padding: 12 }}>
+    <div dir={dir} className="mx-4 mt-3" style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 10, padding: 12 }}>
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
           <Split className="h-4 w-4" style={{ color: "#7c3aed" }} />
-          <span className="text-[13px] font-semibold" style={{ color: "#111827" }}>دفع مختلط (نقد + فيزا)</span>
+          <span className="text-[13px] font-semibold" style={{ color: "#111827" }}>{tr("دفع مختلط (نقد + فيزا)")}</span>
         </div>
-        <div className="text-[11px]" style={{ color: "#6b7280" }}>متعدد العملات (فيزا شيكل فقط)</div>
+        <div className="text-[11px]" style={{ color: "#6b7280" }}>{tr("متعدد العملات (فيزا شيكل فقط)")}</div>
       </div>
 
       {/* Balance bar */}
       <div className="grid grid-cols-3 gap-2 mb-3">
         <div style={{ background: "#f9fafb", borderRadius: 8, padding: "8px 10px" }}>
-          <div className="text-[10px]" style={{ color: "#6b7280" }}>الإجمالي</div>
+          <div className="text-[10px]" style={{ color: "#6b7280" }}>{tr("الإجمالي")}</div>
           <div className="text-[14px] font-bold tabular-nums" style={{ color: "#111827" }}>₪{total.toFixed(2)}</div>
         </div>
         <div style={{ background: "#f0f9ff", borderRadius: 8, padding: "8px 10px" }}>
-          <div className="text-[10px]" style={{ color: "#0369a1" }}>المدفوع</div>
+          <div className="text-[10px]" style={{ color: "#0369a1" }}>{tr("المدفوع")}</div>
           <div className="text-[14px] font-bold tabular-nums" style={{ color: "#0369a1" }}>₪{paid.toFixed(2)}</div>
         </div>
         <div style={{ background: remaining === 0 ? "#f0fdf4" : remaining > 0 ? "#fef2f2" : "#fffbeb", borderRadius: 8, padding: "8px 10px" }}>
           <div className="text-[10px]" style={{ color: remaining === 0 ? "#15803d" : remaining > 0 ? "#dc2626" : "#a16207" }}>
-            {remaining === 0 ? "متوازن ✓" : remaining > 0 ? "متبقي" : "زيادة"}
+            {tr(remaining === 0 ? "متوازن ✓" : remaining > 0 ? "متبقي" : "زيادة")}
           </div>
           <div className="text-[14px] font-bold tabular-nums" style={{ color: remaining === 0 ? "#15803d" : remaining > 0 ? "#dc2626" : "#a16207" }}>
             ₪{Math.abs(remaining).toFixed(2)}
@@ -169,7 +171,7 @@ export default function SplitPaymentPanel({ total, tenders, setTenders, userId, 
       <div className="space-y-2 mb-3">
         {tenders.length === 0 && (
           <div className="text-center text-[12px] py-3" style={{ color: "#9ca3af" }}>
-            أضف دفعة بالأسفل (نقد أو فيزا)
+            {tr("أضف دفعة بالأسفل (نقد أو فيزا)")}
           </div>
         )}
         {tenders.map((t, idx) => (
@@ -182,7 +184,7 @@ export default function SplitPaymentPanel({ total, tenders, setTenders, userId, 
                 <CreditCard className="h-4 w-4" style={{ color: "#3b82f6" }} />
               )}
               <span className="text-[12px] font-semibold" style={{ color: t.method === "cash" ? "#16a34a" : "#3b82f6" }}>
-                {t.method === "cash" ? "نقد" : "فيزا"}
+                {tr(t.method === "cash" ? "نقد" : "فيزا")}
               </span>
             </div>
 
@@ -220,7 +222,7 @@ export default function SplitPaymentPanel({ total, tenders, setTenders, userId, 
                 className="text-[11px]"
                 style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 6, padding: "4px 6px", maxWidth: 90 }}
               >
-                <option value="ILS">شيكل</option>
+                <option value="ILS">{tr("شيكل")}</option>
                 {currencies.filter(c => c.code !== "ILS").map((c) => (
                   <option key={c.code} value={c.code} disabled={!exchangeRates[c.code]}>
                     {c.name}
@@ -271,7 +273,7 @@ export default function SplitPaymentPanel({ total, tenders, setTenders, userId, 
             {t.method === "cash" && t.currency && t.currency !== "ILS" && (
               <div className="flex items-center justify-between gap-2 text-[11px] px-1" style={{ color: "#6b7280" }}>
                 <div className="flex items-center gap-1.5">
-                  <span>سعر الصرف:</span>
+                  <span>{tr("سعر الصرف:")}</span>
                   <input
                     type="number"
                     step="0.0001"
@@ -289,7 +291,7 @@ export default function SplitPaymentPanel({ total, tenders, setTenders, userId, 
                       style={{ background: "#eef2ff", border: "1px solid #c7d2fe", color: "#4338ca" }}
                       title="عدّل سعر الصرف ليغطي الباقي بالضبط (تجنّب الكسور)"
                     >
-                      ضبط السعر
+                      {tr("ضبط السعر")}
                     </button>
                   )}
                   {exchangeRates[t.currency] && Math.abs((t.exchange_rate || 0) - exchangeRates[t.currency]) > 0.0001 && (
@@ -299,7 +301,7 @@ export default function SplitPaymentPanel({ total, tenders, setTenders, userId, 
                       style={{ background: "#f3f4f6", border: "1px solid #e5e7eb", color: "#6b7280" }}
                       title={`استرجاع السعر الرسمي ${exchangeRates[t.currency!]}`}
                     >
-                      الرسمي
+                      {tr("الرسمي")}
                     </button>
                   )}
                 </div>
@@ -320,7 +322,7 @@ export default function SplitPaymentPanel({ total, tenders, setTenders, userId, 
         >
           <Plus className="h-3.5 w-3.5" />
           <Banknote className="h-3.5 w-3.5" />
-          نقد
+          {tr("نقد")}
         </button>
         <button
           onClick={() => addTender("card")}
@@ -329,7 +331,7 @@ export default function SplitPaymentPanel({ total, tenders, setTenders, userId, 
         >
           <Plus className="h-3.5 w-3.5" />
           <CreditCard className="h-3.5 w-3.5" />
-          فيزا
+          {tr("فيزا")}
         </button>
         <button
           onClick={fillRemainingCash}
@@ -337,7 +339,7 @@ export default function SplitPaymentPanel({ total, tenders, setTenders, userId, 
           className="flex items-center justify-center gap-1 text-[12px] font-semibold transition-all disabled:opacity-40"
           style={{ background: "#fffbeb", border: "1.5px solid #fcd34d", color: "#a16207", borderRadius: 8, padding: "8px 10px" }}
         >
-          + متبقي نقد
+          + {tr("متبقي نقد")}
         </button>
       </div>
     </div>
