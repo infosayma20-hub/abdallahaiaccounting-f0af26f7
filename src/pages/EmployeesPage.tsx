@@ -1492,6 +1492,21 @@ const EmployeesPage = () => {
                     <ScanLine className="h-3.5 w-3.5 text-primary" /> إنشاء طلبية واستلام مباشر بالباركود
                   </label>
                 </div>
+                <div className="flex items-center gap-2">
+                  <Switch
+                    checked={!!(selectedEmployee as any).can_stock_count}
+                    onCheckedChange={async (checked) => {
+                      const { error } = await supabase.from("employees").update({ can_stock_count: checked } as any).eq("id", selectedEmployee.id);
+                      if (error) { toast.error(error.message); return; }
+                      setSelectedEmployee({ ...selectedEmployee, can_stock_count: checked } as any);
+                      fetchEmployees();
+                      toast.success(checked ? "تم تفعيل جرد المخزون" : "تم إيقاف جرد المخزون");
+                    }}
+                  />
+                  <label className="text-xs font-medium flex items-center gap-1">
+                    <ScanLine className="h-3.5 w-3.5 text-primary" /> جرد المخزون (مسح وتعديل الاسم والسعر والكمية)
+                  </label>
+                </div>
                 <SalesRepToggleSection
                   employeeId={selectedEmployee.id}
                   employeeName={selectedEmployee.full_name}

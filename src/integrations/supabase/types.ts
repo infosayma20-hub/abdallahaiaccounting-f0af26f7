@@ -9425,6 +9425,7 @@ export type Database = {
           can_direct_receive: boolean
           can_manage_attendance: boolean
           can_manage_schedule: boolean
+          can_stock_count: boolean
           can_view_team: boolean
           child_allowance_per_child: number | null
           children_count: number | null
@@ -9504,6 +9505,7 @@ export type Database = {
           can_direct_receive?: boolean
           can_manage_attendance?: boolean
           can_manage_schedule?: boolean
+          can_stock_count?: boolean
           can_view_team?: boolean
           child_allowance_per_child?: number | null
           children_count?: number | null
@@ -9583,6 +9585,7 @@ export type Database = {
           can_direct_receive?: boolean
           can_manage_attendance?: boolean
           can_manage_schedule?: boolean
+          can_stock_count?: boolean
           can_view_team?: boolean
           child_allowance_per_child?: number | null
           children_count?: number | null
@@ -19887,6 +19890,67 @@ export type Database = {
           },
         ]
       }
+      product_edit_log: {
+        Row: {
+          changed_by: string | null
+          created_at: string
+          employee_id: string | null
+          field: string
+          id: string
+          new_value: string | null
+          old_value: string | null
+          product_id: string
+          source: string
+          user_id: string
+        }
+        Insert: {
+          changed_by?: string | null
+          created_at?: string
+          employee_id?: string | null
+          field: string
+          id?: string
+          new_value?: string | null
+          old_value?: string | null
+          product_id: string
+          source?: string
+          user_id: string
+        }
+        Update: {
+          changed_by?: string | null
+          created_at?: string
+          employee_id?: string | null
+          field?: string
+          id?: string
+          new_value?: string | null
+          old_value?: string | null
+          product_id?: string
+          source?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_edit_log_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_edit_log_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees_safe"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_edit_log_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       product_modifier_groups: {
         Row: {
           group_id: string
@@ -25227,6 +25291,103 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      stock_count_entries: {
+        Row: {
+          applied_delta: number | null
+          branch_id: string | null
+          counted_qty: number
+          created_at: string
+          employee_id: string
+          employee_note: string | null
+          id: string
+          product_id: string
+          review_note: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: string
+          system_qty: number
+          user_id: string
+          warehouse_id: string
+        }
+        Insert: {
+          applied_delta?: number | null
+          branch_id?: string | null
+          counted_qty: number
+          created_at?: string
+          employee_id: string
+          employee_note?: string | null
+          id?: string
+          product_id: string
+          review_note?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          system_qty?: number
+          user_id: string
+          warehouse_id: string
+        }
+        Update: {
+          applied_delta?: number | null
+          branch_id?: string | null
+          counted_qty?: number
+          created_at?: string
+          employee_id?: string
+          employee_note?: string | null
+          id?: string
+          product_id?: string
+          review_note?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          system_qty?: number
+          user_id?: string
+          warehouse_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stock_count_entries_branch_id_fkey"
+            columns: ["branch_id"]
+            isOneToOne: false
+            referencedRelation: "branches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stock_count_entries_branch_id_fkey"
+            columns: ["branch_id"]
+            isOneToOne: false
+            referencedRelation: "branches_safe"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stock_count_entries_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stock_count_entries_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees_safe"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stock_count_entries_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stock_count_entries_warehouse_id_fkey"
+            columns: ["warehouse_id"]
+            isOneToOne: false
+            referencedRelation: "warehouses"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       stock_document_items: {
         Row: {
@@ -30999,6 +31160,7 @@ export type Database = {
           can_direct_receive: boolean
           can_manage_attendance: boolean
           can_manage_schedule: boolean
+          can_stock_count: boolean
           can_view_team: boolean
           child_allowance_per_child: number | null
           children_count: number | null
@@ -34509,6 +34671,22 @@ export type Database = {
       }
       start_editing_call_center_order: {
         Args: { p_order_id: string }
+        Returns: Json
+      }
+      stock_count_context: { Args: never; Returns: Json }
+      stock_count_lookup: { Args: { p_code: string }; Returns: Json }
+      stock_count_review: {
+        Args: { p_approve: boolean; p_entry_id: string; p_note?: string }
+        Returns: Json
+      }
+      stock_count_submit: {
+        Args: {
+          p_counted_qty?: number
+          p_name?: string
+          p_note?: string
+          p_product_id: string
+          p_sell_price?: number
+        }
         Returns: Json
       }
       stock_movement_signed_qty: {

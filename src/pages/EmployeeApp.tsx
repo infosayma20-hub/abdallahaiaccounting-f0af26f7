@@ -35,6 +35,7 @@ import TeamAttendanceTab from "@/components/employee/manager/TeamAttendanceTab";
 import TeamRequestsTab from "@/components/employee/manager/TeamRequestsTab";
 import ShiftSwapsTab from "@/components/employee/manager/ShiftSwapsTab";
 import ManagerHeader from "@/components/employee/manager/ManagerHeader";
+import EmployeeStockCountTab from "@/components/employee/EmployeeStockCountTab";
 import { getActionableOpenSession } from "@/lib/attendance-session";
 import { workDayKey, workDayRange } from "@/lib/attendance-work-day";
 
@@ -51,7 +52,7 @@ function NoPerm({ onBack, text }: { onBack: () => void; text: string }) {
 
 type Tab = "home" | "scan" | "history" | "alerts" | "requests" | "profile" | "forms" | "schedule"
   | "payslips" | "financials" | "attendance" | "actions" | "training" | "chat"
-  | "manager-roster" | "manager-team" | "manager-attendance" | "manager-requests" | "manager-swaps";
+  | "stock-count" | "manager-roster" | "manager-team" | "manager-attendance" | "manager-requests" | "manager-swaps";
 
 type AttendanceDay = {
   id: string;
@@ -91,6 +92,7 @@ type Employee = {
   can_view_team?: boolean;
   can_manage_schedule?: boolean;
   can_manage_attendance?: boolean;
+  can_stock_count?: boolean;
   user_id: string;
   company_id?: string;
   date_of_birth?: string | null;
@@ -250,7 +252,7 @@ export default function EmployeeApp({ initialTab }: { initialTab?: Tab } = {}) {
       // user_roles here. `isCashier` is derived in an effect below.
       const { data: emp } = await supabase
         .from("employees")
-        .select("id, full_name, branch_id, position, department, phone, email, is_manager, is_hr_manager, can_view_team, can_manage_schedule, can_manage_attendance, user_id, company_id, date_of_birth, id_number, marital_status, children_count, start_date, photo_url, address, notes, shift_id, shift_start, shift_end, job_title_id, job_title, previous_year_balance, annual_leave_days, sick_leave_days")
+        .select("id, full_name, branch_id, position, department, phone, email, is_manager, is_hr_manager, can_view_team, can_manage_schedule, can_manage_attendance, can_stock_count, user_id, company_id, date_of_birth, id_number, marital_status, children_count, start_date, photo_url, address, notes, shift_id, shift_start, shift_end, job_title_id, job_title, previous_year_balance, annual_leave_days, sick_leave_days")
         .eq("auth_user_id", user.id)
         .eq("is_active", true)
         .maybeSingle();
@@ -472,6 +474,7 @@ export default function EmployeeApp({ initialTab }: { initialTab?: Tab } = {}) {
             canViewTeam={!!employee.can_view_team}
             canManageSchedule={!!employee.can_manage_schedule}
             canManageAttendance={!!employee.can_manage_attendance}
+            canStockCount={!!employee.can_stock_count}
             isManager={!!employee.is_manager}
             branchName={branchName}
             companyLogo={companyLogo}
@@ -501,6 +504,12 @@ export default function EmployeeApp({ initialTab }: { initialTab?: Tab } = {}) {
           ) : (
             <AttendanceCalendarTab history={history} />
           )
+        )}
+
+        {activeTab === "stock-count" && (
+          employee.can_stock_count
+            ? <EmployeeStockCountTab onBack={() => setActiveTab("home")} />
+            : <NoPerm onBack={() => setActiveTab("home")} text="لا تملك صلاحية جرد المخزون" />
         )}
 
         {activeTab === "manager-roster" && (

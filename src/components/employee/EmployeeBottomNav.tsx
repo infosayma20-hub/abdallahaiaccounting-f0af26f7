@@ -2,7 +2,7 @@ import { Home, User, ClipboardList, FileText, Wallet, MessagesSquare } from "luc
 
 type Tab = "home" | "history" | "requests" | "alerts" | "profile" | "scan" | "forms" | "schedule"
   | "payslips" | "financials" | "attendance" | "actions" | "training" | "chat"
-  | "manager-roster" | "manager-team" | "manager-attendance" | "manager-requests" | "manager-swaps";
+  | "stock-count" | "manager-roster" | "manager-team" | "manager-attendance" | "manager-requests" | "manager-swaps";
 
 const tabs: { id: Tab; label: string; icon: React.ElementType }[] = [
   { id: "home", label: "الرئيسية", icon: Home },
