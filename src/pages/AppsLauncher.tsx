@@ -532,8 +532,8 @@ const AppsLauncher = ({ preloadOnly = false }: AppsLauncherProps) => {
             <h1 className="flex items-center gap-2.5 text-2xl font-bold tracking-tight text-primary dark:text-foreground"><span aria-hidden="true" className="h-6 w-1 rounded-full bg-accent" />{tt("التطبيقات")}</h1>
             <p className="mt-1 ps-3.5 text-sm text-muted-foreground">{tt("اختر تطبيقاً للبدء")}</p>
           </div>
-          {isReady && (
-            <BusinessUnitPicker canSeeAll={userRoles.some((r) => r === "admin" || r === "super_admin" || r.startsWith("accountant"))} />
+          {isReady && userRoles.some((r) => r === "admin" || r === "super_admin" || r.startsWith("accountant")) && (
+            <BusinessUnitPicker canSeeAll />
           )}
         </div>
 
