@@ -1,5 +1,5 @@
 import { useState, type ReactNode } from "react";
-import { Plus, Minus, Trash2, User, X, Tag, StickyNote, PauseCircle, ShoppingCart, Save, Printer, MoreHorizontal, ShoppingBag, Truck, UtensilsCrossed } from "lucide-react";
+import { Plus, Minus, Trash2, User, X, Tag, StickyNote, PauseCircle, ShoppingCart, Save, Printer, MoreHorizontal, ShoppingBag, Truck, UtensilsCrossed, Send, Smartphone, ClipboardList, Clock } from "lucide-react";
 import type { PosV2Tokens } from "./posV2Theme";
 import { fmtMoney } from "./posV2Theme";
 import { usePosLang } from "@/i18n/pos-lang";
@@ -53,11 +53,21 @@ type Props = {
   canPay: boolean;
   showPay: boolean;
   onPay: () => void;
+  showDispatch?: boolean;
+  onDispatch?: () => void;
   onSave: () => void;
   saveDisabled: boolean;
   showPrint: boolean;
   onPrint: () => void;
   onMore: () => void;
+  onAppInbox?: () => void;
+  appInboxCount?: number;
+  onDispatchLog?: () => void;
+  pendingDispatchCount?: number;
+  dispatchLateCount?: number;
+  onSchedule?: () => void;
+  onScheduled?: () => void;
+  scheduledCount?: number;
   extraNode?: ReactNode;
 };
 
@@ -264,6 +274,14 @@ export default function POSv2Cart(p: Props) {
 
       {/* h/i) pay + secondary */}
       <div className={`px-4 ${c ? "pt-1.5 pb-2" : "pt-2 pb-2.5"} shrink-0 space-y-1.5`}>
+        {p.showDispatch && (
+          <button type="button" onClick={p.onDispatch} disabled={empty} className="w-full flex items-center justify-center gap-2 disabled:opacity-40"
+            style={{ height: c ? 40 : 46, borderRadius: 11, background: p.t.accent, color: p.t.onAccent, fontSize: 15, fontWeight: 800, cursor: empty ? "not-allowed" : "pointer" }}>
+            <Send style={{ width: 17, height: 17 }} />
+            <span>{tr("تحويل للفرع")}</span>
+            <Key t={t} k="F12" onAccent={p.t.onAccent} />
+          </button>
+        )}
         {p.showPay && (
           <button type="button" onClick={p.onPay} disabled={!p.canPay} className="w-full flex items-center justify-center gap-2"
             style={{ height: c ? 38 : 44, borderRadius: 11, background: p.t.pay, color: p.t.onPay, fontSize: 16, fontWeight: 800, opacity: p.canPay ? 1 : 0.4, cursor: p.canPay ? "pointer" : "not-allowed" }}>
@@ -284,6 +302,26 @@ export default function POSv2Cart(p: Props) {
             <MoreHorizontal style={{ width: 15, height: 15 }} />
           </button>
         </div>
+        {p.showDispatch && (
+          <div className="grid grid-cols-2 gap-1.5">
+            <button type="button" onClick={p.onAppInbox} className="relative flex items-center justify-center gap-1.5" style={outlineBtn}>
+              <Smartphone style={{ width: 13, height: 13 }} />{tr("طلبات التطبيق")}
+              {!!p.appInboxCount && p.appInboxCount > 0 && <span className="tabular-nums" style={{ color: t.accent, fontWeight: 900 }}>{p.appInboxCount}</span>}
+            </button>
+            <button type="button" onClick={p.onDispatchLog} className="relative flex items-center justify-center gap-1.5" style={outlineBtn}>
+              <ClipboardList style={{ width: 13, height: 13 }} />{tr("سجل المحوّلة")}
+              {!!p.pendingDispatchCount && p.pendingDispatchCount > 0 && <span className="tabular-nums" style={{ color: t.accent, fontWeight: 900 }}>{p.pendingDispatchCount}</span>}
+              {!!p.dispatchLateCount && p.dispatchLateCount > 0 && <span className="tabular-nums" style={{ color: t.warnText, fontWeight: 900 }}>{tr("تأخر")} {p.dispatchLateCount}</span>}
+            </button>
+            <button type="button" onClick={p.onSchedule} disabled={empty} className="flex items-center justify-center gap-1.5 disabled:opacity-40" style={outlineBtn}>
+              <Clock style={{ width: 13, height: 13 }} />{tr("جدولة")}
+            </button>
+            <button type="button" onClick={p.onScheduled} className="flex items-center justify-center gap-1.5" style={outlineBtn}>
+              <Clock style={{ width: 13, height: 13 }} />{tr("المجدولة")}
+              {!!p.scheduledCount && p.scheduledCount > 0 && <span className="tabular-nums" style={{ color: t.accent, fontWeight: 900 }}>{p.scheduledCount}</span>}
+            </button>
+          </div>
+        )}
       </div>
     </aside>
   );
