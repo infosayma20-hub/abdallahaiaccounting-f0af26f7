@@ -15,15 +15,17 @@ type Row = {
   warehouses: { name: string } | null;
 };
 type EditRow = { id: string; created_at: string; field: string; old_value: string | null; new_value: string | null; products: { name: string } | null; employees: { full_name: string } | null };
+type UnknownRow = { id: string; created_at: string; code: string; note: string | null; status: string; employees: { full_name: string } | null };
 
 const STATUS: Record<string, string> = { pending: "بانتظار المراجعة", approved: "معتمد", rejected: "مرفوض", superseded: "استُبدل بعدّ أحدث" };
 
 /** مراجعة جرد الموظفين: اعتماد الكمية يسجّل حركة تسوية بالفرق لحظة الاعتماد. */
 export default function StockCountReviewPage() {
   const { dataOwnerId } = useDataOwnerId();
-  const [tab, setTab] = useState<"pending" | "done" | "edits">("pending");
+  const [tab, setTab] = useState<"pending" | "done" | "edits" | "unknown">("pending");
   const [rows, setRows] = useState<Row[]>([]);
   const [edits, setEdits] = useState<EditRow[]>([]);
+  const [unknowns, setUnknowns] = useState<UnknownRow[]>([]);
   const [loading, setLoading] = useState(false);
   const [busy, setBusy] = useState<string | null>(null);
 
@@ -35,6 +37,11 @@ export default function StockCountReviewPage() {
         .select("id,created_at,field,old_value,new_value,products(name),employees(full_name)")
         .eq("user_id", dataOwnerId).order("created_at", { ascending: false }).limit(300);
       setEdits((data || []) as any);
+    } else if (tab === "unknown") {
+      const { data } = await supabase.from("stock_count_unknown_barcodes")
+        .select("id,created_at,code,note,status,employees(full_name)")
+        .eq("user_id", dataOwnerId).order("created_at", { ascending: false }).limit(300);
+      setUnknowns((data || []) as any);
     } else {
       let q = supabase.from("stock_count_entries")
         .select("id,created_at,status,system_qty,counted_qty,applied_delta,products(name,barcode),employees(full_name),warehouses(name)")
