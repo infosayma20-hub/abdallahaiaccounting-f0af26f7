@@ -38,7 +38,7 @@ export default function StockCountReviewPage() {
         .eq("user_id", dataOwnerId).order("created_at", { ascending: false }).limit(300);
       setEdits((data || []) as any);
     } else if (tab === "unknown") {
-      const { data } = await supabase.from("stock_count_unknown_barcodes")
+      const { data } = await (supabase.from as any)("stock_count_unknown_barcodes")
         .select("id,created_at,code,note,status,employees(full_name)")
         .eq("user_id", dataOwnerId).order("created_at", { ascending: false }).limit(300);
       setUnknowns((data || []) as any);
@@ -66,7 +66,7 @@ export default function StockCountReviewPage() {
 
   const resolveUnknown = async (id: string) => {
     setBusy(id);
-    const { error } = await supabase.from("stock_count_unknown_barcodes").update({ status: "resolved" } as any).eq("id", id);
+    const { error } = await (supabase.from as any)("stock_count_unknown_barcodes").update({ status: "resolved" }).eq("id", id);
     setBusy(null);
     if (error) { toast({ title: "تعذّر التنفيذ", description: error.message, variant: "destructive" }); return; }
     toast({ title: "عُلّم كمُعالَج" });
