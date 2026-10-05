@@ -7409,6 +7409,14 @@ const POSPage = ({ variant = "v1" }: { variant?: "v1" | "v2" } = {}) => {
     window.addEventListener("resize", onResize);
     return () => window.removeEventListener("resize", onResize);
   }, [isV2]);
+  // Reveal the hidden v2 top bar whenever the mouse reaches the top edge —
+  // a window-level listener so it works even when a modal overlay covers the strip.
+  useEffect(() => {
+    if (!isV2) return;
+    const onMove = (e: MouseEvent) => { if (e.clientY <= 12) setV2BarHover(true); };
+    window.addEventListener("mousemove", onMove);
+    return () => window.removeEventListener("mousemove", onMove);
+  }, [isV2]);
   useEffect(() => {
     if (!isV2) return;
     const onKey = (e: KeyboardEvent) => {
