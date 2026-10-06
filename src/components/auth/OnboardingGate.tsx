@@ -53,7 +53,11 @@ export const OnboardingGate = ({ children }: { children: React.ReactNode }) => {
     return () => {
       cancelled = true;
     };
-  }, [user, authLoading, location.pathname]);
+    // Depend on user id only: updateUser() (e.g. saving company name in the
+    // wizard) emits a new user object, which used to unmount the wizard and
+    // flash step 1 again before restoring step 2.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id, authLoading, location.pathname]);
 
   // Invalidate cache when leaving /onboarding so the next visit re-reads
   // whether the user just finished it.
