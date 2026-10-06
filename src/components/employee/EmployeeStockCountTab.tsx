@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Camera, ImagePlus, Loader2, PackageSearch, Plus, Save, ScanLine, TriangleAlert, X } from "lucide-react";
+import { Camera, ImagePlus, Loader2, PackageSearch, Pencil, Plus, Save, ScanLine, TriangleAlert, X } from "lucide-react";
 import { compressProductImage, uploadProductImage } from "@/lib/productImage";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -12,7 +12,7 @@ import POSBarcodeScanner from "@/components/pos/POSBarcodeScanner";
 import { normalizeBarcode } from "@/lib/barcode";
 
 type Ctx = { branch_name: string | null; warehouse_id: string | null; warehouse_name: string | null };
-type Product = { id: string; name: string; sell_price: number | null; barcode: string | null; unit: string | null; system_qty: number; pending_qty: number | null };
+type Product = { id: string; name: string; sell_price: number | null; barcode: string | null; unit: string | null; image_url: string | null; system_qty: number; pending_qty: number | null };
 
 /**
  * جرد المخزون للموظف: مسح الباركود/QR ثم تعديل اختياري للاسم وسعر البيع والكمية.
