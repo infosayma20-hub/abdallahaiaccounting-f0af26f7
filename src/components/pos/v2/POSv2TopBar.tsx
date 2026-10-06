@@ -1,5 +1,5 @@
 import { useState, type ReactNode, type RefObject } from "react";
-import { Search, Barcode, PauseCircle, ChefHat, FileText, MoreHorizontal, Sun, Moon, CircleStop, Pin, PinOff, Languages } from "lucide-react";
+import { Search, Barcode, PauseCircle, FileText, MoreHorizontal, Sun, Moon, CircleStop, Pin, PinOff, Languages } from "lucide-react";
 import type { PosV2Tokens } from "./posV2Theme";
 import BridgeStatusIndicator from "@/components/pos/BridgeStatusIndicator";
 import { usePosLang } from "@/i18n/pos-lang";
@@ -18,9 +18,8 @@ type Props = {
   onCameraScan: () => void;
   heldCount: number;
   onHeld: () => void;
-  showKitchen: boolean;
-  onKitchen: () => void;
   notificationsNode: ReactNode;
+  stockoutNode?: ReactNode;
   canInvoices: boolean;
   onInvoices: () => void;
   menuItems: PosV2MenuItem[];
@@ -115,11 +114,16 @@ export default function POSv2TopBar(p: Props) {
           {t.dark ? <Sun style={{ width: 20, height: 20 }} strokeWidth={1.8} /> : <Moon style={{ width: 20, height: 20 }} strokeWidth={1.8} />}
         </IconBtn>
         <IconBtn t={t} label={lang === "ar" ? "English" : "عربي"} onClick={() => setLang(lang === "ar" ? "en" : "ar")}><Languages style={{ width: 20, height: 20 }} strokeWidth={1.8} /></IconBtn>
-        {p.showKitchen && <IconBtn t={t} label={tr("المطبخ")} onClick={p.onKitchen}><ChefHat style={{ width: 20, height: 20 }} strokeWidth={1.8} /></IconBtn>}
         <div className="flex flex-col items-center justify-center shrink-0" style={{ minWidth: 56, height: 52, gap: 2 }} title={tr("الطلبات والتنبيهات المعلقة")}>
           <div className="pos-v2-notif" style={{ color: t.text }}>{p.notificationsNode}</div>
           <span style={{ fontSize: 11, color: t.muted, fontWeight: 600 }}>{tr("التنبيهات")}</span>
         </div>
+        {p.stockoutNode && (
+          <div className="flex flex-col items-center justify-center shrink-0" style={{ minWidth: 56, height: 52, gap: 2 }}>
+            <div className="pos-v2-notif" style={{ color: t.warnText }}>{p.stockoutNode}</div>
+            <span style={{ fontSize: 11, color: t.muted, fontWeight: 600 }}>{tr("تنبيه نفاد صنف")}</span>
+          </div>
+        )}
         <div className="flex flex-col items-center justify-center shrink-0" style={{ minWidth: 56, height: 52, gap: 2 }} title={tr("حالة الطابعات")}>
           <div className="pos-v2-printer" style={{ color: t.text }}><BridgeStatusIndicator /></div>
           <span style={{ fontSize: 11, color: t.muted, fontWeight: 600 }}>{tr("الطابعات")}</span>

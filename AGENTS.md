@@ -18,3 +18,6 @@
 - Business units (multi-shop on one tenant): `business_units` + `branches.business_unit_id` + `warehouses.business_unit_id` + `product_business_units` (unlinked product = visible everywhere); active workspace is per-device via `useBusinessUnits`, picker only for 2+ units. Why: one subscription/ledger with per-shop analytics.
 - Employee stock count (`employees.can_stock_count`): only via `stock_count_*` RPCs; name/price apply at once into `product_edit_log`, counts go to `stock_count_entries` and post an adjustment only on review (delta vs balance at approval). Why: no unreviewed stock changes.
 - Inventory costing: `stock_movements` is the only cost source; trigger `tg_inventory_costing_engine` feeds `inventory_cost_*` per product×warehouse; opt-in via `initialize_inventory_costing`, method locked after activation, changed only via audited RPCs. Why: one auditable cost.
+<!-- LOVABLE:BEGIN -->
+- POS v2 stockout creation reuses `StockoutAlertButton` beside pending-order alerts, gated by Malaky data owner ID and cashier mode; kitchen navigation lives in More. Why: keep one alert workflow and tenant-specific presentation.
+<!-- LOVABLE:END -->
