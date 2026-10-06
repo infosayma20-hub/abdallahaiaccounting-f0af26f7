@@ -116,42 +116,20 @@ export function ComposeInternalMessage({
   useEffect(() => {
     if (!open || !user?.id) return;
     (async () => {
-      const { data: owner } = await supabase.rpc("get_team_owner_id", { _user_id: user.id });
-      const ownerId = (owner as string) || user.id;
-      const [profiles, employees, roles] = await Promise.all([
-        supabase
-          .from("profiles")
-          .select("user_id, full_name, display_name")
-          .or(`user_id.eq.${ownerId},invited_by.eq.${ownerId}`),
-        supabase
-          .from("employees")
-          .select("auth_user_id, full_name, is_active")
-          .eq("user_id", ownerId),
-        supabase.from("user_roles").select("user_id, role"),
-      ]);
+      // SECURITY DEFINER RPC scoped to the caller's company: HR/accountants
+      // can't read owner profiles directly via RLS.
+      const { data, error } = await supabase.rpc("list_internal_message_people" as any);
+      if (error) console.error("list_internal_message_people failed:", error);
       const byId = new Map<string, Person>();
-      (profiles.data || []).forEach((p: any) => {
-        if (!p.user_id) return;
-        byId.set(p.user_id, {
-          auth_user_id: p.user_id,
-          name: p.full_name || p.display_name || "بدون اسم",
+      ((data as any[]) || []).forEach((p: any) => {
+        if (!p.auth_user_id || byId.has(p.auth_user_id)) return;
+        byId.set(p.auth_user_id, {
+          auth_user_id: p.auth_user_id,
+          name: p.name || "بدون اسم",
+          role: p.role || undefined,
         });
       });
-      (employees.data || []).forEach((e: any) => {
-        if (!e.auth_user_id || e.is_active === false) return;
-        const existing = byId.get(e.auth_user_id);
-        byId.set(e.auth_user_id, {
-          auth_user_id: e.auth_user_id,
-          name: e.full_name || existing?.name || "موظف",
-        });
-      });
-      const roleMap = new Map<string, string>();
-      (roles.data || []).forEach((r: any) => {
-        if (byId.has(r.user_id) && !roleMap.has(r.user_id)) roleMap.set(r.user_id, r.role);
-      });
-      const list = Array.from(byId.values())
-        .map(p => ({ ...p, role: roleMap.get(p.auth_user_id) }))
-        .filter(p => p.auth_user_id !== user.id);
+      const list = Array.from(byId.values()).filter(p => p.auth_user_id !== user.id);
       list.sort((a, b) => a.name.localeCompare(b.name, "ar"));
       setPeople(list);
     })();
