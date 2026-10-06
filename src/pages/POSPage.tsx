@@ -7882,6 +7882,7 @@ const POSPage = ({ variant = "v1" }: { variant?: "v1" | "v2" } = {}) => {
     { key: "back-v1", label: "الواجهة القديمة", icon: v2MenuIcon(Undo2), onClick: () => { posV2OptOut.set(true); navigate("/pos"); } },
     { key: "apps", label: "رجوع للتطبيقات", icon: v2MenuIcon(ArrowRight), onClick: () => navigate("/apps", { replace: true }) },
     ...(loyaltyEnabled ? [{ key: "loyalty", label: "زبون الولاء", icon: v2MenuIcon(Star), onClick: () => setShowLoyaltyPicker(true) }] : []),
+    { key: "kitchen", label: "المطبخ", icon: v2MenuIcon(ChefHat), onClick: () => navigate("/pos/kitchen") },
     ...(!isMalakyTenant ? [{ key: "tables", label: "الطاولات", icon: v2MenuIcon(UtensilsCrossed), onClick: () => navigate("/pos/floor-plan") }] : []),
     ...(session && (isAdmin || posPerms.can_add_inventory) ? [{ key: "inv", label: "إدخال بضاعة", icon: v2MenuIcon(Package), onClick: () => setShowInventoryInput(true) }] : []),
     ...(session && (isAdmin || posPerms.can_record_purchases) ? [{ key: "pur", label: "تسجيل مشتريات", icon: v2MenuIcon(ShoppingBag), onClick: () => setShowPurchaseModal(true) }] : []),
@@ -7946,9 +7947,14 @@ const POSPage = ({ variant = "v1" }: { variant?: "v1" | "v2" } = {}) => {
       onCameraScan={() => setShowBarcodeScanner(true)}
       heldCount={v2HeldCount}
       onHeld={() => setShowAllOrders(true)}
-      showKitchen={!isMalakyTenant}
-      onKitchen={() => navigate("/pos/kitchen")}
       notificationsNode={pendingOrdersNode}
+      stockoutNode={dataOwnerId === MALAKI_OWNER_ID && !isCallCenter ? (
+        <StockoutAlertButton
+          iconOnly
+          dataOwnerId={dataOwnerId}
+          branchId={deviceConfig?.branchId || cashBoxBranchId || null}
+        />
+      ) : null}
       canInvoices={isAdmin || !!posPerms.can_view_invoice_history || !!posPerms.view_invoice_log}
       onInvoices={() => setShowInvoiceHistory(true)}
       menuItems={v2MenuItems}
