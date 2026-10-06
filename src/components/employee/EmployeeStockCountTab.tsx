@@ -247,10 +247,10 @@ export default function EmployeeStockCountTab({ onBack }: { onBack: () => void }
                     </button>
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2">
-                        <div className="min-w-0 flex-1 truncate font-bold text-foreground">{product.name}</div>
-                        <button type="button" onClick={() => nameInputRef.current?.focus()} aria-label="تعديل الاسم" title="تعديل الاسم"
+                      <div className="min-w-0 flex-1 truncate font-bold text-foreground">{product.name}</div>
+                        <button type="button" onClick={() => { setName(product.name); setTimeout(() => nameInputRef.current?.focus(), 50); }} aria-label="نسخ الاسم للحقل الجديد" title="نسخ الاسم للحقل الجديد"
                           className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground transition active:scale-95">
-                          <Pencil className="h-4 w-4" />
+                          <Copy className="h-4 w-4" />
                         </button>
                       </div>
                       <div className="font-mono text-xs text-muted-foreground">{product.barcode ?? "—"}</div>
