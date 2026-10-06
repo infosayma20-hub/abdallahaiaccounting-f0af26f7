@@ -115,15 +115,43 @@ export default function EmployeeStockCountTab({ onBack }: { onBack: () => void }
                   <div className="flex items-start gap-3">
                     <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-amber-500/10 text-amber-600"><TriangleAlert className="h-5 w-5" /></div>
                     <div className="min-w-0 flex-1">
-                      <div className="font-bold text-foreground">باركود غير معروف</div>
+                      <div className="font-bold text-foreground">صنف غير معرّف — عرّفه الآن</div>
                       <div className="font-mono text-xs text-muted-foreground">{unknownCode}</div>
                     </div>
                   </div>
-                  <p className="text-xs text-muted-foreground">هذا الرمز غير مسجّل على أي صنف. سجّله لتراجعه الإدارة وتعرّفه لاحقًا.</p>
-                  <div><Label>ملاحظة (اختياري)</Label><Input value={unknownNote} placeholder="مثال: علبة حليب مبخّر حجم كبير" onChange={(e) => setUnknownNote(e.target.value)} /></div>
+                  <div className="flex items-center gap-3">
+                    <button type="button" onClick={() => newFileRef.current?.click()}
+                      className="flex h-24 w-24 shrink-0 items-center justify-center overflow-hidden rounded-xl border-2 border-dashed border-primary/40 bg-primary/5">
+                      {imgBusy ? <Loader2 className="h-5 w-5 animate-spin" /> : newImg ? <img src={newImg.preview} alt="" className="h-full w-full object-cover" /> : <ImagePlus className="h-7 w-7 text-primary" />}
+                    </button>
+                    <div className="text-xs text-muted-foreground">صورة الصنف بالكاميرا (اختياري)<br />تُصغَّر تلقائيًا{newImg ? ` · ${Math.round(newImg.blob.size / 1024)}KB` : ""}</div>
+                    <input ref={newFileRef} type="file" accept="image/*" capture="environment" className="hidden"
+                      onChange={async (e) => { const f = e.target.files?.[0]; e.target.value = ""; if (f) setNewImg(await prepImage(f)); }} />
+                  </div>
+                  <div><Label>اسم الصنف *</Label><Input value={newName} placeholder="مثال: حليب مبخّر 410غ" onChange={(e) => setNewName(e.target.value)} /></div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div><Label>سعر البيع *</Label><Input inputMode="decimal" value={newPrice} onChange={(e) => setNewPrice(e.target.value)} /></div>
+                    <div><Label>الكمية المعدودة</Label><Input inputMode="decimal" value={newQty} disabled={!ctx.warehouse_id} placeholder="اختياري" onChange={(e) => setNewQty(e.target.value)} /></div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>الباركودات</Label>
+                    {newCodes.map((c, i) => (
+                      <div key={c} className="flex items-center gap-2 rounded-lg bg-muted px-3 py-2">
+                        <span className="flex-1 font-mono text-sm">{c}</span>
+                        {i > 0 && <button type="button" aria-label="حذف" onClick={() => setNewCodes(newCodes.filter((x) => x !== c))}><X className="h-4 w-4 text-muted-foreground" /></button>}
+                      </div>
+                    ))}
+                    <div className="flex gap-2">
+                      <Input inputMode="numeric" value={extraCode} placeholder="باركود إضافي" onChange={(e) => setExtraCode(e.target.value)}
+                        onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addCode(extraCode); } }} />
+                      <Button type="button" variant="outline" size="icon" onClick={() => addCode(extraCode)} aria-label="إضافة"><Plus className="h-4 w-4" /></Button>
+                      <Button type="button" variant="outline" size="icon" onClick={() => { setScanTarget("extra"); setScanOpen(true); }} aria-label="مسح باركود إضافي"><Camera className="h-4 w-4" /></Button>
+                    </div>
+                  </div>
+                  <p className="text-[11px] text-muted-foreground">الصنف يُضاف فورًا ويظهر في نقطة البيع بالاسم والسعر والصورة. الكمية تُراجع قبل اعتمادها.</p>
                   <div className="flex gap-2">
-                    <Button variant="outline" className="flex-1" onClick={() => { setUnknownCode(null); setUnknownNote(""); }}>تجاهل</Button>
-                    <Button className="flex-1" onClick={reportUnknown} disabled={reporting}>{reporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}تسجيل كغير معروف</Button>
+                    <Button variant="outline" className="flex-1" onClick={reportUnknown} disabled={reporting || creating}>{reporting ? <Loader2 className="h-4 w-4 animate-spin" /> : null}تأجيل للإدارة</Button>
+                    <Button className="flex-1" onClick={createProduct} disabled={creating || imgBusy}>{creating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}تعريف الصنف</Button>
                   </div>
                 </CardContent>
               </Card>
