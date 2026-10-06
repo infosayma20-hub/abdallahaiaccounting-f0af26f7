@@ -637,7 +637,9 @@ export default function JobApplicationsPage() {
       for (const r of live) {
         for (const k of f.fields) {
           const v = ((r as any)[k] || "").toString().trim().replace(/\s+/g, " ");
-          if (v && v !== "—") set.add(v);
+          if (!v || v === "—") continue;
+          // المدينة تُوحَّد لاسم المدينة المعروف حتى تظهر «نابلس» مرة واحدة مهما اختلفت الكتابة
+          set.add(f.key === "work_location" ? canonicalCity(v) : v);
         }
       }
       opts[f.key] = [...set].sort((a, b) => a.localeCompare(b, "ar")).slice(0, 80);
