@@ -50,7 +50,7 @@ export default function ScalesPage() {
     if (!dataOwnerId) return;
     const [{ data: s }, { data: b }] = await Promise.all([
       (supabase as any).from("pos_scales").select("*").eq("user_id", dataOwnerId).order("created_at"),
-      supabase.from("branches").select("id,name").eq("user_id", dataOwnerId).order("name"),
+      supabase.from("branches").select("id,name,business_unit_id").eq("user_id", dataOwnerId).order("name"),
     ]);
     setScales(s || []); setBranches((b as any) || []);
     setCurrent((c) => c?.id ? (s || []).find((x: any) => x.id === c.id) || c : c ?? (s?.[0] || null));
@@ -152,7 +152,8 @@ export default function ScalesPage() {
       .eq("user_id", dataOwnerId).in("unit", ["كيلو", "كغ", "kg", "KG"]).order("name");
     const have = new Set(items.map((i) => i.product_id));
     let p = nextPlu();
-    const add = ((data as any[]) || []).filter((r) => !have.has(r.id)).map((r) => ({
+    // أصناف نشاط الفرع فقط (المشتركة بدون ربط تنضاف دائمًا)
+    const add = ((data as any[]) || []).filter((r) => !have.has(r.id) && isAllowed(r.id)).map((r) => ({
       product_id: r.id, plu: p++, key_no: null, shelf_life_days: 0, name: r.name, barcode: r.barcode,
       unit: r.unit, price: Number(r.sell_price || 0), dirty: true }));
     setItems((x) => [...x, ...add]);
