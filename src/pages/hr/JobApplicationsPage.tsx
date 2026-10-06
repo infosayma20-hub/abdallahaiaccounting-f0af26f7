@@ -602,12 +602,17 @@ export default function JobApplicationsPage() {
       for (const f of MULTI_FILTERS) {
         const selected = multiFilters[f.key];
         if (!selected.length) continue;
+        const isCity = f.key === "work_location";
         const vals = f.fields
-          .map((k) => ((r as any)[k] || "").toString().trim().toLowerCase())
-          .filter(Boolean);
+          .map((k) => ((r as any)[k] || "").toString().trim())
+          .filter(Boolean)
+          .map((v) => (isCity ? canonicalCity(v) : v).toLowerCase());
         if (vals.length === 0) return false;
         const hit = vals.some((val) =>
-          selected.some((s) => val.includes(s.toLowerCase()) || s.toLowerCase().includes(val)));
+          selected.some((s) => {
+            const sl = s.toLowerCase();
+            return isCity ? val === sl : (val.includes(sl) || sl.includes(val));
+          }));
         if (!hit) return false;
       }
       if (!q) return true;
