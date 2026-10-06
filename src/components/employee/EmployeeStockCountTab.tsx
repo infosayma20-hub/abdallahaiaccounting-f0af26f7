@@ -264,7 +264,7 @@ export default function EmployeeStockCountTab({ onBack }: { onBack: () => void }
                     <div className="text-xs text-muted-foreground">يوجد عدّ سابق بانتظار المراجعة: {product.pending_qty} — العدّ الجديد يستبدله.</div>
                   )}
                   <div className="space-y-2">
-                    <div><Label>اسم جديد (اختياري)</Label><Input value={name} placeholder={product.name} onChange={(e) => setName(e.target.value)} /></div>
+                    <div><Label>اسم جديد (اختياري)</Label><Input ref={nameInputRef} value={name} placeholder={product.name} onChange={(e) => setName(e.target.value)} /></div>
                     <div className="grid grid-cols-2 gap-2">
                       <div><Label>سعر بيع جديد</Label><Input inputMode="decimal" value={price} placeholder="اختياري" onChange={(e) => setPrice(e.target.value)} /></div>
                       <div><Label>الكمية المعدودة</Label><Input inputMode="decimal" value={qty} disabled={!ctx.warehouse_id} placeholder="اختياري" onChange={(e) => setQty(e.target.value)} /></div>
