@@ -5,9 +5,22 @@ import type { ParsedTransaction } from "./MultiTransactionCards";
  * يضمن وصول المبلغ والزبون وطريقة الدفع — بدلاً من الاعتماد على الوصف القصير
  * الذي قد لا يحوي مبلغاً (وبالتالي يُرفض من حماية المبالغ الصفرية).
  */
+/** يحوّل "500 شيكل" / "١٬٥٠٠" / 500 إلى رقم. (Number("500 شيكل") = NaN — كان سبب رفض العمليات) */
+export function parseAmount(v: unknown): number {
+  if (typeof v === "number") return Number.isFinite(v) ? v : 0;
+  if (v == null) return 0;
+  const s = String(v)
+    .replace(/[٠-٩]/g, (d) => String("٠١٢٣٤٥٦٧٨٩".indexOf(d)))
+    .replace(/[٬,]/g, "")
+    .replace(/٫/g, ".");
+  const m = s.match(/\d+(?:\.\d+)?/);
+  return m ? Number(m[0]) : 0;
+}
+
 export function buildTxText(tx: ParsedTransaction): string {
   const parts: string[] = [];
-  const amount = Number(tx._editAmount || tx.total || tx.amount || 0);
+  const amount = parseAmount(tx._editAmount) || parseAmount(tx.total) || parseAmount(tx.amount);
+  const t: any = tx;
 
   if (tx.type === "invoice") {
     parts.push(tx.invoiceType === "purchase" ? "فاتورة مشتريات" : "فاتورة مبيعات");
@@ -28,8 +41,19 @@ export function buildTxText(tx: ParsedTransaction): string {
       parts.push(map[tx.paymentMethod] || tx.paymentMethod);
     }
   } else if (tx.type === "transaction") {
-    parts.push(tx.description || "سند مالي");
-    if (amount > 0 && !/\d/.test(tx.description || "")) parts.push(`بمبلغ ${amount} شيكل`);
+    const debit = String(t.debit || "");
+    const credit = String(t.credit || "");
+    const cashRe = /صندوق|الصندوق|بنك|البنك|كاش|نقد/;
+    const desc = tx.description || "سند مالي";
+    // فعل صريح حتى لا يُفهم "فاتورة كهرباء" كفاتورة مشتريات
+    let verb = "";
+    if (cashRe.test(credit) && !cashRe.test(debit) && !/صرف|دفع|سدد/.test(desc)) verb = "صرفت";
+    else if (cashRe.test(debit) && !cashRe.test(credit) && !/قبض|استلم/.test(desc)) verb = "قبضت";
+    if (verb) parts.push(verb);
+    parts.push(desc);
+    if (tx.contactName && !desc.includes(tx.contactName)) parts.push(`— ${tx.contactName}`);
+    if (amount > 0 && !/\d/.test(desc)) parts.push(`بمبلغ ${amount} شيكل`);
+    if (debit || credit) parts.push(`(مدين: ${debit || "-"} / دائن: ${credit || "-"})`);
   } else if (tx.type === "cheque") {
     parts.push(`شيك ${tx.chequeType || ""}`);
     if (tx.partyName) parts.push(`من ${tx.partyName}`);

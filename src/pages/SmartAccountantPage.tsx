@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
+import { useDataOwnerId } from "@/hooks/useDataOwnerId";
 import TransactionToast, { useTransactionToast } from "@/components/TransactionToast";
 import ChequeDetailsDialog, { ChequeLineItem } from "@/components/ChequeDetailsDialog";
 import JournalEntryPopup from "@/components/JournalEntryPopup";
@@ -29,6 +30,8 @@ const SmartAccountantPage = () => {
   const { toast } = useToast();
   const txToast = useTransactionToast();
   const { user } = useAuth();
+  const { dataOwnerId } = useDataOwnerId();
+  const ownerId = dataOwnerId || user?.id || null;
 
   const [cfoMode, setCfoMode] = useState(false);
   const [financialData, setFinancialData] = useState<FinixFinancialData>({
@@ -68,18 +71,18 @@ const SmartAccountantPage = () => {
 
   // Fetch financial data
   useEffect(() => {
-    if (!user) return;
+    if (!user || !ownerId) return;
     const fetchData = async () => {
       setLoading(true);
       try {
         const [txRes, chequeRes, prodRes] = await Promise.all([
           supabase.from('transactions')
             .select('amount, debit_account_code, credit_account_code, description, transaction_type, is_opening_balance, is_deleted, transaction_date')
-            .eq('user_id', user.id).eq('is_deleted', false),
+            .eq('user_id', ownerId).eq('is_deleted', false),
           supabase.from('cheques')
-            .select('amount, status').eq('user_id', user.id),
+            .select('amount, status').eq('user_id', ownerId),
           supabase.from('products')
-            .select('quantity, buy_price').eq('user_id', user.id),
+            .select('quantity, buy_price').eq('user_id', ownerId),
         ]);
 
         const txs = txRes.data || [];
@@ -140,7 +143,7 @@ const SmartAccountantPage = () => {
     fetchData();
     const interval = setInterval(fetchData, 60000);
     return () => clearInterval(interval);
-  }, [user]);
+  }, [user, ownerId]);
 
   // Cheque handler
   const handleChequeConfirm = async (lines: ChequeLineItem[], chequeType: string, partyName: string, partyType: string) => {
@@ -150,7 +153,7 @@ const SmartAccountantPage = () => {
       for (const line of lines) {
         const chequeStatus = line.chequeDate > today ? 'آجل' : 'مستحق';
         await supabase.from('cheques').insert({
-          user_id: user.id, cheque_type: chequeType as any, status: chequeStatus as any,
+          user_id: ownerId || user.id, cheque_type: chequeType as any, status: chequeStatus as any,
           cheque_number: line.chequeNumber || null, bank_name: line.bankName || null,
           cheque_date: line.chequeDate, amount: parseFloat(line.amount),
           currency: line.currency, party_name: partyName, party_type: partyType,
