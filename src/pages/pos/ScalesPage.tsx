@@ -70,6 +70,37 @@ export default function ScalesPage() {
   useEffect(() => { loadItems(current?.id); }, [current?.id, loadItems]);
 
   const set = (patch: Partial<ScaleRow>) => setCurrent((c) => (c ? { ...c, ...patch } : c));
+
+  // خريطة الأصناف↔الأنشطة: منشأة بدون أصناف مربوطة = لا قيود (سلوك قديم محفوظ)
+  useEffect(() => {
+    let alive = true;
+    (async () => {
+      if (!dataOwnerId) return;
+      const { data } = await (supabase as any).from("product_business_units")
+        .select("product_id, business_unit_id").limit(50000);
+      if (!alive) return;
+      const map = new Map<string, Set<string>>();
+      for (const r of (data as any[]) || []) {
+        if (!map.has(r.product_id)) map.set(r.product_id, new Set());
+        map.get(r.product_id)!.add(r.business_unit_id);
+      }
+      setUnitMap(map.size ? map : null);
+    })();
+    return () => { alive = false; };
+  }, [dataOwnerId]);
+
+  // نشاط فرع الميزان الحالي (null = الفرع مش مربوط بنشاط → بيشوف كل الأصناف)
+  const currentUnitId = useMemo(() => {
+    const bid = current?.branch_id;
+    if (!bid) return null;
+    const br = branches.find((b) => b.id === bid);
+    return (br as any)?.business_unit_id || null;
+  }, [current?.branch_id, branches]);
+  const isAllowed = useCallback((productId: string) => {
+    if (!unitMap || !currentUnitId) return true;
+    const units = unitMap.get(productId);
+    return !units || units.has(currentUnitId); // بدون ربط = مشترك بكل الأنشطة
+  }, [unitMap, currentUnitId]);
   const sample = useMemo(() => current ? buildSampleScaleBarcode(current as any, items[0]?.plu || 170, current.value_mode === "price" ? 12.5 : 1.25) : null, [current, items]);
 
   const save = async () => {
