@@ -39,6 +39,8 @@ import POSCashierReport from "@/components/pos-reports/POSCashierReport";
 import POSPeakHoursReport from "@/components/pos-reports/POSPeakHoursReport";
 import POSInventoryReport from "@/components/pos-reports/POSInventoryReport";
 import POSReturnsReport from "@/components/pos-reports/POSReturnsReport";
+import POSExpensesReport from "@/components/pos-reports/POSExpensesReport";
+import { Receipt as ReceiptIcon } from "lucide-react";
 import POSProfitReport from "@/components/pos-reports/POSProfitReport";
 import POSShiftsReport from "@/components/pos-reports/POSShiftsReport";
 import POSCustomersReport from "@/components/pos-reports/POSCustomersReport";
@@ -71,6 +73,7 @@ const TABS = [
   { id: "peak", label: "الأوقات", icon: Clock },
   { id: "inventory", label: "المخزون", icon: Archive },
   { id: "returns", label: "المرتجعات", icon: RotateCcw },
+  { id: "expenses", label: "المصاريف", icon: ReceiptIcon },
   { id: "profit", label: "الربحية", icon: TrendingUp },
   { id: "shifts", label: "الورديات", icon: Timer },
   { id: "customers", label: "الزبائن", icon: UserCheck },
@@ -443,6 +446,7 @@ const POSReportsPage = () => {
             {activeTab === "shifts" && <POSShiftsReport sessions={data.sessions} onRefresh={data.refetch} />}
             {activeTab === "customers" && data.dataOwnerId && <POSCustomersReport dataOwnerId={data.dataOwnerId} />}
             {activeTab === "shift-audit" && <POSShiftAuditReport sessions={data.sessions} />}
+            {activeTab === "expenses" && data.dataOwnerId && <POSExpensesReport dataOwnerId={data.dataOwnerId} dateFrom={data.dateFrom} dateTo={data.dateTo} sessions={data.sessions} />}
             {activeTab === "delivery-apps" && (
               <POSDeliveryAppsReport
                 dateFrom={data.dateFrom}
