@@ -603,6 +603,13 @@
       "when": 1791268771802,
       "tag": "0085_inventory_cost_entries_seq",
       "breakpoints": true
+    },
+    {
+      "idx": 86,
+      "version": "7",
+      "when": 1791268847675,
+      "tag": "0086_inventory_cost_fifo_void_restore",
+      "breakpoints": true
     }
   ]
 }
