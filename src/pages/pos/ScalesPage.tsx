@@ -43,12 +43,14 @@ export default function ScalesPage() {
   const [q, setQ] = useState("");
   const [addQ, setAddQ] = useState("");
   const [addResults, setAddResults] = useState<any[]>([]);
+  // product_id -> Set(business_unit_id) لكل أصناف المنشأة؛ null = لا قيود (فرع بدون نشاط)
+  const [unitMap, setUnitMap] = useState<Map<string, Set<string>> | null>(null);
 
   const loadScales = useCallback(async () => {
     if (!dataOwnerId) return;
     const [{ data: s }, { data: b }] = await Promise.all([
       (supabase as any).from("pos_scales").select("*").eq("user_id", dataOwnerId).order("created_at"),
-      supabase.from("branches").select("id,name").eq("user_id", dataOwnerId).order("name"),
+      supabase.from("branches").select("id,name,business_unit_id").eq("user_id", dataOwnerId).order("name"),
     ]);
     setScales(s || []); setBranches((b as any) || []);
     setCurrent((c) => c?.id ? (s || []).find((x: any) => x.id === c.id) || c : c ?? (s?.[0] || null));
@@ -68,6 +70,37 @@ export default function ScalesPage() {
   useEffect(() => { loadItems(current?.id); }, [current?.id, loadItems]);
 
   const set = (patch: Partial<ScaleRow>) => setCurrent((c) => (c ? { ...c, ...patch } : c));
+
+  // خريطة الأصناف↔الأنشطة: منشأة بدون أصناف مربوطة = لا قيود (سلوك قديم محفوظ)
+  useEffect(() => {
+    let alive = true;
+    (async () => {
+      if (!dataOwnerId) return;
+      const { data } = await (supabase as any).from("product_business_units")
+        .select("product_id, business_unit_id").limit(50000);
+      if (!alive) return;
+      const map = new Map<string, Set<string>>();
+      for (const r of (data as any[]) || []) {
+        if (!map.has(r.product_id)) map.set(r.product_id, new Set());
+        map.get(r.product_id)!.add(r.business_unit_id);
+      }
+      setUnitMap(map.size ? map : null);
+    })();
+    return () => { alive = false; };
+  }, [dataOwnerId]);
+
+  // نشاط فرع الميزان الحالي (null = الفرع مش مربوط بنشاط → بيشوف كل الأصناف)
+  const currentUnitId = useMemo(() => {
+    const bid = current?.branch_id;
+    if (!bid) return null;
+    const br = branches.find((b) => b.id === bid);
+    return (br as any)?.business_unit_id || null;
+  }, [current?.branch_id, branches]);
+  const isAllowed = useCallback((productId: string) => {
+    if (!unitMap || !currentUnitId) return true;
+    const units = unitMap.get(productId);
+    return !units || units.has(currentUnitId); // بدون ربط = مشترك بكل الأنشطة
+  }, [unitMap, currentUnitId]);
   const sample = useMemo(() => current ? buildSampleScaleBarcode(current as any, items[0]?.plu || 170, current.value_mode === "price" ? 12.5 : 1.25) : null, [current, items]);
 
   const save = async () => {
@@ -119,7 +152,8 @@ export default function ScalesPage() {
       .eq("user_id", dataOwnerId).in("unit", ["كيلو", "كغ", "kg", "KG"]).order("name");
     const have = new Set(items.map((i) => i.product_id));
     let p = nextPlu();
-    const add = ((data as any[]) || []).filter((r) => !have.has(r.id)).map((r) => ({
+    // أصناف نشاط الفرع فقط (المشتركة بدون ربط تنضاف دائمًا)
+    const add = ((data as any[]) || []).filter((r) => !have.has(r.id) && isAllowed(r.id)).map((r) => ({
       product_id: r.id, plu: p++, key_no: null, shelf_life_days: 0, name: r.name, barcode: r.barcode,
       unit: r.unit, price: Number(r.sell_price || 0), dirty: true }));
     setItems((x) => [...x, ...add]);
@@ -130,11 +164,13 @@ export default function ScalesPage() {
     if (!dataOwnerId || addQ.trim().length < 2) { setAddResults([]); return; }
     const t = setTimeout(async () => {
       const { data } = await supabase.from("products").select("id,name,barcode,unit,sell_price")
-        .eq("user_id", dataOwnerId).or(`name.ilike.%${addQ.trim()}%,barcode.eq.${addQ.trim()}`).limit(8);
-      setAddResults((data as any) || []);
+        .eq("user_id", dataOwnerId).or(`name.ilike.%${addQ.trim()}%,barcode.eq.${addQ.trim()}`)
+        .order("name").limit(40);
+      // البحث يجيب أصناف نشاط فرع الميزان فقط (بدون ربط = مشترك)
+      setAddResults(((data as any[]) || []).filter((r) => isAllowed(r.id)).slice(0, 8));
     }, 300);
     return () => clearTimeout(t);
-  }, [addQ, dataOwnerId]);
+  }, [addQ, dataOwnerId, isAllowed]);
 
   const addOne = (r: any) => {
     if (items.some((i) => i.product_id === r.id)) return toast.info("الصنف موجود بالميزان");
