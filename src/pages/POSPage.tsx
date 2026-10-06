@@ -3597,6 +3597,7 @@ const POSPage = ({ variant = "v1" }: { variant?: "v1" | "v2" } = {}) => {
       id: crypto.randomUUID(), product_id: product.id, name: product.name, name_en: (product as any).name_en ?? null, qty,
       unit_price: product.sell_price, base_price: product.sell_price, cost_price: product.buy_price,
       discount_pct: 0, tax_rate: product.tax_rate, unit: product.unit, note: "",
+      total: Math.round(qty * (Number(product.sell_price) || 0) * 100) / 100,
       station_id: product.kitchen_station_id, modifiers: [],
     } as any]);
     setSearchQuery("");
