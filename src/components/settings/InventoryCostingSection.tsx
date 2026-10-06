@@ -171,6 +171,11 @@ const InventoryCostingSection = ({ settings }: Props) => {
           <Link to="/inventory-valuation" className="inline-flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm hover:bg-muted">
             <FileBarChart className="h-4 w-4" /> تقرير تقييم المخزون
           </Link>
+          {isOn && (
+            <Link to="/inventory-costing" className="inline-flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm hover:bg-muted">
+              <FileBarChart className="h-4 w-4" /> كرت الصنف والمطابقة
+            </Link>
+          )}
           {sys === "periodic" && (
             <Link to="/periodic-inventory" className="inline-flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm hover:bg-muted">
               <CheckCircle2 className="h-4 w-4" /> جرد وتسوية آخر المدة

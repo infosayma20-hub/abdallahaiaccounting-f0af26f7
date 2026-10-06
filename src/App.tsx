@@ -97,6 +97,7 @@ const ProductProfitReportPage = lazy(() => import("./pages/inventory/ProductProf
 const SupplierAliasesPage = lazy(() => import("./pages/inventory/SupplierAliasesPage"));
 const StockMovementsPage = lazy(() => import("./pages/StockMovementsPage"));
 const InventoryValuationPage = lazy(() => import("./pages/InventoryValuationPage"));
+const InventoryCostingPage = lazy(() => import("./pages/InventoryCostingPage"));
 const BalanceSheetPage = lazy(() => import("./pages/BalanceSheetPage"));
 const ReportsPage = lazy(() => import("./pages/ReportsPage"));
 const EmployeesPage = lazy(() => import("./pages/EmployeesPage"));
@@ -1024,6 +1025,7 @@ const App = () => (
                       <Route path="/reports/cash-liquidity" element={<CashLiquidityPage />} />
                       <Route path="/inventory-movements" element={<StockMovementsPage />} />
                       <Route path="/inventory-valuation" element={<InventoryValuationPage />} />
+                      <Route path="/inventory-costing" element={<InventoryCostingPage />} />
                       <Route path="/employees" element={<HRShell><ModuleGuard><RoleGuard allowedRoles={["admin", "hr_manager"]}><HRPermGuard requires={["can_view_employees", "can_edit_employees", "can_add_employees"]}><EmployeesPage /></HRPermGuard></RoleGuard></ModuleGuard></HRShell>} />
                       <Route path="/hr" element={<HRShell><ModuleGuard><RoleGuard allowedRoles={["admin", "hr_manager"]}><HrCommandCenter /></RoleGuard></ModuleGuard></HRShell>} />
                       <Route path="/hr/people" element={<HRShell><ModuleGuard><RoleGuard allowedRoles={["admin", "hr_manager"]}><HRPermGuard requires={["can_view_employees", "can_edit_employees", "can_add_employees"]}><EmployeesPage /></HRPermGuard></RoleGuard></ModuleGuard></HRShell>} />
