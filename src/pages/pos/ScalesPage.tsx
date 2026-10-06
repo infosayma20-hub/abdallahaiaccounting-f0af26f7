@@ -164,11 +164,13 @@ export default function ScalesPage() {
     if (!dataOwnerId || addQ.trim().length < 2) { setAddResults([]); return; }
     const t = setTimeout(async () => {
       const { data } = await supabase.from("products").select("id,name,barcode,unit,sell_price")
-        .eq("user_id", dataOwnerId).or(`name.ilike.%${addQ.trim()}%,barcode.eq.${addQ.trim()}`).limit(8);
-      setAddResults((data as any) || []);
+        .eq("user_id", dataOwnerId).or(`name.ilike.%${addQ.trim()}%,barcode.eq.${addQ.trim()}`)
+        .order("name").limit(40);
+      // البحث يجيب أصناف نشاط فرع الميزان فقط (بدون ربط = مشترك)
+      setAddResults(((data as any[]) || []).filter((r) => isAllowed(r.id)).slice(0, 8));
     }, 300);
     return () => clearTimeout(t);
-  }, [addQ, dataOwnerId]);
+  }, [addQ, dataOwnerId, isAllowed]);
 
   const addOne = (r: any) => {
     if (items.some((i) => i.product_id === r.id)) return toast.info("الصنف موجود بالميزان");
