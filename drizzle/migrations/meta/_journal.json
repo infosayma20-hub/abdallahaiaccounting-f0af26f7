@@ -638,6 +638,13 @@
       "when": 1791269225187,
       "tag": "0090_inventory_costing_reconciliation_opening",
       "breakpoints": true
+    },
+    {
+      "idx": 91,
+      "version": "7",
+      "when": 1791279402855,
+      "tag": "0091_migration",
+      "breakpoints": true
     }
   ]
 }
