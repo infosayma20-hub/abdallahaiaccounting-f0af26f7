@@ -652,6 +652,13 @@
       "when": 1791301261500,
       "tag": "0092_stock_count_define_product",
       "breakpoints": true
+    },
+    {
+      "idx": 93,
+      "version": "7",
+      "when": 1791304903105,
+      "tag": "0093_stock_count_lookup_return_image_url",
+      "breakpoints": true
     }
   ]
 }
