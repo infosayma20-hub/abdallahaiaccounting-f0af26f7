@@ -1,32 +1,5 @@
-# Roadmap — إصلاح تعديل الحضور
-
-- [x] مرحلة 1: خانة الوقت (استبدال + صلاحية + مسح)، تسكير الحفظ أثناء التحميل، الملخص بعد الحفظ
-- [x] مرحلة 2: جدول التصحيحات + recompute v2 + RPC حفظ جديد (فرق مغادرات، حالات محترمة، نفس النهار)
-- [x] مرحلة 3: نفس قواعد الحفظ بالعرض المباشر، زر تعديل لكل الأيام، توقيت فلسطين، الإجازة
-- [ ] مرحلة 4: تقرير الأيام المتأثرة (الدالة جاهزة `hr_attendance_review_days`، الشاشة لاحقًا بعد تجربة HR)
-
-# واجهة نقطة البيع التجريبية
-- [x] حصر `/pos-v2` ورابطها بحساب العرض
-- [x] تصنيفات عمودية يمينًا ومنع تمرير الصفحة
-- [x] ربط ملاحظة الصنف والتنبيهات والطاولات
-- [x] نسخ تصنيفات الملكي لحساب العرض دون تكرار
-- [x] تحقق بصري ووظيفي للحساب التجريبي؛ حصر غير التجريبي متحقق برمجياً
-
-# استكمال واجهة POS التجريبية
-- [x] نقل شارة كمية الصنف خارج الاسم العربي والإنجليزي
-- [x] مطابقة سلة التجربة مع السلة الحقيقية وخصائص الطلب
-- [x] إظهار أيقونة التنبيهات في الوضع الفاتح
-- [x] عرض أسماء التصنيفات الطويلة كاملة على سطرين
-- [x] التحقق من مسح الباركود والإضافة المباشرة للسلة
-- [x] نقل تبديل الفاتح/الداكن بجانب أيقونات الشريط
-- [x] التحقق البصري والوظيفي دون تغيير POS الحالية
-
-# سجل فواتير POS التجريبي
-- [x] نقل إغلاق العهدة من «المزيد» إلى أيقونة مستقلة أعلى اليسار
-- [x] اعتماد اتجاه قائمة وتفاصيل بتصميم مالي فاتح
-- [x] التحقق البصري من القائمة والتفاصيل وكل الأزرار
-
-# انتقال ترتيب POS إلى الواجهة الجديدة
-- [x] استخدام ترتيب التصنيفات المحفوظ نفسه لكل مستخدم
-- [x] منع فتح «الكل» تلقائيًا واستخدام قاعدة التصنيف الافتراضي القديمة
-- [x] إتاحة ترتيب الأصناف وحفظه بنفس تفضيلات المستخدم
+# Roadmap — Inventory costing (plan approved 2026-10-06)
+- [x] Phase 1: engine (moving avg / FIFO / reversal / negative stock), settings choice + lock + audit, readiness check, valuation report reads engine
+- [ ] Phase 2: post COGS from engine cost in POS/sales invoices/rep sales/returns; unify purchase posting (1140 vs 5110) per system; post negative-stock variance — blocked: needs user review on demo before touching live journals
+- [ ] Phase 3: item card (kardex) report, COGS/margin reports from engine, reconciliation GL 1140 vs engine, periodic closing using selected method
+- [ ] Phase 4: method-change wizard with adjustment entry; staged rollout to real tenants

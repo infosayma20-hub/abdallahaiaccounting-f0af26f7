@@ -128,7 +128,7 @@ const InventoryValuationPage = () => {
       )
     },
     { key: "min_quantity", label: "الحد الأدنى", type: "number", align: "center", defaultHidden: true },
-    { key: "buy_price", label: "سعر التكلفة", type: "currency" },
+    { key: "cost_used", label: "تكلفة الوحدة", type: "currency" },
     { key: "cost_basis", label: "أساس التكلفة", type: "badge", filterType: "select", filterOptions: ["متوسط متحرك", "متوسط مرجح", "FIFO", "آخر سعر شراء"] },
     { key: "sell_price", label: "سعر البيع", type: "currency", defaultHidden: true },
     { key: "value", label: "القيمة الإجمالية", type: "currency",
