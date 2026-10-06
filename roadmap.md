@@ -1,5 +1,5 @@
 # Roadmap — Inventory costing (plan approved 2026-10-06)
-- [ ] Import Beit Alkul catalog with file-defined size/type choices into bakery business unit only; preserve historical products and verify prices/links.
+- [x] Import Beit Alkul catalog: 105 products + 31 size/type choices in 15 required single-choice groups; bakery-only links, zero stock, 105 audit entries; catalog/choice hashes match CSV exactly; historical products untouched. Photos await user uploads.
 - [x] POS v2: restore Malaky-only stockout dialog beside transferred-order alerts; move kitchen into More; verified with 3 tests and isolated browser rendering, without changing sales/stock data.
 - [x] Phase 1: engine (moving avg / FIFO / reversal / negative stock), settings choice + lock + audit, readiness check, valuation report reads engine
 - [x] Phase 2: engine GL (perpetual) for invoices, voids, delivery notes, returns, adjustments/counts, negative variance, reversals; POS sale/return COGS from engine; periodic = no COGS at sale; sale line cost write-back
