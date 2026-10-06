@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Camera, ImagePlus, Loader2, PackageSearch, Plus, Save, ScanLine, TriangleAlert, X } from "lucide-react";
+import { Camera, ImagePlus, Loader2, PackageSearch, Pencil, Plus, Save, ScanLine, TriangleAlert, X } from "lucide-react";
 import { compressProductImage, uploadProductImage } from "@/lib/productImage";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -12,7 +12,7 @@ import POSBarcodeScanner from "@/components/pos/POSBarcodeScanner";
 import { normalizeBarcode } from "@/lib/barcode";
 
 type Ctx = { branch_name: string | null; warehouse_id: string | null; warehouse_name: string | null };
-type Product = { id: string; name: string; sell_price: number | null; barcode: string | null; unit: string | null; system_qty: number; pending_qty: number | null };
+type Product = { id: string; name: string; sell_price: number | null; barcode: string | null; unit: string | null; image_url: string | null; system_qty: number; pending_qty: number | null };
 
 /**
  * جرد المخزون للموظف: مسح الباركود/QR ثم تعديل اختياري للاسم وسعر البيع والكمية.
@@ -45,6 +45,7 @@ export default function EmployeeStockCountTab({ onBack }: { onBack: () => void }
   const [scanTarget, setScanTarget] = useState<"lookup" | "extra">("lookup");
   const newFileRef = useRef<HTMLInputElement>(null);
   const editFileRef = useRef<HTMLInputElement>(null);
+  const nameInputRef = useRef<HTMLInputElement>(null);
 
   const resetNew = (c: string | null) => {
     setUnknownCode(c); setUnknownNote(""); setNewName(""); setNewPrice(""); setNewQty("");
@@ -236,10 +237,22 @@ export default function EmployeeStockCountTab({ onBack }: { onBack: () => void }
               <Card className="rounded-2xl">
                 <CardContent className="space-y-3 p-4">
                   <div className="flex items-start gap-3">
-                    <button type="button" onClick={() => editFileRef.current?.click()} aria-label="صورة الصنف" title="التقاط صورة للصنف"
-                      className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary">{imgBusy ? <Loader2 className="h-5 w-5 animate-spin" /> : <ImagePlus className="h-5 w-5" />}</button>
+                    <button type="button" onClick={() => editFileRef.current?.click()} aria-label="صورة الصنف" title={product.image_url ? "تغيير صورة الصنف" : "التقاط صورة للصنف"}
+                      className="flex h-24 w-24 shrink-0 items-center justify-center overflow-hidden rounded-xl border-2 border-dashed border-primary/40 bg-primary/5">
+                      {imgBusy ? <Loader2 className="h-5 w-5 animate-spin" /> : product.image_url ? (
+                        <img src={product.image_url} alt="" className="h-full w-full object-cover" />
+                      ) : (
+                        <span className="flex flex-col items-center gap-1 text-primary"><ImagePlus className="h-6 w-6" /><span className="text-[10px]">صورة</span></span>
+                      )}
+                    </button>
                     <div className="min-w-0 flex-1">
-                      <div className="font-bold text-foreground">{product.name}</div>
+                      <div className="flex items-center gap-2">
+                        <div className="min-w-0 flex-1 truncate font-bold text-foreground">{product.name}</div>
+                        <button type="button" onClick={() => nameInputRef.current?.focus()} aria-label="تعديل الاسم" title="تعديل الاسم"
+                          className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground transition active:scale-95">
+                          <Pencil className="h-4 w-4" />
+                        </button>
+                      </div>
                       <div className="font-mono text-xs text-muted-foreground">{product.barcode ?? "—"}</div>
                     </div>
                   </div>
@@ -251,7 +264,7 @@ export default function EmployeeStockCountTab({ onBack }: { onBack: () => void }
                     <div className="text-xs text-muted-foreground">يوجد عدّ سابق بانتظار المراجعة: {product.pending_qty} — العدّ الجديد يستبدله.</div>
                   )}
                   <div className="space-y-2">
-                    <div><Label>اسم جديد (اختياري)</Label><Input value={name} placeholder={product.name} onChange={(e) => setName(e.target.value)} /></div>
+                    <div><Label>اسم جديد (اختياري)</Label><Input ref={nameInputRef} value={name} placeholder={product.name} onChange={(e) => setName(e.target.value)} /></div>
                     <div className="grid grid-cols-2 gap-2">
                       <div><Label>سعر بيع جديد</Label><Input inputMode="decimal" value={price} placeholder="اختياري" onChange={(e) => setPrice(e.target.value)} /></div>
                       <div><Label>الكمية المعدودة</Label><Input inputMode="decimal" value={qty} disabled={!ctx.warehouse_id} placeholder="اختياري" onChange={(e) => setQty(e.target.value)} /></div>
