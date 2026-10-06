@@ -255,6 +255,7 @@ const POSThemeToggle = ({ darkMode, onToggle }: { darkMode: boolean; onToggle: (
 };
 
 /** مالك بيانات الملكي (رام الله، بلازا مول، سفيان، فيصل، المركزي) — يشوف أسباب تعديل السعر الجاهزة، غيره يكتب ملاحظة حرة. ملاحظة: فاميلي 1/2 ومخبز بيت الكل تخص Family Stores وليست للملكي. */
+const EXPENSE_NO_MANAGER_OWNER_IDS = ["9e4d10d9-95df-4acf-9cec-ad41099fcbd4"]; // amr_x6@hotmail.com — بيت الكل
 const MALAKI_OWNER_ID = "0b08eba6-c81a-4f6c-b371-e6e324016e73";
 
 const createNewOrder = (index: number, tableId?: string | null, tableName?: string | null, guestCount?: number, guestName?: string): OrderTab => ({
@@ -1388,6 +1389,16 @@ const POSPage = ({ variant = "v1" }: { variant?: "v1" | "v2" } = {}) => {
   const [showExpenseManagerUnlock, setShowExpenseManagerUnlock] = useState(false);
   const [showExpenseDialog, setShowExpenseDialog] = useState(false);
   const [expenseManager, setExpenseManager] = useState<{ id: string; name: string } | null>(null);
+  // صرف المصروف بدون وضع المدير — لحسابات محددة فقط (بيت الكل amr_x6). الكاشير نفسه يُسجَّل كمعتمِد.
+  const openExpenseFlow = () => {
+    if (expenseManager) { setShowExpenseDialog(true); return; }
+    if (dataOwnerId && EXPENSE_NO_MANAGER_OWNER_IDS.includes(dataOwnerId) && userId) {
+      setExpenseManager({ id: userId, name: session?.cashier_name || "الكاشير" });
+      setShowExpenseDialog(true);
+      return;
+    }
+    setShowExpenseManagerUnlock(true);
+  };
    const [opsMenuPos, setOpsMenuPos] = useState({ top: 56, right: 8 });
   const [showOpsDropdown, setShowOpsDropdown] = useState(false);
     const [showSyncLog, setShowSyncLog] = useState(false);
@@ -7887,7 +7898,7 @@ const POSPage = ({ variant = "v1" }: { variant?: "v1" | "v2" } = {}) => {
     ...(!isMalakyTenant ? [{ key: "tables", label: "الطاولات", icon: v2MenuIcon(UtensilsCrossed), onClick: () => navigate("/pos/floor-plan") }] : []),
     ...(session && (isAdmin || posPerms.can_add_inventory) ? [{ key: "inv", label: "إدخال بضاعة", icon: v2MenuIcon(Package), onClick: () => setShowInventoryInput(true) }] : []),
     ...(session && (isAdmin || posPerms.can_record_purchases) ? [{ key: "pur", label: "تسجيل مشتريات", icon: v2MenuIcon(ShoppingBag), onClick: () => setShowPurchaseModal(true) }] : []),
-    ...(session ? [{ key: "exp", label: "صرف مصروف", icon: v2MenuIcon(Receipt), onClick: () => { if (expenseManager) setShowExpenseDialog(true); else setShowExpenseManagerUnlock(true); } }] : []),
+    ...(session ? [{ key: "exp", label: "صرف مصروف", icon: v2MenuIcon(Receipt), onClick: () => openExpenseFlow() }] : []),
     { key: "cust", label: "قاعدة بيانات الزبائن", icon: v2MenuIcon(UserCheck), onClick: () => navigate("/pos-customers") },
     { key: "sync", label: "سجل المزامنة", icon: v2MenuIcon(RefreshCw), onClick: () => setShowSyncLog(true) },
     { key: "keys", label: "اختصارات لوحة المفاتيح", icon: v2MenuIcon(Keyboard), onClick: () => setShowShortcutsGuide(true) },
@@ -8320,11 +8331,7 @@ const POSPage = ({ variant = "v1" }: { variant?: "v1" | "v2" } = {}) => {
                     className="w-full text-right px-4 py-2 text-xs flex items-center gap-2 hover:bg-gray-100 transition-colors"
                     onClick={() => {
                       setShowOpsDropdown(false);
-                      if (expenseManager) {
-                        setShowExpenseDialog(true);
-                      } else {
-                        setShowExpenseManagerUnlock(true);
-                      }
+                      openExpenseFlow();
                     }}
                   >
                     <Receipt className="h-3.5 w-3.5" style={{ color: "#4A9EE8" }} /> صرف مصروف
