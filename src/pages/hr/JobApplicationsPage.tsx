@@ -81,6 +81,27 @@ const MULTI_FILTERS: { key: MultiFilterKey; label: string; fields: string[] }[] 
   { key: "shift_preference", label: "الفترة", fields: ["shift_preference"] },
 ];
 
+/** المدن الفلسطينية الرئيسية — تُستخدم لتوحيد قيم «المدينة» المكتوبة نصًا حرًا (نابلس/سالم → نابلس). */
+const KNOWN_CITIES = [
+  "نابلس", "رام الله", "الخليل", "جنين", "طولكرم", "قلقيلية", "سلفيت", "طوباس",
+  "بيت لحم", "أريحا", "القدس", "غزة", "خان يونس", "رفح", "دير البلح",
+];
+
+/** يوحّد الألف/الهمزة/الياء لمطابقة عربية متسامحة. */
+const normAr = (s: string) =>
+  s.replace(/[أإآ]/g, "ا").replace(/ى/g, "ي").replace(/ة/g, "ه").replace(/\s+/g, " ").trim();
+
+/** يستخرج المدينة المعروفة من نص حر («نابلس شارع جامعة قديمة» → «نابلس»)، وإلا يعيد النص كما هو. */
+const canonicalCity = (raw: string): string => {
+  const v = normAr(raw.toLowerCase());
+  if (!v) return "";
+  for (const c of KNOWN_CITIES) {
+    const cn = normAr(c.toLowerCase());
+    if (v === cn || v.startsWith(cn + " ") || v.startsWith(cn + "/") || v.startsWith(cn + "-") || v.includes(" " + cn)) return c;
+  }
+  return raw.trim().replace(/\s+/g, " ");
+};
+
 /** قائمة منسدلة متعددة الاختيار: عدة قيم معًا، بلا تحديد = إظهار الكل. */
 function MultiFilterDropdown({ label, options, selected, onChange }: {
   label: string; options: string[]; selected: string[]; onChange: (next: string[]) => void;
@@ -581,12 +602,17 @@ export default function JobApplicationsPage() {
       for (const f of MULTI_FILTERS) {
         const selected = multiFilters[f.key];
         if (!selected.length) continue;
+        const isCity = f.key === "work_location";
         const vals = f.fields
-          .map((k) => ((r as any)[k] || "").toString().trim().toLowerCase())
-          .filter(Boolean);
+          .map((k) => ((r as any)[k] || "").toString().trim())
+          .filter(Boolean)
+          .map((v) => (isCity ? canonicalCity(v) : v).toLowerCase());
         if (vals.length === 0) return false;
         const hit = vals.some((val) =>
-          selected.some((s) => val.includes(s.toLowerCase()) || s.toLowerCase().includes(val)));
+          selected.some((s) => {
+            const sl = s.toLowerCase();
+            return isCity ? val === sl : (val.includes(sl) || sl.includes(val));
+          }));
         if (!hit) return false;
       }
       if (!q) return true;
@@ -611,7 +637,9 @@ export default function JobApplicationsPage() {
       for (const r of live) {
         for (const k of f.fields) {
           const v = ((r as any)[k] || "").toString().trim().replace(/\s+/g, " ");
-          if (v && v !== "—") set.add(v);
+          if (!v || v === "—") continue;
+          // المدينة تُوحَّد لاسم المدينة المعروف حتى تظهر «نابلس» مرة واحدة مهما اختلفت الكتابة
+          set.add(f.key === "work_location" ? canonicalCity(v) : v);
         }
       }
       opts[f.key] = [...set].sort((a, b) => a.localeCompare(b, "ar")).slice(0, 80);
