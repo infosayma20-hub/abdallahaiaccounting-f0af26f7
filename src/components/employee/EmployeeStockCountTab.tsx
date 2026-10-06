@@ -224,7 +224,7 @@ export default function EmployeeStockCountTab({ onBack }: { onBack: () => void }
             )}
 
             {!product && !looking && !unknownCode && (
-              <button type="button" onClick={() => setScanOpen(true)}
+              <button type="button" onClick={() => { setScanTarget("lookup"); setScanOpen(true); }}
                 className="flex w-full flex-col items-center gap-3 rounded-2xl border-2 border-dashed border-primary/40 bg-primary/5 p-8 text-center transition active:scale-[0.98]">
                 <span className="flex h-16 w-16 items-center justify-center rounded-2xl bg-primary text-primary-foreground"><ScanLine className="h-8 w-8" /></span>
                 <span className="font-bold text-foreground">اضغط لفتح الماسح</span>
@@ -236,7 +236,8 @@ export default function EmployeeStockCountTab({ onBack }: { onBack: () => void }
               <Card className="rounded-2xl">
                 <CardContent className="space-y-3 p-4">
                   <div className="flex items-start gap-3">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary"><PackageSearch className="h-5 w-5" /></div>
+                    <button type="button" onClick={() => editFileRef.current?.click()} aria-label="صورة الصنف" title="التقاط صورة للصنف"
+                      className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary">{imgBusy ? <Loader2 className="h-5 w-5 animate-spin" /> : <ImagePlus className="h-5 w-5" />}</button>
                     <div className="min-w-0 flex-1">
                       <div className="font-bold text-foreground">{product.name}</div>
                       <div className="font-mono text-xs text-muted-foreground">{product.barcode ?? "—"}</div>
@@ -267,7 +268,9 @@ export default function EmployeeStockCountTab({ onBack }: { onBack: () => void }
           </>
         )}
       </div>
-      <POSBarcodeScanner open={scanOpen} onClose={() => setScanOpen(false)} onScan={(c) => { setScanOpen(false); lookup(c); }} />
+      <input ref={editFileRef} type="file" accept="image/*" capture="environment" className="hidden"
+        onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ""; if (f) changeImage(f); }} />
+      <POSBarcodeScanner open={scanOpen} onClose={() => setScanOpen(false)} onScan={(c) => { setScanOpen(false); if (scanTarget === "extra") addCode(c); else lookup(c); }} />
     </div>
   );
 }
