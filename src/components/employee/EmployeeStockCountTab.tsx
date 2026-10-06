@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
-import { Camera, Loader2, PackageSearch, Save, ScanLine, TriangleAlert } from "lucide-react";
+import { Camera, ImagePlus, Loader2, PackageSearch, Plus, Save, ScanLine, TriangleAlert, X } from "lucide-react";
+import { compressProductImage, uploadProductImage } from "@/lib/productImage";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -32,6 +33,72 @@ export default function EmployeeStockCountTab({ onBack }: { onBack: () => void }
   const [unknownNote, setUnknownNote] = useState("");
   const [reporting, setReporting] = useState(false);
   const codeRef = useRef<HTMLInputElement>(null);
+  // تعريف صنف جديد
+  const [newName, setNewName] = useState("");
+  const [newPrice, setNewPrice] = useState("");
+  const [newQty, setNewQty] = useState("");
+  const [newCodes, setNewCodes] = useState<string[]>([]);
+  const [extraCode, setExtraCode] = useState("");
+  const [newImg, setNewImg] = useState<{ blob: Blob; preview: string } | null>(null);
+  const [imgBusy, setImgBusy] = useState(false);
+  const [creating, setCreating] = useState(false);
+  const [scanTarget, setScanTarget] = useState<"lookup" | "extra">("lookup");
+  const newFileRef = useRef<HTMLInputElement>(null);
+  const editFileRef = useRef<HTMLInputElement>(null);
+
+  const resetNew = (c: string | null) => {
+    setUnknownCode(c); setUnknownNote(""); setNewName(""); setNewPrice(""); setNewQty("");
+    setNewCodes(c ? [c] : []); setExtraCode(""); setNewImg(null);
+  };
+
+  const prepImage = async (f: File) => {
+    setImgBusy(true);
+    try { const blob = await compressProductImage(f); return { blob, preview: URL.createObjectURL(blob) }; }
+    catch (e: any) { toast.error(e?.message || "تعذّر قراءة الصورة"); return null; }
+    finally { setImgBusy(false); }
+  };
+
+  const addCode = (raw: string) => {
+    const c = normalizeBarcode(raw);
+    if (!c) return;
+    if (newCodes.includes(c)) { toast.message("الباركود مضاف مسبقًا"); return; }
+    setNewCodes((p) => [...p, c]); setExtraCode("");
+  };
+
+  const createProduct = async () => {
+    const n = newName.trim();
+    const pr = Number(newPrice);
+    const q = newQty.trim() === "" ? null : Number(newQty);
+    if (!n) { toast.error("اكتب اسم الصنف"); return; }
+    if (newPrice.trim() === "" || !isFinite(pr) || pr < 0) { toast.error("أدخل سعر بيع صحيح"); return; }
+    if (q !== null && (!isFinite(q) || q < 0)) { toast.error("أدخل كمية صحيحة"); return; }
+    setCreating(true);
+    try {
+      const image = newImg ? await uploadProductImage(newImg.blob) : null;
+      const { error } = await supabase.rpc("stock_count_create_product", {
+        p_name: n, p_sell_price: pr, p_barcodes: newCodes, p_image_url: image as any, p_counted_qty: q as any,
+      });
+      if (error) throw error;
+      toast.success(q !== null ? "عُرّف الصنف — الكمية أُرسلت للمراجعة" : "عُرّف الصنف وصار يظهر في نقطة البيع");
+      resetNew(null); setCode("");
+      setTimeout(() => codeRef.current?.focus(), 50);
+    } catch (e: any) { toast.error(e?.message || "تعذّر تعريف الصنف"); }
+    finally { setCreating(false); }
+  };
+
+  const changeImage = async (f: File) => {
+    if (!product) return;
+    const img = await prepImage(f);
+    if (!img) return;
+    setImgBusy(true);
+    try {
+      const url = await uploadProductImage(img.blob);
+      const { error } = await supabase.rpc("stock_count_set_image", { p_product_id: product.id, p_image_url: url });
+      if (error) throw error;
+      toast.success("حُفظت صورة الصنف");
+    } catch (e: any) { toast.error(e?.message || "تعذّر حفظ الصورة"); }
+    finally { setImgBusy(false); }
+  };
 
   useEffect(() => {
     supabase.rpc("stock_count_context").then(({ data, error }) => {
@@ -47,8 +114,8 @@ export default function EmployeeStockCountTab({ onBack }: { onBack: () => void }
     const { data, error } = await supabase.rpc("stock_count_lookup", { p_code: c });
     setLooking(false);
     if (error) { toast.error(error.message); return; }
-    if (!data) { setProduct(null); setUnknownCode(c); setUnknownNote(""); return; }
-    setUnknownCode(null);
+    if (!data) { setProduct(null); resetNew(c); setCode(""); return; }
+    resetNew(null);
     const p = data as any as Product;
     setProduct(p);
     setName("");
@@ -60,12 +127,11 @@ export default function EmployeeStockCountTab({ onBack }: { onBack: () => void }
   const reportUnknown = async () => {
     if (!unknownCode) return;
     setReporting(true);
-    const { error } = await (supabase.rpc as any)("stock_count_report_unknown", { p_code: unknownCode, p_note: unknownNote.trim() || null });
+    const { error } = await (supabase.rpc as any)("stock_count_report_unknown", { p_code: unknownCode, p_note: newName.trim() || unknownNote.trim() || null });
     setReporting(false);
     if (error) { toast.error(error.message); return; }
-    toast.success("سُجّل الباركود كغير معروف — سيظهر للإدارة في مراجعة الجرد");
-    setUnknownCode(null);
-    setUnknownNote("");
+    toast.success("سُجّل الباركود — سيظهر للإدارة في مراجعة الجرد");
+    resetNew(null);
     setTimeout(() => codeRef.current?.focus(), 50);
   };
 
@@ -104,7 +170,7 @@ export default function EmployeeStockCountTab({ onBack }: { onBack: () => void }
             )}
             <form className="flex gap-2" onSubmit={(e) => { e.preventDefault(); lookup(code); }}>
               <Input ref={codeRef} autoFocus inputMode="numeric" placeholder="امسح أو اكتب الباركود" value={code} onChange={(e) => setCode(e.target.value)} className="h-12 text-base" />
-              <Button type="button" size="icon" className="h-12 w-12 shrink-0" onClick={() => setScanOpen(true)} aria-label="فتح الكاميرا"><Camera className="h-5 w-5" /></Button>
+              <Button type="button" size="icon" className="h-12 w-12 shrink-0" onClick={() => { setScanTarget("lookup"); setScanOpen(true); }} aria-label="فتح الكاميرا"><Camera className="h-5 w-5" /></Button>
             </form>
 
             {looking && <div className="flex justify-center p-4"><Loader2 className="h-5 w-5 animate-spin" /></div>}
