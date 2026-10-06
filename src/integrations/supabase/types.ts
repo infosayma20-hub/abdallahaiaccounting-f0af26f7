@@ -33997,6 +33997,14 @@ export type Database = {
           object_name: string
         }[]
       }
+      list_internal_message_people: {
+        Args: never
+        Returns: {
+          auth_user_id: string
+          name: string
+          role: string
+        }[]
+      }
       list_orphaned_employee_account_posts: {
         Args: { p_user_id: string }
         Returns: {

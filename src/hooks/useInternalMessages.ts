@@ -159,6 +159,11 @@ export function useInternalMessages() {
         _priority: args.priority || "normal",
       });
       if (error) throw error;
+      if (data) {
+        supabase.functions
+          .invoke("internal-message-notify", { body: { message_id: data } })
+          .catch(err => console.warn("internal-message-notify failed", err));
+      }
       await load();
       return data as string;
     },
