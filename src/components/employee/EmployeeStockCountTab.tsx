@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Camera, ImagePlus, Loader2, PackageSearch, Pencil, Plus, Save, ScanLine, TriangleAlert, X } from "lucide-react";
+import { Camera, ClipboardPaste, Copy, ImagePlus, Loader2, PackageSearch, Plus, Save, ScanLine, TriangleAlert, X } from "lucide-react";
 import { compressProductImage, uploadProductImage } from "@/lib/productImage";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -247,10 +247,10 @@ export default function EmployeeStockCountTab({ onBack }: { onBack: () => void }
                     </button>
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2">
-                        <div className="min-w-0 flex-1 truncate font-bold text-foreground">{product.name}</div>
-                        <button type="button" onClick={() => nameInputRef.current?.focus()} aria-label="تعديل الاسم" title="تعديل الاسم"
+                      <div className="min-w-0 flex-1 truncate font-bold text-foreground">{product.name}</div>
+                        <button type="button" onClick={() => { setName(product.name); setTimeout(() => nameInputRef.current?.focus(), 50); }} aria-label="نسخ الاسم للحقل الجديد" title="نسخ الاسم للحقل الجديد"
                           className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground transition active:scale-95">
-                          <Pencil className="h-4 w-4" />
+                          <Copy className="h-4 w-4" />
                         </button>
                       </div>
                       <div className="font-mono text-xs text-muted-foreground">{product.barcode ?? "—"}</div>
@@ -264,7 +264,22 @@ export default function EmployeeStockCountTab({ onBack }: { onBack: () => void }
                     <div className="text-xs text-muted-foreground">يوجد عدّ سابق بانتظار المراجعة: {product.pending_qty} — العدّ الجديد يستبدله.</div>
                   )}
                   <div className="space-y-2">
-                    <div><Label>اسم جديد (اختياري)</Label><Input ref={nameInputRef} value={name} placeholder={product.name} onChange={(e) => setName(e.target.value)} /></div>
+                    <div>
+                      <Label>اسم جديد (اختياري)</Label>
+                      <div className="flex gap-2">
+                        <Input ref={nameInputRef} value={name} placeholder={product.name} onChange={(e) => setName(e.target.value)} />
+                        <Button type="button" variant="outline" size="icon" className="h-10 w-10 shrink-0" aria-label="لصق من الحافظة" title="لصق من الحافظة"
+                          onClick={async () => {
+                            try {
+                              const t = await navigator.clipboard.readText();
+                              if (t.trim()) { setName(t.trim()); toast.message("تم اللصق من الحافظة"); }
+                              else toast.message("الحافظة فاضية");
+                            } catch { toast.error("المتصفح منع الوصول للحافظة — الصق يدويًا"); }
+                          }}>
+                          <ClipboardPaste className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
                     <div className="grid grid-cols-2 gap-2">
                       <div><Label>سعر بيع جديد</Label><Input inputMode="decimal" value={price} placeholder="اختياري" onChange={(e) => setPrice(e.target.value)} /></div>
                       <div><Label>الكمية المعدودة</Label><Input inputMode="decimal" value={qty} disabled={!ctx.warehouse_id} placeholder="اختياري" onChange={(e) => setQty(e.target.value)} /></div>
