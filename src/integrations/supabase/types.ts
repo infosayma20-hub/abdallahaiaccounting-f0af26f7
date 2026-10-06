@@ -12429,6 +12429,7 @@ export type Database = {
           qty_in: number
           qty_remaining: number
           received_at: string
+          seq: number
           source: string
           unit_cost: number
           user_id: string
@@ -12442,6 +12443,7 @@ export type Database = {
           qty_in: number
           qty_remaining: number
           received_at?: string
+          seq?: number
           source?: string
           unit_cost: number
           user_id: string
@@ -12455,6 +12457,7 @@ export type Database = {
           qty_in?: number
           qty_remaining?: number
           received_at?: string
+          seq?: number
           source?: string
           unit_cost?: number
           user_id?: string

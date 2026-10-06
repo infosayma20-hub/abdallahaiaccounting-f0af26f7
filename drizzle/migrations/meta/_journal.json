@@ -589,6 +589,13 @@
       "when": 1791268577021,
       "tag": "0083_inventory_costing_phase2b_paths",
       "breakpoints": true
+    },
+    {
+      "idx": 84,
+      "version": "7",
+      "when": 1791268739520,
+      "tag": "0084_inventory_cost_layers_seq",
+      "breakpoints": true
     }
   ]
 }
