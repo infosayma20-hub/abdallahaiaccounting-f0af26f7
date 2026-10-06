@@ -9,7 +9,8 @@ import FinancialSummarySheet from "./FinancialSummarySheet";
 import NotificationsSheet from "./NotificationsSheet";
 import ChatHistorySidebar from "./ChatHistorySidebar";
 import MultiTransactionCards, { type ParsedTransaction } from "./MultiTransactionCards";
-import { buildTxText, isTxResultSuccess } from "./buildTxText";
+import { buildTxText, isTxResultSuccess, parseAmount } from "./buildTxText";
+import { useDataOwnerId } from "@/hooks/useDataOwnerId";
 import type { FinixFinancialData } from "@/pages/SmartAccountantPage";
 import { AIMessageRenderer } from "@/components/AIMessageRenderer";
 import type { User } from "@supabase/supabase-js";
@@ -44,6 +45,9 @@ const STATUS_MESSAGES = ["📊 يقرأ بياناتك...", "🧮 يحسب...", 
 
 const CleanSmartAccountant = ({ user, userName, data, cfoMode, onToggleCfo, onCheque, onJournal, onTransactionSuccess, onBack, onShowHelp, onReplayOnboarding }: Props) => {
   const { toast } = useToast();
+  // كل بيانات الشركة (زبائن، أصناف، حسابات) مسجلة على معرّف المالك — حتى لو الداخل محاسب من الفريق
+  const { dataOwnerId } = useDataOwnerId();
+  const ownerId = dataOwnerId || user?.id || null;
   const [messages, setMessages] = useState<Message[]>([]);
   const [sending, setSending] = useState(false);
   const [statusIdx, setStatusIdx] = useState(0);
@@ -63,9 +67,9 @@ const CleanSmartAccountant = ({ user, userName, data, cfoMode, onToggleCfo, onCh
 
   // Load AI context on mount
   useEffect(() => {
-    if (!user?.id) return;
-    buildAIContext(user.id).then(setAiContext);
-  }, [user?.id]);
+    if (!ownerId) return;
+    buildAIContext(ownerId).then(setAiContext);
+  }, [ownerId]);
 
   // Count today's conversations
   useEffect(() => {
@@ -151,7 +155,7 @@ const CleanSmartAccountant = ({ user, userName, data, cfoMode, onToggleCfo, onCh
     if (!user?.id || refreshing) return;
     setRefreshing(true);
     try {
-      const ctx = await buildAIContext(user.id);
+      const ctx = await buildAIContext(ownerId || user.id);
       setAiContext(ctx);
       toast({ title: "✓ تم تحديث البيانات" });
     } catch { /* ignore */ }
@@ -159,7 +163,7 @@ const CleanSmartAccountant = ({ user, userName, data, cfoMode, onToggleCfo, onCh
   };
 
   // Execute a single parsed transaction (entity, cheque, invoice, etc.)
-  const executeTransaction = async (tx: ParsedTransaction, originalText: string): Promise<{ success: boolean; message: string; type?: string }> => {
+  const executeTransaction = async (tx: ParsedTransaction, originalText: string, preferOriginal = false): Promise<{ success: boolean; message: string; type?: string }> => {
     if (tx.type === 'cheque') {
       onCheque({ chequeType: tx.chequeType || 'وارد', partyName: tx.partyName || '', partyType: (tx as any).partyType || 'عميل', originalText, amount: tx.amount || 0 });
       return { success: true, message: `🧾 شيك ${tx.chequeType || 'وارد'} — ${tx.partyName || ''} — ₪${tx.amount || 0}`, type: 'cheque' };
@@ -172,14 +176,14 @@ const CleanSmartAccountant = ({ user, userName, data, cfoMode, onToggleCfo, onCh
           const contactData: any = {
             contact_name: tx.name || '',
             contact_type: (tx as any).contactType === 'مورد' ? 'مورد' : 'عميل',
-            user_id: user?.id, is_active: true, current_balance: 0,
+            user_id: ownerId, is_active: true, current_balance: 0, source: 'ai_accountant',
           };
           if ((tx as any).phone) contactData.phone = (tx as any).phone;
           if ((tx as any).email) contactData.email = (tx as any).email;
           if ((tx as any).address) contactData.address = (tx as any).address;
 
           const { data: existing } = await supabase.from('contacts')
-            .select('id, contact_name').eq('user_id', user?.id).eq('contact_name', contactData.contact_name).maybeSingle();
+            .select('id, contact_name').eq('user_id', ownerId).eq('contact_name', contactData.contact_name).limit(1).maybeSingle();
 
           if (existing) {
             const updateFields: any = {};
@@ -194,24 +198,31 @@ const CleanSmartAccountant = ({ user, userName, data, cfoMode, onToggleCfo, onCh
             successMsg = `✅ تمت إضافة "${tx.name}" بنجاح`;
           }
         } else if (tx.entityType === 'employee') {
-          const empData: any = { full_name: tx.name || '', user_id: user?.id, status: 'active', start_date: new Date().toISOString().split('T')[0] };
+          const { data: company } = await supabase.from('companies').select('id').eq('owner_id', ownerId).order('created_at', { ascending: true }).limit(1).maybeSingle();
+          const empData: any = { full_name: tx.name || '', user_id: ownerId, start_date: new Date().toISOString().split('T')[0] };
+          if (company?.id) empData.company_id = company.id;
           if ((tx as any).jobTitle) empData.job_title = (tx as any).jobTitle;
-          if ((tx as any).basicSalary) empData.basic_salary = (tx as any).basicSalary;
+          if ((tx as any).basicSalary) empData.base_salary = parseAmount((tx as any).basicSalary);
           const { error: insertError } = await supabase.from('employees').insert(empData);
           if (insertError) throw insertError;
           successMsg = `✅ تمت إضافة الموظف "${tx.name}" بنجاح`;
         } else if (tx.entityType === 'product') {
-          const prodData: any = { name: tx.name || '', user_id: user?.id, is_active: true, quantity: tx.quantity || 0 };
-          if ((tx as any).buyPrice) prodData.buy_price = (tx as any).buyPrice;
-          if ((tx as any).sellPrice) prodData.sell_price = (tx as any).sellPrice;
+          // products ما فيه عمود is_active — إرساله كان يفشل الإضافة كلياً
+          const prodData: any = { name: tx.name || '', user_id: ownerId, quantity: parseAmount(tx.quantity) || 0, source: 'ai_accountant' };
+          if ((tx as any).buyPrice) prodData.buy_price = parseAmount((tx as any).buyPrice);
+          if ((tx as any).sellPrice) prodData.sell_price = parseAmount((tx as any).sellPrice);
           const { error: insertError } = await supabase.from('products').insert(prodData);
           if (insertError) throw insertError;
           successMsg = `✅ تمت إضافة المنتج "${tx.name}" بنجاح`;
         } else if (tx.entityType === 'account') {
-          const accData: any = { account_name: tx.name || '', account_code: (tx as any).accountCode || '', account_type: (tx as any).accountType || 'أصول', user_id: user?.id, is_active: true };
-          const { error: insertError } = await supabase.from('accounts').insert(accData);
-          if (insertError) throw insertError;
-          successMsg = `✅ تمت إضافة الحساب "${tx.name}" بنجاح`;
+          // "افتح حساب باسم فلان" عادةً يقصد زبون/مورد — لا نفتح حساباً بشجرة الحسابات بلا رقم ولا أب
+          // (كان يُنشئ حساباً معلّقاً بدون رمز لا يظهر في الفواتير ولا السندات).
+          const nm = (tx.name || '').trim();
+          return {
+            success: true,
+            type: 'add_entity',
+            message: `"${nm}" — شو بتقصد؟\n\n[action:زبون:@ضفلي زبون ${nm}]  [action:مورد:@ضفلي مورد ${nm}]  [action:حساب بشجرة الحسابات:/accounts]`,
+          };
         }
         return { success: true, message: successMsg || '✅ تمت الإضافة', type: 'add_entity' };
       } catch (err: any) {
@@ -222,7 +233,13 @@ const CleanSmartAccountant = ({ user, userName, data, cfoMode, onToggleCfo, onCh
     // Transaction / Invoice — send text to process-transaction
     if (tx.type && !['question', 'unknown', 'add_entity', 'inventory_report'].includes(tx.type)) {
       // نبني نصاً موسعاً يحوي المبلغ والزبون وطريقة الدفع (وإلا قد يُرفض الطلب لعدم وجود مبلغ)
-      const expandedText = buildTxText(tx) || originalText.trim();
+      // رسالة واحدة: نرسل كلام المستخدم الأصلي كما هو (هو الأدق — هيك كان يشتغل زمان).
+      // عدة عمليات بنفس الرسالة: نبني نص كل بطاقة لوحدها.
+      let expandedText = buildTxText(tx) || originalText.trim();
+      if (preferOriginal && originalText.trim()) {
+        const amt = parseAmount((tx as any)._editAmount) || parseAmount(tx.total) || parseAmount(tx.amount);
+        expandedText = originalText.trim() + (!/[\d٠-٩]/.test(originalText) && amt > 0 ? ` بمبلغ ${amt} شيكل` : '');
+      }
       const body: any = { text: expandedText, userId: user?.id, email: user?.email };
       const { data: txResult, error } = await supabase.functions.invoke("process-transaction", { body });
       if (error) throw error;
@@ -396,7 +413,7 @@ const CleanSmartAccountant = ({ user, userName, data, cfoMode, onToggleCfo, onCh
           if (navigator.vibrate) navigator.vibrate(100);
           setMessages(prev => [...prev, { id: uid(), role: "assistant", type: "success", content: result.message, timestamp: new Date() }]);
           if (convId) saveMessage(convId, "assistant", result.message);
-          if (user?.id) buildAIContext(user.id).then(setAiContext);
+          if (ownerId) buildAIContext(ownerId).then(setAiContext);
           setSending(false);
           return;
         }
@@ -404,13 +421,13 @@ const CleanSmartAccountant = ({ user, userName, data, cfoMode, onToggleCfo, onCh
         if (tx.type === 'inventory_report') {
           // Pass through to AI chat for now
         } else if (tx.type && !['question', 'unknown'].includes(tx.type)) {
-          const result = await executeTransaction(tx, text.trim());
+          const result = await executeTransaction(tx, text.trim(), true);
           if (result.success) {
             if (navigator.vibrate) navigator.vibrate(100);
             onTransactionSuccess();
             setMessages(prev => [...prev, { id: uid(), role: "assistant", type: "success", content: result.message, timestamp: new Date() }]);
             if (convId) saveMessage(convId, "assistant", result.message);
-            if (user?.id) buildAIContext(user.id).then(setAiContext);
+            if (ownerId) buildAIContext(ownerId).then(setAiContext);
             setSending(false);
             return;
           }

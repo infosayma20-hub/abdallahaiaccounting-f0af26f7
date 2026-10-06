@@ -41,7 +41,7 @@ serve(async (req) => {
   try {
     const authResult = await authenticateRequest(req);
     if (authResult instanceof Response) return authResult;
-    const userId = authResult.userId;
+    const callerId = authResult.userId;
 
     const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
     if (!LOVABLE_API_KEY) throw new Error('LOVABLE_API_KEY not configured');
@@ -50,6 +50,22 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_URL')!,
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
     );
+
+    // ═══ Tenant resolution ═══
+    // كل بيانات الشركة مسجلة على معرّف المالك. المحاسب/عضو الفريق يكتب على دفاتر المالك
+    // (وليس على حساب فارغ باسمه) — بشرط أن يملك دوراً محاسبياً.
+    const { data: ownerData } = await supabaseAdmin.rpc('get_team_owner_id', { _user_id: callerId });
+    const userId: string = (ownerData as string) || callerId;
+    if (userId !== callerId) {
+      const { data: callerRoles } = await supabaseAdmin.from('user_roles').select('role').eq('user_id', callerId);
+      const allowedRoles = ['admin', 'super_admin', 'accountant_senior', 'accountant_sales', 'accountant_purchases'];
+      if (!(callerRoles || []).some((r: any) => allowedRoles.includes(r.role))) {
+        return new Response(JSON.stringify({
+          type: 'chat_response',
+          message: 'حسابك ما عنده صلاحية تسجيل عمليات مالية على دفاتر الشركة. اطلب من مدير النظام صلاحية محاسب.',
+        }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      }
+    }
 
     const { text, mentionedContactName, mentionedContactId, editIntent, lastTransactionId } = await req.json();
     if (!text) throw new Error('Transaction text is required');
@@ -543,15 +559,102 @@ serve(async (req) => {
     }
     // ═══ END EDIT/DELETE HANDLING ═══
 
-    // Fetch user's accounts and contacts for AI context
-    const [accountsRes, contactsRes] = await Promise.all([
-      supabaseAdmin.from('accounts').select('account_code, account_name, account_type, parent_code').eq('user_id', userId),
-      supabaseAdmin.from('contacts').select('id, contact_name, contact_type, linked_account_code').eq('user_id', userId),
-    ]);
+    // Fetch the tenant's FULL chart of accounts (paged — the API caps a single read at 1000 rows)
+    const accounts: Array<{ account_code: string; account_name: string; account_type: string; parent_code: string | null }> = [];
+    for (let from = 0; from < 20000; from += 1000) {
+      const { data: page, error: pageErr } = await supabaseAdmin.from('accounts')
+        .select('account_code, account_name, account_type, parent_code')
+        .eq('user_id', userId)
+        .order('account_code', { ascending: true })
+        .range(from, from + 999);
+      if (pageErr) throw pageErr;
+      accounts.push(...((page || []) as any[]));
+      if (!page || page.length < 1000) break;
+    }
 
-    const accounts = accountsRes.data || [];
-    const contacts = contactsRes.data || [];
-    const accountsList = accounts.map(a => `${a.account_code} - ${a.account_name} (${a.account_type})`).join('\n');
+    // Contacts are looked up on demand (some tenants have 17k+ contacts — loading a
+    // capped list silently missed existing ones and created duplicates).
+    type ContactRow = { id: string; contact_name: string; contact_type: string; linked_account_code: string | null };
+    const contacts: ContactRow[] = [];
+    if (mentionedContactId && /^[0-9a-f-]{36}$/i.test(mentionedContactId)) {
+      const { data: mc } = await supabaseAdmin.from('contacts')
+        .select('id, contact_name, contact_type, linked_account_code')
+        .eq('user_id', userId).eq('id', mentionedContactId).maybeSingle();
+      if (mc) contacts.push(mc as ContactRow);
+    }
+    const findContactByName = async (name: string): Promise<ContactRow | null> => {
+      const clean = (name || '').trim();
+      if (!clean) return null;
+      const { data: exact } = await supabaseAdmin.from('contacts')
+        .select('id, contact_name, contact_type, linked_account_code, is_archived')
+        .eq('user_id', userId).eq('contact_name', clean).limit(5);
+      const exactLive = (exact || []).find((c: any) => c.is_archived !== true);
+      if (exactLive) return exactLive as ContactRow;
+      const escaped = clean.replace(/[%_,()]/g, ' ');
+      const { data: fuzzy } = await supabaseAdmin.from('contacts')
+        .select('id, contact_name, contact_type, linked_account_code, is_archived')
+        .eq('user_id', userId).ilike('contact_name', `%${escaped}%`).limit(6);
+      const fuzzyLive = (fuzzy || []).filter((c: any) => c.is_archived !== true);
+      // Only accept an unambiguous fuzzy hit — never post to the wrong person
+      if (fuzzyLive.length === 1) return fuzzyLive[0] as ContactRow;
+      return null;
+    };
+
+    // ── Leaf-account helpers (shared by every resolution step below) ──
+    const accountExists = (code: string) => !!code && accounts.some(a => a.account_code === code);
+    const isParentCode = (code: string) => !!code && accounts.some(a => a.parent_code === code);
+    const leafAccounts = accounts.filter(a => !isParentCode(a.account_code));
+    const FOREIGN_RE = /دولار|دينار|يورو|جنيه|استرليني|USD|JOD|EUR/i;
+    const currencyWord = (cur: string): RegExp | null => {
+      if (/دولار|USD/i.test(cur)) return /دولار|USD/i;
+      if (/دينار|JOD/i.test(cur)) return /دينار|JOD/i;
+      if (/يورو|EUR/i.test(cur)) return /يورو|EUR/i;
+      return null; // شيكل
+    };
+    /** Pick the right cash/bank leaf for the transaction currency. Never puts shekels in a dollar box. */
+    const pickCashLeaf = (parentCode: string, cur: string): string => {
+      const leaves = accounts.filter(a => a.parent_code === parentCode && !isParentCode(a.account_code));
+      if (!leaves.length) return '';
+      const fx = currencyWord(cur);
+      if (fx) return leaves.find(a => fx.test(a.account_name))?.account_code || '';
+      return (
+        leaves.find(a => /شيكل|ILS/i.test(a.account_name))?.account_code ||
+        leaves.find(a => !FOREIGN_RE.test(a.account_name) && /رئيسي|عام/.test(a.account_name))?.account_code ||
+        leaves.find(a => !FOREIGN_RE.test(a.account_name))?.account_code ||
+        ''
+      );
+    };
+    /** Map an expense description to a real expense LEAF of this tenant's own chart. */
+    const EXPENSE_KEYWORDS: Array<[RegExp, RegExp]> = [
+      [/كهرباء|كهربا|مياه|ماء/, /كهرباء|مياه|ماء/],
+      [/وقود|بنزين|ديزل|سولار|محروقات/, /وقود|محروقات|بنزين/],
+      [/غاز/, /غاز/],
+      [/إيجار|ايجار|أجار|اجار/, /إيجار|ايجار/],
+      [/صيانة|تصليح/, /صيانة/],
+      [/ضيافة|قهوة|ضيوف|تمثيل/, /ضيافة/],
+      [/هاتف|تلفون|جوال|إنترنت|انترنت|اتصالات/, /هاتف|إنترنت|انترنت|اتصالات/],
+      [/قرطاسية|طباعة|ورق/, /قرطاسية|طباعة/],
+      [/تأمين|تامين/, /تأمين/],
+      [/رسوم|ترخيص|تراخيص/, /رسوم|تراخيص/],
+      [/إعلان|اعلان|تسويق|دعاية/, /إعلان|اعلان|تسويق/],
+      [/شحن|بريد|توصيل|نقل|مواصلات|تكسي|تاكسي/, /شحن|بريد|توصيل|نقل|مواصلات/],
+      [/غرامة|غرامات|مخالفة/, /غرامات|غرامة/],
+      [/عمولة بنكية|رسوم بنكية|مصاريف بنكية/, /بنكية/],
+      [/راتب|رواتب|أجور|اجور/, /رواتب|أجور/],
+      [/نظافة|تنظيف/, /نظافة|تنظيف/],
+    ];
+    const resolveExpenseLeaf = (...hints: string[]): string => {
+      const hay = hints.filter(Boolean).join(' ');
+      const expenseLeaves = leafAccounts.filter(a => a.account_code.startsWith('5'));
+      for (const [trigger, nameRe] of EXPENSE_KEYWORDS) {
+        if (!trigger.test(hay)) continue;
+        const hit = expenseLeaves.find(a => nameRe.test(a.account_name) && !/مستحق/.test(a.account_name));
+        if (hit) return hit.account_code;
+      }
+      return expenseLeaves.find(a => /متنوع|أخرى|اخرى|عامة/.test(a.account_name) && !/مشتريات|بضاعة/.test(a.account_name))?.account_code || '';
+    };
+
+    const accountsList = accounts.map(a => `${a.account_code} - ${a.account_name} (${a.account_type})${isParentCode(a.account_code) ? ' [رئيسي — لا تستخدمه]' : ''}`).join('\n');
 
     const today = new Date().toISOString().split('T')[0];
     const openingBalance = isOpeningBalance(text);
@@ -867,143 +970,106 @@ ${contactContext}
     debitAccountCode = resolveAccountCode(debitAccountCode);
     creditAccountCode = resolveAccountCode(creditAccountCode);
 
+    const transactionTypeParsed = parsed['نوع_الحركة'] || parsed.transaction_type || '';
+    const isExpenseLike = transactionTypeParsed === 'سند صرف' ||
+      (transactionTypeParsed === 'قيد يومية' && (/^5/.test(debitAccountCode) || /مصروف|مصاريف/.test(rawDebitName)));
+
+    // ═══ Expense side: always land on a real expense LEAF of THIS tenant's chart ═══
+    // (charts differ per tenant — e.g. 5400 is "خصم مشتريات" in one and "مركبات" in another)
+    if (isExpenseLike) {
+      const debitIsExpenseLeaf = accountExists(debitAccountCode) && !isParentCode(debitAccountCode) && debitAccountCode.startsWith('5');
+      const debitIsPartyOrAsset = accountExists(debitAccountCode) && /^(1|2)/.test(debitAccountCode);
+      if (!debitIsExpenseLeaf && !debitIsPartyOrAsset) {
+        const leaf = resolveExpenseLeaf(rawDebitName, description, text);
+        if (leaf) {
+          console.log(`expense resolved: "${rawDebitName}" → ${leaf}`);
+          debitAccountCode = leaf;
+        }
+      }
+    }
+
     // ═══ Validation: debit ≠ credit ═══
     if (debitAccountCode && creditAccountCode && debitAccountCode === creditAccountCode) {
-      const transType = parsed['نوع_الحركة'] || parsed.transaction_type || '';
-      if (['سند صرف', 'قيد يومية'].includes(transType)) {
-        if (accounts.find(a => a.account_code === '5900')) debitAccountCode = '5900';
-        if (accounts.find(a => a.account_code === '1110')) creditAccountCode = '1110';
-      } else if (transType === 'سند قبض') {
-        if (accounts.find(a => a.account_code === '1110')) debitAccountCode = '1110';
-        if (accounts.find(a => a.account_code === '4300')) creditAccountCode = '4300';
+      if (['سند صرف', 'قيد يومية'].includes(transactionTypeParsed)) {
+        debitAccountCode = resolveExpenseLeaf(rawDebitName, description, text) || debitAccountCode;
+        creditAccountCode = accountExists('1110') ? '1110' : creditAccountCode; // resolved to a currency leaf below
+      } else if (transactionTypeParsed === 'سند قبض') {
+        debitAccountCode = accountExists('1110') ? '1110' : debitAccountCode;
       }
       console.warn(`⚠️ debit === credit detected, applied fallback accounts`);
     }
 
     // ═══ Validation: سند صرف account type checks ═══
-    const transactionTypeParsed = parsed['نوع_الحركة'] || parsed.transaction_type || '';
     if (transactionTypeParsed === 'سند صرف') {
       const creditAccount = accounts.find(a => a.account_code === creditAccountCode);
-      if (creditAccount && ['إيرادات', 'مصاريف'].includes(creditAccount.account_type)) {
-        if (accounts.find(a => a.account_code === '1110')) {
-          console.warn(`⚠️ سند صرف: credit was ${creditAccountCode} (${creditAccount.account_type}) → fixed to 1110`);
-          creditAccountCode = '1110';
-        }
+      if (creditAccount && ['إيرادات', 'مصاريف'].includes(creditAccount.account_type) && accountExists('1110')) {
+        console.warn(`⚠️ سند صرف: credit was ${creditAccountCode} (${creditAccount.account_type}) → cash`);
+        creditAccountCode = '1110';
       }
       const debitAccount = accounts.find(a => a.account_code === debitAccountCode);
       if (debitAccount && debitAccount.account_type === 'إيرادات') {
-        if (accounts.find(a => a.account_code === '5900')) {
-          console.warn(`⚠️ سند صرف: debit was ${debitAccountCode} (إيرادات) → fixed to 5900`);
-          debitAccountCode = '5900';
-        }
+        const leaf = resolveExpenseLeaf(rawDebitName, description, text);
+        if (leaf) debitAccountCode = leaf;
       }
     }
 
-    // Resolve contact ID
-    // Resolve contact ID - only use mentionedContactId if it's a valid UUID
+    // Resolve contact (exact name first; fuzzy only when unambiguous)
     const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-    let contactId = (mentionedContactId && uuidRegex.test(mentionedContactId)) ? mentionedContactId : null;
+    let contactId = (mentionedContactId && uuidRegex.test(mentionedContactId) && contacts.some(c => c.id === mentionedContactId)) ? mentionedContactId : null;
     if (!contactId && contactNameParsed) {
-      const match = contacts.find(c => 
-        c.contact_name === contactNameParsed ||
-        c.contact_name.includes(contactNameParsed) || 
-        contactNameParsed.includes(c.contact_name)
-      );
-      if (match) contactId = match.id;
+      const match = await findContactByName(contactNameParsed);
+      if (match) {
+        contacts.push(match);
+        contactId = match.id;
+      }
     }
 
-    // Auto-create contact if AI says so and contact doesn't exist
-    if (shouldCreateContact && contactNameParsed && !contactId) {
+    // Is a receivable/payable side involved? (parent 1130/2110 or one of their sub-accounts)
+    const isPartyCode = (code: string) => {
+      if (!code) return false;
+      if (code === '1130' || code === '2110') return true;
+      const acc = accounts.find(a => a.account_code === code);
+      return !!acc && (acc.parent_code === '1130' || acc.parent_code === '2110');
+    };
+    const partySideInvolved = isPartyCode(debitAccountCode) || isPartyCode(creditAccountCode);
+
+    // Auto-create contact when a named party is involved and doesn't exist yet.
+    // The contacts trigger (contacts_auto_link_account) opens the sub-account
+    // under 1130/2110 with the tenant's standard code format — same path as the contacts screen.
+    if (contactNameParsed && !contactId && (shouldCreateContact || partySideInvolved)) {
       const resolvedType = contactType === 'مورد' ? 'مورد' : 'عميل';
-      const parentCode = resolvedType === 'مورد' ? '2110' : '1130';
-      const parentName = resolvedType === 'مورد' ? 'ذمم موردين' : 'ذمم عملاء';
-      const accountType = resolvedType === 'مورد' ? 'التزامات' : 'أصول';
-
-      // Generate a unique sub-account code under the parent
-      const { data: existingSubs } = await supabaseAdmin.from('accounts')
-        .select('account_code')
-        .eq('user_id', userId)
-        .like('account_code', `${parentCode}%`)
-        .neq('account_code', parentCode)
-        .order('account_code', { ascending: false })
-        .limit(1);
-
-      let nextCode = `${parentCode}01`;
-      if (existingSubs && existingSubs.length > 0) {
-        const lastCode = existingSubs[0].account_code;
-        const lastNum = parseInt(lastCode.replace(parentCode, ''), 10) || 0;
-        nextCode = `${parentCode}${String(lastNum + 1).padStart(2, '0')}`;
-      }
-
-      // Create sub-account in chart of accounts
-      const { error: accErr } = await supabaseAdmin.from('accounts').insert({
-        user_id: userId,
-        account_code: nextCode,
-        account_name: contactNameParsed,
-        account_type: accountType,
-        parent_code: parentCode,
-        is_active: true,
-        notes: `حساب ${resolvedType} — تم إنشاؤه تلقائياً بواسطة المحاسب الذكي`,
-      });
-      if (accErr) {
-        console.error('Failed to create sub-account for contact:', accErr);
-      } else {
-        console.log(`Auto-created account ${nextCode} - ${contactNameParsed} under ${parentCode}`);
-      }
-
-      // Create contact with linked account
       const { data: newContact, error: contactErr } = await supabaseAdmin.from('contacts').insert({
         user_id: userId,
         contact_name: contactNameParsed,
         contact_type: resolvedType,
-        linked_account_code: accErr ? null : nextCode,
+        is_active: true,
         source: 'ai_accountant',
-      }).select('id, linked_account_code').single();
+      }).select('id, contact_name, contact_type, linked_account_code').single();
 
       if (!contactErr && newContact) {
         contactId = newContact.id;
-        console.log('Auto-created contact:', contactNameParsed, newContact.id, 'linked to', newContact.linked_account_code);
-
-        // Update debit/credit to use the specific contact account instead of generic parent
-        if (!accErr) {
-          if (resolvedType === 'عميل') {
-            // Customer: receivables side uses the sub-account
-            if (debitAccountCode === parentCode) debitAccountCode = nextCode;
-            if (creditAccountCode === parentCode) creditAccountCode = nextCode;
-          } else {
-            // Supplier: payables side uses the sub-account
-            if (debitAccountCode === parentCode) debitAccountCode = nextCode;
-            if (creditAccountCode === parentCode) creditAccountCode = nextCode;
-          }
+        contacts.push(newContact as ContactRow);
+        if (newContact.linked_account_code && !accounts.some(a => a.account_code === newContact.linked_account_code)) {
+          const parentCode = resolvedType === 'مورد' ? '2110' : '1130';
+          accounts.push({ account_code: newContact.linked_account_code, account_name: contactNameParsed, account_type: resolvedType === 'مورد' ? 'خصوم' : 'أصول', parent_code: parentCode });
         }
+        console.log('Auto-created contact:', contactNameParsed, newContact.id, 'linked to', newContact.linked_account_code);
       } else {
         console.error('Failed to auto-create contact:', contactErr);
       }
     }
 
-    // If contact exists and has a linked account, use it instead of generic parent
-    if (contactId && !shouldCreateContact) {
+    // A known contact with its own sub-account always replaces the generic receivable/payable side
+    if (contactId) {
       const existingContact = contacts.find(c => c.id === contactId);
-      if (existingContact?.linked_account_code) {
-        const lac = existingContact.linked_account_code;
-        if (debitAccountCode === '1130' || debitAccountCode === '2110') debitAccountCode = lac;
-        if (creditAccountCode === '1130' || creditAccountCode === '2110') creditAccountCode = lac;
+      const lac = existingContact?.linked_account_code;
+      if (lac && accountExists(lac)) {
+        if (isPartyCode(debitAccountCode)) debitAccountCode = lac;
+        if (isPartyCode(creditAccountCode)) creditAccountCode = lac;
       }
     }
 
     // ═══ 🛡️ Strict-leaf gate: the ledger only accepts real leaf accounts ═══
-    const accountExists = (code: string) => !!code && accounts.some(a => a.account_code === code);
-    const isParentCode = (code: string) => accounts.some(a => a.parent_code === code);
-    const pickLeaf = (parentCode: string, preferName?: string): string => {
-      const leaves = accounts.filter(a => a.parent_code === parentCode);
-      if (!leaves.length) return '';
-      if (preferName) {
-        const preferred = leaves.find(a => a.account_name.includes(preferName));
-        if (preferred) return preferred.account_code;
-      }
-      return leaves[0].account_code;
-    };
-
     if (!accountExists(debitAccountCode) || !accountExists(creditAccountCode)) {
       const unknownName = !accountExists(debitAccountCode) ? (rawDebitName || debitAccountCode) : (rawCreditName || creditAccountCode);
       return new Response(JSON.stringify({
@@ -1012,17 +1078,33 @@ ${contactContext}
       }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
-    // Cash/bank parents → auto-resolve to a leaf (prefer the ILS box for cash)
-    if (isParentCode(debitAccountCode) && (debitAccountCode === '1110' || debitAccountCode === '1120')) {
-      debitAccountCode = pickLeaf(debitAccountCode, debitAccountCode === '1110' ? 'شيكل' : undefined) || debitAccountCode;
-    }
-    if (isParentCode(creditAccountCode) && (creditAccountCode === '1110' || creditAccountCode === '1120')) {
-      creditAccountCode = pickLeaf(creditAccountCode, creditAccountCode === '1110' ? 'شيكل' : undefined) || creditAccountCode;
+    // Cash/bank parents → the leaf that matches the transaction currency (never shekels into a dollar box)
+    const shekelParentCash = new Set<string>();
+    for (const side of ['debit', 'credit'] as const) {
+      const code = side === 'debit' ? debitAccountCode : creditAccountCode;
+      if (isParentCode(code) && (code === '1110' || code === '1120')) {
+        const leaf = pickCashLeaf(code, currency);
+        // Standard template: 1110 has only foreign-currency boxes (1111..1114) and is
+        // itself the shekel cash box (same convention POS uses). Keep it for ILS.
+        const childLeaves = accounts.filter(a => a.parent_code === code);
+        if (!leaf && !currencyWord(currency) && childLeaves.length > 0 && childLeaves.every(a => FOREIGN_RE.test(a.account_name))) {
+          shekelParentCash.add(code);
+          continue;
+        }
+        if (!leaf) {
+          return new Response(JSON.stringify({
+            type: 'chat_response',
+            message: `⚠️ لم يتم تسجيل أي قيد\n━━━━━━━━━━━━━━━━━━\nما لقيت ${code === '1110' ? 'صندوق' : 'حساب بنك'} بعملة ${currency} في شجرة حساباتك.\n\n📝 أضف ${code === '1110' ? 'صندوق' : 'حساب بنك'} بالعملة المطلوبة من شجرة الحسابات ثم أعد المحاولة.\n\n[action:شجرة الحسابات:/accounts]`,
+          }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+        }
+        if (side === 'debit') debitAccountCode = leaf; else creditAccountCode = leaf;
+      }
     }
 
     // Any remaining parent (e.g. 1130/2110 without a resolvable contact) must NOT be posted
-    if (isParentCode(debitAccountCode) || isParentCode(creditAccountCode)) {
-      const parentLabel = isParentCode(debitAccountCode) ? debitAccountCode : creditAccountCode;
+    const blockedParent = (code: string) => isParentCode(code) && !shekelParentCash.has(code);
+    if (blockedParent(debitAccountCode) || blockedParent(creditAccountCode)) {
+      const parentLabel = blockedParent(debitAccountCode) ? debitAccountCode : creditAccountCode;
       const needsContact = parentLabel === '1130' || parentLabel === '2110';
       return new Response(JSON.stringify({
         type: 'chat_response',
@@ -1301,9 +1383,8 @@ ${contactContext}
         const { data: newEmp, error: empErr } = await supabaseAdmin.from('employees').insert({
           user_id: userId,
           full_name: contactNameParsed,
-          status: 'active',
-          basic_salary: amount,
-          hire_date: transactionDate,
+          base_salary: amount,
+          start_date: transactionDate,
           notes: 'تم إنشاؤه تلقائياً بواسطة المحاسب الذكي',
         }).select('id').single();
 
@@ -1345,8 +1426,7 @@ ${contactContext}
         const { data: newEmp } = await supabaseAdmin.from('employees').insert({
           user_id: userId,
           full_name: contactNameParsed,
-          status: 'active',
-          hire_date: transactionDate,
+          start_date: transactionDate,
           notes: 'تم إنشاؤه تلقائياً بواسطة المحاسب الذكي',
         }).select('id').single();
         if (newEmp) {

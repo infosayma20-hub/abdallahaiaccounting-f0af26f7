@@ -2,6 +2,7 @@ import { useState, useRef, useCallback, useEffect } from "react";
 import { ArrowUp, Mic, X, Square, Users, Package, Briefcase, BookOpen, PlusCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
+import { useDataOwnerId } from "@/hooks/useDataOwnerId";
 import { supabase } from "@/integrations/supabase/client";
 import SmartCommandBar from "./SmartCommandBar";
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
@@ -26,6 +27,9 @@ interface Props {
 const CleanInputDock = ({ onSend, sending, centered }: Props) => {
   const { toast } = useToast();
   const { user } = useAuth();
+  // بيانات الشركة على معرّف المالك (المحاسب من الفريق يشوف نفس الزبائن والأصناف)
+  const { dataOwnerId } = useDataOwnerId();
+  const ownerId = dataOwnerId || user?.id || null;
   const [state, setState] = useState<DockState>("idle");
   const [inputValue, setInputValue] = useState("");
   const [recordingTime, setRecordingTime] = useState(0);
@@ -62,14 +66,14 @@ const CleanInputDock = ({ onSend, sending, centered }: Props) => {
 
   // Fetch mention items
   useEffect(() => {
-    if (!user?.id || mentionLoaded) return;
+    if (!ownerId || mentionLoaded) return;
     const fetchMentionData = async () => {
       try {
         const [contactsRes, productsRes, employeesRes, accountsRes] = await Promise.all([
-          supabase.from('contacts').select('id, contact_name, contact_type').eq('user_id', user.id).eq('is_active', true).neq('is_archived', true),
-          supabase.from('products').select('id, name, unit').eq('user_id', user.id),
-          supabase.from('employees').select('id, full_name, job_title').eq('user_id', user.id),
-          supabase.from('accounts').select('id, account_name, account_code, account_type').eq('user_id', user.id).eq('is_active', true),
+          supabase.from('contacts').select('id, contact_name, contact_type').eq('user_id', ownerId).eq('is_active', true).neq('is_archived', true),
+          supabase.from('products').select('id, name, unit').eq('user_id', ownerId),
+          supabase.from('employees').select('id, full_name, job_title').eq('user_id', ownerId),
+          supabase.from('accounts').select('id, account_name, account_code, account_type').eq('user_id', ownerId).eq('is_active', true),
         ]);
 
         const items: MentionItem[] = [
@@ -85,7 +89,7 @@ const CleanInputDock = ({ onSend, sending, centered }: Props) => {
       }
     };
     fetchMentionData();
-  }, [user?.id, mentionLoaded]);
+  }, [ownerId, mentionLoaded]);
 
   // Close mention dropdown on outside click
   useEffect(() => {
@@ -289,12 +293,12 @@ const CleanInputDock = ({ onSend, sending, centered }: Props) => {
 
   const handleQuickAdd = async (category: 'contact' | 'product' | 'employee', type?: string) => {
     const name = mentionSearch.trim();
-    if (!name || !user?.id) return;
+    if (!name || !ownerId) return;
 
     try {
       if (category === 'contact') {
         const { data, error } = await supabase.from('contacts').insert({
-          contact_name: name, user_id: user.id, contact_type: type || 'عميل',
+          contact_name: name, user_id: ownerId, contact_type: type || 'عميل',
         }).select('id, contact_name, contact_type').single();
         if (!error && data) {
           const newItem: MentionItem = { id: data.id, name: data.contact_name, type: data.contact_type, category: 'contact' };
@@ -304,7 +308,7 @@ const CleanInputDock = ({ onSend, sending, centered }: Props) => {
         }
       } else if (category === 'product') {
         const { data, error } = await supabase.from('products').insert({
-          name, user_id: user.id, unit: 'قطعة', buy_price: 0, sell_price: 0, quantity: 0, min_quantity: 0,
+          name, user_id: ownerId, unit: 'قطعة', buy_price: 0, sell_price: 0, quantity: 0, min_quantity: 0,
         }).select('id, name, unit').single();
         if (!error && data) {
           const newItem: MentionItem = { id: data.id, name: data.name, type: `صنف · ${data.unit}`, category: 'product' };
@@ -317,7 +321,7 @@ const CleanInputDock = ({ onSend, sending, centered }: Props) => {
         const { data: company } = await supabase
           .from('companies')
           .select('id')
-          .eq('owner_id', user.id)
+          .eq('owner_id', ownerId)
           .order('created_at', { ascending: true })
           .limit(1)
           .maybeSingle();
@@ -327,7 +331,7 @@ const CleanInputDock = ({ onSend, sending, centered }: Props) => {
         }
         const { data, error } = await supabase.from('employees').insert({
           full_name: name,
-          user_id: user.id,
+          user_id: ownerId,
           company_id: company.id,
           job_title: 'موظف',
           base_salary: 0,
