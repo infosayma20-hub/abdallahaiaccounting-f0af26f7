@@ -645,6 +645,13 @@
       "when": 1791279402855,
       "tag": "0091_migration",
       "breakpoints": true
+    },
+    {
+      "idx": 92,
+      "version": "7",
+      "when": 1791301261500,
+      "tag": "0092_stock_count_define_product",
+      "breakpoints": true
     }
   ]
 }

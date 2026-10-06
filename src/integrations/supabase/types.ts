@@ -35023,6 +35023,17 @@ export type Database = {
         Returns: Json
       }
       stock_count_context: { Args: never; Returns: Json }
+      stock_count_create_product: {
+        Args: {
+          p_barcodes: string[]
+          p_counted_qty?: number
+          p_image_url?: string
+          p_name: string
+          p_note?: string
+          p_sell_price: number
+        }
+        Returns: Json
+      }
       stock_count_lookup: { Args: { p_code: string }; Returns: Json }
       stock_count_report_unknown: {
         Args: { p_code: string; p_note?: string }
@@ -35031,6 +35042,10 @@ export type Database = {
       stock_count_review: {
         Args: { p_approve: boolean; p_entry_id: string; p_note?: string }
         Returns: Json
+      }
+      stock_count_set_image: {
+        Args: { p_image_url: string; p_product_id: string }
+        Returns: undefined
       }
       stock_count_submit: {
         Args: {
