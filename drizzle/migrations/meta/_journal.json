@@ -575,6 +575,13 @@
       "when": 1791267627192,
       "tag": "0081_inventory_costing_engine_phase1",
       "breakpoints": true
+    },
+    {
+      "idx": 82,
+      "version": "7",
+      "when": 1791268323702,
+      "tag": "0082_inventory_costing_engine_phase2_gl",
+      "breakpoints": true
     }
   ]
 }
