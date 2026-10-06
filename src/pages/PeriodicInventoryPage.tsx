@@ -4,6 +4,7 @@ import { Link } from "react-router-dom";
 import { usePeriodicInventory } from "@/hooks/usePeriodicInventory";
 import { useCompanySettings } from "@/hooks/useCompanySettings";
 import { toast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 import { Save, Send, Undo2, Trash2, FileBarChart, AlertCircle, ArrowRight } from "lucide-react";
 
 const fmt = (n: number) =>
