@@ -4,6 +4,7 @@ import { Link } from "react-router-dom";
 import { usePeriodicInventory } from "@/hooks/usePeriodicInventory";
 import { useCompanySettings } from "@/hooks/useCompanySettings";
 import { toast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 import { Save, Send, Undo2, Trash2, FileBarChart, AlertCircle, ArrowRight } from "lucide-react";
 
 const fmt = (n: number) =>
@@ -163,6 +164,30 @@ const PeriodicInventoryPage = () => {
               className="w-full border rounded px-3 py-2 bg-background text-sm font-mono" />
           </div>
         </div>
+
+        {settings?.costing_engine_enabled && (
+          <div className="flex flex-wrap items-center gap-2 rounded-lg border border-border bg-muted/30 p-2 text-xs">
+            <button
+              type="button"
+              className="px-3 py-1.5 rounded-md border border-border bg-background hover:bg-muted"
+              onClick={async () => {
+                const { data, error } = await (supabase.rpc as any)("inventory_periodic_closing_value", {
+                  _period_start: periodStart, _period_end: periodEnd,
+                });
+                if (error || !data?.enabled) {
+                  toast({ title: "تعذّر الحساب من محرك التكلفة", description: error?.message, variant: "destructive" });
+                  return;
+                }
+                setOpeningValue(String(data.opening_value));
+                setClosingValue(String(data.closing_value));
+                toast({ title: "تم الحساب", description: `${data.lines} صنف — بطريقة ${data.method === "fifo" ? "FIFO" : "المتوسط المرجّح للفترة"}` });
+              }}
+            >
+              احسب أول وآخر المدة من محرك التكلفة
+            </button>
+            <span className="text-muted-foreground">يملأ القيم بالطريقة المختارة في الإعدادات؛ يمكنك تعديلها حسب الجرد الفعلي قبل الترحيل.</span>
+          </div>
+        )}
 
         <div>
           <label className="text-xs text-muted-foreground block mb-1">ملاحظات</label>

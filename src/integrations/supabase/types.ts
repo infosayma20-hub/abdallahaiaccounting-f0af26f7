@@ -12363,6 +12363,7 @@ export type Database = {
           reference_type: string | null
           reversed_at: string | null
           reverses_entry_id: string | null
+          seq: number
           total_cost: number
           unit_cost: number
           user_id: string
@@ -12388,6 +12389,7 @@ export type Database = {
           reference_type?: string | null
           reversed_at?: string | null
           reverses_entry_id?: string | null
+          seq?: number
           total_cost?: number
           unit_cost?: number
           user_id: string
@@ -12413,6 +12415,7 @@ export type Database = {
           reference_type?: string | null
           reversed_at?: string | null
           reverses_entry_id?: string | null
+          seq?: number
           total_cost?: number
           unit_cost?: number
           user_id?: string
@@ -12429,6 +12432,7 @@ export type Database = {
           qty_in: number
           qty_remaining: number
           received_at: string
+          seq: number
           source: string
           unit_cost: number
           user_id: string
@@ -12442,6 +12446,7 @@ export type Database = {
           qty_in: number
           qty_remaining: number
           received_at?: string
+          seq?: number
           source?: string
           unit_cost: number
           user_id: string
@@ -12455,6 +12460,7 @@ export type Database = {
           qty_in?: number
           qty_remaining?: number
           received_at?: string
+          seq?: number
           source?: string
           unit_cost?: number
           user_id?: string
@@ -33806,6 +33812,11 @@ export type Database = {
         Returns: Json
       }
       inventory_costing_readiness: { Args: never; Returns: Json }
+      inventory_costing_reconciliation: { Args: never; Returns: Json }
+      inventory_periodic_closing_value: {
+        Args: { _period_end: string; _period_start: string }
+        Returns: Json
+      }
       is_attendance_day_locked: {
         Args: { _branch?: string; _date: string; _owner: string }
         Returns: boolean

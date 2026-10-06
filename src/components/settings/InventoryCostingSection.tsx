@@ -55,6 +55,12 @@ const InventoryCostingSection = ({ settings }: Props) => {
   const isOn = done?.enabled ?? enabled;
   const effectiveFrom = done?.from ?? settings.costing_effective_from;
 
+  // Settings load asynchronously — follow the saved choice once it arrives.
+  useEffect(() => {
+    if (settings.inventory_system) setSys(settings.inventory_system as Sys);
+    if (settings.inventory_valuation_method) setMethod(settings.inventory_valuation_method as Method);
+  }, [settings.inventory_system, settings.inventory_valuation_method]);
+
   useEffect(() => {
     if (!allowed(sys).includes(method)) setMethod(allowed(sys)[0]);
   }, [sys]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -171,6 +177,11 @@ const InventoryCostingSection = ({ settings }: Props) => {
           <Link to="/inventory-valuation" className="inline-flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm hover:bg-muted">
             <FileBarChart className="h-4 w-4" /> تقرير تقييم المخزون
           </Link>
+          {isOn && (
+            <Link to="/inventory-costing" className="inline-flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm hover:bg-muted">
+              <FileBarChart className="h-4 w-4" /> كرت الصنف والمطابقة
+            </Link>
+          )}
           {sys === "periodic" && (
             <Link to="/periodic-inventory" className="inline-flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm hover:bg-muted">
               <CheckCircle2 className="h-4 w-4" /> جرد وتسوية آخر المدة

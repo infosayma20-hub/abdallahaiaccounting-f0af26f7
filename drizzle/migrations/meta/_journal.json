@@ -582,6 +582,62 @@
       "when": 1791268323702,
       "tag": "0082_inventory_costing_engine_phase2_gl",
       "breakpoints": true
+    },
+    {
+      "idx": 83,
+      "version": "7",
+      "when": 1791268577021,
+      "tag": "0083_inventory_costing_phase2b_paths",
+      "breakpoints": true
+    },
+    {
+      "idx": 84,
+      "version": "7",
+      "when": 1791268739520,
+      "tag": "0084_inventory_cost_layers_seq",
+      "breakpoints": true
+    },
+    {
+      "idx": 85,
+      "version": "7",
+      "when": 1791268771802,
+      "tag": "0085_inventory_cost_entries_seq",
+      "breakpoints": true
+    },
+    {
+      "idx": 86,
+      "version": "7",
+      "when": 1791268847675,
+      "tag": "0086_inventory_cost_fifo_void_restore",
+      "breakpoints": true
+    },
+    {
+      "idx": 87,
+      "version": "7",
+      "when": 1791268915077,
+      "tag": "0087_inventory_cost_skip_noop_updates",
+      "breakpoints": true
+    },
+    {
+      "idx": 88,
+      "version": "7",
+      "when": 1791268943260,
+      "tag": "0088_inventory_costing_reconciliation",
+      "breakpoints": true
+    },
+    {
+      "idx": 89,
+      "version": "7",
+      "when": 1791269048676,
+      "tag": "0089_inventory_periodic_closing_value",
+      "breakpoints": true
+    },
+    {
+      "idx": 90,
+      "version": "7",
+      "when": 1791269225187,
+      "tag": "0090_inventory_costing_reconciliation_opening",
+      "breakpoints": true
     }
   ]
 }
