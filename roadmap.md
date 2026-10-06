@@ -1,5 +1,5 @@
 # Roadmap — Inventory costing (plan approved 2026-10-06)
-- [ ] POS v2: restore Malaky-only stockout dialog beside transferred-order alerts; move kitchen into More; verify without changing sales/stock data.
+- [x] POS v2: restore Malaky-only stockout dialog beside transferred-order alerts; move kitchen into More; verified with 3 tests and isolated browser rendering, without changing sales/stock data.
 - [x] Phase 1: engine (moving avg / FIFO / reversal / negative stock), settings choice + lock + audit, readiness check, valuation report reads engine
 - [x] Phase 2: engine GL (perpetual) for invoices, voids, delivery notes, returns, adjustments/counts, negative variance, reversals; POS sale/return COGS from engine; periodic = no COGS at sale; sale line cost write-back
 - [x] Phase 2b: transfers carry source cost; FIFO void restores original layers; rep sales no double COGS; deterministic FIFO order
