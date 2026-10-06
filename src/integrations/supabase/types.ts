@@ -33813,6 +33813,10 @@ export type Database = {
       }
       inventory_costing_readiness: { Args: never; Returns: Json }
       inventory_costing_reconciliation: { Args: never; Returns: Json }
+      inventory_periodic_closing_value: {
+        Args: { _period_end: string; _period_start: string }
+        Returns: Json
+      }
       is_attendance_day_locked: {
         Args: { _branch?: string; _date: string; _owner: string }
         Returns: boolean

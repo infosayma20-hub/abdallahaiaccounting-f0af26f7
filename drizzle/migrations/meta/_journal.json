@@ -624,6 +624,13 @@
       "when": 1791268943260,
       "tag": "0088_inventory_costing_reconciliation",
       "breakpoints": true
+    },
+    {
+      "idx": 89,
+      "version": "7",
+      "when": 1791269048676,
+      "tag": "0089_inventory_periodic_closing_value",
+      "breakpoints": true
     }
   ]
 }
