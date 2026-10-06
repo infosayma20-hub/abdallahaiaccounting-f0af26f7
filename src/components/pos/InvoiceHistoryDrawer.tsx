@@ -202,11 +202,8 @@ export default function InvoiceHistoryDrawer({
   // ── Cashier grace windows ──
   // Re-evaluated each render so the grace window naturally expires as time passes
   // (the drawer is mounted live and re-renders on user interactions).
-  const isWithinCancelGrace = (order: InvoiceOrder) => {
-    if (!order.created_at) return false;
-    const ageMin = (getServerNow() - new Date(order.created_at).getTime()) / 60000;
-    return ageMin <= cancelWindowMinutes;
-  };
+  // مهلة الإلغاء الذاتي للكاشير أُلغيت: إلغاء الفاتورة للكاشير فقط بوضع المدير (مثل الخصم).
+  const isWithinCancelGrace = (_order: InvoiceOrder) => false;
   const canCashierSeeAmount = (order: InvoiceOrder) => {
     if (!cashierMode) return true;
     // Manager-mode unlock bypasses the visibility window entirely.
