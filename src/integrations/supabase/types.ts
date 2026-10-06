@@ -12363,6 +12363,7 @@ export type Database = {
           reference_type: string | null
           reversed_at: string | null
           reverses_entry_id: string | null
+          seq: number
           total_cost: number
           unit_cost: number
           user_id: string
@@ -12388,6 +12389,7 @@ export type Database = {
           reference_type?: string | null
           reversed_at?: string | null
           reverses_entry_id?: string | null
+          seq?: number
           total_cost?: number
           unit_cost?: number
           user_id: string
@@ -12413,6 +12415,7 @@ export type Database = {
           reference_type?: string | null
           reversed_at?: string | null
           reverses_entry_id?: string | null
+          seq?: number
           total_cost?: number
           unit_cost?: number
           user_id?: string
