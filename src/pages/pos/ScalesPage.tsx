@@ -43,6 +43,8 @@ export default function ScalesPage() {
   const [q, setQ] = useState("");
   const [addQ, setAddQ] = useState("");
   const [addResults, setAddResults] = useState<any[]>([]);
+  // product_id -> Set(business_unit_id) لكل أصناف المنشأة؛ null = لا قيود (فرع بدون نشاط)
+  const [unitMap, setUnitMap] = useState<Map<string, Set<string>> | null>(null);
 
   const loadScales = useCallback(async () => {
     if (!dataOwnerId) return;
