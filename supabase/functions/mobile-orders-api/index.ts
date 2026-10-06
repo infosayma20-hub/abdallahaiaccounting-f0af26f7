@@ -216,6 +216,7 @@ const DeliverySchema = z.object({
   lat: z.number().min(-90).max(90).nullish(),
   lng: z.number().min(-180).max(180).nullish(),
   fee: z.number().min(0).max(10000).nullish(),
+  zone_id: z.string().uuid().nullish(),
 });
 
 const PricingSchema = z.object({
@@ -241,6 +242,7 @@ const OrderSchema = z
     delivery_type: z.enum(["delivery", "takeaway", "pickup", "dine_in"]).optional(),
     delivery_address: z.string().max(500).optional(),
     delivery_fee: z.number().min(0).max(10000).optional(),
+    delivery_zone_id: z.string().uuid().optional(),
     payment_method: z.enum(["cash", "visa", "card", "wallet"]).default("cash"),
     items: z.array(ItemSchema).min(1).max(100),
     order_note: z.string().max(1000).optional(),
@@ -454,6 +456,24 @@ async function handleCreateOrder(req: Request, ownerId: string, environment: "li
   }
   const finalOrderNote = noteParts.join("\n").slice(0, 2000) || null;
 
+  // Resolve the delivery zone of THIS branch (by zone id, else exact area name)
+  // so Wheels dispatch can use the pre-selected area (delivery_info.area +
+  // branch_id) instead of guessing from free-text address.
+  let resolvedZone: { id: string; area_name: string; city: string | null } | null = null;
+  if (deliveryType === "delivery") {
+    const zoneId = body.delivery?.zone_id || body.delivery_zone_id || null;
+    if (zoneId) {
+      const { data: z } = await admin.from("delivery_zones").select("id, area_name, city")
+        .eq("user_id", ownerId).eq("id", zoneId).eq("branch_id", branch.id).maybeSingle();
+      if (z) resolvedZone = z as any;
+    }
+    if (!resolvedZone && body.delivery?.area) {
+      const { data: z } = await admin.from("delivery_zones").select("id, area_name, city")
+        .eq("user_id", ownerId).eq("branch_id", branch.id).eq("area_name", body.delivery.area.trim()).maybeSingle();
+      if (z) resolvedZone = z as any;
+    }
+  }
+
 
   // 3.5) Dry-run mode (integration self-test): validate + resolve + price, but write nothing
   if (dryRun) {
@@ -500,7 +520,10 @@ async function handleCreateOrder(req: Request, ownerId: string, environment: "li
         branch_external_id: branchExt,
         customer_external_id: ext(body.customer?.external_id),
         city: body.delivery?.city || null,
-        area: body.delivery?.area || null,
+        area: resolvedZone?.area_name || body.delivery?.area || null,
+        app_area: body.delivery?.area || null,
+        zone_id: resolvedZone?.id || null,
+        ...(resolvedZone ? { branch_id: branch.id } : {}),
         street: body.delivery?.street || null,
         address_note: body.delivery?.address_note || null,
         lat: body.delivery?.lat ?? null,
@@ -510,7 +533,8 @@ async function handleCreateOrder(req: Request, ownerId: string, environment: "li
         app_total: body.pricing?.total ?? null,
       } as any,
 
-      skip_wheels_dispatch: true,
+      // Delivery orders from the app go to Wheels like any other delivery order.
+      skip_wheels_dispatch: deliveryType !== "delivery",
       client_reference_id: body.client_reference_id,
       is_scheduled: !!body.scheduled_for,
       scheduled_for: body.scheduled_for || null,
@@ -626,8 +650,9 @@ async function handleCatalog(req: Request, ownerId: string) {
           admin
             .from("modifier_options")
             .select("id, group_id, name, name_en, extra_price, is_default, sort_order, is_active")
+            // modifier_options has no user_id column — tenant scope comes from
+            // the groups (filtered by owner above) via groupById below.
             .in("group_id", groupIds)
-            .eq("user_id", ownerId)
             .order("sort_order"),
         ])
       : [{ data: [] }, { data: [] }];
@@ -635,6 +660,7 @@ async function handleCatalog(req: Request, ownerId: string) {
     const optionsByGroup = new Map<string, typeof options>();
     for (const o of options || []) {
       if (o.is_active === false) continue;
+      if (!groupById.has(o.group_id)) continue;
       const arr = optionsByGroup.get(o.group_id) || [];
       arr.push(o);
       optionsByGroup.set(o.group_id, arr);
