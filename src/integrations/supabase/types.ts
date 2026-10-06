@@ -31562,6 +31562,10 @@ export type Database = {
         Returns: undefined
       }
       _infer_bulk_emp_category: { Args: { _desc: string }; Returns: string }
+      _inv_cost_account: {
+        Args: { _owner: string; _role: string }
+        Returns: string
+      }
       _inv_cost_apply_movement: {
         Args: {
           _method: string
@@ -31569,6 +31573,9 @@ export type Database = {
         }
         Returns: string
       }
+      _inv_cost_mode: { Args: { _owner: string }; Returns: string }
+      _inv_cost_post_gl: { Args: { _entry_id: string }; Returns: undefined }
+      _inv_cost_prepare_accounts: { Args: { _owner: string }; Returns: Json }
       _inv_cost_receipt_unit_cost: {
         Args: {
           _fallback: number
@@ -31580,6 +31587,7 @@ export type Database = {
         Args: { _movement_id: string }
         Returns: undefined
       }
+      _inv_cost_writeback: { Args: { _entry_id: string }; Returns: undefined }
       _inv_costing_owner_for_admin: { Args: never; Returns: string }
       _is_procurement_manager: {
         Args: { _owner: string; _uid: string }
