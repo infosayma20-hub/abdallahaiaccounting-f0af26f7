@@ -55,6 +55,12 @@ const InventoryCostingSection = ({ settings }: Props) => {
   const isOn = done?.enabled ?? enabled;
   const effectiveFrom = done?.from ?? settings.costing_effective_from;
 
+  // Settings load asynchronously — follow the saved choice once it arrives.
+  useEffect(() => {
+    if (settings.inventory_system) setSys(settings.inventory_system as Sys);
+    if (settings.inventory_valuation_method) setMethod(settings.inventory_valuation_method as Method);
+  }, [settings.inventory_system, settings.inventory_valuation_method]);
+
   useEffect(() => {
     if (!allowed(sys).includes(method)) setMethod(allowed(sys)[0]);
   }, [sys]); // eslint-disable-line react-hooks/exhaustive-deps

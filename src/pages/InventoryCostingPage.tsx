@@ -85,6 +85,8 @@ const InventoryCostingPage = () => {
   );
 
   const diff = rec?.enabled ? Number(rec.engine_value) - Number(rec.gl_engine_account) : 0;
+  const unpostedNet = (rec?.unposted || []).reduce((s: number, u: any) => s + Number(u.net_value || 0), 0);
+  const unexplained = rec?.enabled ? diff - Number(rec.opening_value || 0) - unpostedNet : 0;
 
   return (
     <FinanceShell
@@ -128,6 +130,14 @@ const InventoryCostingPage = () => {
                   <p className="text-[11px] text-muted-foreground">مجموعة المخزون 1140 كاملة</p>
                   <p className="text-lg font-bold tabular-nums">₪{fmt(rec.gl_inventory_group)}</p>
                 </div>
+              </div>
+
+              <div className={`rounded-lg border p-3 text-sm flex items-center gap-2 ${Math.abs(unexplained) < 0.01 ? "border-border" : "border-destructive/50 text-destructive"}`}>
+                {Math.abs(unexplained) < 0.01 ? <CheckCircle2 className="h-4 w-4 text-primary" /> : <AlertTriangle className="h-4 w-4" />}
+                <span>
+                  الفرق = الرصيد الافتتاحي للتكلفة ₪{fmt(rec.opening_value)} + حركات بدون قيد تلقائي ₪{fmt(unpostedNet)}
+                  {" — "}فرق غير مفسَّر: <b className="tabular-nums">₪{fmt(unexplained)}</b>
+                </span>
               </div>
 
               <div className="text-xs text-muted-foreground space-y-1">
@@ -201,7 +211,7 @@ const InventoryCostingPage = () => {
                           <td className="p-2 whitespace-nowrap">{new Date(e.movement_at).toLocaleString("ar")}</td>
                           <td className="p-2">{whName[e.warehouse_id] || "—"}</td>
                           <td className="p-2">{TYPE_LABEL[e.entry_type] || e.entry_type}{e.negative_stock ? " ⚠" : ""}</td>
-                          <td className="p-2">{REF_LABEL[e.reference_type] || e.reference_type || "—"}</td>
+                          <td className="p-2">{e.entry_type === "opening" ? "رصيد افتتاحي للتكلفة" : (REF_LABEL[e.reference_type] || e.reference_type || "—")}</td>
                           <td className="p-2 tabular-nums">{fmt(e.quantity)}</td>
                           <td className="p-2 tabular-nums">{fmt(e.unit_cost)}</td>
                           <td className="p-2 tabular-nums">{fmt(e.total_cost)}</td>
