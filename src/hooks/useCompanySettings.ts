@@ -144,7 +144,10 @@ export interface CompanySettings {
   // Periodic Inventory (IAS 2 / IAS 1)
   inventory_system: string;                // 'perpetual' | 'periodic'
   periodic_inventory_enabled: boolean;
-  periodic_disclosure_method: string;      // 'weighted_avg' | 'fifo'
+  periodic_disclosure_method: string;      // 'weighted_avg' | 'fifo' (mirrored by DB trigger)
+  inventory_valuation_method?: string;     // 'moving_avg' | 'weighted_avg_period' | 'fifo'
+  costing_engine_enabled?: boolean;
+  costing_effective_from?: string | null;
   // HR
   hr_work_days_per_week: number;
   hr_daily_hours: number;
@@ -531,10 +534,10 @@ export function useCompanySettings() {
     "invoice_show_balance_box","voucher_show_balance_box",
     "can_edit_posted","can_delete_posted","card_bank_account_id",
     // Inventory
-    "inventory_costing_method","inventory_default_unit","inventory_low_stock_alert",
+    // Costing method/system are changed ONLY via RPCs (set_inventory_costing_choice / initialize_inventory_costing)
+    "inventory_default_unit","inventory_low_stock_alert",
     "inventory_default_min_qty","inventory_default_max_qty","inventory_expiry_alert",
     "inventory_expiry_days","inventory_auto_barcode","inventory_allow_no_barcode",
-    "inventory_system","periodic_inventory_enabled","periodic_disclosure_method",
     // Sales Reps (Van Sales)
     "rep_allow_negative_stock","rep_disable_stock_deduction",
     // Security

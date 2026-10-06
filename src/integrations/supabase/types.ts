@@ -3960,6 +3960,8 @@ export type Database = {
           city: string | null
           commercial_register: string | null
           company_name: string | null
+          costing_effective_from: string | null
+          costing_engine_enabled: boolean
           default_bank_account: string | null
           default_cash_account: string | null
           default_expense_account: string | null
@@ -4039,6 +4041,7 @@ export type Database = {
           inventory_low_stock_alert: boolean | null
           inventory_method: string | null
           inventory_system: string
+          inventory_valuation_method: string
           invoice_default_notes: string | null
           invoice_font: string | null
           invoice_footer: string | null
@@ -4168,6 +4171,8 @@ export type Database = {
           city?: string | null
           commercial_register?: string | null
           company_name?: string | null
+          costing_effective_from?: string | null
+          costing_engine_enabled?: boolean
           default_bank_account?: string | null
           default_cash_account?: string | null
           default_expense_account?: string | null
@@ -4247,6 +4252,7 @@ export type Database = {
           inventory_low_stock_alert?: boolean | null
           inventory_method?: string | null
           inventory_system?: string
+          inventory_valuation_method?: string
           invoice_default_notes?: string | null
           invoice_font?: string | null
           invoice_footer?: string | null
@@ -4376,6 +4382,8 @@ export type Database = {
           city?: string | null
           commercial_register?: string | null
           company_name?: string | null
+          costing_effective_from?: string | null
+          costing_engine_enabled?: boolean
           default_bank_account?: string | null
           default_cash_account?: string | null
           default_expense_account?: string | null
@@ -4455,6 +4463,7 @@ export type Database = {
           inventory_low_stock_alert?: boolean | null
           inventory_method?: string | null
           inventory_system?: string
+          inventory_valuation_method?: string
           invoice_default_notes?: string | null
           invoice_font?: string | null
           invoice_footer?: string | null
@@ -12255,6 +12264,243 @@ export type Database = {
           unit?: string
           unit_price?: number
           updated_at?: string
+        }
+        Relationships: []
+      }
+      inventory_cost_balances: {
+        Row: {
+          avg_cost: number
+          product_id: string
+          quantity: number
+          total_value: number
+          updated_at: string
+          user_id: string
+          warehouse_id: string
+        }
+        Insert: {
+          avg_cost?: number
+          product_id: string
+          quantity?: number
+          total_value?: number
+          updated_at?: string
+          user_id: string
+          warehouse_id: string
+        }
+        Update: {
+          avg_cost?: number
+          product_id?: string
+          quantity?: number
+          total_value?: number
+          updated_at?: string
+          user_id?: string
+          warehouse_id?: string
+        }
+        Relationships: []
+      }
+      inventory_cost_consumptions: {
+        Row: {
+          created_at: string
+          entry_id: string
+          id: string
+          layer_id: string
+          quantity: number
+          unit_cost: number
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          entry_id: string
+          id?: string
+          layer_id: string
+          quantity: number
+          unit_cost: number
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          entry_id?: string
+          id?: string
+          layer_id?: string
+          quantity?: number
+          unit_cost?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inventory_cost_consumptions_entry_id_fkey"
+            columns: ["entry_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_cost_entries"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_cost_consumptions_layer_id_fkey"
+            columns: ["layer_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_cost_layers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      inventory_cost_entries: {
+        Row: {
+          avg_cost_after: number
+          balance_qty_after: number
+          balance_value_after: number
+          cost_source: string | null
+          created_at: string
+          entry_type: string
+          id: string
+          method: string
+          movement_at: string
+          movement_id: string | null
+          negative_stock: boolean
+          negative_variance: number
+          product_id: string
+          quantity: number
+          reference_id: string | null
+          reference_line_id: string | null
+          reference_type: string | null
+          reversed_at: string | null
+          reverses_entry_id: string | null
+          total_cost: number
+          unit_cost: number
+          user_id: string
+          warehouse_id: string
+        }
+        Insert: {
+          avg_cost_after?: number
+          balance_qty_after?: number
+          balance_value_after?: number
+          cost_source?: string | null
+          created_at?: string
+          entry_type: string
+          id?: string
+          method: string
+          movement_at?: string
+          movement_id?: string | null
+          negative_stock?: boolean
+          negative_variance?: number
+          product_id: string
+          quantity: number
+          reference_id?: string | null
+          reference_line_id?: string | null
+          reference_type?: string | null
+          reversed_at?: string | null
+          reverses_entry_id?: string | null
+          total_cost?: number
+          unit_cost?: number
+          user_id: string
+          warehouse_id: string
+        }
+        Update: {
+          avg_cost_after?: number
+          balance_qty_after?: number
+          balance_value_after?: number
+          cost_source?: string | null
+          created_at?: string
+          entry_type?: string
+          id?: string
+          method?: string
+          movement_at?: string
+          movement_id?: string | null
+          negative_stock?: boolean
+          negative_variance?: number
+          product_id?: string
+          quantity?: number
+          reference_id?: string | null
+          reference_line_id?: string | null
+          reference_type?: string | null
+          reversed_at?: string | null
+          reverses_entry_id?: string | null
+          total_cost?: number
+          unit_cost?: number
+          user_id?: string
+          warehouse_id?: string
+        }
+        Relationships: []
+      }
+      inventory_cost_layers: {
+        Row: {
+          created_at: string
+          id: string
+          movement_id: string | null
+          product_id: string
+          qty_in: number
+          qty_remaining: number
+          received_at: string
+          source: string
+          unit_cost: number
+          user_id: string
+          warehouse_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          movement_id?: string | null
+          product_id: string
+          qty_in: number
+          qty_remaining: number
+          received_at?: string
+          source?: string
+          unit_cost: number
+          user_id: string
+          warehouse_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          movement_id?: string | null
+          product_id?: string
+          qty_in?: number
+          qty_remaining?: number
+          received_at?: string
+          source?: string
+          unit_cost?: number
+          user_id?: string
+          warehouse_id?: string
+        }
+        Relationships: []
+      }
+      inventory_costing_changes: {
+        Row: {
+          action: string
+          changed_by: string | null
+          created_at: string
+          details: Json
+          effective_from: string | null
+          id: string
+          new_method: string | null
+          new_system: string | null
+          old_method: string | null
+          old_system: string | null
+          user_id: string
+        }
+        Insert: {
+          action: string
+          changed_by?: string | null
+          created_at?: string
+          details?: Json
+          effective_from?: string | null
+          id?: string
+          new_method?: string | null
+          new_system?: string | null
+          old_method?: string | null
+          old_system?: string | null
+          user_id: string
+        }
+        Update: {
+          action?: string
+          changed_by?: string | null
+          created_at?: string
+          details?: Json
+          effective_from?: string | null
+          id?: string
+          new_method?: string | null
+          new_system?: string | null
+          old_method?: string | null
+          old_system?: string | null
+          user_id?: string
         }
         Relationships: []
       }
@@ -31316,6 +31562,25 @@ export type Database = {
         Returns: undefined
       }
       _infer_bulk_emp_category: { Args: { _desc: string }; Returns: string }
+      _inv_cost_apply_movement: {
+        Args: {
+          _method: string
+          _mv: Database["public"]["Tables"]["stock_movements"]["Row"]
+        }
+        Returns: string
+      }
+      _inv_cost_receipt_unit_cost: {
+        Args: {
+          _fallback: number
+          _mv: Database["public"]["Tables"]["stock_movements"]["Row"]
+        }
+        Returns: Record<string, unknown>
+      }
+      _inv_cost_reverse_movement: {
+        Args: { _movement_id: string }
+        Returns: undefined
+      }
+      _inv_costing_owner_for_admin: { Args: never; Returns: string }
       _is_procurement_manager: {
         Args: { _owner: string; _uid: string }
         Returns: boolean
@@ -33528,6 +33793,11 @@ export type Database = {
           total_sales: number
         }[]
       }
+      initialize_inventory_costing: {
+        Args: { _method: string; _system: string }
+        Returns: Json
+      }
+      inventory_costing_readiness: { Args: never; Returns: Json }
       is_attendance_day_locked: {
         Args: { _branch?: string; _date: string; _owner: string }
         Returns: boolean
@@ -34540,6 +34810,10 @@ export type Database = {
           p_template_id?: string
         }
         Returns: number
+      }
+      set_inventory_costing_choice: {
+        Args: { _method: string; _system: string }
+        Returns: undefined
       }
       set_invoice_sequence_start: {
         Args: {
