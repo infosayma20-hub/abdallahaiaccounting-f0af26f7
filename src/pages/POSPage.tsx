@@ -6618,8 +6618,11 @@ const POSPage = ({ variant = "v1" }: { variant?: "v1" | "v2" } = {}) => {
     const _info: any = (order as any).delivery_info || null;
     const _fee = Number((order as any).delivery_fee || 0);
     const isDelivery = order.delivery_type === "delivery";
-    const deliveryBlock = (isDelivery || _info) ? [
-      _info ? `توصيل: ${_info.city || ""} - ${_info.area || ""}` : "توصيل",
+    // App orders always carry delivery_info, so it must NOT imply delivery —
+    // an explicit pickup stays «استلام».
+    const _place = [_info?.city, _info?.area].filter(Boolean).join(" - ");
+    const deliveryBlock = (isDelivery || (_info && order.delivery_type !== "pickup")) ? [
+      _place ? `توصيل: ${_place}` : "توصيل",
       _info?.branch_name ? `الفرع: ${_info.branch_name}` : "",
       _fee > 0 ? `رسوم التوصيل: ₪${_fee.toFixed(2)}${_info?.manually_adjusted ? " (معدّل)" : ""}` : "",
       order.customer_name ? `الزبون: ${order.customer_name}` : "",
@@ -7569,8 +7572,11 @@ const POSPage = ({ variant = "v1" }: { variant?: "v1" | "v2" } = {}) => {
               const _info: any = (order as any).delivery_info || null;
               const _fee = Number((order as any).delivery_fee || 0);
               const isDelivery = order.delivery_type === "delivery";
-              const deliveryBlock = (isDelivery || _info) ? [
-                _info ? `توصيل: ${_info.city || ""} - ${_info.area || ""}` : "توصيل",
+              // App orders always carry delivery_info, so it must NOT imply
+              // delivery — an explicit pickup stays «استلام».
+              const _place = [_info?.city, _info?.area].filter(Boolean).join(" - ");
+              const deliveryBlock = (isDelivery || (_info && order.delivery_type !== "pickup")) ? [
+                _place ? `توصيل: ${_place}` : "توصيل",
                 _info?.branch_name ? `الفرع: ${_info.branch_name}` : "",
                 _fee > 0 ? `رسوم التوصيل: ₪${_fee.toFixed(2)}${_info?.manually_adjusted ? " (معدّل)" : ""}` : "",
                 order.customer_name ? `الزبون: ${order.customer_name}` : "",
