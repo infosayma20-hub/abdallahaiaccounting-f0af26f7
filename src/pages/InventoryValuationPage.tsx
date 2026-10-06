@@ -45,7 +45,31 @@ const InventoryValuationPage = () => {
       .select("id, name, category, sku, buy_price, sell_price, quantity, min_quantity, unit")
       .eq("user_id", dataOwnerId)
       .order("name");
-    setProducts(data || []);
+    // When the costing engine is on, the cost basis is the engine's balance
+    // (moving average or FIFO layers) — never the last purchase price.
+    const { data: cs } = await supabase.from("company_settings")
+      .select("costing_engine_enabled, inventory_valuation_method").eq("user_id", dataOwnerId).maybeSingle();
+    const engineMethod = (cs as any)?.costing_engine_enabled ? String((cs as any).inventory_valuation_method) : null;
+    let rows: any[] = data || [];
+    if (engineMethod) {
+      const agg = new Map<string, { q: number; v: number }>();
+      for (let from = 0; ; from += 1000) {
+        const { data: bals, error } = await (supabase.from as any)("inventory_cost_balances")
+          .select("product_id, quantity, total_value").eq("user_id", dataOwnerId).range(from, from + 999);
+        if (error || !bals?.length) break;
+        for (const b of bals) {
+          const a = agg.get(b.product_id) || { q: 0, v: 0 };
+          a.q += Number(b.quantity) || 0; a.v += Number(b.total_value) || 0;
+          agg.set(b.product_id, a);
+        }
+        if (bals.length < 1000) break;
+      }
+      rows = rows.map(p => {
+        const a = agg.get(p.id);
+        return a && a.q > 0 ? { ...p, avg_cost: a.v / a.q, engine_basis: engineMethod } : { ...p, engine_basis: engineMethod };
+      });
+    }
+    setProducts(rows);
     setLoading(false);
   }, [user, dataOwnerId]);
 
@@ -56,12 +80,13 @@ const InventoryValuationPage = () => {
   // Phase A: cost basis = avg_cost if the column exists on the row, else buy_price.
   // (products table currently has no avg_cost column — fallback wins, but logic
   // is forward-compatible if avg_cost is added later.)
-  const pickCostBasis = (p: any): { cost: number; basis: "avg_cost" | "buy_price" } => {
+  const pickCostBasis = (p: any): { cost: number; basis: string } => {
     const avg = p?.avg_cost;
-    if (avg != null && Number(avg) > 0) return { cost: Number(avg), basis: "avg_cost" };
+    if (avg != null && Number(avg) > 0) return { cost: Number(avg), basis: p?.engine_basis || "avg_cost" };
     return { cost: Number(p?.buy_price) || 0, basis: "buy_price" };
   };
-  const basisLabel = (b: string) => b === "avg_cost" ? "متوسط مرجح" : "آخر سعر شراء";
+  const basisLabel = (b: string) =>
+    b === "fifo" ? "FIFO" : b === "moving_avg" ? "متوسط متحرك" : b === "weighted_avg_period" || b === "avg_cost" ? "متوسط مرجح" : "آخر سعر شراء";
 
   const tableData = useMemo(() => {
     const enriched = products.map(p => {
@@ -104,7 +129,7 @@ const InventoryValuationPage = () => {
     },
     { key: "min_quantity", label: "الحد الأدنى", type: "number", align: "center", defaultHidden: true },
     { key: "buy_price", label: "سعر التكلفة", type: "currency" },
-    { key: "cost_basis", label: "أساس التكلفة", type: "badge", filterType: "select", filterOptions: ["متوسط مرجح", "آخر سعر شراء"] },
+    { key: "cost_basis", label: "أساس التكلفة", type: "badge", filterType: "select", filterOptions: ["متوسط متحرك", "متوسط مرجح", "FIFO", "آخر سعر شراء"] },
     { key: "sell_price", label: "سعر البيع", type: "currency", defaultHidden: true },
     { key: "value", label: "القيمة الإجمالية", type: "currency",
       format: (v) => <span className="font-mono text-xs font-bold text-foreground">{fmtAmt(v)}</span>

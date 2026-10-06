@@ -168,7 +168,7 @@ const InventoryCostingSection = ({ settings }: Props) => {
         )}
 
         <div className="flex flex-wrap gap-2">
-          <Link to="/inventory/valuation" className="inline-flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm hover:bg-muted">
+          <Link to="/inventory-valuation" className="inline-flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm hover:bg-muted">
             <FileBarChart className="h-4 w-4" /> تقرير تقييم المخزون
           </Link>
           {sys === "periodic" && (
