@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Camera, ImagePlus, Loader2, PackageSearch, Pencil, Plus, Save, ScanLine, TriangleAlert, X } from "lucide-react";
+import { Camera, ClipboardPaste, Copy, ImagePlus, Loader2, PackageSearch, Plus, Save, ScanLine, TriangleAlert, X } from "lucide-react";
 import { compressProductImage, uploadProductImage } from "@/lib/productImage";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
