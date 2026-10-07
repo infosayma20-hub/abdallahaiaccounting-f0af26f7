@@ -223,6 +223,16 @@ export default function POSv2Cart(p: Props) {
                 <button type="button" onClick={() => (l.qty <= 1 ? (p.canRemove ? p.onRemove(i) : undefined) : p.onQty(i, l.qty - 1))} style={{ width: 27, height: 28, color: t.text }} className="flex items-center justify-center"><Minus style={{ width: 13, height: 13 }} /></button>
               </div>
               <div className="tabular-nums shrink-0 text-left" dir="ltr" style={{ minWidth: 55, fontSize: 13, fontWeight: 800 }}>{fmtMoney(l.total)}</div>
+              {((l.modifiers?.length || 0) > 0 || (!!l.note?.trim() && p.selectedLineIndex !== i)) && (
+                <div className="w-full flex flex-wrap items-center gap-1" style={{ marginTop: -2 }}>
+                  {l.modifiers?.map((m, mi) => (
+                    <span key={mi} style={{ fontSize: 11, fontWeight: 700, padding: "1px 7px", borderRadius: 6, background: `${t.accent}1f`, color: t.accent }}>{m.option_name}</span>
+                  ))}
+                  {!!l.note?.trim() && p.selectedLineIndex !== i && (
+                    <span className="truncate" style={{ fontSize: 11, color: t.price, maxWidth: "100%" }}>📝 {l.note}</span>
+                  )}
+                </div>
+              )}
               {p.selectedLineIndex === i && (
                 <input
                   autoFocus
