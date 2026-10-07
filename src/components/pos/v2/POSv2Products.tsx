@@ -163,6 +163,22 @@ export default function POSv2Products(p: Props) {
                       </span>
                     );
                   })()}
+                  {!p.isSortMode && p.onEditProduct && (
+                    <span
+                      role="button"
+                      tabIndex={0}
+                      aria-label={tr("تعديل الصنف")}
+                      title={tr("تعديل الصنف")}
+                      onPointerDown={(e) => e.stopPropagation()}
+                      onClick={(e) => { e.preventDefault(); e.stopPropagation(); p.onEditProduct!(prod); }}
+                      onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); e.stopPropagation(); p.onEditProduct!(prod); } }}
+                      className="absolute z-10 flex items-center justify-center"
+                      style={{ top: 6, left: p.onToggleFavorite ? 42 : 6, width: 30, height: 30, borderRadius: 15, background: `${t.card}cc`, border: `1px solid ${t.border}` }}
+                    >
+                      <Pencil size={14} strokeWidth={2.2} style={{ color: t.muted }} />
+                    </span>
+                  )}
+
 
                   {p.cardSize !== "S" && (
                     <div style={{ padding: 8, paddingBottom: 0 }}>
