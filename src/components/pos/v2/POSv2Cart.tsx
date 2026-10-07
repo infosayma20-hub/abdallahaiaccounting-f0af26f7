@@ -223,6 +223,11 @@ export default function POSv2Cart(p: Props) {
                 <button type="button" onClick={() => (l.qty <= 1 ? (p.canRemove ? p.onRemove(i) : undefined) : p.onQty(i, l.qty - 1))} style={{ width: 27, height: 28, color: t.text }} className="flex items-center justify-center"><Minus style={{ width: 13, height: 13 }} /></button>
               </div>
               <div className="tabular-nums shrink-0 text-left" dir="ltr" style={{ minWidth: 55, fontSize: 13, fontWeight: 800 }}>{fmtMoney(l.total)}</div>
+              {p.canRemove && (
+                <button type="button" title={tr("حذف الصنف")} aria-label={tr("حذف الصنف")} onClick={(e) => { e.stopPropagation(); p.onRemove(i); }} className="shrink-0 flex items-center justify-center" style={{ width: 26, height: 28, borderRadius: 7, color: t.danger }}>
+                  <X style={{ width: 14, height: 14 }} />
+                </button>
+              )}
               {((l.modifiers?.length || 0) > 0 || (!!l.note?.trim() && p.selectedLineIndex !== i)) && (
                 <div className="w-full flex flex-wrap items-center gap-1" style={{ marginTop: -2 }}>
                   {l.modifiers?.map((m, mi) => (
