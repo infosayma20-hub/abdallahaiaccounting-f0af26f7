@@ -659,6 +659,13 @@
       "when": 1791304903105,
       "tag": "0093_stock_count_lookup_return_image_url",
       "breakpoints": true
+    },
+    {
+      "idx": 94,
+      "version": "7",
+      "when": 1791397867547,
+      "tag": "0094_tenant_portals",
+      "breakpoints": true
     }
   ]
 }

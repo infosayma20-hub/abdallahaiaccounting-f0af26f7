@@ -217,6 +217,10 @@ const SuperAdminDashboard = lazy(() => import("./pages/SuperAdminDashboard"));
 const SuperAdminLoginPage = lazy(() => import("./pages/SuperAdminLoginPage"));
 const SuperAdminHoldingsPage = lazy(() => import("./pages/holding/SuperAdminHoldingsPage"));
 const TrialSignupsPage = lazy(() => import("./pages/TrialSignupsPage"));
+import { getPortalSlug } from "@/lib/tenantPortal";
+import TenantPortalGuard from "@/components/auth/TenantPortalGuard";
+const TenantPortalLoginPage = lazy(() => import("./pages/TenantPortalLoginPage"));
+const portalSlug = getPortalSlug();
 const BrandedHoldingLoginPage = lazy(() => import("./pages/holding/BrandedHoldingLoginPage"));
 const HoldingConsolePage = lazy(() => import("./pages/holding/HoldingConsolePage"));
 const WorkspaceSelectPage = lazy(() => import("./pages/holding/WorkspaceSelect"));
@@ -608,7 +612,7 @@ const SmartRedirect = () => {
   }
 
   // Logged-out visitors → public marketing landing page.
-  if (!user) return <LandingPage />;
+  if (!user) return portalSlug ? <Navigate to="/auth" replace /> : <LandingPage />;
   return <Navigate to={targetPath || "/apps"} replace />;
 };
 
@@ -624,6 +628,7 @@ const App = () => (
       <TooltipProvider>
         <Toaster />
         <Sonner />
+        <TenantPortalGuard />
         <CrossTabSyncProvider />
         <OfflineBanner />
         <PendingSyncDocuments />
@@ -647,7 +652,7 @@ const App = () => (
             <ScheduledBackupReminder />
             <Suspense fallback={<AuthCheckSpinner />}>
             <Routes>
-              <Route path="/auth" element={<AuthRoute><AuthPage /></AuthRoute>} />
+              <Route path="/auth" element={<AuthRoute>{portalSlug ? <Suspense fallback={<AuthCheckSpinner />}><TenantPortalLoginPage slug={portalSlug} /></Suspense> : <AuthPage />}</AuthRoute>} />
               <Route path="/__birthday-preview" element={<BirthdayPreview />} />
 <Route path="/auth/verify" element={<AuthVerifyPage />} />
               <Route path="/api-test" element={<ApiTestPage />} />

@@ -9,7 +9,7 @@ import {
   ChevronLeft, ChevronRight, Search, X, LogOut, Database, FileText, ChevronDown,
   TrendingUp, Wifi, Download, Table2, Play, Pause, Settings, Package,
   Zap, Server, Bell, HardDrive, CreditCard, BarChart3, PieChart, ArrowUpRight, ArrowDownRight, CalendarDays,
-  Sun, Moon, LayoutDashboard, UserPlus, ArrowUp, ArrowDown, ArrowUpDown, MailCheck, MailWarning,
+  Sun, Moon, Globe, LayoutDashboard, UserPlus, ArrowUp, ArrowDown, ArrowUpDown, MailCheck, MailWarning,
 } from "lucide-react";
 import SamiLeadsPanel from "@/components/superadmin/SamiLeadsPanel";
 import { CloudBackupStatusCard } from "@/components/settings/CloudBackupStatusCard";
@@ -17,6 +17,7 @@ import { SignupNotificationsBell } from "@/components/super-admin/SignupNotifica
 import UserSecurityAuditTab from "@/components/super-admin/UserSecurityAuditTab";
 import WatchlistTab from "@/components/super-admin/WatchlistTab";
 import NotificationsQueuePanel from "@/components/super-admin/NotificationsQueuePanel";
+import TenantPortalsPanel from "@/components/super-admin/TenantPortalsPanel";
 import TenantsMonitoringPanel from "@/components/super-admin/TenantsMonitoringPanel";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -163,6 +164,7 @@ type LiveEvent = {
 const SA_TABS = [
   { value: "dashboard", icon: Activity, label: "لوحة التحكم" },
   { value: "tenants_monitor", icon: Server, label: "مراقبة المشتركين" },
+  { value: "tenant_portals", icon: Globe, label: "الروابط الخاصة" },
   { value: "users", icon: Users, label: "المستخدمون" },
   { value: "database", icon: Database, label: "قاعدة البيانات" },
   { value: "live", icon: Wifi, label: "مراقبة حية" },
@@ -2364,6 +2366,9 @@ export default function SuperAdminDashboard() {
 
       <div className="max-w-7xl mx-auto px-3 sm:px-6 py-4 sm:py-5">
           {/* ─── TENANTS MONITORING TAB (read-only) ─── */}
+          <TabsContent value="tenant_portals" className="space-y-6">
+            <TenantPortalsPanel />
+          </TabsContent>
           <TabsContent value="tenants_monitor" className="space-y-6">
             <TenantsMonitoringPanel />
           </TabsContent>

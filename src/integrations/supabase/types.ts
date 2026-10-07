@@ -26918,6 +26918,45 @@ export type Database = {
         }
         Relationships: []
       }
+      tenant_portals: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          display_name: string
+          id: string
+          is_active: boolean
+          logo_url: string | null
+          owner_user_id: string
+          primary_color: string
+          slug: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          display_name: string
+          id?: string
+          is_active?: boolean
+          logo_url?: string | null
+          owner_user_id: string
+          primary_color?: string
+          slug: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          display_name?: string
+          id?: string
+          is_active?: boolean
+          logo_url?: string | null
+          owner_user_id?: string
+          primary_color?: string
+          slug?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       termination_records: {
         Row: {
           advance_balance: number | null
@@ -32000,6 +32039,7 @@ export type Database = {
         Args: { p_owner_id: string; p_payload: Json }
         Returns: Json
       }
+      check_tenant_portal_access: { Args: { p_slug: string }; Returns: boolean }
       claim_notification_batch: {
         Args: { _limit?: number }
         Returns: {
@@ -33593,6 +33633,15 @@ export type Database = {
         | { Args: never; Returns: string }
         | { Args: { _user_id: string }; Returns: string }
       get_tenant_company_logo: { Args: never; Returns: string }
+      get_tenant_portal_branding: {
+        Args: { p_slug: string }
+        Returns: {
+          display_name: string
+          logo_url: string
+          primary_color: string
+          slug: string
+        }[]
+      }
       get_tenants_usage_overview: {
         Args: { _days?: number }
         Returns: {
@@ -34727,6 +34776,13 @@ export type Database = {
       sa_ensure_baseline_accounts: {
         Args: { p_user_id: string }
         Returns: Json
+      }
+      sa_find_user_by_email: {
+        Args: { p_email: string }
+        Returns: {
+          email: string
+          user_id: string
+        }[]
       }
       sa_guess_category: { Args: { p_text: string }; Returns: string }
       sa_post_journal_voucher: {
