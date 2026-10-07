@@ -22,7 +22,9 @@ export default function TenantPortalsPanel() {
   const uploadLogo = async (file: File) => {
     if (file.size > 1024 * 1024) { toast.error("الشعار يجب أن يكون أقل من 1MB"); return; }
     const ext = file.name.split(".").pop() || "png";
-    const path = `tenant-portals/${Date.now()}.${ext}`;
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+    const path = `${user.id}/tenant-portals/${Date.now()}.${ext}`;
     const { error } = await supabase.storage.from("company-assets").upload(path, file, { upsert: true, contentType: file.type });
     if (error) { toast.error("تعذر رفع الشعار"); return; }
     const { data } = supabase.storage.from("company-assets").getPublicUrl(path);
