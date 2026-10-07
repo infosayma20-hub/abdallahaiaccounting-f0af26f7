@@ -224,7 +224,7 @@ export default function POSv2Cart(p: Props) {
               </div>
               <div className="tabular-nums shrink-0 text-left" dir="ltr" style={{ minWidth: 55, fontSize: 13, fontWeight: 800 }}>{fmtMoney(l.total)}</div>
               {p.canRemove && (
-                <button type="button" title={tr("حذف الصنف")} aria-label={tr("حذف الصنف")} onClick={(e) => { e.stopPropagation(); p.onRemove(i); }} className="shrink-0 flex items-center justify-center" style={{ width: 26, height: 28, borderRadius: 7, color: t.danger }}>
+                <button type="button" title={tr("حذف الصنف")} aria-label={tr("حذف الصنف")} onClick={(e) => { e.stopPropagation(); p.onRemove(i); }} className="shrink-0 flex items-center justify-center" style={{ width: 26, height: 28, borderRadius: 7, color: t.warnText }}>
                   <X style={{ width: 14, height: 14 }} />
                 </button>
               )}
