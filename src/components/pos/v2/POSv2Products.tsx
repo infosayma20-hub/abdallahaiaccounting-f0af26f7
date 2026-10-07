@@ -4,7 +4,7 @@ import { CSS } from "@dnd-kit/utilities";
 import type { PosV2Tokens } from "./posV2Theme";
 import { posV2CatColor, fmtMoney } from "./posV2Theme";
 import { usePosLang } from "@/i18n/pos-lang";
-import { Star } from "lucide-react";
+import { Star, Pencil } from "lucide-react";
 
 export type PosV2Product = { id: string; name: string; sell_price: number; image_url?: string | null; pos_category_id?: string | null; category?: string | null };
 export type PosV2Cat = { id: string; name: string; count: number };
@@ -34,6 +34,8 @@ type Props = {
   /** Per-user favorite products (shown first by POSPage). */
   favoriteIds?: Set<string>;
   onToggleFavorite?: (productId: string) => void;
+  /** Admin-only: open quick edit (name + category). */
+  onEditProduct?: (p: PosV2Product) => void;
 };
 
 function SortableChip(props: { id: string; sortMode: boolean; children: React.ReactNode }) {
