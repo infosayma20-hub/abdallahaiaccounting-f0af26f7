@@ -4,7 +4,7 @@ import { CSS } from "@dnd-kit/utilities";
 import type { PosV2Tokens } from "./posV2Theme";
 import { posV2CatColor, fmtMoney } from "./posV2Theme";
 import { usePosLang } from "@/i18n/pos-lang";
-import { Star } from "lucide-react";
+import { Star, Pencil } from "lucide-react";
 
 export type PosV2Product = { id: string; name: string; sell_price: number; image_url?: string | null; pos_category_id?: string | null; category?: string | null };
 export type PosV2Cat = { id: string; name: string; count: number };
@@ -34,6 +34,8 @@ type Props = {
   /** Per-user favorite products (shown first by POSPage). */
   favoriteIds?: Set<string>;
   onToggleFavorite?: (productId: string) => void;
+  /** Admin-only: open quick edit (name + category). */
+  onEditProduct?: (p: PosV2Product) => void;
 };
 
 function SortableChip(props: { id: string; sortMode: boolean; children: React.ReactNode }) {
@@ -163,6 +165,22 @@ export default function POSv2Products(p: Props) {
                       </span>
                     );
                   })()}
+                  {!p.isSortMode && p.onEditProduct && (
+                    <span
+                      role="button"
+                      tabIndex={0}
+                      aria-label={tr("تعديل الصنف")}
+                      title={tr("تعديل الصنف")}
+                      onPointerDown={(e) => e.stopPropagation()}
+                      onClick={(e) => { e.preventDefault(); e.stopPropagation(); p.onEditProduct!(prod); }}
+                      onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); e.stopPropagation(); p.onEditProduct!(prod); } }}
+                      className="absolute z-10 flex items-center justify-center"
+                      style={{ top: 6, left: p.onToggleFavorite ? 42 : 6, width: 30, height: 30, borderRadius: 15, background: `${t.card}cc`, border: `1px solid ${t.border}` }}
+                    >
+                      <Pencil size={14} strokeWidth={2.2} style={{ color: t.muted }} />
+                    </span>
+                  )}
+
 
                   {p.cardSize !== "S" && (
                     <div style={{ padding: 8, paddingBottom: 0 }}>

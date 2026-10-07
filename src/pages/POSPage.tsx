@@ -76,6 +76,7 @@ import { getPosBusinessDate, DEFAULT_POS_CUTOFF_HOUR } from "@/lib/pos/business-
 import POSv2TopBar from "@/components/pos/v2/POSv2TopBar";
 import { posV2OptOut } from "@/lib/posV2Access";
 import POSv2Products from "@/components/pos/v2/POSv2Products";
+import POSv2EditProductDialog from "@/components/pos/v2/POSv2EditProductDialog";
 import POSv2Cart from "@/components/pos/v2/POSv2Cart";
 import { POS_V2_DARK, POS_V2_LIGHT } from "@/components/pos/v2/posV2Theme";
 import BridgeStatusIndicator from "@/components/pos/BridgeStatusIndicator";
@@ -503,6 +504,7 @@ const POSPage = ({ variant = "v1" }: { variant?: "v1" | "v2" } = {}) => {
   // State
   const [posCategories, setPosCategories] = useState<POSCategory[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
+  const [v2EditProduct, setV2EditProduct] = useState<{ id: string; name: string; pos_category_id?: string | null; category?: string | null } | null>(null);
 
   // English receipts: names map + branch print language (default Arabic).
   useEffect(() => {
@@ -8037,6 +8039,7 @@ const POSPage = ({ variant = "v1" }: { variant?: "v1" | "v2" } = {}) => {
         products={v2Products as any}
         favoriteIds={favoriteProductIds}
         onToggleFavorite={toggleFavoriteProduct}
+        onEditProduct={isAdmin ? (pr) => setV2EditProduct(pr as any) : undefined}
         displayName={(pr) => pr.name || ""}
         qtyMap={cartQtyMap}
         onAdd={(pr) => { if (!isSortMode) addToCart(pr as any); }}
@@ -8047,6 +8050,14 @@ const POSPage = ({ variant = "v1" }: { variant?: "v1" | "v2" } = {}) => {
         onCategoryDragEnd={handleCategoryDragEnd}
         onProductDragEnd={handleProductDragEnd}
         dndSensors={dndSensors}
+      />
+      <POSv2EditProductDialog
+        product={isAdmin ? v2EditProduct : null}
+        categories={posCategories.map(c => ({ id: c.id, name: c.name }))}
+        ownerId={dataOwnerId}
+        isAdmin={isAdmin}
+        onClose={() => setV2EditProduct(null)}
+        onSaved={(u) => setProducts(prev => prev.map(pr => pr.id === u.id ? { ...pr, name: u.name, pos_category_id: u.pos_category_id, category: u.category ?? pr.category } as any : pr))}
       />
       {/* Same addon picker as /pos: products with modifier groups open it instead of adding directly. */}
       {(() => {
