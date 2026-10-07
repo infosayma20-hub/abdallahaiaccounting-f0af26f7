@@ -4,6 +4,7 @@ import { CSS } from "@dnd-kit/utilities";
 import type { PosV2Tokens } from "./posV2Theme";
 import { posV2CatColor, fmtMoney } from "./posV2Theme";
 import { usePosLang } from "@/i18n/pos-lang";
+import { Star } from "lucide-react";
 
 export type PosV2Product = { id: string; name: string; sell_price: number; image_url?: string | null; pos_category_id?: string | null; category?: string | null };
 export type PosV2Cat = { id: string; name: string; count: number };
@@ -30,6 +31,9 @@ type Props = {
   dndSensors: SensorDescriptor<SensorOptions>[];
   /** Per-user "hide الكل" preference shared with /pos. */
   hideAll?: boolean;
+  /** Per-user favorite products (shown first by POSPage). */
+  favoriteIds?: Set<string>;
+  onToggleFavorite?: (productId: string) => void;
 };
 
 function SortableChip(props: { id: string; sortMode: boolean; children: React.ReactNode }) {
@@ -140,6 +144,26 @@ export default function POSv2Products(p: Props) {
                   className="pos-v2-card relative text-right flex flex-col overflow-hidden"
                   style={{ width: "100%", height: "100%", background: t.card, border: `1px solid ${t.border}`, borderTop: `5px solid ${color}`, borderRadius: 14, outline: p.isSortMode ? `1px dashed ${t.accent}` : undefined, ["--pv2-accent" as any]: t.accent }}
                 >
+                  {!p.isSortMode && p.onToggleFavorite && (() => {
+                    const fav = !!p.favoriteIds?.has(prod.id);
+                    return (
+                      <span
+                        role="button"
+                        tabIndex={0}
+                        aria-pressed={fav}
+                        aria-label={fav ? tr("إزالة من المفضلة") : tr("إضافة للمفضلة")}
+                        title={fav ? tr("إزالة من المفضلة") : tr("إضافة للمفضلة")}
+                        onPointerDown={(e) => e.stopPropagation()}
+                        onClick={(e) => { e.preventDefault(); e.stopPropagation(); p.onToggleFavorite!(prod.id); }}
+                        onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); e.stopPropagation(); p.onToggleFavorite!(prod.id); } }}
+                        className="absolute z-10 flex items-center justify-center"
+                        style={{ top: 6, left: 6, width: 30, height: 30, borderRadius: 15, background: fav ? t.card : `${t.card}cc`, border: `1px solid ${t.border}` }}
+                      >
+                        <Star size={16} strokeWidth={2.2} style={{ color: fav ? "#F5B301" : t.muted }} fill={fav ? "#F5B301" : "none"} />
+                      </span>
+                    );
+                  })()}
+
                   {p.cardSize !== "S" && (
                     <div style={{ padding: 8, paddingBottom: 0 }}>
                       {prod.image_url ? (

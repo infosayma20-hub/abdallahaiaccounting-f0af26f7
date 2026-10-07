@@ -1432,7 +1432,17 @@ const POSPage = ({ variant = "v1" }: { variant?: "v1" | "v2" } = {}) => {
    // Open modifier panel for an existing cart line (cashier forgot to add addons)
    const [editAddonCartIndex, setEditAddonCartIndex] = useState<number | null>(null);
 
-   const userId = user?.id;
+  const userId = user?.id;
+  // المفضلة: تُقرأ فورًا من الجهاز (تعمل بدون إنترنت) ثم تُحدَّث من الخادم.
+  const [favoriteProductIds, setFavoriteProductIds] = useState<Set<string>>(new Set());
+  useEffect(() => {
+    if (!userId) { setFavoriteProductIds(new Set()); return; }
+    try {
+      const raw = localStorage.getItem(`pos_v2_favorites_${userId}`);
+      const ids = raw ? JSON.parse(raw) : [];
+      setFavoriteProductIds(new Set(Array.isArray(ids) ? ids.filter((x: unknown) => typeof x === "string") : []));
+    } catch { setFavoriteProductIds(new Set()); }
+  }, [userId]);
    const [dataOwnerId, setDataOwnerId] = useState<string | null>(null);
     const isAdmin = userId === dataOwnerId; // Employee has different dataOwnerId
     // Feature permission overrides (composed with posPerms below)
@@ -2013,6 +2023,13 @@ const POSPage = ({ variant = "v1" }: { variant?: "v1" | "v2" } = {}) => {
       } else if (p.preference_key === "hide_all_category") {
         const v = (p.preference_value as any)?.value;
         setHideAllCategoryTab(v === true);
+      } else if (p.preference_key === "favorite_products") {
+        const ids = (p.preference_value as any)?.ids;
+        if (Array.isArray(ids)) {
+          const clean = ids.filter((x: unknown) => typeof x === "string") as string[];
+          setFavoriteProductIds(new Set(clean));
+          try { localStorage.setItem(`pos_v2_favorites_${userId}`, JSON.stringify(clean)); } catch { /* ignore */ }
+        }
       }
     }
     setCategoryOrderIds(out.categoryOrderIds);
@@ -3391,6 +3408,35 @@ const POSPage = ({ variant = "v1" }: { variant?: "v1" | "v2" } = {}) => {
     }
     return filtered;
   }, [products, selectedCategory, debouncedSearch, posCategories, productOrderByCategory, visiblePosCategories, unitHiddenIds]);
+
+  // الواجهة الجديدة فقط: الأصناف المفضلة (خاصة بالمستخدم) تظهر أولًا مع الحفاظ على
+  // ترتيبها الأصلي. لا نقلب الترتيب في وضع الترتيب حتى لا يتلخبط السحب والإفلات.
+  const v2Products = useMemo(() => {
+    if (isSortMode || favoriteProductIds.size === 0) return filteredProducts;
+    const fav: typeof filteredProducts = [];
+    const rest: typeof filteredProducts = [];
+    for (const p of filteredProducts) (favoriteProductIds.has(p.id) ? fav : rest).push(p);
+    return fav.length ? [...fav, ...rest] : filteredProducts;
+  }, [filteredProducts, favoriteProductIds, isSortMode]);
+
+  const toggleFavoriteProduct = useCallback((productId: string) => {
+    setFavoriteProductIds(prev => {
+      const next = new Set(prev);
+      if (next.has(productId)) next.delete(productId); else next.add(productId);
+      const ids = Array.from(next);
+      try { if (userId) localStorage.setItem(`pos_v2_favorites_${userId}`, JSON.stringify(ids)); } catch { /* ignore */ }
+      if (userId) {
+        supabase.from("pos_user_preferences").upsert({
+          auth_user_id: userId,
+          preference_key: "favorite_products",
+          preference_value: { ids },
+        } as any, { onConflict: "auth_user_id,preference_key" }).then(({ error }) => {
+          if (error) console.warn("[POS] save favorites failed (kept locally):", error);
+        });
+      }
+      return next;
+    });
+  }, [userId]);
 
   const getProductCatColor = useCallback((product: Product) => {
     if (product.pos_category_id) {
@@ -7988,7 +8034,9 @@ const POSPage = ({ variant = "v1" }: { variant?: "v1" | "v2" } = {}) => {
         selected={selectedCategory}
         hideAll={hideAllCategoryTab}
         onSelect={setSelectedCategory}
-        products={filteredProducts as any}
+        products={v2Products as any}
+        favoriteIds={favoriteProductIds}
+        onToggleFavorite={toggleFavoriteProduct}
         displayName={(pr) => pr.name || ""}
         qtyMap={cartQtyMap}
         onAdd={(pr) => { if (!isSortMode) addToCart(pr as any); }}
