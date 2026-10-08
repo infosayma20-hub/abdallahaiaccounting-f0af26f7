@@ -1500,10 +1500,15 @@ const EmployeesPage = () => {
                   <Switch
                     checked={!!(selectedEmployee as any).is_hr_manager}
                     onCheckedChange={async (checked) => {
-                      await supabase.from("employees").update({ is_hr_manager: checked } as any).eq("id", selectedEmployee.id);
+                      // يمنح/يسحب دور مدير الموارد فعليًا على حساب دخول الموظف (المالك فقط)
+                      const { error } = await (supabase as any).rpc("set_employee_hr_manager", {
+                        _employee_id: selectedEmployee.id,
+                        _enabled: checked,
+                      });
+                      if (error) { toast.error(error.message); return; }
                       setSelectedEmployee({ ...selectedEmployee, is_hr_manager: checked } as any);
                       fetchEmployees();
-                      toast.success(checked ? "تم تعيينه كمدير HR" : "تم إلغاء صفة مدير HR");
+                      toast.success(checked ? "تم منح صلاحية مدير الموارد على حساب الموظف" : "تم سحب صلاحية مدير الموارد");
                     }}
                   />
                   <label className="text-xs font-medium flex items-center gap-1">
