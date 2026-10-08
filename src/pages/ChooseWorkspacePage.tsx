@@ -101,7 +101,7 @@ export default function ChooseWorkspacePage() {
     })();
   }, [user?.id, sharedRoles]);
 
-  const choose = (path: "/employee" | "/rep" | "/pos" | "/feedback" | "/pos-reports" | "/customer-complaints" | "/complaints-view" | "/compensations" | "/compensations-view" | "/worker/receiving" | "/worker/stock-count") => {
+  const choose = (path: "/employee" | "/rep" | "/pos" | "/feedback" | "/pos-reports" | "/customer-complaints" | "/complaints-view" | "/compensations" | "/compensations-view" | "/worker/receiving" | "/worker/stock-count" | "/hr-workspace") => {
     try {
       if (user?.id) {
         sessionStorage.setItem(`workspace-choice:${user.id}`, path);
@@ -111,7 +111,8 @@ export default function ChooseWorkspacePage() {
       // Session storage can be unavailable in restricted browser modes.
     }
     window.dispatchEvent(new Event("workspace-choice-changed"));
-    navigate(path, { replace: true });
+    // مساحة الموارد البشرية هي لوحة التحكم الإدارية /apps
+    navigate(path === "/hr-workspace" ? "/apps" : path, { replace: true });
   };
 
   // Auto-redirect if exactly one workspace is available (e.g. feedback-only).
@@ -321,6 +322,25 @@ export default function ChooseWorkspacePage() {
             <p className="text-sm text-muted-foreground">دوام، إجازات، قسائم راتب</p>
             <Button variant="secondary" className="w-full mt-2" onClick={(e) => { e.stopPropagation(); choose("/employee"); }}>
               دخول كموظف
+            </Button>
+          </Card>
+          )}
+
+          {hasHR && (
+          <Card
+            role="button"
+            tabIndex={0}
+            onClick={() => choose("/hr-workspace")}
+            onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && choose("/hr-workspace")}
+            className="p-6 cursor-pointer hover:border-primary hover:shadow-lg transition-all flex flex-col items-center text-center gap-3"
+          >
+            <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
+              <Users className="w-8 h-8 text-primary" />
+            </div>
+            <h2 className="text-lg font-semibold">مساحة الموارد البشرية</h2>
+            <p className="text-sm text-muted-foreground">الموظفون، النماذج، طلبات التوظيف، الرواتب</p>
+            <Button className="w-full mt-2" onClick={(e) => { e.stopPropagation(); choose("/hr-workspace"); }}>
+              دخول الموارد البشرية
             </Button>
           </Card>
           )}
