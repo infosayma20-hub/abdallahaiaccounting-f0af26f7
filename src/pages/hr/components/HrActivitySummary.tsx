@@ -1,5 +1,4 @@
-import { useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useMemo, useState, type MouseEvent as ReactMouseEvent } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -78,7 +77,6 @@ const USER_ACTION: Record<string, string> = {
 };
 
 export function HrActivitySummary() {
-  const navigate = useNavigate();
   const [daysBack, setDaysBack] = useState<number>(30);
   const since = useMemo(
     () => new Date(Date.now() - daysBack * DAY_MS).toISOString(),
@@ -226,21 +224,36 @@ export function HrActivitySummary() {
                   {list.map((it) => {
                     const meta = KIND_META[it.kind];
                     const clickable = !!it.formId;
-                    const openRequest = () => {
-                      if (it.formId) navigate(`/employee-forms-management?formId=${it.formId}`);
-                    };
+                    const href = it.formId
+                      ? `/employee-forms-management?formId=${it.formId}`
+                      : undefined;
+                    const RowTag = (clickable ? "a" : "li") as "a" | "li";
                     return (
-                      <li
+                      <RowTag
                         key={it.id}
-                        onClick={clickable ? openRequest : undefined}
+                        {...(clickable
+                          ? {
+                              href,
+                              target: "_blank",
+                              rel: "noopener noreferrer",
+                              title: "فتح الطلب في نافذة جديدة",
+                            }
+                          : {})}
+                        onClick={
+                          clickable
+                            ? (e: ReactMouseEvent) => {
+                                // أي تعديل مستقبلي على المفتاح يمر من هنا: كبسة عادية = نافذة جديدة دائمًا.
+                                e.preventDefault();
+                                window.open(href, "_blank", "noopener,noreferrer");
+                              }
+                            : undefined
+                        }
                         className={cn(
                           "flex items-center gap-3 rounded-xl border border-border/50 bg-card px-3 py-2.5 transition-colors",
                           clickable && "cursor-pointer hover:border-primary/40 hover:bg-primary/5"
                         )}
                         role={clickable ? "button" : undefined}
                         tabIndex={clickable ? 0 : undefined}
-                        onKeyDown={clickable ? (e) => { if (e.key === "Enter") openRequest(); } : undefined}
-                        title={clickable ? "فتح الطلب" : undefined}
                       >
                         <span
                           className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${meta.cls}`}
@@ -257,7 +270,7 @@ export function HrActivitySummary() {
                         {clickable && (
                           <ChevronLeft className="h-4 w-4 shrink-0 text-muted-foreground/60" />
                         )}
-                      </li>
+                      </RowTag>
                     );
                   })}
                 </ul>
