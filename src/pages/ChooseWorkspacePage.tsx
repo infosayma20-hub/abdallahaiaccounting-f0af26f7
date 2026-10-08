@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Briefcase, Truck, LogOut, ShoppingCart, Headphones, Lock, RefreshCw, PhoneCall, MessageSquareWarning, HandCoins, ScanBarcode, ClipboardList } from "lucide-react";
+import { Briefcase, Truck, LogOut, ShoppingCart, Headphones, Lock, RefreshCw, PhoneCall, MessageSquareWarning, HandCoins, ScanBarcode, ClipboardList, Users } from "lucide-react";
 import { BarChart3 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -24,6 +24,7 @@ export default function ChooseWorkspacePage() {
   // Shared outsourced call-center company accounts (شركة دايال) — POS/call-center screen only.
   const [sharedCallCenterOnly, setSharedCallCenterOnly] = useState(false);
   const [hasEmployee, setHasEmployee] = useState(false);
+  const [hasHR, setHasHR] = useState(false);
   const [hasReceiver, setHasReceiver] = useState(false);
   const [hasStockCount, setHasStockCount] = useState(false);
   const [rolesLoaded, setRolesLoaded] = useState(false);
@@ -68,6 +69,8 @@ export default function ChooseWorkspacePage() {
         const linkedPosUser = posUser as { is_call_center?: boolean | null; is_waiter?: boolean | null; hide_employee_workspace?: boolean | null; is_active?: boolean | null; account_status?: string | null } | null;
         const linkedEmployee = empRow as { is_active?: boolean | null; is_terminated?: boolean | null } | null;
         setHasRep(roles.includes("sales_rep"));
+        // مدير موارد بشرية (وليس مالك/أدمن) يحصل على بطاقة مساحة الموارد
+        setHasHR(roles.includes("hr_manager") && !roles.includes("admin") && !roles.includes("super_admin"));
         // A disabled POS user (is_active=false / account not active) must not see POS,
         // even if a stale "cashier" role row remains.
         const posUserDisabled = !!linkedPosUser && (linkedPosUser.is_active === false || (linkedPosUser.account_status != null && linkedPosUser.account_status !== "active"));
@@ -98,7 +101,7 @@ export default function ChooseWorkspacePage() {
     })();
   }, [user?.id, sharedRoles]);
 
-  const choose = (path: "/employee" | "/rep" | "/pos" | "/feedback" | "/pos-reports" | "/customer-complaints" | "/complaints-view" | "/compensations" | "/compensations-view" | "/worker/receiving" | "/worker/stock-count") => {
+  const choose = (path: "/employee" | "/rep" | "/pos" | "/feedback" | "/pos-reports" | "/customer-complaints" | "/complaints-view" | "/compensations" | "/compensations-view" | "/worker/receiving" | "/worker/stock-count" | "/hr-workspace") => {
     try {
       if (user?.id) {
         sessionStorage.setItem(`workspace-choice:${user.id}`, path);
@@ -108,7 +111,8 @@ export default function ChooseWorkspacePage() {
       // Session storage can be unavailable in restricted browser modes.
     }
     window.dispatchEvent(new Event("workspace-choice-changed"));
-    navigate(path, { replace: true });
+    // مساحة الموارد البشرية هي لوحة التحكم الإدارية /apps
+    navigate(path === "/hr-workspace" ? "/apps" : path, { replace: true });
   };
 
   // Auto-redirect if exactly one workspace is available (e.g. feedback-only).
@@ -318,6 +322,25 @@ export default function ChooseWorkspacePage() {
             <p className="text-sm text-muted-foreground">دوام، إجازات، قسائم راتب</p>
             <Button variant="secondary" className="w-full mt-2" onClick={(e) => { e.stopPropagation(); choose("/employee"); }}>
               دخول كموظف
+            </Button>
+          </Card>
+          )}
+
+          {hasHR && (
+          <Card
+            role="button"
+            tabIndex={0}
+            onClick={() => choose("/hr-workspace")}
+            onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && choose("/hr-workspace")}
+            className="p-6 cursor-pointer hover:border-primary hover:shadow-lg transition-all flex flex-col items-center text-center gap-3"
+          >
+            <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
+              <Users className="w-8 h-8 text-primary" />
+            </div>
+            <h2 className="text-lg font-semibold">مساحة الموارد البشرية</h2>
+            <p className="text-sm text-muted-foreground">الموظفون، النماذج، طلبات التوظيف، الرواتب</p>
+            <Button className="w-full mt-2" onClick={(e) => { e.stopPropagation(); choose("/hr-workspace"); }}>
+              دخول الموارد البشرية
             </Button>
           </Card>
           )}
