@@ -226,21 +226,36 @@ export function HrActivitySummary() {
                   {list.map((it) => {
                     const meta = KIND_META[it.kind];
                     const clickable = !!it.formId;
-                    const openRequest = () => {
-                      if (it.formId) navigate(`/employee-forms-management?formId=${it.formId}`);
-                    };
+                    const href = it.formId
+                      ? `/employee-forms-management?formId=${it.formId}`
+                      : undefined;
+                    const RowTag = (clickable ? "a" : "li") as "a" | "li";
                     return (
-                      <li
+                      <RowTag
                         key={it.id}
-                        onClick={clickable ? openRequest : undefined}
+                        {...(clickable
+                          ? {
+                              href,
+                              target: "_blank",
+                              rel: "noopener noreferrer",
+                              title: "فتح الطلب في نافذة جديدة",
+                            }
+                          : {})}
+                        onClick={
+                          clickable
+                            ? (e: React.MouseEvent) => {
+                                // أي تعديل مستقبلي على المفتاح يمر من هنا: كبسة عادية = نافذة جديدة دائمًا.
+                                e.preventDefault();
+                                window.open(href, "_blank", "noopener,noreferrer");
+                              }
+                            : undefined
+                        }
                         className={cn(
                           "flex items-center gap-3 rounded-xl border border-border/50 bg-card px-3 py-2.5 transition-colors",
                           clickable && "cursor-pointer hover:border-primary/40 hover:bg-primary/5"
                         )}
                         role={clickable ? "button" : undefined}
                         tabIndex={clickable ? 0 : undefined}
-                        onKeyDown={clickable ? (e) => { if (e.key === "Enter") openRequest(); } : undefined}
-                        title={clickable ? "فتح الطلب" : undefined}
                       >
                         <span
                           className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${meta.cls}`}
