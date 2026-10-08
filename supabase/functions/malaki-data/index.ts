@@ -1806,9 +1806,11 @@ Deno.serve(async (req) => {
       // by the HR status column (HR may have flipped it in older records).
       // Legacy rows were backfilled with a timestamp but no decider — those are
       // NOT management decisions and must stay open for the owner to decide.
+      // «جاري المتابعة» (in_progress) طلب مفتوح لم يُحسم بعد — يبقى قابلاً للقرار.
+      const OPEN_STATUSES = ["pending", "in_progress"];
       const alreadyDecided = isDisciplinaryForm
         ? !!form.final_decided_by
-        : form.status !== "pending";
+        : !OPEN_STATUSES.includes(form.status);
       if (alreadyDecided) {
         return respond({ success: false, error: "already_decided" }, 409);
       }
@@ -1826,7 +1828,7 @@ Deno.serve(async (req) => {
         .eq("id", formId);
       upd = isDisciplinaryForm
         ? upd.is("final_decided_by", null)
-        : upd.eq("status", "pending");
+        : upd.in("status", OPEN_STATUSES);
       const { error: updErr } = await upd;
       if (updErr) throw updErr;
 

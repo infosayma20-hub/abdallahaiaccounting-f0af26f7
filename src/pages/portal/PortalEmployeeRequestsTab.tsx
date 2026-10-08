@@ -193,8 +193,10 @@ export default function PortalEmployeeRequestsTab({ theme = 'light', focusFormId
         // A disciplinary action is only "approved" once management issued the
         // final decision. HR recommendations must never look like an approval.
         // (Rejections stay rejected — nothing is applied to the employee.)
+        // «جاري المتابعة» عند الموارد = لم يصدر قرار الإدارة بعد → يظهر للمالك ضمن «قيد المراجعة».
         status:
-          isDisciplinary(r.formType) && r.status === 'approved' && !r.finalDecidedAt
+          r.status === 'in_progress' ||
+          (isDisciplinary(r.formType) && r.status === 'approved' && !r.finalDecidedAt)
             ? 'pending'
             : r.status,
       }));
