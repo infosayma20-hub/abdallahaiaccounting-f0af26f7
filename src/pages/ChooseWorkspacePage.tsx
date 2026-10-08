@@ -24,6 +24,7 @@ export default function ChooseWorkspacePage() {
   // Shared outsourced call-center company accounts (شركة دايال) — POS/call-center screen only.
   const [sharedCallCenterOnly, setSharedCallCenterOnly] = useState(false);
   const [hasEmployee, setHasEmployee] = useState(false);
+  const [hasHR, setHasHR] = useState(false);
   const [hasReceiver, setHasReceiver] = useState(false);
   const [hasStockCount, setHasStockCount] = useState(false);
   const [rolesLoaded, setRolesLoaded] = useState(false);
@@ -68,6 +69,8 @@ export default function ChooseWorkspacePage() {
         const linkedPosUser = posUser as { is_call_center?: boolean | null; is_waiter?: boolean | null; hide_employee_workspace?: boolean | null; is_active?: boolean | null; account_status?: string | null } | null;
         const linkedEmployee = empRow as { is_active?: boolean | null; is_terminated?: boolean | null } | null;
         setHasRep(roles.includes("sales_rep"));
+        // مدير موارد بشرية (وليس مالك/أدمن) يحصل على بطاقة مساحة الموارد
+        setHasHR(roles.includes("hr_manager") && !roles.includes("admin") && !roles.includes("super_admin"));
         // A disabled POS user (is_active=false / account not active) must not see POS,
         // even if a stale "cashier" role row remains.
         const posUserDisabled = !!linkedPosUser && (linkedPosUser.is_active === false || (linkedPosUser.account_status != null && linkedPosUser.account_status !== "active"));
