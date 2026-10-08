@@ -1,5 +1,4 @@
 import { useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -272,7 +271,7 @@ export function HrActivitySummary() {
                         {clickable && (
                           <ChevronLeft className="h-4 w-4 shrink-0 text-muted-foreground/60" />
                         )}
-                      </li>
+                      </RowTag>
                     );
                   })}
                 </ul>
