@@ -639,7 +639,13 @@ export default function JobApplicationsPage() {
           const v = ((r as any)[k] || "").toString().trim().replace(/\s+/g, " ");
           if (!v || v === "—") continue;
           // المدينة تُوحَّد لاسم المدينة المعروف حتى تظهر «نابلس» مرة واحدة مهما اختلفت الكتابة
-          set.add(f.key === "work_location" ? canonicalCity(v) : v);
+          if (f.key === "work_location") {
+            const c = canonicalCity(v);
+            // فلتر المدينة مقصور على نابلس ورام الله فقط
+            if (c === "نابلس" || c === "رام الله") set.add(c);
+          } else {
+            set.add(v);
+          }
         }
       }
       opts[f.key] = [...set].sort((a, b) => a.localeCompare(b, "ar")).slice(0, 80);
