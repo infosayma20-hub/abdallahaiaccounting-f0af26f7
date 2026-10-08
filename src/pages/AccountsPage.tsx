@@ -395,12 +395,32 @@ const AccountsPage = () => {
 
   const treeRows = useMemo(() => {
     const rows: TreeRow[] = [];
+    const searching = searchQuery.trim().length > 0;
+    // أثناء البحث: نضيف الحسابات الأب للنتائج (حتى يظهر المسار كاملاً) ونفتح الشجرة تلقائياً،
+    // وإلا كانت النتيجة تُحسب لكنها تختفي لأن أباها غير مطابق للبحث وغير مفتوح.
+    let displayAccounts = filteredAccounts;
+    if (searching) {
+      const allByCode = new Map<string, Account>();
+      accounts.forEach(a => allByCode.set(a.account_code, a));
+      const seen = new Set(filteredAccounts.map(a => a.account_code));
+      const extra: Account[] = [];
+      filteredAccounts.forEach(a => {
+        let p = a.parent_code; let guard = 0;
+        while (p && !seen.has(p) && guard++ < 15) {
+          const parent = allByCode.get(p);
+          if (!parent) break;
+          seen.add(p); extra.push(parent);
+          p = parent.parent_code !== parent.account_code ? parent.parent_code : null;
+        }
+      });
+      if (extra.length) displayAccounts = [...filteredAccounts, ...extra].sort((a, b) => a.account_code.localeCompare(b.account_code));
+    }
     const accountsByCode = new Map<string, Account>();
-    filteredAccounts.forEach(a => accountsByCode.set(a.account_code, a));
+    displayAccounts.forEach(a => accountsByCode.set(a.account_code, a));
 
     // Pre-build children index once — O(n) instead of O(n²) per hasChildAccounts call
     const childrenByCode = new Map<string, Account[]>();
-    filteredAccounts.forEach(a => {
+    displayAccounts.forEach(a => {
       if (a.parent_code && a.parent_code !== a.account_code) {
         const arr = childrenByCode.get(a.parent_code);
         if (arr) arr.push(a); else childrenByCode.set(a.parent_code, [a]);
@@ -424,7 +444,7 @@ const AccountsPage = () => {
     };
 
     const byType: Record<string, Account[]> = {};
-    filteredAccounts.forEach(acc => {
+    displayAccounts.forEach(acc => {
       const t = normalizeType(acc.account_type);
       if (!byType[t]) byType[t] = [];
       byType[t].push(acc);
@@ -433,6 +453,7 @@ const AccountsPage = () => {
     const orderedTypes = typeOrder.filter(t => byType[t]?.length);
 
     const isHiddenByCollapse = (acc: Account): boolean => {
+      if (searching) return false;
       let current = acc;
       while (current.parent_code && current.parent_code !== current.account_code) {
         if (!expanded.has(current.parent_code)) return true;
@@ -455,7 +476,7 @@ const AccountsPage = () => {
         is_system: null,
         parent_code: null,
       };
-      const isTypeExpanded = expanded.has(`type-${type}`);
+      const isTypeExpanded = searching || expanded.has(`type-${type}`);
       rows.push({ type: 'account', account: typeHeaderAcc, level: 0, isGroup: true, hasChildren: true, isCollapsed: !isTypeExpanded });
 
       if (!isTypeExpanded) return;
@@ -472,7 +493,7 @@ const AccountsPage = () => {
             level: depth + 1,
             isGroup: hasKids,
             hasChildren: hasKids,
-            isCollapsed: !expanded.has(acc.account_code),
+            isCollapsed: !searching && !expanded.has(acc.account_code),
           });
         });
       };
@@ -496,7 +517,7 @@ const AccountsPage = () => {
     });
 
     return rows;
-  }, [filteredAccounts, expanded]);
+  }, [filteredAccounts, expanded, searchQuery, accounts]);
 
   const typeCounts = useMemo(() => {
     const counts: Record<string, number> = {};
