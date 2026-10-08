@@ -34883,6 +34883,10 @@ export type Database = {
         }
         Returns: number
       }
+      set_employee_hr_manager: {
+        Args: { _employee_id: string; _enabled: boolean }
+        Returns: Json
+      }
       set_form_access: {
         Args: {
           p_employee_ids: string[]
