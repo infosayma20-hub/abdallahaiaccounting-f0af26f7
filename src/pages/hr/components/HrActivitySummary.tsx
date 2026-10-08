@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, type MouseEvent as ReactMouseEvent } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -242,7 +242,7 @@ export function HrActivitySummary() {
                           : {})}
                         onClick={
                           clickable
-                            ? (e: React.MouseEvent) => {
+                            ? (e: ReactMouseEvent) => {
                                 // أي تعديل مستقبلي على المفتاح يمر من هنا: كبسة عادية = نافذة جديدة دائمًا.
                                 e.preventDefault();
                                 window.open(href, "_blank", "noopener,noreferrer");
