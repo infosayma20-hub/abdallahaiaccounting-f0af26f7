@@ -180,6 +180,20 @@ export function useRoleRedirect() {
           return;
         }
 
+        // مدير موارد بشرية + موظف نشط (وليس admin/super_admin) — خيّره بين
+        // شاشة الموظف ومساحة الموارد البشرية (/apps). الاختيار ثابت للجلسة.
+        if (roles.includes("hr_manager") && isEmployee && !roles.includes("admin") && !roles.includes("super_admin")) {
+          const chosen = readWorkspaceChoice(user.id);
+          const nextPath = chosen === "/employee" ? "/employee"
+            : chosen === "/hr-workspace" ? "/apps"
+            : "/choose-workspace";
+          if (isCancelled) return;
+          if (nextPath !== "/choose-workspace") redirectCache.set(user.id, nextPath);
+          setTargetPath(nextPath);
+          setChecking(false);
+          return;
+        }
+
         // sales_rep أولوية أعلى من سجل الموظف: المستخدم اللي عنده دور
         // مندوب مبيعات يروح مباشرة لشاشة المندوب حتى لو كان مرتبط بسجل
         // employees.
