@@ -40,6 +40,7 @@ import POSPeakHoursReport from "@/components/pos-reports/POSPeakHoursReport";
 import POSInventoryReport from "@/components/pos-reports/POSInventoryReport";
 import POSReturnsReport from "@/components/pos-reports/POSReturnsReport";
 import POSExpensesReport from "@/components/pos-reports/POSExpensesReport";
+import POSKioskReport from "@/components/pos-reports/POSKioskReport";
 import { Receipt as ReceiptIcon } from "lucide-react";
 import POSProfitReport from "@/components/pos-reports/POSProfitReport";
 import POSShiftsReport from "@/components/pos-reports/POSShiftsReport";
@@ -74,6 +75,7 @@ const TABS = [
   { id: "inventory", label: "المخزون", icon: Archive },
   { id: "returns", label: "المرتجعات", icon: RotateCcw },
   { id: "expenses", label: "المصاريف", icon: ReceiptIcon },
+  { id: "kiosk", label: "الكيوسك", icon: Store },
   { id: "profit", label: "الربحية", icon: TrendingUp },
   { id: "shifts", label: "الورديات", icon: Timer },
   { id: "customers", label: "الزبائن", icon: UserCheck },
