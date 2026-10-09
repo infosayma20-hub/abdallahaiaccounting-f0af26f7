@@ -570,6 +570,33 @@ export default function HRAttendancePage() {
 
   // Correction review
   const [reviewDialog, setReviewDialog] = useState<CorrectionReq | null>(null);
+  // زر «مراجعة» في شاشة الطلبات يفتح هنا ?requestId=... → نفتح نافذة القبول/الرفض مباشرة
+  const pendingReviewIdRef = useRef<string | null>(searchParams.get("requestId"));
+  useEffect(() => {
+    const rid = pendingReviewIdRef.current;
+    if (!rid) return;
+    const found = corrections.find((c: any) => c.id === rid);
+    if (found) {
+      pendingReviewIdRef.current = null;
+      setReviewDialog(found);
+      const next = new URLSearchParams(searchParams);
+      next.delete("requestId");
+      setSearchParams(next, { replace: true });
+      return;
+    }
+    if (corrections.length > 0 || !loading) {
+      // الطلب لم يعد معلّقًا (تمت مراجعته) أو غير موجود
+      (async () => {
+        const { data } = await supabase.from("correction_requests").select("id,status").eq("id", rid).maybeSingle();
+        if (pendingReviewIdRef.current !== rid) return;
+        if (data && data.status !== "pending") {
+          pendingReviewIdRef.current = null;
+          toast({ title: "تمت مراجعة هذا الطلب مسبقاً" });
+        }
+      })();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [corrections, loading]);
   const [reviewNotes, setReviewNotes] = useState("");
 
   // Row action dialogs
