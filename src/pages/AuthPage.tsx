@@ -493,10 +493,19 @@ const AuthPage = () => {
       <style>{`
         .auth-page input::placeholder, .auth-page textarea::placeholder { color: rgba(13,27,46,0.60); opacity: 1; }
         .auth-page input[type="checkbox"] { accent-color: #0D1B2E; }
-        /* اللوحة زجاجية شفافة: حجاب فاتح خفيف فقط، والصورة تُرى من خلفه */
-        .auth-glass { background: linear-gradient(160deg, rgba(242,239,232,0.40) 0%, rgba(242,239,232,0.26) 100%) !important; }
+        /* اللوحة زجاجية شفافة: حجاب فاتح خفيف فقط، والصورة تُرى من خلفه.
+           الحجاب أثقل قليلاً أسفل اللوحة حيث المشهد أغمق (تذييل الدعم والقوانين). */
+        .auth-glass { background: linear-gradient(180deg, rgba(242,239,232,0.34) 0%, rgba(242,239,232,0.22) 45%, rgba(242,239,232,0.46) 100%) !important; }
         @media (min-width: 1024px) {
-          .auth-glass { background: linear-gradient(160deg, rgba(255,255,255,0.50) 0%, rgba(255,255,255,0.36) 100%) !important; }
+          .auth-glass { background: linear-gradient(180deg, rgba(255,255,255,0.42) 0%, rgba(255,255,255,0.28) 45%, rgba(255,255,255,0.52) 100%) !important; }
+        }
+        /* هالة بيضاء ناعمة خلف النصوص الصغيرة تبقى مقروءة فوق المشهد دون تكتيمه */
+        .auth-glass label,
+        .auth-glass p,
+        .auth-glass a,
+        .auth-glass span,
+        .auth-glass button:not([type="submit"]) {
+          text-shadow: 0 1px 9px rgba(255,255,255,0.92), 0 0 3px rgba(255,255,255,0.70);
         }
       `}</style>
       {/* خلفية مسائية ملء الشاشة (غروب وأضواء مدينة) */}
