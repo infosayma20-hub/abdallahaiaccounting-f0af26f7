@@ -722,6 +722,13 @@
       "when": 1791651719411,
       "tag": "0102_stock_count_name_search",
       "breakpoints": true
+    },
+    {
+      "idx": 103,
+      "version": "7",
+      "when": 1791652655504,
+      "tag": "0103_stock_count_barcode_edit",
+      "breakpoints": true
     }
   ]
 }
