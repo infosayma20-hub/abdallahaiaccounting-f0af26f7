@@ -454,24 +454,24 @@ const AuthPage = () => {
   };
 
   const inputStyle = {
-    background: 'rgba(255,255,255,0.88)',
+    background: 'rgba(255,255,255,0.74)',
     border: '1px solid rgba(13,27,46,0.26)',
     color: '#0D1B2E',
     fontWeight: 300 as const,
-    backdropFilter: 'blur(8px)',
-    WebkitBackdropFilter: 'blur(8px)',
+    backdropFilter: 'blur(10px)',
+    WebkitBackdropFilter: 'blur(10px)',
     colorScheme: 'light' as const,
   };
 
   const inputFocusHandlers = {
     onFocus: (e: React.FocusEvent<HTMLInputElement>) => {
       e.target.style.borderColor = 'rgba(13,27,46,0.85)';
-      e.target.style.background = 'rgba(255,255,255,0.97)';
+      e.target.style.background = 'rgba(255,255,255,0.92)';
       e.target.style.boxShadow = '0 0 0 3px rgba(13,27,46,0.10)';
     },
     onBlur: (e: React.FocusEvent<HTMLInputElement>) => {
       e.target.style.borderColor = 'rgba(13,27,46,0.26)';
-      e.target.style.background = 'rgba(255,255,255,0.88)';
+      e.target.style.background = 'rgba(255,255,255,0.74)';
       e.target.style.boxShadow = 'none';
     },
   };
@@ -491,12 +491,12 @@ const AuthPage = () => {
         — الصورة تُرسم فوقه بدل وميض فاتح تحتها. */}
     <div className="auth-page h-screen flex flex-col relative overflow-hidden" dir="ltr" style={{ background: '#0D1B2E' }}>
       <style>{`
-        .auth-page input::placeholder, .auth-page textarea::placeholder { color: rgba(13,27,46,0.65); opacity: 1; }
+        .auth-page input::placeholder, .auth-page textarea::placeholder { color: rgba(13,27,46,0.60); opacity: 1; }
         .auth-page input[type="checkbox"] { accent-color: #0D1B2E; }
-        /* على الجوال اللوحة الزجاجية أشفّ حتى يظهر المشهد المسائي خلفها */
-        .auth-glass { background: linear-gradient(160deg, rgba(242,239,232,0.58) 0%, rgba(242,239,232,0.42) 100%) !important; }
+        /* اللوحة زجاجية شفافة: حجاب فاتح خفيف فقط، والصورة تُرى من خلفه */
+        .auth-glass { background: linear-gradient(160deg, rgba(242,239,232,0.40) 0%, rgba(242,239,232,0.26) 100%) !important; }
         @media (min-width: 1024px) {
-          .auth-glass { background: linear-gradient(160deg, rgba(255,255,255,0.80) 0%, rgba(255,255,255,0.64) 100%) !important; }
+          .auth-glass { background: linear-gradient(160deg, rgba(255,255,255,0.50) 0%, rgba(255,255,255,0.36) 100%) !important; }
         }
       `}</style>
       {/* خلفية مسائية ملء الشاشة (غروب وأضواء مدينة) */}
@@ -567,8 +567,8 @@ const AuthPage = () => {
           className="auth-glass flex-1 lg:flex-none lg:w-1/3 flex flex-col items-center justify-center px-4 sm:px-6 overflow-y-auto relative"
           dir={pageDir}
           style={{
-            backdropFilter: 'blur(26px) saturate(150%)',
-            WebkitBackdropFilter: 'blur(26px) saturate(150%)',
+            backdropFilter: 'blur(14px) brightness(1.7) saturate(160%)',
+            WebkitBackdropFilter: 'blur(14px) brightness(1.7) saturate(160%)',
             borderInlineStart: '1px solid rgba(13,27,46,0.10)',
             paddingTop: 'calc(56px + env(safe-area-inset-top))',
             paddingBottom: 'env(safe-area-inset-bottom)',
