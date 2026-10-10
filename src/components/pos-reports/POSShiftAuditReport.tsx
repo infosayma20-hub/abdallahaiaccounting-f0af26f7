@@ -1521,7 +1521,7 @@ function ExpandableExpensesRow({
       let names: Record<string, string> = {};
       if (codes.length) {
         const { data: ss } = await supabase.from("pos_sessions").select("user_id").eq("id", sessionId).maybeSingle();
-        const { data: accs } = await supabase.from("accounts").select("account_code, account_name").eq("user_id", (ss as any)?.user_id).in("account_code", codes);
+        const { data: accs } = await (supabase as any).from("accounts").select("account_code, account_name").eq("user_id", (ss as any)?.user_id).in("account_code", codes);
         ((accs as any[]) || []).forEach(a => { names[a.account_code] = a.account_name; });
       }
       if (!c) {
