@@ -31602,6 +31602,10 @@ export type Database = {
         }
       }
       _direct_recv_recalc: { Args: { p_order_id: string }; Returns: undefined }
+      _ensure_named_leaf_account: {
+        Args: { p_name: string; p_owner: string; p_parent_codes: string[] }
+        Returns: string
+      }
       _fc_validate_postable_account: {
         Args: { p_account_code: string; p_user_id: string }
         Returns: undefined
@@ -34923,6 +34927,15 @@ export type Database = {
       set_task_user_password: {
         Args: { p_new_password: string; p_task_user_id: string }
         Returns: boolean
+      }
+      settle_pos_shift_variance_v1: {
+        Args: {
+          p_employee_amount: number
+          p_notes?: string
+          p_session_id: string
+          p_variance: number
+        }
+        Returns: Json
       }
       shadow_compare_manual_journal_v1: {
         Args: { p_idempotency_key: string; p_intent: Json; p_owner_id: string }

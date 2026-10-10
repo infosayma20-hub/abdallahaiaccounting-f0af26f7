@@ -126,6 +126,9 @@ interface ShiftAuditRow {
   variance_total_ils: number;
   expected_cash_ils: number | null;
   actual_cash_ils: number | null;
+  status?: string | null;
+  resolution_type?: string | null;
+  resolution_payload?: any;
 }
 
 interface CashAdjustmentState {
@@ -285,7 +288,7 @@ function ShiftDetail({ session }: { session: POSSession }) {
       const [auditRes, ordersRes, expensesRes, purchasesRes, fadjRes, prepayRes] = await Promise.all([
         supabase
           .from("pos_shift_audits" as any)
-          .select("variance_ils, variance_usd, variance_jod, variance_total_ils, expected_cash_ils, actual_cash_ils")
+          .select("variance_ils, variance_usd, variance_jod, variance_total_ils, expected_cash_ils, actual_cash_ils, status, resolution_type, resolution_payload")
           .eq("session_id", session.id)
           .maybeSingle(),
         supabase
@@ -741,6 +744,15 @@ function ShiftDetail({ session }: { session: POSSession }) {
             <span className={cn("font-mono", varianceColor)}>
               {varianceILSAtClose != null ? `${varianceILSAtClose >= 0 ? "+" : ""}₪${varianceILSAtClose.toLocaleString(undefined, { maximumFractionDigits: 2 })}` : "—"}
             </span>
+            <VarianceSettleButton
+              sessionId={session.id}
+              cashierName={session.cashier_name || ""}
+              variance={varianceILSAtClose}
+              closed={!!session.closed_at}
+              canEdit={canEditAdjustments}
+              audit={audit}
+              onDone={() => setReloadKey(k => k + 1)}
+            />
           </Row>
           {expectedMismatch && (
             <Row label="تنبيه مطابقة الكاش">
@@ -1653,5 +1665,98 @@ function ExpandableExpensesRow({
         </div>
       )}
     </div>
+  );
+}
+
+
+// ── Settle shift variance: shortage → employee (salary deduction) + company expense; surplus → revenue ──
+function VarianceSettleButton({
+  sessionId, cashierName, variance, closed, canEdit, audit, onDone,
+}: {
+  sessionId: string; cashierName: string; variance: number | null; closed: boolean; canEdit: boolean;
+  audit: ShiftAuditRow | null; onDone: () => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [empStr, setEmpStr] = useState("");
+  const [notes, setNotes] = useState("");
+  const [saving, setSaving] = useState(false);
+  const settled = audit?.status === "approved";
+  const v = variance == null ? 0 : Math.round(variance * 100) / 100;
+  const abs = Math.abs(v);
+  const isShortage = v < 0;
+  const fmt = (n: number) => `₪${Number(n || 0).toLocaleString(undefined, { maximumFractionDigits: 2 })}`;
+
+  if (settled) {
+    const p = audit?.resolution_payload || {};
+    const title = audit?.resolution_type === "variance_settlement"
+      ? (p.type === "surplus"
+          ? `مسوّى: ${fmt(p.amount)} إيراد فروقات صناديق`
+          : `مسوّى: ${fmt(p.employee_amount || 0)} على الموظف، ${fmt(p.company_amount || 0)} مصروف فروقات`)
+      : "معتمد من التدقيق";
+    return <span title={title} className="mr-2 inline-flex items-center"><CheckCircle2 className="w-4 h-4 text-emerald-600" /></span>;
+  }
+  if (!canEdit || !closed || variance == null || abs < 0.01) return null;
+
+  const emp = isShortage ? Math.min(Math.max(Number(empStr) || 0, 0), abs) : 0;
+  const rest = Math.round((abs - emp) * 100) / 100;
+
+  const submit = async () => {
+    if (isShortage && (Number(empStr) < 0 || Number(empStr) > abs)) { toast.error(`المبلغ على الموظف بين 0 و ${abs}`); return; }
+    setSaving(true);
+    const { error } = await supabase.rpc("settle_pos_shift_variance_v1" as any, {
+      p_session_id: sessionId, p_variance: v, p_employee_amount: emp, p_notes: notes.trim() || null,
+    });
+    setSaving(false);
+    if (error) { toast.error(error.message); return; }
+    toast.success("تم ترحيل تسوية الفرق");
+    setOpen(false); onDone();
+  };
+
+  return (
+    <>
+      <button
+        type="button"
+        onClick={(e) => { e.stopPropagation(); setEmpStr(isShortage ? String(abs) : "0"); setNotes(""); setOpen(true); }}
+        className="mr-2 inline-flex items-center gap-1 rounded border border-border px-1.5 py-0.5 text-[11px] text-foreground hover:bg-muted"
+        title="تسوية الفرق محاسبيًا"
+      >
+        <ClipboardList className="w-3.5 h-3.5" /> تسوية
+      </button>
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent dir="rtl" className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>{isShortage ? "تسوية عجز الصندوق" : "تسوية فائض الصندوق"} — {fmt(abs)}</DialogTitle>
+            <DialogDescription>الكاشير: {cashierName || "—"}</DialogDescription>
+          </DialogHeader>
+          {isShortage ? (
+            <div className="space-y-3 text-sm">
+              <label className="block">
+                <span className="text-muted-foreground text-xs">المبلغ على الموظف (خصم من الراتب)</span>
+                <Input dir="ltr" inputMode="decimal" className="mt-1 font-mono" value={empStr} onChange={e => setEmpStr(e.target.value)} />
+              </label>
+              <div className="flex gap-2">
+                <Button type="button" size="sm" variant="outline" onClick={() => setEmpStr(String(abs))}>كامل العجز</Button>
+                <Button type="button" size="sm" variant="outline" onClick={() => setEmpStr(String(Math.round(abs * 50) / 100))}>النصف</Button>
+                <Button type="button" size="sm" variant="outline" onClick={() => setEmpStr("0")}>ولا شيء</Button>
+              </div>
+              <div className="rounded border border-border divide-y divide-border">
+                <div className="flex justify-between px-3 py-2"><span>على ذمة الموظف (خصم راتب)</span><span className="font-mono">{fmt(emp)}</span></div>
+                <div className="flex justify-between px-3 py-2"><span>مصروف فروقات صناديق (على الشركة)</span><span className="font-mono">{fmt(rest)}</span></div>
+              </div>
+            </div>
+          ) : (
+            <div className="rounded border border-border px-3 py-2 text-sm flex justify-between">
+              <span>إيراد فروقات صناديق</span><span className="font-mono">{fmt(abs)}</span>
+            </div>
+          )}
+          <Input placeholder="ملاحظة (اختياري)" value={notes} onChange={e => setNotes(e.target.value)} />
+          <p className="text-[11px] text-muted-foreground">يُرحَّل القيد من صندوق الوردية، ولا يمكن تكرار التسوية لنفس الوردية.</p>
+          <div className="flex justify-end gap-2">
+            <Button variant="outline" onClick={() => setOpen(false)}>إلغاء</Button>
+            <Button onClick={submit} disabled={saving}>{saving ? "جاري الترحيل..." : "ترحيل التسوية"}</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }
