@@ -661,7 +661,7 @@ const AuthPage = () => {
             {mode !== "forgot" && (
               <div className="flex items-center gap-3 mb-5">
                 <div className="flex-1 h-px" style={{ background: 'rgba(13,27,46,0.16)' }} />
-                <span style={{ color: 'rgba(13,27,46,0.60)', fontSize: 12, fontWeight: 300 }}>{t("common:auth.or")}</span>
+                <span style={{ color: 'rgba(13,27,46,0.72)', fontSize: 12, fontWeight: 300 }}>{t("common:auth.or")}</span>
                 <div className="flex-1 h-px" style={{ background: 'rgba(13,27,46,0.16)' }} />
               </div>
             )}
@@ -804,7 +804,7 @@ const AuthPage = () => {
               <div className="space-y-1.5">
                 <label style={{ color: 'rgba(13,27,46,0.62)', fontSize: 12, fontWeight: 300 }}>{t("common:auth.email")}</label>
                 <div className="relative">
-                  <Mail className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 pointer-events-none" style={{ color: 'rgba(13,27,46,0.60)' }} />
+                  <Mail className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 pointer-events-none" style={{ color: 'rgba(13,27,46,0.72)' }} />
                   <input
                     type="email"
                     placeholder="example@email.com"
@@ -841,7 +841,7 @@ const AuthPage = () => {
                     )}
                   </div>
                   <div className="relative">
-                    <Lock className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 pointer-events-none" style={{ color: 'rgba(13,27,46,0.60)' }} />
+                    <Lock className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 pointer-events-none" style={{ color: 'rgba(13,27,46,0.72)' }} />
                     <input
                       type={showPassword ? "text" : "password"}
                       placeholder={mode === "signup" ? t("common:auth.passwordHint") : "••••••••"}
@@ -886,7 +886,7 @@ const AuthPage = () => {
                 <div className="space-y-1.5">
                   <label style={{ color: 'rgba(13,27,46,0.62)', fontSize: 12, fontWeight: 300 }}>{t("common:auth.confirmPassword")}</label>
                   <div className="relative">
-                    <Lock className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 pointer-events-none" style={{ color: 'rgba(13,27,46,0.60)' }} />
+                    <Lock className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 pointer-events-none" style={{ color: 'rgba(13,27,46,0.72)' }} />
                     <input
                       type={showPassword ? "text" : "password"}
                       placeholder={t("common:auth.confirmPassword")}
@@ -1029,7 +1029,7 @@ const AuthPage = () => {
             {/* Support + legal footer */}
             <div className="text-center mt-6 space-y-3">
               <p className="flex items-center justify-center gap-1.5" style={{ color: 'rgba(13,27,46,0.75)', fontSize: 12.5, fontWeight: 300 }}>
-                <LifeBuoy className="h-3.5 w-3.5" style={{ color: 'rgba(13,27,46,0.60)' }} />
+                <LifeBuoy className="h-3.5 w-3.5" style={{ color: 'rgba(13,27,46,0.72)' }} />
                 {t("common:auth.needHelp")}{" "}
                 <a
                   href="https://wa.me/972594336699"
@@ -1041,7 +1041,7 @@ const AuthPage = () => {
                   {t("common:auth.contactSupport")}
                 </a>
               </p>
-              <p style={{ color: 'rgba(13,27,46,0.60)', fontSize: 11.5, fontWeight: 300 }}>
+              <p style={{ color: 'rgba(13,27,46,0.72)', fontSize: 11.5, fontWeight: 300 }}>
                 <Link to="/privacy" className="hover:underline">{t("common:auth.footerPrivacy")}</Link>
                 <span className="mx-2">·</span>
                 <Link to="/terms" className="hover:underline">{t("common:auth.footerTerms")}</Link>
