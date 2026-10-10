@@ -694,6 +694,13 @@
       "when": 1791650550228,
       "tag": "0098_pos_expense_edit_require_gl_link",
       "breakpoints": true
+    },
+    {
+      "idx": 99,
+      "version": "7",
+      "when": 1791651049145,
+      "tag": "0099_pos_shift_variance_settlement",
+      "breakpoints": true
     }
   ]
 }
