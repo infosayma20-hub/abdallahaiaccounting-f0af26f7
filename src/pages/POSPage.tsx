@@ -1,4 +1,5 @@
 import { normalizeBarcode } from "@/lib/barcode";
+import { playScanSuccessBeep, playScanErrorBeep } from "@/lib/audio-unlock";
 import { parseScaleBarcode, type ScaleFormat } from "@/lib/scale-barcode";
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { usePOSOffline } from "@/hooks/usePOSOffline";
