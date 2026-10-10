@@ -491,7 +491,7 @@ const AuthPage = () => {
       <style>{`
         .auth-page input::placeholder, .auth-page textarea::placeholder { color: rgba(13,27,46,0.55); opacity: 1; }
         .auth-page input[type="checkbox"] { accent-color: #0D1B2E; }
-      </style>
+      `}</style>
       {/* خلفية نهارية ملء الشاشة (شمس ونهار) */}
       <img
         src={authHeroBg}
