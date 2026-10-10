@@ -495,7 +495,7 @@ const AuthPage = () => {
         .auth-page input[type="checkbox"] { accent-color: #0D1B2E; }
         /* اللوحة زجاجية شفافة: حجاب فاتح خفيف فقط، والصورة تُرى من خلفه.
            الحجاب أثقل قليلاً أسفل اللوحة حيث المشهد أغمق (تذييل الدعم والقوانين). */
-        .auth-glass { background: linear-gradient(180deg, rgba(242,239,232,0.36) 0%, rgba(242,239,232,0.22) 45%, rgba(242,239,232,0.58) 100%) !important; }
+        .auth-glass { background: linear-gradient(180deg, rgba(242,239,232,0.36) 0%, rgba(242,239,232,0.32) 45%, rgba(242,239,232,0.58) 100%) !important; }
         @media (min-width: 1024px) {
           .auth-glass { background: linear-gradient(180deg, rgba(255,255,255,0.44) 0%, rgba(255,255,255,0.28) 45%, rgba(255,255,255,0.60) 100%) !important; }
         }
