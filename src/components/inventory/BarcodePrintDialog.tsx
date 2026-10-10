@@ -20,7 +20,7 @@ interface Props {
   open: boolean;
   onOpenChange: (o: boolean) => void;
   product: Product | null;
-  onSaved?: () => void;
+  onSaved?: (code: string) => void;
 }
 
 /**
@@ -56,7 +56,7 @@ export default function BarcodePrintDialog({ open, onOpenChange, product, onSave
           .eq("product_id", product.id).eq("barcode", original);
       }
       toast.success("تم حفظ الباركود");
-      onSaved?.();
+      onSaved?.(code);
     } catch (e: any) {
       const msg = String(e?.message || "");
       toast.error(/unique|duplicate|مستخدم|exists/i.test(msg) ? "هذا الباركود مستخدم لصنف آخر" : "تعذر حفظ الباركود: " + msg);
