@@ -715,6 +715,13 @@
       "when": 1791651316342,
       "tag": "0101_variance_settlement_expense_parent_fix",
       "breakpoints": true
+    },
+    {
+      "idx": 102,
+      "version": "7",
+      "when": 1791651719411,
+      "tag": "0102_stock_count_name_search",
+      "breakpoints": true
     }
   ]
 }
