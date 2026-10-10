@@ -370,7 +370,7 @@ export default function EmployeeStockCountTab({ onBack }: { onBack: () => void }
       </div>
       <input ref={editFileRef} type="file" accept="image/*" capture="environment" className="hidden"
         onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ""; if (f) changeImage(f); }} />
-      <POSBarcodeScanner open={scanOpen} onClose={() => setScanOpen(false)} onScan={(c) => { setScanOpen(false); if (scanTarget === "extra") addCode(c); else if (scanTarget === "barcode") setBarcodeScan(normalizeBarcode(c) + "\u200b".repeat(0)); else lookup(c); }} />
+      <POSBarcodeScanner open={scanOpen} onClose={() => setScanOpen(false)} onScan={(c) => { setScanOpen(false); if (scanTarget === "extra") addCode(c); else if (scanTarget === "barcode") setBarcodeScan(normalizeBarcode(c)); else lookup(c); }} />
     </div>
   );
 }
