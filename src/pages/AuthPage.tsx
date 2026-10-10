@@ -511,7 +511,7 @@ const AuthPage = () => {
       >
         <img src={unifyMark} alt="Unify يونيفاي" className="h-9 w-auto object-contain" style={{ filter: 'drop-shadow(0 1px 6px rgba(13,27,46,0.18))' }} />
         <div className="flex items-center gap-3">
-          <LanguageSwitcher variant="labeled" />
+          <LanguageSwitcher variant="labeled" tone="light" />
           <button
             className="px-6 py-2 rounded-lg text-sm transition-all"
             style={{ background: 'rgba(255,255,255,0.62)', color: '#0D1B2E', fontWeight: 400, letterSpacing: '0.01em', border: '1.5px solid rgba(13,27,46,0.28)', backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)' }}
