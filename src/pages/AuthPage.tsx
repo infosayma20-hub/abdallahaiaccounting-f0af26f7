@@ -596,7 +596,7 @@ const AuthPage = () => {
               <h2 style={{ color: '#0D1B2E', fontSize: 31, fontWeight: 300, letterSpacing: '-0.02em', marginBottom: 6, fontFamily: 'Tajawal', lineHeight: 1.15, textShadow: '0 1px 12px rgba(255,255,255,0.70)' }}>
                 {mode === "login" ? t("common:auth.welcome") : mode === "signup" ? t("common:auth.createAccount") : t("common:auth.resetPassword")}
               </h2>
-              <p style={{ color: 'rgba(13,27,46,0.92)', fontSize: 14, fontWeight: 400, fontFamily: 'Tajawal' }}>
+              <p style={{ color: '#0D1B2E', fontSize: 14, fontWeight: 400, fontFamily: 'Tajawal' }}>
                 {mode === "login" ? t("common:auth.loginSubtitle") : mode === "signup" ? t("common:auth.signupSubtitle") : t("common:auth.forgotSubtitle")}
               </p>
             </div>
@@ -680,7 +680,7 @@ const AuthPage = () => {
             {mode !== "forgot" && (
               <div className="flex items-center gap-3 mb-5">
                 <div className="flex-1 h-px" style={{ background: 'rgba(13,27,46,0.26)' }} />
-                <span style={{ color: 'rgba(13,27,46,0.92)', fontSize: 12, fontWeight: 400 }}>{t("common:auth.or")}</span>
+                <span style={{ color: '#0D1B2E', fontSize: 12, fontWeight: 400 }}>{t("common:auth.or")}</span>
                 <div className="flex-1 h-px" style={{ background: 'rgba(13,27,46,0.26)' }} />
               </div>
             )}
@@ -699,7 +699,7 @@ const AuthPage = () => {
                 <>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div className="space-y-1.5">
-                      <label style={{ color: 'rgba(13,27,46,0.92)', fontSize: 12, fontWeight: 400 }}>{t("common:auth.fullName")}</label>
+                      <label style={{ color: '#0D1B2E', fontSize: 12, fontWeight: 400 }}>{t("common:auth.fullName")}</label>
                       <input
                         type="text"
                         placeholder={t("common:auth.fullNamePlaceholder")}
@@ -712,7 +712,7 @@ const AuthPage = () => {
                       />
                     </div>
                     <div className="space-y-1.5">
-                      <label style={{ color: 'rgba(13,27,46,0.92)', fontSize: 12, fontWeight: 400 }}>{t("common:auth.businessName")}</label>
+                      <label style={{ color: '#0D1B2E', fontSize: 12, fontWeight: 400 }}>{t("common:auth.businessName")}</label>
                       <input
                         type="text"
                         placeholder={t("common:auth.businessNamePlaceholder")}
@@ -727,7 +727,7 @@ const AuthPage = () => {
                   </div>
 
                   <div className="space-y-1.5">
-                    <label style={{ color: 'rgba(13,27,46,0.92)', fontSize: 12, fontWeight: 400 }}>{t("common:auth.phone")}</label>
+                    <label style={{ color: '#0D1B2E', fontSize: 12, fontWeight: 400 }}>{t("common:auth.phone")}</label>
                     <div className="flex gap-2" dir="ltr">
                       <select
                         value={countryCode}
@@ -770,7 +770,7 @@ const AuthPage = () => {
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div className="space-y-1.5">
-                      <label style={{ color: 'rgba(13,27,46,0.92)', fontSize: 12, fontWeight: 400 }}>{t("common:auth.businessType")}</label>
+                      <label style={{ color: '#0D1B2E', fontSize: 12, fontWeight: 400 }}>{t("common:auth.businessType")}</label>
                       <select
                         value={businessType}
                         onChange={e => setBusinessType(e.target.value)}
@@ -789,7 +789,7 @@ const AuthPage = () => {
                       </select>
                     </div>
                     <div className="space-y-1.5">
-                      <label style={{ color: 'rgba(13,27,46,0.92)', fontSize: 12, fontWeight: 400 }}>{t("common:auth.companySize")}</label>
+                      <label style={{ color: '#0D1B2E', fontSize: 12, fontWeight: 400 }}>{t("common:auth.companySize")}</label>
                       <select
                         value={employeesCount}
                         onChange={e => setEmployeesCount(e.target.value)}
@@ -807,7 +807,7 @@ const AuthPage = () => {
                     </div>
                   </div>
                   <div className="space-y-1.5">
-                    <label style={{ color: 'rgba(13,27,46,0.92)', fontSize: 12, fontWeight: 400 }}>{t("common:auth.address")}</label>
+                    <label style={{ color: '#0D1B2E', fontSize: 12, fontWeight: 400 }}>{t("common:auth.address")}</label>
                     <input
                       type="text"
                       placeholder={t("common:auth.addressPlaceholder")}
@@ -821,9 +821,9 @@ const AuthPage = () => {
               )}
               {/* Email */}
               <div className="space-y-1.5">
-                <label style={{ color: 'rgba(13,27,46,0.92)', fontSize: 12, fontWeight: 400 }}>{t("common:auth.email")}</label>
+                <label style={{ color: '#0D1B2E', fontSize: 12, fontWeight: 400 }}>{t("common:auth.email")}</label>
                 <div className="relative">
-                  <Mail className="absolute z-10 right-3 top-1/2 -translate-y-1/2 h-4 w-4 pointer-events-none" style={{ color: 'rgba(13,27,46,0.85)' }} />
+                  <Mail className="absolute z-10 right-3 top-1/2 -translate-y-1/2 h-4 w-4 pointer-events-none" style={{ color: '#0D1B2E' }} />
                   <input
                     type="email"
                     placeholder="example@email.com"
@@ -845,13 +845,13 @@ const AuthPage = () => {
               {mode !== "forgot" && (
                 <div className="space-y-1.5">
                   <div className="flex items-center justify-between">
-                    <label style={{ color: 'rgba(13,27,46,0.92)', fontSize: 12, fontWeight: 400 }}>{t("common:auth.password")}</label>
+                    <label style={{ color: '#0D1B2E', fontSize: 12, fontWeight: 400 }}>{t("common:auth.password")}</label>
                     {mode === "login" && (
                       <button
                         type="button"
                         onClick={() => setMode("forgot")}
                         className="transition-colors"
-                        style={{ color: 'rgba(13,27,46,0.92)', fontSize: 12, fontWeight: 400 }}
+                        style={{ color: '#0D1B2E', fontSize: 12, fontWeight: 400 }}
                         onMouseEnter={e => { e.currentTarget.style.color = '#0D1B2E'; }}
                         onMouseLeave={e => { e.currentTarget.style.color = 'rgba(13,27,46,0.85)'; }}
                       >
@@ -860,7 +860,7 @@ const AuthPage = () => {
                     )}
                   </div>
                   <div className="relative">
-                    <Lock className="absolute z-10 right-3 top-1/2 -translate-y-1/2 h-4 w-4 pointer-events-none" style={{ color: 'rgba(13,27,46,0.85)' }} />
+                    <Lock className="absolute z-10 right-3 top-1/2 -translate-y-1/2 h-4 w-4 pointer-events-none" style={{ color: '#0D1B2E' }} />
                     <input
                       type={showPassword ? "text" : "password"}
                       placeholder={mode === "signup" ? t("common:auth.passwordHint") : "••••••••"}
@@ -878,7 +878,7 @@ const AuthPage = () => {
                       onClick={() => setShowPassword(!showPassword)}
                       aria-label={showPassword ? "Hide password" : "Show password"}
                       className="absolute left-2 top-1/2 -translate-y-1/2 h-7 w-7 flex items-center justify-center rounded-full transition-all hover:bg-[rgba(13,27,46,0.08)] active:scale-90"
-                      style={{ color: 'rgba(13,27,46,0.85)' }}
+                      style={{ color: '#0D1B2E' }}
                     >
                       {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                     </button>
@@ -888,7 +888,7 @@ const AuthPage = () => {
 
               {/* Remember me */}
               {mode === "login" && (
-                <label className="flex items-center gap-2 cursor-pointer select-none" style={{ color: 'rgba(13,27,46,0.92)', fontSize: 13, fontWeight: 400 }}>
+                <label className="flex items-center gap-2 cursor-pointer select-none" style={{ color: '#0D1B2E', fontSize: 13, fontWeight: 400 }}>
                   <input
                     type="checkbox"
                     checked={rememberMe}
@@ -903,9 +903,9 @@ const AuthPage = () => {
               {/* Confirm password */}
               {mode === "signup" && (
                 <div className="space-y-1.5">
-                  <label style={{ color: 'rgba(13,27,46,0.92)', fontSize: 12, fontWeight: 400 }}>{t("common:auth.confirmPassword")}</label>
+                  <label style={{ color: '#0D1B2E', fontSize: 12, fontWeight: 400 }}>{t("common:auth.confirmPassword")}</label>
                   <div className="relative">
-                    <Lock className="absolute z-10 right-3 top-1/2 -translate-y-1/2 h-4 w-4 pointer-events-none" style={{ color: 'rgba(13,27,46,0.85)' }} />
+                    <Lock className="absolute z-10 right-3 top-1/2 -translate-y-1/2 h-4 w-4 pointer-events-none" style={{ color: '#0D1B2E' }} />
                     <input
                       type={showPassword ? "text" : "password"}
                       placeholder={t("common:auth.confirmPassword")}
@@ -923,7 +923,7 @@ const AuthPage = () => {
                       onClick={() => setShowPassword(!showPassword)}
                       aria-label={showPassword ? "Hide password" : "Show password"}
                       className="absolute left-2 top-1/2 -translate-y-1/2 h-7 w-7 flex items-center justify-center rounded-full transition-all hover:bg-[rgba(13,27,46,0.08)] active:scale-90"
-                      style={{ color: 'rgba(13,27,46,0.85)' }}
+                      style={{ color: '#0D1B2E' }}
                     >
                       {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                     </button>
@@ -933,7 +933,7 @@ const AuthPage = () => {
 
               {/* Terms */}
               {mode === "signup" && (
-                <label className="flex items-start gap-2 text-xs cursor-pointer" style={{ color: 'rgba(13,27,46,0.92)', fontWeight: 400 }}>
+                <label className="flex items-start gap-2 text-xs cursor-pointer" style={{ color: '#0D1B2E', fontWeight: 400 }}>
                   <input
                     type="checkbox"
                     checked={agreedToTerms}
@@ -1028,18 +1028,18 @@ const AuthPage = () => {
             {/* Links */}
             <div className="text-center space-y-3 mt-5">
               {mode === "signup" && (
-                <p style={{ color: 'rgba(13,27,46,0.92)', fontSize: 14, fontWeight: 400 }}>
+                <p style={{ color: '#0D1B2E', fontSize: 14, fontWeight: 400 }}>
                   {t("common:auth.haveAccount")}{" "}
                   <button onClick={() => setMode("login")} className="hover:underline" style={{ color: '#0D1B2E', fontWeight: 400 }}>{t("common:auth.submitLogin")}</button>
                 </p>
               )}
               {mode === "forgot" && (
-                <p style={{ color: 'rgba(13,27,46,0.92)', fontSize: 14, fontWeight: 400 }}>
+                <p style={{ color: '#0D1B2E', fontSize: 14, fontWeight: 400 }}>
                   <button onClick={() => setMode("login")} className="hover:underline" style={{ color: '#0D1B2E', fontWeight: 400 }}>{t("common:auth.backToLogin")}</button>
                 </p>
               )}
               {mode === "forgot" && (
-                <p className="mt-3 text-xs leading-relaxed" style={{ color: 'rgba(13,27,46,0.92)', fontWeight: 400 }}>
+                <p className="mt-3 text-xs leading-relaxed" style={{ color: '#0D1B2E', fontWeight: 400 }}>
                   {t("common:auth.forgotHint")}
                 </p>
               )}
@@ -1047,8 +1047,8 @@ const AuthPage = () => {
 
             {/* Support + legal footer */}
             <div className="text-center mt-6 space-y-3">
-              <p className="flex items-center justify-center gap-1.5" style={{ color: 'rgba(13,27,46,0.92)', fontSize: 12.5, fontWeight: 400 }}>
-                <LifeBuoy className="h-3.5 w-3.5" style={{ color: 'rgba(13,27,46,0.85)' }} />
+              <p className="flex items-center justify-center gap-1.5" style={{ color: '#0D1B2E', fontSize: 12.5, fontWeight: 400 }}>
+                <LifeBuoy className="h-3.5 w-3.5" style={{ color: '#0D1B2E' }} />
                 {t("common:auth.needHelp")}{" "}
                 <a
                   href="https://wa.me/972594336699"
@@ -1060,7 +1060,7 @@ const AuthPage = () => {
                   {t("common:auth.contactSupport")}
                 </a>
               </p>
-              <p style={{ color: 'rgba(13,27,46,0.92)', fontSize: 11.5, fontWeight: 400 }}>
+              <p style={{ color: '#0D1B2E', fontSize: 11.5, fontWeight: 400 }}>
                 <Link to="/privacy" className="hover:underline">{t("common:auth.footerPrivacy")}</Link>
                 <span className="mx-2">·</span>
                 <Link to="/terms" className="hover:underline">{t("common:auth.footerTerms")}</Link>
