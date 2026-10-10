@@ -126,6 +126,45 @@ export function playAlertBeep(): boolean {
   }
 }
 
+function tone(c: AudioContext, freq: number, at: number, dur: number, peak: number, type: OscillatorType = "sine") {
+  const o = c.createOscillator();
+  const g = c.createGain();
+  o.type = type;
+  o.frequency.value = freq;
+  g.gain.setValueAtTime(0.0001, at);
+  g.gain.exponentialRampToValueAtTime(peak, at + 0.015);
+  g.gain.exponentialRampToValueAtTime(0.0001, at + dur);
+  o.connect(g).connect(c.destination);
+  o.start(at);
+  o.stop(at + dur + 0.05);
+}
+
+/** صوت مسح ناجح: «بلب» قصير حاد — الصنف دخل السلة. */
+export function playScanSuccessBeep(): boolean {
+  const c = getCtx();
+  if (!c) return false;
+  if ((c.state as string) !== "running") { tryResume(); if ((c.state as string) !== "running") return false; }
+  try {
+    const t = c.currentTime;
+    tone(c, 1568, t, 0.09, 0.22);          // G6
+    tone(c, 2093, t + 0.07, 0.12, 0.22);   // C7
+    return true;
+  } catch { return false; }
+}
+
+/** صوت مسح فاشل: نغمتان نازلتان منخفضتان — الصنف غير متعرف، ما دخل السلة. */
+export function playScanErrorBeep(): boolean {
+  const c = getCtx();
+  if (!c) return false;
+  if ((c.state as string) !== "running") { tryResume(); if ((c.state as string) !== "running") return false; }
+  try {
+    const t = c.currentTime;
+    tone(c, 330, t, 0.16, 0.3, "square");        // E4
+    tone(c, 220, t + 0.18, 0.28, 0.3, "square"); // A3
+    return true;
+  } catch { return false; }
+}
+
 /**
  * Harsh "تنبيه طلبية متأخرة" — loud, dissonant square-wave siren designed to
  * be impossible to ignore in a busy call-center / kitchen environment.

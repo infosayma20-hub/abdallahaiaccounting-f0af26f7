@@ -3711,12 +3711,14 @@ const POSPage = ({ variant = "v1" }: { variant?: "v1" | "v2" } = {}) => {
     const code = normalizeBarcode(rawCode);
     if (!code) return;
     const matched = findProductByCode(code);
-    if (!matched && tryScaleBarcode(code)) return;
+    if (!matched && tryScaleBarcode(code)) { playScanSuccessBeep(); return; }
     if (!matched) {
+      playScanErrorBeep();
       toast.error(`المنتج غير موجود (${code})`, { duration: 3000 });
       return;
     }
     if (!matched.is_pos_available) {
+      playScanErrorBeep();
       toast.error(`المنتج "${matched.name}" غير متاح في نقطة البيع`, { duration: 3000 });
       return;
     }
@@ -3725,6 +3727,7 @@ const POSPage = ({ variant = "v1" }: { variant?: "v1" | "v2" } = {}) => {
       // نسمح بالإضافة (قد يكون البيع بالسالب مسموحاً) — لكن نحذّر
     }
     addToCart(matched);
+    playScanSuccessBeep();
     setSearchQuery("");
     setDebouncedSearch("");
     toast.success(`✅ ${matched.name}`, { duration: 1500 });
