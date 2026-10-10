@@ -233,7 +233,18 @@ export default function ProductEditPage() {
         ]);
         if (p) { setProduct(p as any); setOrigQty(Number((p as any).quantity) || 0); }
         setUnits((u ?? []) as any);
-        setBarcodes((b ?? []) as any);
+        {
+          // الباركود الرئيسي (products.barcode) يظهر دائمًا في تبويب الباركود
+          const rows = ((b ?? []) as any[]).map((r) => ({ ...r }));
+          const main = String((p as any)?.barcode || "").trim();
+          if (main && !rows.some((r) => String(r.barcode).trim() === main)) {
+            rows.forEach((r) => (r.is_default = false));
+            rows.unshift({ barcode: main, description: "الباركود الرئيسي", is_default: true });
+          } else if (main) {
+            rows.forEach((r) => (r.is_default = String(r.barcode).trim() === main));
+          }
+          setBarcodes(rows as any);
+        }
         setTiers((t ?? []) as any);
         setWhSettings((ws ?? []) as any);
         loadStock(id);
@@ -344,6 +355,12 @@ export default function ProductEditPage() {
       delete payload.updated_at;
       // quantity is derived from stock_movements — never write it directly
       delete payload.quantity;
+      // الباركود الافتراضي في التبويب هو الباركود الرئيسي للصنف
+      {
+        const valid = barcodes.filter((b) => String(b.barcode || "").trim());
+        const def = valid.find((b) => b.is_default) || valid[0];
+        payload.barcode = def ? String(def.barcode).trim() : null;
+      }
 
       let pid = product.id;
       if (pid) {
@@ -398,10 +415,11 @@ export default function ProductEditPage() {
           barcode: u.barcode || null, notes: u.notes || null,
         })));
       }
-      if (barcodes.length) {
-        await supabase.from("product_barcodes" as any).insert(barcodes.map(b => ({
+      const validBarcodes = barcodes.filter(b => String(b.barcode || "").trim());
+      if (validBarcodes.length) {
+        await supabase.from("product_barcodes" as any).insert(validBarcodes.map(b => ({
           product_id: pid, user_id: ownerId,
-          barcode: b.barcode, description: b.description || null,
+          barcode: String(b.barcode).trim(), description: b.description || null,
           unit_id: b.unit_id ?? null,
           is_default: !!b.is_default,
         })));

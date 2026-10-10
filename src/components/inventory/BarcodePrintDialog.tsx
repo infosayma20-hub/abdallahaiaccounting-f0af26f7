@@ -4,7 +4,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Printer, X } from "lucide-react";
+import { Printer, X, Save } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 interface Product {
   id: string;
@@ -18,6 +20,7 @@ interface Props {
   open: boolean;
   onOpenChange: (o: boolean) => void;
   product: Product | null;
+  onSaved?: () => void;
 }
 
 /**
@@ -26,13 +29,41 @@ interface Props {
  * - يدعم تحديد عدد الملصقات
  * - يفتح نافذة طباعة منفصلة
  */
-export default function BarcodePrintDialog({ open, onOpenChange, product }: Props) {
+export default function BarcodePrintDialog({ open, onOpenChange, product, onSaved }: Props) {
   const [count, setCount] = useState(12);
   const [showPrice, setShowPrice] = useState(true);
   const [showName, setShowName] = useState(true);
   const previewRef = useRef<SVGSVGElement>(null);
 
-  const code = product?.barcode || product?.sku || product?.id || "";
+  const original = product?.barcode || "";
+  const [codeInput, setCodeInput] = useState("");
+  const [savingCode, setSavingCode] = useState(false);
+  useEffect(() => {
+    if (open) setCodeInput(product?.barcode || product?.sku || product?.id || "");
+  }, [open, product?.id, product?.barcode, product?.sku]);
+  const code = codeInput.trim();
+  const codeChanged = !!code && code !== original;
+
+  const saveCode = async () => {
+    if (!product || !codeChanged) return;
+    setSavingCode(true);
+    try {
+      const { error } = await supabase.from("products").update({ barcode: code } as any).eq("id", product.id);
+      if (error) throw error;
+      // تحديث صف الباركود الافتراضي في جدول الباركودات الإضافية إن وُجد
+      if (original) {
+        await supabase.from("product_barcodes" as any).update({ barcode: code } as any)
+          .eq("product_id", product.id).eq("barcode", original);
+      }
+      toast.success("تم حفظ الباركود");
+      onSaved?.();
+    } catch (e: any) {
+      const msg = String(e?.message || "");
+      toast.error(/unique|duplicate|مستخدم|exists/i.test(msg) ? "هذا الباركود مستخدم لصنف آخر" : "تعذر حفظ الباركود: " + msg);
+    } finally {
+      setSavingCode(false);
+    }
+  };
 
   // Render preview
   useEffect(() => {
@@ -183,8 +214,18 @@ export default function BarcodePrintDialog({ open, onOpenChange, product }: Prop
             </div>
             <div className="space-y-1.5">
               <Label className="text-xs">الكود المُستخدم</Label>
-              <div className="h-9 px-3 rounded-lg bg-muted/50 border border-border flex items-center text-xs font-mono" dir="ltr">
-                {code || "—"}
+              <div className="flex gap-1">
+                <Input
+                  value={codeInput}
+                  onChange={(e) => setCodeInput(e.target.value)}
+                  className="rounded-lg h-9 text-xs font-mono"
+                  dir="ltr"
+                />
+                {codeChanged && (
+                  <Button type="button" size="sm" className="h-9 shrink-0" onClick={saveCode} disabled={savingCode} title="حفظ الباركود على الصنف">
+                    <Save className="h-4 w-4" />
+                  </Button>
+                )}
               </div>
             </div>
           </div>

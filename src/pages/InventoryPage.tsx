@@ -1954,6 +1954,7 @@ const negStock = displayProducts.filter(p => Number(p.quantity) < 0).length;
         open={!!barcodePrintProduct}
         onOpenChange={(o) => !o && setBarcodePrintProduct(null)}
         product={barcodePrintProduct}
+        onSaved={() => { setBarcodePrintProduct(null); fetchProducts(); }}
       />
 
       {/* ربط صنف بمستودع */}
