@@ -1032,7 +1032,7 @@ const AuthPage = () => {
 
             {/* Support + legal footer */}
             <div className="text-center mt-6 space-y-3">
-              <p className="flex items-center justify-center gap-1.5" style={{ color: 'rgba(13,27,46,0.88)', fontSize: 12.5, fontWeight: 300 }}>
+              <p className="flex items-center justify-center gap-1.5" style={{ color: 'rgba(13,27,46,0.92)', fontSize: 12.5, fontWeight: 400 }}>
                 <LifeBuoy className="h-3.5 w-3.5" style={{ color: 'rgba(13,27,46,0.85)' }} />
                 {t("common:auth.needHelp")}{" "}
                 <a
@@ -1045,7 +1045,7 @@ const AuthPage = () => {
                   {t("common:auth.contactSupport")}
                 </a>
               </p>
-              <p style={{ color: 'rgba(13,27,46,0.85)', fontSize: 11.5, fontWeight: 300 }}>
+              <p style={{ color: 'rgba(13,27,46,0.92)', fontSize: 11.5, fontWeight: 400 }}>
                 <Link to="/privacy" className="hover:underline">{t("common:auth.footerPrivacy")}</Link>
                 <span className="mx-2">·</span>
                 <Link to="/terms" className="hover:underline">{t("common:auth.footerTerms")}</Link>
