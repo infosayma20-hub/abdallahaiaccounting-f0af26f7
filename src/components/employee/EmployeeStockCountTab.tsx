@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
 import ManagerHeader from "@/components/employee/manager/ManagerHeader";
+import StockCountBarcodes from "@/components/employee/StockCountBarcodes";
 import POSBarcodeScanner from "@/components/pos/POSBarcodeScanner";
 import { normalizeBarcode } from "@/lib/barcode";
 
@@ -42,7 +43,8 @@ export default function EmployeeStockCountTab({ onBack }: { onBack: () => void }
   const [newImg, setNewImg] = useState<{ blob: Blob; preview: string } | null>(null);
   const [imgBusy, setImgBusy] = useState(false);
   const [creating, setCreating] = useState(false);
-  const [scanTarget, setScanTarget] = useState<"lookup" | "extra">("lookup");
+  const [scanTarget, setScanTarget] = useState<"lookup" | "extra" | "barcode">("lookup");
+  const [barcodeScan, setBarcodeScan] = useState<string | null>(null);
   const newFileRef = useRef<HTMLInputElement>(null);
   const editFileRef = useRef<HTMLInputElement>(null);
   const nameInputRef = useRef<HTMLInputElement>(null);
@@ -317,7 +319,7 @@ export default function EmployeeStockCountTab({ onBack }: { onBack: () => void }
                           <Copy className="h-4 w-4" />
                         </button>
                       </div>
-                      <div className="font-mono text-xs text-muted-foreground">{product.barcode ?? "—"}</div>
+                      <div className="font-mono text-xs text-muted-foreground" dir="ltr">{product.barcode ?? "—"}</div>
                     </div>
                   </div>
                   <div className="grid grid-cols-2 gap-2 text-center text-sm">
@@ -327,6 +329,12 @@ export default function EmployeeStockCountTab({ onBack }: { onBack: () => void }
                   {product.pending_qty !== null && (
                     <div className="text-xs text-muted-foreground">يوجد عدّ سابق بانتظار المراجعة: {product.pending_qty} — العدّ الجديد يستبدله.</div>
                   )}
+                  <StockCountBarcodes productId={product.id} scanned={barcodeScan}
+                    onScanRequest={() => { setBarcodeScan(null); setScanTarget("barcode"); setScanOpen(true); }}
+                    onChanged={async () => {
+                      const { data } = await (supabase.rpc as any)("stock_count_get", { p_product_id: product.id });
+                      if (data) setProduct((cur) => (cur && cur.id === product.id ? { ...cur, barcode: (data as Product).barcode } : cur));
+                    }} />
                   <div className="space-y-2">
                     <div>
                       <Label>اسم جديد (اختياري)</Label>
@@ -362,7 +370,7 @@ export default function EmployeeStockCountTab({ onBack }: { onBack: () => void }
       </div>
       <input ref={editFileRef} type="file" accept="image/*" capture="environment" className="hidden"
         onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ""; if (f) changeImage(f); }} />
-      <POSBarcodeScanner open={scanOpen} onClose={() => setScanOpen(false)} onScan={(c) => { setScanOpen(false); if (scanTarget === "extra") addCode(c); else lookup(c); }} />
+      <POSBarcodeScanner open={scanOpen} onClose={() => setScanOpen(false)} onScan={(c) => { setScanOpen(false); if (scanTarget === "extra") addCode(c); else if (scanTarget === "barcode") setBarcodeScan(normalizeBarcode(c) + "\u200b".repeat(0)); else lookup(c); }} />
     </div>
   );
 }
