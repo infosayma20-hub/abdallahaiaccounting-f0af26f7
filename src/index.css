@@ -264,6 +264,33 @@
   }
 }
 
+.auth-page {
+  --auth-foreground: 0 0% 100%;
+  --auth-surface: 213 56% 9%;
+  --auth-field: 213 24% 24%;
+  --auth-border: 0 0% 100%;
+  --auth-text-shadow: 0 1px 6px hsl(var(--auth-surface) / 0.8);
+}
+
+.auth-glass {
+  background: hsl(var(--auth-surface) / 0.34);
+  color: hsl(var(--auth-foreground));
+  backdrop-filter: blur(14px) saturate(120%);
+  -webkit-backdrop-filter: blur(14px) saturate(120%);
+  border-inline-start: 1px solid hsl(var(--auth-border) / 0.14);
+}
+
+.auth-glass h2,
+.auth-glass label,
+.auth-glass > div > div > p {
+  text-shadow: var(--auth-text-shadow);
+}
+
+.auth-page input::placeholder {
+  color: hsl(var(--auth-foreground) / 0.65);
+  opacity: 1;
+}
+
 /* Auth page right panel — always light regardless of theme */
 .auth-light-panel {
   background: #ffffff !important;
