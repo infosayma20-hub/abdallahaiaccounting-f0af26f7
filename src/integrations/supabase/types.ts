@@ -35116,6 +35116,7 @@ export type Database = {
         }
         Returns: Json
       }
+      stock_count_get: { Args: { p_product_id: string }; Returns: Json }
       stock_count_lookup: { Args: { p_code: string }; Returns: Json }
       stock_count_report_unknown: {
         Args: { p_code: string; p_note?: string }
@@ -35125,6 +35126,7 @@ export type Database = {
         Args: { p_approve: boolean; p_entry_id: string; p_note?: string }
         Returns: Json
       }
+      stock_count_search: { Args: { p_query: string }; Returns: Json }
       stock_count_set_image: {
         Args: { p_image_url: string; p_product_id: string }
         Returns: undefined
