@@ -687,6 +687,13 @@
       "when": 1791650236393,
       "tag": "0097_pos_expense_edit_fix_accounts",
       "breakpoints": true
+    },
+    {
+      "idx": 98,
+      "version": "7",
+      "when": 1791650550228,
+      "tag": "0098_pos_expense_edit_require_gl_link",
+      "breakpoints": true
     }
   ]
 }
