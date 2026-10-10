@@ -701,6 +701,13 @@
       "when": 1791651049145,
       "tag": "0099_pos_shift_variance_settlement",
       "breakpoints": true
+    },
+    {
+      "idx": 100,
+      "version": "7",
+      "when": 1791651108995,
+      "tag": "0100_pos_shift_variance_settlement_fix_employee",
+      "breakpoints": true
     }
   ]
 }
