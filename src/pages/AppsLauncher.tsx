@@ -377,8 +377,8 @@ const AppsLauncher = ({ preloadOnly = false }: AppsLauncherProps) => {
     if (SUPERADMIN_EMAIL_ALLOWLIST.includes(email)) {
       allApps = [...SUPERADMIN_APPS, ...allApps];
     }
-    // Per-user deny: hide entirely from launcher
-    allApps = allApps.filter(app => app.id !== "elite-interviews" && !denyOverrides.has(app.id));
+    // Per-user deny: card moves to «متقدمة» as pending activation (see isAppDisabled)
+    allApps = allApps.filter(app => app.id !== "elite-interviews");
     // POS-audit card is reserved for accountants who were explicitly granted it.
     allApps = allApps.filter(app => app.id !== "pos-audit" || accountantPosAuditAllowed === true);
     if (restrictedRole && ROLE_ALLOWED_APPS[restrictedRole]) {

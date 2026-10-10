@@ -27,6 +27,8 @@ const APP_LABELS: Record<string, string> = {
   warranty: "إدارة الكفالات",
   contractor: "محاسب المشاريع والمقاولات",
   workshops: "إدارة الورشات والمناجر",
+  training: "ورشات ودورات",
+  "elite-interviews": "مقابلات النخبة",
   ecommerce: "إدارة المتاجر الإلكترونية",
   tasks: "إدارة المهام",
   "cost-centers": "مراكز التكلفة",
