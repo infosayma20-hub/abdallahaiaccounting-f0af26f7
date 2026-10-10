@@ -493,6 +493,11 @@ const AuthPage = () => {
       <style>{`
         .auth-page input::placeholder, .auth-page textarea::placeholder { color: rgba(13,27,46,0.65); opacity: 1; }
         .auth-page input[type="checkbox"] { accent-color: #0D1B2E; }
+        /* على الجوال اللوحة الزجاجية أشفّ حتى يظهر المشهد المسائي خلفها */
+        .auth-glass { background: linear-gradient(160deg, rgba(242,239,232,0.58) 0%, rgba(242,239,232,0.42) 100%) !important; }
+        @media (min-width: 1024px) {
+          .auth-glass { background: linear-gradient(160deg, rgba(255,255,255,0.80) 0%, rgba(255,255,255,0.64) 100%) !important; }
+        }
       `}</style>
       {/* خلفية مسائية ملء الشاشة (غروب وأضواء مدينة) */}
       <img
@@ -559,10 +564,9 @@ const AuthPage = () => {
 
         {/* Glass side — full-height frosted panel, no card box, form sits directly on the glass */}
         <div
-          className="flex-1 lg:flex-none lg:w-1/3 flex flex-col items-center justify-center px-4 sm:px-6 overflow-y-auto relative"
+          className="auth-glass flex-1 lg:flex-none lg:w-1/3 flex flex-col items-center justify-center px-4 sm:px-6 overflow-y-auto relative"
           dir={pageDir}
           style={{
-            background: 'linear-gradient(160deg, rgba(255,255,255,0.80) 0%, rgba(255,255,255,0.64) 100%)',
             backdropFilter: 'blur(26px) saturate(150%)',
             WebkitBackdropFilter: 'blur(26px) saturate(150%)',
             borderInlineStart: '1px solid rgba(13,27,46,0.10)',
