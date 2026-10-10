@@ -489,7 +489,7 @@ const AuthPage = () => {
         تُرسم فوقه بدل وميض داكن تحتها. */}
     <div className="auth-page h-screen flex flex-col relative overflow-hidden" dir="ltr" style={{ background: '#F2EFE8' }}>
       <style>{`
-        .auth-page input::placeholder, .auth-page textarea::placeholder { color: rgba(13,27,46,0.55); opacity: 1; }
+        .auth-page input::placeholder, .auth-page textarea::placeholder { color: rgba(13,27,46,0.65); opacity: 1; }
         .auth-page input[type="checkbox"] { accent-color: #0D1B2E; }
       `}</style>
       {/* خلفية نهارية ملء الشاشة (شمس ونهار) */}
