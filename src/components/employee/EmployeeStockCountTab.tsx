@@ -125,6 +125,38 @@ export default function EmployeeStockCountTab({ onBack }: { onBack: () => void }
     setCode("");
   };
 
+  // بحث بالاسم: يعمل فقط عندما يحتوي النص على حرف (الأرقام وحدها = باركود عبر Enter)
+  const [hits, setHits] = useState<{ id: string; name: string; barcode: string | null; sell_price: number | null; image_url: string | null }[]>([]);
+  const [searching, setSearching] = useState(false);
+  const searchSeq = useRef(0);
+  const nameQuery = /[^\d\s.\-]/.test(code) ? code.trim() : "";
+  useEffect(() => {
+    const seq = ++searchSeq.current;
+    if (!nameQuery) { setHits([]); setSearching(false); return; }
+    setSearching(true);
+    const t = setTimeout(async () => {
+      const { data, error } = await (supabase.rpc as any)("stock_count_search", { p_query: nameQuery });
+      if (seq !== searchSeq.current) return; // تجاهل النتائج القديمة
+      setSearching(false);
+      if (error) { toast.error(error.message); return; }
+      setHits((data as any[]) || []);
+    }, 220);
+    return () => clearTimeout(t);
+  }, [nameQuery]);
+
+  const pick = async (id: string) => {
+    searchSeq.current++;
+    setHits([]); setSearching(false);
+    setLooking(true);
+    const { data, error } = await (supabase.rpc as any)("stock_count_get", { p_product_id: id });
+    setLooking(false);
+    if (error) { toast.error(error.message); return; }
+    if (!data) { toast.error("الصنف غير موجود"); return; }
+    resetNew(null);
+    setProduct(data as Product);
+    setName(""); setPrice(""); setQty(""); setCode("");
+  };
+
   const reportUnknown = async () => {
     if (!unknownCode) return;
     setReporting(true);
@@ -169,10 +201,42 @@ export default function EmployeeStockCountTab({ onBack }: { onBack: () => void }
                 لا يوجد مستودع مربوط بفرعك، فلا يمكن إرسال الكميات. تعديل الاسم والسعر متاح.
               </div>
             )}
-            <form className="flex gap-2" onSubmit={(e) => { e.preventDefault(); lookup(code); }}>
-              <Input ref={codeRef} autoFocus inputMode="numeric" placeholder="امسح أو اكتب الباركود" value={code} onChange={(e) => setCode(e.target.value)} className="h-12 text-base" />
+            <form className="flex gap-2" onSubmit={(e) => { e.preventDefault(); if (nameQuery) { if (hits[0]) pick(hits[0].id); } else lookup(code); }}>
+              <div className="relative flex-1">
+                <Input ref={codeRef} autoFocus type="search" enterKeyHint="search" autoComplete="off" placeholder="امسح الباركود أو اكتب اسم الصنف" value={code} onChange={(e) => setCode(e.target.value)} className="h-12 pl-9 text-base" />
+                {code && (
+                  <button type="button" aria-label="مسح" onClick={() => { setCode(""); codeRef.current?.focus(); }} className="absolute left-2 top-1/2 -translate-y-1/2 rounded-full p-1 text-muted-foreground hover:bg-muted">
+                    {searching ? <Loader2 className="h-4 w-4 animate-spin" /> : <X className="h-4 w-4" />}
+                  </button>
+                )}
+              </div>
               <Button type="button" size="icon" className="h-12 w-12 shrink-0" onClick={() => { setScanTarget("lookup"); setScanOpen(true); }} aria-label="فتح الكاميرا"><Camera className="h-5 w-5" /></Button>
             </form>
+
+            {nameQuery && (
+              <div className="overflow-hidden rounded-xl border border-border bg-card">
+                {hits.length === 0 ? (
+                  <div className="p-4 text-center text-sm text-muted-foreground">{searching ? "جاري البحث…" : "لا توجد أصناف بهذا الاسم"}</div>
+                ) : (
+                  <ul className="max-h-[50dvh] divide-y divide-border overflow-y-auto overscroll-contain">
+                    {hits.map((h) => (
+                      <li key={h.id}>
+                        <button type="button" onClick={() => pick(h.id)} className="flex w-full items-center gap-3 p-2.5 text-right hover:bg-muted active:bg-muted">
+                          {h.image_url
+                            ? <img src={h.image_url} alt="" loading="lazy" className="h-10 w-10 shrink-0 rounded-md border border-border object-cover" />
+                            : <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-muted text-muted-foreground"><ImagePlus className="h-4 w-4" /></div>}
+                          <div className="min-w-0 flex-1">
+                            <div className="truncate text-sm font-medium text-foreground">{h.name}</div>
+                            <div className="truncate text-xs text-muted-foreground" dir="ltr">{h.barcode || "بدون باركود"}</div>
+                          </div>
+                          {h.sell_price != null && <div className="shrink-0 text-sm font-semibold text-foreground">₪{Number(h.sell_price)}</div>}
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            )}
 
             {looking && <div className="flex justify-center p-4"><Loader2 className="h-5 w-5 animate-spin" /></div>}
 
