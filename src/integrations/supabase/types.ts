@@ -35104,6 +35104,7 @@ export type Database = {
         Args: { p_order_id: string }
         Returns: Json
       }
+      stock_count_barcodes: { Args: { p_product_id: string }; Returns: Json }
       stock_count_context: { Args: never; Returns: Json }
       stock_count_create_product: {
         Args: {
@@ -35127,6 +35128,10 @@ export type Database = {
         Returns: Json
       }
       stock_count_search: { Args: { p_query: string }; Returns: Json }
+      stock_count_set_barcode: {
+        Args: { p_new: string; p_old: string; p_product_id: string }
+        Returns: Json
+      }
       stock_count_set_image: {
         Args: { p_image_url: string; p_product_id: string }
         Returns: undefined
