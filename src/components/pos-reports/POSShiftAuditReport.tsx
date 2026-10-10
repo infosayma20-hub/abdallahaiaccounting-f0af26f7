@@ -18,6 +18,7 @@ import { Button } from "@/components/ui/button";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
+import JournalAccountPicker, { type PickerAccount } from "@/components/journal/JournalAccountPicker";
 import { formatOrderTypeLabel } from "@/lib/pos/order-type-label";
 
 interface ForeignAdjustmentRow {
@@ -1504,8 +1505,24 @@ function ExpandableExpensesRow({
   const [purch, setPurch] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
-  const [f, setF] = useState({ amount: "", description: "", account_code: "" });
+  const [f, setF] = useState({ amount: "", description: "", account_code: "", account_name: "" });
   const [saving, setSaving] = useState(false);
+  const [leafAccounts, setLeafAccounts] = useState<PickerAccount[]>([]);
+  const [ownerId, setOwnerId] = useState<string | null>(null);
+
+  // شجرة الحسابات: حسابات فرعية فعّالة فقط (يمنع الترحيل على حساب رئيسي)
+  useEffect(() => {
+    if (!editId || !ownerId || leafAccounts.length) return;
+    (async () => {
+      const { data } = await (supabase as any).from("accounts")
+        .select("account_code, account_name, account_type, parent_code, is_active")
+        .eq("user_id", ownerId).order("account_code").limit(5000);
+      const all = ((data as any[]) || []);
+      const parents = new Set(all.map(a => a.parent_code).filter(Boolean));
+      setLeafAccounts(all.filter(a => a.is_active !== false && !parents.has(a.account_code))
+        .map(a => ({ account_code: a.account_code, account_name: a.account_name, account_type: a.account_type })));
+    })();
+  }, [editId, ownerId, leafAccounts.length]);
 
   useEffect(() => {
     if (!open) return;
@@ -1519,8 +1536,9 @@ function ExpandableExpensesRow({
       const list = ((e.data as any[]) || []);
       const codes = Array.from(new Set(list.map(r => r.account_code).filter(Boolean)));
       let names: Record<string, string> = {};
+      const { data: ss } = await supabase.from("pos_sessions").select("user_id").eq("id", sessionId).maybeSingle();
+      if (!c) setOwnerId((ss as any)?.user_id ?? null);
       if (codes.length) {
-        const { data: ss } = await supabase.from("pos_sessions").select("user_id").eq("id", sessionId).maybeSingle();
         const { data: accs } = await (supabase as any).from("accounts").select("account_code, account_name").eq("user_id", (ss as any)?.user_id).in("account_code", codes);
         ((accs as any[]) || []).forEach(a => { names[a.account_code] = a.account_name; });
       }
@@ -1581,8 +1599,17 @@ function ExpandableExpensesRow({
                       <td className="py-1 font-mono text-muted-foreground">{format(new Date(r.created_at), "HH:mm")}</td>
                       <td className="py-1">{EXP_KIND[r.expense_kind || "account"]}</td>
                       <td className="py-1 pl-1"><Input className="h-7 text-xs" value={f.description} onChange={e => setF({ ...f, description: e.target.value })} /></td>
-                      <td className="py-1 pl-1"><Input className="h-7 text-xs font-mono" dir="ltr" value={f.account_code} onChange={e => setF({ ...f, account_code: e.target.value })} placeholder="رقم الحساب" /></td>
-                      <td className="py-1"><Input className="h-7 text-xs font-mono" dir="ltr" inputMode="decimal" value={f.amount} onChange={e => setF({ ...f, amount: e.target.value })} /></td>
+                      <td className="py-1 pl-1 min-w-[200px]">
+                        <JournalAccountPicker
+                          lineId={`exp-${r.id}`}
+                          value={f.account_code}
+                          accountName={f.account_name}
+                          accounts={leafAccounts}
+                          onSelect={(a) => setF({ ...f, account_code: a.account_code, account_name: a.account_name })}
+                          nextFocusSelector={`[data-exp-amount="${r.id}"]`}
+                        />
+                      </td>
+                      <td className="py-1"><Input data-exp-amount={r.id} className="h-7 text-xs font-mono" dir="ltr" inputMode="decimal" value={f.amount} onChange={e => setF({ ...f, amount: e.target.value })} /></td>
                       <td className="py-1">
                         <div className="flex gap-1 justify-end">
                           <button disabled={saving} onClick={() => save(r.id)} className="p-1 text-primary" title="حفظ"><Check className="w-3.5 h-3.5" /></button>
@@ -1601,7 +1628,7 @@ function ExpandableExpensesRow({
                       {canEdit && (
                         <td className="py-1 text-left">
                           {editable && (
-                            <button onClick={() => { setEditId(r.id); setF({ amount: String(r.amount), description: r.description || "", account_code: r.account_code || "" }); }} className="p-1 text-muted-foreground hover:text-foreground" title="تعديل">
+                            <button onClick={() => { setEditId(r.id); setF({ amount: String(r.amount), description: r.description || "", account_code: r.account_code || "", account_name: r.account_name || "" }); }} className="p-1 text-muted-foreground hover:text-foreground" title="تعديل">
                               <Pencil className="w-3.5 h-3.5" />
                             </button>
                           )}
