@@ -74,6 +74,7 @@ export const APPS_VISUAL_META: AppVisualMeta[] = [
   { id: "fixed-assets",    iconColor: PALETTE.teal,     section: "operations" },
   { id: "van-sales",       iconColor: PALETTE.blue,     section: "operations" },
   { id: "hr",              iconColor: PALETTE.indigo,   section: "operations" },
+  { id: "training",        iconColor: PALETTE.amber,    section: "operations" },
   { id: "reports",         iconColor: PALETTE.red,      section: "operations" },
   { id: "dashboards",      iconColor: PALETTE.purple,   section: "operations" },
   { id: "purchases",       iconColor: PALETTE.mint,     section: "operations" },
