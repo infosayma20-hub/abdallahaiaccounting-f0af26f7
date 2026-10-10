@@ -1,9 +1,11 @@
 import { lazy, Suspense, useState, useEffect, useCallback, useRef } from "react";
 // صورة الخلفية الرئيسية لشاشة تسجيل الدخول — ثابتة ولا تتبدّل.
-import authHeroBg from "@/assets/auth-hero-day.webp";
+// مشهد مسائي (غروب وأضواء مدينة) بنفس فكرة الصورة المرجعية للمستخدم.
+import authHeroBg from "@/assets/auth-hero-dusk.webp";
 import { BRAND } from "@/constants/brand";
-// الخلفية نهارية (شمس ونهار)؛ الشعارات الكحلية من constants/brand تناسب الخلفية الفاتحة.
-const unifyMark = BRAND.logos.icon;
+import unifyMarkWhite from "@/assets/unify-mark-white.webp";
+// الشعار الأبيض للشريط العلوي فوق الصورة المسائية؛ الشعار الكحلي يبقى داخل اللوحة الفاتحة.
+const unifyMark = unifyMarkWhite;
 
 const unifyLogoVertical = BRAND.logos.vertical;
 import { useNavigate, useSearchParams } from "react-router-dom";
@@ -485,19 +487,24 @@ const AuthPage = () => {
         </Suspense>
       </div>
     )}
-    {/* لون الأساس فاتح حتى تكون أول لقمة فاتحة — الصورة النهارية
-        تُرسم فوقه بدل وميض داكن تحتها. */}
-    <div className="auth-page h-screen flex flex-col relative overflow-hidden" dir="ltr" style={{ background: '#F2EFE8' }}>
+    {/* لون الأساس كحلي داكن حتى تكون أول لقمة بلون المشهد المسائي
+        — الصورة تُرسم فوقه بدل وميض فاتح تحتها. */}
+    <div className="auth-page h-screen flex flex-col relative overflow-hidden" dir="ltr" style={{ background: '#0D1B2E' }}>
       <style>{`
         .auth-page input::placeholder, .auth-page textarea::placeholder { color: rgba(13,27,46,0.65); opacity: 1; }
         .auth-page input[type="checkbox"] { accent-color: #0D1B2E; }
+        /* على الجوال اللوحة الزجاجية أشفّ حتى يظهر المشهد المسائي خلفها */
+        .auth-glass { background: linear-gradient(160deg, rgba(242,239,232,0.58) 0%, rgba(242,239,232,0.42) 100%) !important; }
+        @media (min-width: 1024px) {
+          .auth-glass { background: linear-gradient(160deg, rgba(255,255,255,0.80) 0%, rgba(255,255,255,0.64) 100%) !important; }
+        }
       `}</style>
-      {/* خلفية نهارية ملء الشاشة (شمس ونهار) */}
+      {/* خلفية مسائية ملء الشاشة (غروب وأضواء مدينة) */}
       <img
         src={authHeroBg}
         alt=""
         width={1920}
-        height={1088}
+        height={1296}
         fetchPriority="high"
         decoding="sync"
         className="absolute inset-0 h-full w-full object-cover pointer-events-none select-none"
@@ -505,7 +512,7 @@ const AuthPage = () => {
       />
       <div
         className="absolute inset-0 pointer-events-none"
-        style={{ background: 'linear-gradient(180deg, rgba(255,255,255,0.34) 0%, rgba(255,255,255,0.06) 45%, rgba(255,255,255,0.30) 100%)' }}
+        style={{ background: 'linear-gradient(180deg, rgba(13,27,46,0.38) 0%, rgba(13,27,46,0.04) 45%, rgba(13,27,46,0.42) 100%)' }}
       />
 
       {/* Top Nav — transparent over the photo; pushed below the iPhone notch/status bar */}
@@ -513,15 +520,15 @@ const AuthPage = () => {
         className="relative z-50 w-full flex items-center justify-between px-4 sm:px-12 shrink-0" dir={pageDir}
         style={{ borderBottom: 'none', minHeight: 'calc(56px + env(safe-area-inset-top))', paddingTop: 'env(safe-area-inset-top)' }}
       >
-        <img src={unifyMark} alt="Unify يونيفاي" className="h-9 w-auto object-contain" style={{ filter: 'drop-shadow(0 1px 6px rgba(13,27,46,0.18))' }} />
+        <img src={unifyMark} alt="Unify يونيفاي" className="h-9 w-auto object-contain" style={{ filter: 'drop-shadow(0 1px 8px rgba(0,0,0,0.45))' }} />
         <div className="flex items-center gap-3">
-          <LanguageSwitcher variant="labeled" tone="light" />
+          <LanguageSwitcher variant="labeled" tone="dark" />
           <button
             className="px-6 py-2 rounded-lg text-sm transition-all"
-            style={{ background: 'rgba(255,255,255,0.62)', color: '#0D1B2E', fontWeight: 400, letterSpacing: '0.01em', border: '1.5px solid rgba(13,27,46,0.28)', backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)' }}
+            style={{ background: 'rgba(13,27,46,0.45)', color: '#FFFFFF', fontWeight: 400, letterSpacing: '0.01em', border: '1.5px solid rgba(255,255,255,0.38)', backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)' }}
             onClick={() => setMode("signup")}
-            onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.85)'; }}
-            onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.62)'; }}
+            onMouseEnter={e => { e.currentTarget.style.background = 'rgba(13,27,46,0.68)'; }}
+            onMouseLeave={e => { e.currentTarget.style.background = 'rgba(13,27,46,0.45)'; }}
           >
             {t("common:auth.startFree")}
           </button>
@@ -533,21 +540,21 @@ const AuthPage = () => {
         <div className="hidden lg:flex lg:w-2/3 lg:flex-none relative overflow-hidden flex-col justify-end" dir={pageDir}>
           <div
             className="absolute inset-0 pointer-events-none"
-            style={{ background: 'linear-gradient(0deg, rgba(255,255,255,0.86) 0%, rgba(255,255,255,0.45) 38%, rgba(255,255,255,0.0) 70%)' }}
+            style={{ background: 'linear-gradient(0deg, rgba(13,27,46,0.88) 0%, rgba(13,27,46,0.48) 38%, rgba(13,27,46,0.0) 70%)' }}
           />
           <div className="relative px-12 pb-12 space-y-4">
-            <h1 style={{ color: '#0D1B2E', fontSize: 44, fontWeight: 300, lineHeight: 1.25, fontFamily: 'Tajawal', textShadow: '0 1px 18px rgba(255,255,255,0.70)' }}>
+            <h1 style={{ color: '#FFFFFF', fontSize: 44, fontWeight: 300, lineHeight: 1.25, fontFamily: 'Tajawal', textShadow: '0 2px 22px rgba(0,0,0,0.55)' }}>
               {t("common:auth.heroLine1")}
               <br />
               <span style={{ fontWeight: 500 }}>{t("common:auth.heroLine2")}</span>
             </h1>
-            <p style={{ color: 'rgba(13,27,46,0.85)', fontSize: 15, fontWeight: 300, fontFamily: 'Tajawal', textShadow: '0 1px 10px rgba(255,255,255,0.70)' }}>
+            <p style={{ color: 'rgba(255,255,255,0.92)', fontSize: 15, fontWeight: 300, fontFamily: 'Tajawal', textShadow: '0 1px 12px rgba(0,0,0,0.55)' }}>
               {t("common:auth.heroSubtitle")}
             </p>
             <div className="flex flex-wrap gap-x-6 gap-y-2 pt-1">
               {features.map((f, i) => (
-                <span key={i} className="flex items-center gap-2" style={{ color: 'rgba(13,27,46,0.88)', fontSize: 13, fontWeight: 300, fontFamily: 'Tajawal', textShadow: '0 1px 8px rgba(255,255,255,0.70)' }}>
-                  <Check className="h-3.5 w-3.5" style={{ color: '#0D1B2E' }} />
+                <span key={i} className="flex items-center gap-2" style={{ color: 'rgba(255,255,255,0.94)', fontSize: 13, fontWeight: 300, fontFamily: 'Tajawal', textShadow: '0 1px 10px rgba(0,0,0,0.55)' }}>
+                  <Check className="h-3.5 w-3.5" style={{ color: '#FFFFFF' }} />
                   {f}
                 </span>
               ))}
@@ -557,10 +564,9 @@ const AuthPage = () => {
 
         {/* Glass side — full-height frosted panel, no card box, form sits directly on the glass */}
         <div
-          className="flex-1 lg:flex-none lg:w-1/3 flex flex-col items-center justify-center px-4 sm:px-6 overflow-y-auto relative"
+          className="auth-glass flex-1 lg:flex-none lg:w-1/3 flex flex-col items-center justify-center px-4 sm:px-6 overflow-y-auto relative"
           dir={pageDir}
           style={{
-            background: 'linear-gradient(160deg, rgba(255,255,255,0.80) 0%, rgba(255,255,255,0.64) 100%)',
             backdropFilter: 'blur(26px) saturate(150%)',
             WebkitBackdropFilter: 'blur(26px) saturate(150%)',
             borderInlineStart: '1px solid rgba(13,27,46,0.10)',
