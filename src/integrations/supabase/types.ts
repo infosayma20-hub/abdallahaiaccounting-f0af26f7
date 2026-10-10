@@ -34417,6 +34417,15 @@ export type Database = {
         Args: { _order_id: string }
         Returns: undefined
       }
+      pos_update_expense_v1: {
+        Args: {
+          p_account_code: string
+          p_amount: number
+          p_description: string
+          p_expense_id: string
+        }
+        Returns: Json
+      }
       post_import_shipment_atomic: {
         Args: { p_shipment_id: string; p_user_id: string }
         Returns: Json

@@ -5,7 +5,7 @@ import { ar } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
-import { Copy, Sun, Moon, AlertTriangle, CheckCircle2, ClipboardList, ChevronDown, ChevronLeft, Eye, Plus, Trash2 } from "lucide-react";
+import { Copy, Sun, Moon, AlertTriangle, CheckCircle2, ClipboardList, ChevronDown, ChevronLeft, Eye, Plus, Trash2, Pencil, Check, X } from "lucide-react";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription,
 } from "@/components/ui/dialog";
@@ -252,6 +252,7 @@ function ShiftDetail({ session }: { session: POSSession }) {
   const [openOrderId, setOpenOrderId] = useState<string | null>(null);
   const [audit, setAudit] = useState<ShiftAuditRow | null>(null);
   const [foreignAdjustments, setForeignAdjustments] = useState<ForeignAdjustmentRow[]>([]);
+  const [reloadKey, setReloadKey] = useState(0);
   const { roles } = useUserRoles();
   const { user } = useAuth();
   const canEditAdjustments = roles.some(
@@ -466,7 +467,7 @@ function ShiftDetail({ session }: { session: POSSession }) {
     };
     load();
     return () => { cancelled = true; };
-  }, [session.id]);
+  }, [session.id, reloadKey]);
 
   const totals = useMemo(() => {
     const paid = orders.filter(o => o.state === "paid" && !o.voided);
@@ -704,11 +705,13 @@ function ShiftDetail({ session }: { session: POSSession }) {
               ₪{(totals.returnsByCurrency.ILS || 0).toLocaleString(undefined, { maximumFractionDigits: 2 })}
             </span>
           </Row>
-          <Row label="مصروفات/مشتريات نقدية">
-            <span className="font-mono text-muted-foreground">
-              ₪{(cashAdjustments.expensesILS + cashAdjustments.purchasesCashILS).toLocaleString(undefined, { maximumFractionDigits: 2 })}
-            </span>
-          </Row>
+          <ExpandableExpensesRow
+            sessionId={session.id}
+            total={cashAdjustments.expensesILS + cashAdjustments.purchasesCashILS}
+            canEdit={canEditAdjustments}
+            reloadKey={reloadKey}
+            onChanged={() => setReloadKey(k => k + 1)}
+          />
           {(cashAdjustments.prepaidReceivedILS || 0) > 0 && (
             <Row label="دفع مسبق لفاتورة آجلة (عربون مقبوض)">
               <span className="font-mono text-emerald-600">
@@ -1485,6 +1488,141 @@ function ForeignAdjustmentsSection({
               </Button>
             </div>
           </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Cash expenses/purchases breakdown with accountant edit ──
+const EXP_KIND: Record<string, string> = { account: "مصروف", employee_advance: "سلفة موظف", employee_loan: "قرض موظف" };
+function ExpandableExpensesRow({
+  sessionId, total, canEdit, reloadKey, onChanged,
+}: { sessionId: string; total: number; canEdit: boolean; reloadKey: number; onChanged: () => void }) {
+  const [open, setOpen] = useState(false);
+  const [exps, setExps] = useState<any[]>([]);
+  const [purch, setPurch] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [editId, setEditId] = useState<string | null>(null);
+  const [f, setF] = useState({ amount: "", description: "", account_code: "" });
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (!open) return;
+    let c = false;
+    (async () => {
+      setLoading(true);
+      const [e, p] = await Promise.all([
+        supabase.from("pos_expenses").select("id, amount, description, account_code, expense_kind, created_at").eq("shift_id", sessionId).order("created_at"),
+        supabase.from("pos_purchases").select("id, total_amount, payment_type, notes, created_at").eq("shift_id", sessionId).order("created_at"),
+      ]);
+      const list = ((e.data as any[]) || []);
+      const codes = Array.from(new Set(list.map(r => r.account_code).filter(Boolean)));
+      let names: Record<string, string> = {};
+      if (codes.length) {
+        const { data: ss } = await supabase.from("pos_sessions").select("user_id").eq("id", sessionId).maybeSingle();
+        const { data: accs } = await (supabase as any).from("accounts").select("account_code, account_name").eq("user_id", (ss as any)?.user_id).in("account_code", codes);
+        ((accs as any[]) || []).forEach(a => { names[a.account_code] = a.account_name; });
+      }
+      if (!c) {
+        setExps(list.map(r => ({ ...r, account_name: names[r.account_code] })));
+        setPurch(((p.data as any[]) || []).filter(x => x.payment_type === "نقدي" || x.payment_type === "cash" || !x.payment_type));
+        setLoading(false);
+      }
+    })();
+    return () => { c = true; };
+  }, [open, sessionId, reloadKey]);
+
+  const save = async (id: string) => {
+    const amount = Number(f.amount);
+    if (!(amount > 0)) { toast.error("المبلغ غير صحيح"); return; }
+    setSaving(true);
+    const { error } = await supabase.rpc("pos_update_expense_v1" as any, {
+      p_expense_id: id, p_amount: amount, p_description: f.description.trim(), p_account_code: f.account_code.trim(),
+    });
+    setSaving(false);
+    if (error) { toast.error(error.message); return; }
+    toast.success("تم تعديل المصروف وقيده");
+    setEditId(null); onChanged();
+  };
+
+  const fmt = (n: number) => `₪${Number(n || 0).toLocaleString(undefined, { maximumFractionDigits: 2 })}`;
+  return (
+    <div className="divide-y divide-border">
+      <button onClick={() => setOpen(o => !o)} className="w-full flex items-center justify-between px-3 py-2 hover:bg-muted/30 transition-colors text-right">
+        <span className="text-muted-foreground text-[12px] flex items-center gap-1.5">
+          {open ? <ChevronDown className="w-3 h-3" /> : <ChevronLeft className="w-3 h-3" />}
+          مصروفات/مشتريات نقدية
+        </span>
+        <span className="font-mono text-muted-foreground">{fmt(total)}</span>
+      </button>
+      {open && (
+        <div className="bg-muted/10 px-3 py-2">
+          {loading ? <p className="text-[11px] text-muted-foreground py-2">جاري التحميل...</p> : (
+            <table className="w-full text-[11.5px]">
+              <thead className="text-[10px] text-muted-foreground">
+                <tr>
+                  <th className="text-right py-1 font-medium w-16">الوقت</th>
+                  <th className="text-right py-1 font-medium w-20">النوع</th>
+                  <th className="text-right py-1 font-medium">البيان</th>
+                  <th className="text-right py-1 font-medium">الحساب</th>
+                  <th className="text-left py-1 font-medium w-20">المبلغ</th>
+                  {canEdit && <th className="w-14" />}
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border/60">
+                {exps.length === 0 && purch.length === 0 && (
+                  <tr><td colSpan={6} className="py-2 text-muted-foreground">لا توجد حركات</td></tr>
+                )}
+                {exps.map(r => {
+                  const editable = canEdit && (r.expense_kind || "account") === "account";
+                  if (editId === r.id) return (
+                    <tr key={r.id}>
+                      <td className="py-1 font-mono text-muted-foreground">{format(new Date(r.created_at), "HH:mm")}</td>
+                      <td className="py-1">{EXP_KIND[r.expense_kind || "account"]}</td>
+                      <td className="py-1 pl-1"><Input className="h-7 text-xs" value={f.description} onChange={e => setF({ ...f, description: e.target.value })} /></td>
+                      <td className="py-1 pl-1"><Input className="h-7 text-xs font-mono" dir="ltr" value={f.account_code} onChange={e => setF({ ...f, account_code: e.target.value })} placeholder="رقم الحساب" /></td>
+                      <td className="py-1"><Input className="h-7 text-xs font-mono" dir="ltr" inputMode="decimal" value={f.amount} onChange={e => setF({ ...f, amount: e.target.value })} /></td>
+                      <td className="py-1">
+                        <div className="flex gap-1 justify-end">
+                          <button disabled={saving} onClick={() => save(r.id)} className="p-1 text-primary" title="حفظ"><Check className="w-3.5 h-3.5" /></button>
+                          <button onClick={() => setEditId(null)} className="p-1 text-muted-foreground" title="إلغاء"><X className="w-3.5 h-3.5" /></button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                  return (
+                    <tr key={r.id}>
+                      <td className="py-1 font-mono text-muted-foreground">{format(new Date(r.created_at), "HH:mm")}</td>
+                      <td className="py-1">{EXP_KIND[r.expense_kind || "account"] || r.expense_kind}</td>
+                      <td className="py-1">{r.description || "—"}</td>
+                      <td className="py-1"><span className="font-mono">{r.account_code || "—"}</span>{r.account_name && <span className="text-muted-foreground"> · {r.account_name}</span>}</td>
+                      <td className="py-1 text-left font-mono">{fmt(r.amount)}</td>
+                      {canEdit && (
+                        <td className="py-1 text-left">
+                          {editable && (
+                            <button onClick={() => { setEditId(r.id); setF({ amount: String(r.amount), description: r.description || "", account_code: r.account_code || "" }); }} className="p-1 text-muted-foreground hover:text-foreground" title="تعديل">
+                              <Pencil className="w-3.5 h-3.5" />
+                            </button>
+                          )}
+                        </td>
+                      )}
+                    </tr>
+                  );
+                })}
+                {purch.map(p => (
+                  <tr key={p.id}>
+                    <td className="py-1 font-mono text-muted-foreground">{format(new Date(p.created_at), "HH:mm")}</td>
+                    <td className="py-1">مشتريات</td>
+                    <td className="py-1">{p.notes || "—"}</td>
+                    <td className="py-1">—</td>
+                    <td className="py-1 text-left font-mono">{fmt(p.total_amount)}</td>
+                    {canEdit && <td />}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
         </div>
       )}
     </div>

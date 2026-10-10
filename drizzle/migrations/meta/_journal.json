@@ -673,6 +673,20 @@
       "when": 1791458151390,
       "tag": "0095_set_employee_hr_manager",
       "breakpoints": true
+    },
+    {
+      "idx": 96,
+      "version": "7",
+      "when": 1791650161919,
+      "tag": "0096_pos_expense_accountant_edit",
+      "breakpoints": true
+    },
+    {
+      "idx": 97,
+      "version": "7",
+      "when": 1791650236393,
+      "tag": "0097_pos_expense_edit_fix_accounts",
+      "breakpoints": true
     }
   ]
 }
