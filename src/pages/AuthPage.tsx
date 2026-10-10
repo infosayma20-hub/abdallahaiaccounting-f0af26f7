@@ -581,7 +581,7 @@ const AuthPage = () => {
               <h2 style={{ color: '#0D1B2E', fontSize: 31, fontWeight: 300, letterSpacing: '-0.02em', marginBottom: 6, fontFamily: 'Tajawal', lineHeight: 1.15, textShadow: '0 1px 12px rgba(255,255,255,0.70)' }}>
                 {mode === "login" ? t("common:auth.welcome") : mode === "signup" ? t("common:auth.createAccount") : t("common:auth.resetPassword")}
               </h2>
-              <p style={{ color: 'rgba(13,27,46,0.85)', fontSize: 14, fontWeight: 300, fontFamily: 'Tajawal' }}>
+              <p style={{ color: 'rgba(13,27,46,0.92)', fontSize: 14, fontWeight: 400, fontFamily: 'Tajawal' }}>
                 {mode === "login" ? t("common:auth.loginSubtitle") : mode === "signup" ? t("common:auth.signupSubtitle") : t("common:auth.forgotSubtitle")}
               </p>
             </div>
@@ -1013,13 +1013,13 @@ const AuthPage = () => {
             {/* Links */}
             <div className="text-center space-y-3 mt-5">
               {mode === "signup" && (
-                <p style={{ color: 'rgba(13,27,46,0.85)', fontSize: 14, fontWeight: 300 }}>
+                <p style={{ color: 'rgba(13,27,46,0.92)', fontSize: 14, fontWeight: 400 }}>
                   {t("common:auth.haveAccount")}{" "}
                   <button onClick={() => setMode("login")} className="hover:underline" style={{ color: '#0D1B2E', fontWeight: 400 }}>{t("common:auth.submitLogin")}</button>
                 </p>
               )}
               {mode === "forgot" && (
-                <p style={{ color: 'rgba(13,27,46,0.85)', fontSize: 14, fontWeight: 300 }}>
+                <p style={{ color: 'rgba(13,27,46,0.92)', fontSize: 14, fontWeight: 400 }}>
                   <button onClick={() => setMode("login")} className="hover:underline" style={{ color: '#0D1B2E', fontWeight: 400 }}>{t("common:auth.backToLogin")}</button>
                 </p>
               )}
