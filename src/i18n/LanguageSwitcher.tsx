@@ -10,8 +10,10 @@ import { useState, useRef, useEffect } from "react";
  */
 export default function LanguageSwitcher({
   variant = "icon",
+  tone = "dark",
 }: {
   variant?: "icon" | "menu" | "labeled";
+  tone?: "dark" | "light";
 }) {
   const { t } = useTranslation();
   const { lang, setLang } = useAppLanguage();
@@ -55,8 +57,10 @@ export default function LanguageSwitcher({
       {variant === "labeled" ? (
         <button
           onClick={() => setOpen((v) => !v)}
-          className="flex h-9 items-center gap-1.5 rounded-lg px-3 text-sm transition-all hover:bg-white/[0.12] cursor-pointer"
-          style={{ color: "rgba(255,255,255,0.85)", border: "1px solid rgba(255,255,255,0.30)" }}
+          className={`flex h-9 items-center gap-1.5 rounded-lg px-3 text-sm transition-all cursor-pointer ${tone === "light" ? "hover:bg-[rgba(13,27,46,0.06)]" : "hover:bg-white/[0.12]"}`}
+          style={tone === "light"
+            ? { color: "rgba(13,27,46,0.78)", border: "1px solid rgba(13,27,46,0.22)" }
+            : { color: "rgba(255,255,255,0.85)", border: "1px solid rgba(255,255,255,0.30)" }}
           title={t("common:lang.change")}
           aria-label={t("common:lang.change")}
         >
