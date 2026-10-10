@@ -808,7 +808,7 @@ const AuthPage = () => {
               <div className="space-y-1.5">
                 <label style={{ color: 'rgba(13,27,46,0.85)', fontSize: 12, fontWeight: 300 }}>{t("common:auth.email")}</label>
                 <div className="relative">
-                  <Mail className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 pointer-events-none" style={{ color: 'rgba(13,27,46,0.85)' }} />
+                  <Mail className="absolute z-10 right-3 top-1/2 -translate-y-1/2 h-4 w-4 pointer-events-none" style={{ color: 'rgba(13,27,46,0.85)' }} />
                   <input
                     type="email"
                     placeholder="example@email.com"
@@ -845,7 +845,7 @@ const AuthPage = () => {
                     )}
                   </div>
                   <div className="relative">
-                    <Lock className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 pointer-events-none" style={{ color: 'rgba(13,27,46,0.85)' }} />
+                    <Lock className="absolute z-10 right-3 top-1/2 -translate-y-1/2 h-4 w-4 pointer-events-none" style={{ color: 'rgba(13,27,46,0.85)' }} />
                     <input
                       type={showPassword ? "text" : "password"}
                       placeholder={mode === "signup" ? t("common:auth.passwordHint") : "••••••••"}
@@ -890,7 +890,7 @@ const AuthPage = () => {
                 <div className="space-y-1.5">
                   <label style={{ color: 'rgba(13,27,46,0.85)', fontSize: 12, fontWeight: 300 }}>{t("common:auth.confirmPassword")}</label>
                   <div className="relative">
-                    <Lock className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 pointer-events-none" style={{ color: 'rgba(13,27,46,0.85)' }} />
+                    <Lock className="absolute z-10 right-3 top-1/2 -translate-y-1/2 h-4 w-4 pointer-events-none" style={{ color: 'rgba(13,27,46,0.85)' }} />
                     <input
                       type={showPassword ? "text" : "password"}
                       placeholder={t("common:auth.confirmPassword")}
