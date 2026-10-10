@@ -4,7 +4,7 @@ import { lazy, Suspense, useState, useEffect, useCallback, useRef } from "react"
 import authHeroBg from "@/assets/auth-hero-dusk.webp";
 import { BRAND } from "@/constants/brand";
 import unifyMarkWhite from "@/assets/unify-mark-white.webp";
-// الشعار الأبيض للشريط العلوي فوق الصورة المسائية؛ الشعار الكحلي يبقى داخل اللوحة الفاتحة.
+// الشعار الأبيض فوق الخلفية المسائية واللوحة الزجاجية الداكنة.
 const unifyMark = unifyMarkWhite;
 
 const unifyLogoVertical = BRAND.logos.vertical;
@@ -454,24 +454,24 @@ const AuthPage = () => {
   };
 
   const inputStyle = {
-    background: 'rgba(255,255,255,0.74)',
-    border: '1px solid rgba(13,27,46,0.26)',
-    color: '#0D1B2E',
+    background: 'hsl(var(--auth-field) / 0.48)',
+    border: '1px solid hsl(var(--auth-border) / 0.24)',
+    color: 'hsl(var(--auth-foreground))',
     fontWeight: 300 as const,
     backdropFilter: 'blur(10px)',
     WebkitBackdropFilter: 'blur(10px)',
-    colorScheme: 'light' as const,
+    colorScheme: 'dark' as const,
   };
 
   const inputFocusHandlers = {
     onFocus: (e: React.FocusEvent<HTMLInputElement>) => {
-      e.target.style.borderColor = 'rgba(13,27,46,0.85)';
-      e.target.style.background = 'rgba(255,255,255,0.92)';
-      e.target.style.boxShadow = '0 0 0 3px rgba(13,27,46,0.10)';
+      e.target.style.borderColor = 'hsl(var(--auth-border) / 0.7)';
+      e.target.style.background = 'hsl(var(--auth-field) / 0.7)';
+      e.target.style.boxShadow = '0 0 0 3px hsl(var(--auth-border) / 0.1)';
     },
     onBlur: (e: React.FocusEvent<HTMLInputElement>) => {
-      e.target.style.borderColor = 'rgba(13,27,46,0.26)';
-      e.target.style.background = 'rgba(255,255,255,0.74)';
+      e.target.style.borderColor = 'hsl(var(--auth-border) / 0.24)';
+      e.target.style.background = 'hsl(var(--auth-field) / 0.48)';
       e.target.style.boxShadow = 'none';
     },
   };
@@ -490,24 +490,6 @@ const AuthPage = () => {
     {/* لون الأساس كحلي داكن حتى تكون أول لقمة بلون المشهد المسائي
         — الصورة تُرسم فوقه بدل وميض فاتح تحتها. */}
     <div className="auth-page h-screen flex flex-col relative overflow-hidden" dir="ltr" style={{ background: '#0D1B2E' }}>
-      <style>{`
-        .auth-page input::placeholder, .auth-page textarea::placeholder { color: rgba(13,27,46,0.60); opacity: 1; }
-        .auth-page input[type="checkbox"] { accent-color: #0D1B2E; }
-        /* اللوحة زجاجية شفافة: حجاب فاتح خفيف فقط، والصورة تُرى من خلفه.
-           الحجاب أثقل قليلاً أسفل اللوحة حيث المشهد أغمق (تذييل الدعم والقوانين). */
-        .auth-glass { background: linear-gradient(180deg, rgba(242,239,232,0.36) 0%, rgba(242,239,232,0.32) 45%, rgba(242,239,232,0.58) 100%) !important; }
-        @media (min-width: 1024px) {
-          .auth-glass { background: linear-gradient(180deg, rgba(255,255,255,0.44) 0%, rgba(255,255,255,0.28) 45%, rgba(255,255,255,0.60) 100%) !important; }
-        }
-        /* هالة بيضاء ناعمة خلف النصوص الصغيرة تبقى مقروءة فوق المشهد دون تكتيمه */
-        .auth-glass label,
-        .auth-glass p,
-        .auth-glass a,
-        .auth-glass span,
-        .auth-glass button:not([type="submit"]) {
-          text-shadow: 0 0 10px rgba(255,255,255,0.96), 0 1px 4px rgba(255,255,255,0.88);
-        }
-      `}</style>
       {/* خلفية مسائية ملء الشاشة (غروب وأضواء مدينة) */}
       <img
         src={authHeroBg}
@@ -576,9 +558,6 @@ const AuthPage = () => {
           className="auth-glass flex-1 lg:flex-none lg:w-1/3 flex flex-col items-center justify-center px-4 sm:px-6 overflow-y-auto relative"
           dir={pageDir}
           style={{
-            backdropFilter: 'blur(14px) brightness(1.7) saturate(160%)',
-            WebkitBackdropFilter: 'blur(14px) brightness(1.7) saturate(160%)',
-            borderInlineStart: '1px solid rgba(13,27,46,0.10)',
             paddingTop: 'calc(56px + env(safe-area-inset-top))',
             paddingBottom: 'env(safe-area-inset-bottom)',
           }}
@@ -588,15 +567,15 @@ const AuthPage = () => {
 
             {/* Logo — vertical stacked mark */}
             <div className="w-full flex items-center justify-center pt-1 pb-0 -mb-3 md:-mb-4">
-              <img src={unifyLogoVertical} alt="Unify يونيفاي — Connect Without Boundaries" className="h-40 md:h-48 w-auto mx-auto block object-contain select-none" draggable={false} style={{ filter: 'drop-shadow(0 2px 14px rgba(13,27,46,0.14))' }} />
+              <img src={unifyLogoVertical} alt="Unify يونيفاي — Connect Without Boundaries" className="h-40 md:h-48 w-auto mx-auto block object-contain select-none" draggable={false} style={{ filter: 'brightness(0) invert(1)' }} />
             </div>
 
             {/* Header — thin Tajawal, generous tracking */}
             <div className="text-center mt-0 mb-6">
-              <h2 style={{ color: '#0D1B2E', fontSize: 31, fontWeight: 300, letterSpacing: '-0.02em', marginBottom: 6, fontFamily: 'Tajawal', lineHeight: 1.15, textShadow: '0 1px 12px rgba(255,255,255,0.70)' }}>
+              <h2 style={{ color: 'hsl(var(--auth-foreground))', fontSize: 31, fontWeight: 300, letterSpacing: 0, marginBottom: 6, fontFamily: 'Tajawal', lineHeight: 1.15, textShadow: 'var(--auth-text-shadow)' }}>
                 {mode === "login" ? t("common:auth.welcome") : mode === "signup" ? t("common:auth.createAccount") : t("common:auth.resetPassword")}
               </h2>
-              <p style={{ color: '#0D1B2E', fontSize: 14, fontWeight: 400, fontFamily: 'Tajawal' }}>
+              <p style={{ color: 'hsl(var(--auth-foreground))', fontSize: 14, fontWeight: 400, fontFamily: 'Tajawal' }}>
                 {mode === "login" ? t("common:auth.loginSubtitle") : mode === "signup" ? t("common:auth.signupSubtitle") : t("common:auth.forgotSubtitle")}
               </p>
             </div>
@@ -649,11 +628,11 @@ const AuthPage = () => {
                 onClick={handleBiometricSignIn}
                 disabled={loading}
                 className="w-full flex items-center justify-center gap-3 h-11 rounded-xl text-sm transition-all mb-3"
-                style={{ border: '1px solid rgba(13,27,46,0.20)', background: 'rgba(255,255,255,0.72)', color: '#0D1B2E', fontWeight: 400, backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)' }}
+                style={{ border: '1px solid rgba(13,27,46,0.20)', background: 'hsl(var(--auth-field) / 0.48)', color: 'hsl(var(--auth-foreground))', fontWeight: 400, backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)' }}
                 onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(13,27,46,0.85)'; }}
                 onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(13,27,46,0.20)'; }}
               >
-                <ScanFace className="h-5 w-5" style={{ color: '#0D1B2E' }} />
+                <ScanFace className="h-5 w-5" style={{ color: 'hsl(var(--auth-foreground))' }} />
                 {t("common:auth.faceId")}
               </button>
             )}
@@ -679,9 +658,9 @@ const AuthPage = () => {
             {/* Divider */}
             {mode !== "forgot" && (
               <div className="flex items-center gap-3 mb-5">
-                <div className="flex-1 h-px" style={{ background: 'rgba(13,27,46,0.26)' }} />
-                <span style={{ color: '#0D1B2E', fontSize: 12, fontWeight: 400 }}>{t("common:auth.or")}</span>
-                <div className="flex-1 h-px" style={{ background: 'rgba(13,27,46,0.26)' }} />
+                <div className="flex-1 h-px" style={{ background: 'hsl(var(--auth-border) / 0.24)' }} />
+                <span style={{ color: 'hsl(var(--auth-foreground))', fontSize: 12, fontWeight: 400 }}>{t("common:auth.or")}</span>
+                <div className="flex-1 h-px" style={{ background: 'hsl(var(--auth-border) / 0.24)' }} />
               </div>
             )}
 
@@ -699,7 +678,7 @@ const AuthPage = () => {
                 <>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div className="space-y-1.5">
-                      <label style={{ color: '#0D1B2E', fontSize: 12, fontWeight: 400 }}>{t("common:auth.fullName")}</label>
+                      <label style={{ color: 'hsl(var(--auth-foreground))', fontSize: 12, fontWeight: 400 }}>{t("common:auth.fullName")}</label>
                       <input
                         type="text"
                         placeholder={t("common:auth.fullNamePlaceholder")}
@@ -712,7 +691,7 @@ const AuthPage = () => {
                       />
                     </div>
                     <div className="space-y-1.5">
-                      <label style={{ color: '#0D1B2E', fontSize: 12, fontWeight: 400 }}>{t("common:auth.businessName")}</label>
+                      <label style={{ color: 'hsl(var(--auth-foreground))', fontSize: 12, fontWeight: 400 }}>{t("common:auth.businessName")}</label>
                       <input
                         type="text"
                         placeholder={t("common:auth.businessNamePlaceholder")}
@@ -727,7 +706,7 @@ const AuthPage = () => {
                   </div>
 
                   <div className="space-y-1.5">
-                    <label style={{ color: '#0D1B2E', fontSize: 12, fontWeight: 400 }}>{t("common:auth.phone")}</label>
+                    <label style={{ color: 'hsl(var(--auth-foreground))', fontSize: 12, fontWeight: 400 }}>{t("common:auth.phone")}</label>
                     <div className="flex gap-2" dir="ltr">
                       <select
                         value={countryCode}
@@ -770,7 +749,7 @@ const AuthPage = () => {
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div className="space-y-1.5">
-                      <label style={{ color: '#0D1B2E', fontSize: 12, fontWeight: 400 }}>{t("common:auth.businessType")}</label>
+                      <label style={{ color: 'hsl(var(--auth-foreground))', fontSize: 12, fontWeight: 400 }}>{t("common:auth.businessType")}</label>
                       <select
                         value={businessType}
                         onChange={e => setBusinessType(e.target.value)}
@@ -789,7 +768,7 @@ const AuthPage = () => {
                       </select>
                     </div>
                     <div className="space-y-1.5">
-                      <label style={{ color: '#0D1B2E', fontSize: 12, fontWeight: 400 }}>{t("common:auth.companySize")}</label>
+                      <label style={{ color: 'hsl(var(--auth-foreground))', fontSize: 12, fontWeight: 400 }}>{t("common:auth.companySize")}</label>
                       <select
                         value={employeesCount}
                         onChange={e => setEmployeesCount(e.target.value)}
@@ -807,7 +786,7 @@ const AuthPage = () => {
                     </div>
                   </div>
                   <div className="space-y-1.5">
-                    <label style={{ color: '#0D1B2E', fontSize: 12, fontWeight: 400 }}>{t("common:auth.address")}</label>
+                    <label style={{ color: 'hsl(var(--auth-foreground))', fontSize: 12, fontWeight: 400 }}>{t("common:auth.address")}</label>
                     <input
                       type="text"
                       placeholder={t("common:auth.addressPlaceholder")}
@@ -821,9 +800,9 @@ const AuthPage = () => {
               )}
               {/* Email */}
               <div className="space-y-1.5">
-                <label style={{ color: '#0D1B2E', fontSize: 12, fontWeight: 400 }}>{t("common:auth.email")}</label>
+                <label style={{ color: 'hsl(var(--auth-foreground))', fontSize: 12, fontWeight: 400 }}>{t("common:auth.email")}</label>
                 <div className="relative">
-                  <Mail className="absolute z-10 right-3 top-1/2 -translate-y-1/2 h-4 w-4 pointer-events-none" style={{ color: '#0D1B2E' }} />
+                  <Mail className="absolute z-10 right-3 top-1/2 -translate-y-1/2 h-4 w-4 pointer-events-none" style={{ color: 'hsl(var(--auth-foreground))' }} />
                   <input
                     type="email"
                     placeholder="example@email.com"
@@ -845,22 +824,22 @@ const AuthPage = () => {
               {mode !== "forgot" && (
                 <div className="space-y-1.5">
                   <div className="flex items-center justify-between">
-                    <label style={{ color: '#0D1B2E', fontSize: 12, fontWeight: 400 }}>{t("common:auth.password")}</label>
+                    <label style={{ color: 'hsl(var(--auth-foreground))', fontSize: 12, fontWeight: 400 }}>{t("common:auth.password")}</label>
                     {mode === "login" && (
                       <button
                         type="button"
                         onClick={() => setMode("forgot")}
                         className="transition-colors"
-                        style={{ color: '#0D1B2E', fontSize: 12, fontWeight: 400 }}
-                        onMouseEnter={e => { e.currentTarget.style.color = '#0D1B2E'; }}
-                        onMouseLeave={e => { e.currentTarget.style.color = 'rgba(13,27,46,0.85)'; }}
+                        style={{ color: 'hsl(var(--auth-foreground))', fontSize: 12, fontWeight: 400 }}
+                        onMouseEnter={e => { e.currentTarget.style.color = 'hsl(var(--auth-foreground))'; }}
+                        onMouseLeave={e => { e.currentTarget.style.color = 'hsl(var(--auth-foreground))'; }}
                       >
                         {t("common:auth.forgotPassword")}
                       </button>
                     )}
                   </div>
                   <div className="relative">
-                    <Lock className="absolute z-10 right-3 top-1/2 -translate-y-1/2 h-4 w-4 pointer-events-none" style={{ color: '#0D1B2E' }} />
+                    <Lock className="absolute z-10 right-3 top-1/2 -translate-y-1/2 h-4 w-4 pointer-events-none" style={{ color: 'hsl(var(--auth-foreground))' }} />
                     <input
                       type={showPassword ? "text" : "password"}
                       placeholder={mode === "signup" ? t("common:auth.passwordHint") : "••••••••"}
@@ -878,7 +857,7 @@ const AuthPage = () => {
                       onClick={() => setShowPassword(!showPassword)}
                       aria-label={showPassword ? "Hide password" : "Show password"}
                       className="absolute left-2 top-1/2 -translate-y-1/2 h-7 w-7 flex items-center justify-center rounded-full transition-all hover:bg-[rgba(13,27,46,0.08)] active:scale-90"
-                      style={{ color: '#0D1B2E' }}
+                      style={{ color: 'hsl(var(--auth-foreground))' }}
                     >
                       {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                     </button>
@@ -888,7 +867,7 @@ const AuthPage = () => {
 
               {/* Remember me */}
               {mode === "login" && (
-                <label className="flex items-center gap-2 cursor-pointer select-none" style={{ color: '#0D1B2E', fontSize: 13, fontWeight: 400 }}>
+                <label className="flex items-center gap-2 cursor-pointer select-none" style={{ color: 'hsl(var(--auth-foreground))', fontSize: 13, fontWeight: 400 }}>
                   <input
                     type="checkbox"
                     checked={rememberMe}
@@ -903,9 +882,9 @@ const AuthPage = () => {
               {/* Confirm password */}
               {mode === "signup" && (
                 <div className="space-y-1.5">
-                  <label style={{ color: '#0D1B2E', fontSize: 12, fontWeight: 400 }}>{t("common:auth.confirmPassword")}</label>
+                  <label style={{ color: 'hsl(var(--auth-foreground))', fontSize: 12, fontWeight: 400 }}>{t("common:auth.confirmPassword")}</label>
                   <div className="relative">
-                    <Lock className="absolute z-10 right-3 top-1/2 -translate-y-1/2 h-4 w-4 pointer-events-none" style={{ color: '#0D1B2E' }} />
+                    <Lock className="absolute z-10 right-3 top-1/2 -translate-y-1/2 h-4 w-4 pointer-events-none" style={{ color: 'hsl(var(--auth-foreground))' }} />
                     <input
                       type={showPassword ? "text" : "password"}
                       placeholder={t("common:auth.confirmPassword")}
@@ -923,7 +902,7 @@ const AuthPage = () => {
                       onClick={() => setShowPassword(!showPassword)}
                       aria-label={showPassword ? "Hide password" : "Show password"}
                       className="absolute left-2 top-1/2 -translate-y-1/2 h-7 w-7 flex items-center justify-center rounded-full transition-all hover:bg-[rgba(13,27,46,0.08)] active:scale-90"
-                      style={{ color: '#0D1B2E' }}
+                      style={{ color: 'hsl(var(--auth-foreground))' }}
                     >
                       {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                     </button>
@@ -933,7 +912,7 @@ const AuthPage = () => {
 
               {/* Terms */}
               {mode === "signup" && (
-                <label className="flex items-start gap-2 text-xs cursor-pointer" style={{ color: '#0D1B2E', fontWeight: 400 }}>
+                <label className="flex items-start gap-2 text-xs cursor-pointer" style={{ color: 'hsl(var(--auth-foreground))', fontWeight: 400 }}>
                   <input
                     type="checkbox"
                     checked={agreedToTerms}
@@ -943,9 +922,9 @@ const AuthPage = () => {
                   />
                   <span>
                     {t("common:auth.agreeTo")}{" "}
-                    <Link to="/terms" style={{ color: '#0D1B2E' }} className="hover:underline">{t("common:auth.terms")}</Link>
+                    <Link to="/terms" style={{ color: 'hsl(var(--auth-foreground))' }} className="hover:underline">{t("common:auth.terms")}</Link>
                     {" "}{t("common:auth.and")}{" "}
-                    <Link to="/privacy" style={{ color: '#0D1B2E' }} className="hover:underline">{t("common:auth.privacy")}</Link>
+                    <Link to="/privacy" style={{ color: 'hsl(var(--auth-foreground))' }} className="hover:underline">{t("common:auth.privacy")}</Link>
                   </span>
                 </label>
               )}
@@ -997,7 +976,7 @@ const AuthPage = () => {
                         }
                       }}
                       className="px-3 py-1.5 rounded-lg text-xs"
-                      style={{ background: '#FFFFFF', color: '#0D1B2E', border: '1px solid rgba(13,27,46,0.25)', fontWeight: 400 }}
+                      style={{ background: 'hsl(var(--auth-field) / 0.48)', color: 'hsl(var(--auth-foreground))', border: '1px solid rgba(13,27,46,0.25)', fontWeight: 400 }}
                     >
                       {t("common:auth.resendCode")}
                     </button>
@@ -1012,8 +991,8 @@ const AuthPage = () => {
                   disabled={loading}
                   className="w-full h-11 rounded-xl text-sm transition-all active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none flex items-center justify-center gap-2"
                   style={{
-                    background: 'rgba(255,255,255,0.85)',
-                    color: '#0D1B2E',
+                    background: 'hsl(var(--auth-field) / 0.48)',
+                    color: 'hsl(var(--auth-foreground))',
                     border: '1px solid rgba(13,27,46,0.25)',
                     fontWeight: 400,
                     letterSpacing: '0.02em',
@@ -1028,18 +1007,18 @@ const AuthPage = () => {
             {/* Links */}
             <div className="text-center space-y-3 mt-5">
               {mode === "signup" && (
-                <p style={{ color: '#0D1B2E', fontSize: 14, fontWeight: 400 }}>
+                <p style={{ color: 'hsl(var(--auth-foreground))', fontSize: 14, fontWeight: 400 }}>
                   {t("common:auth.haveAccount")}{" "}
-                  <button onClick={() => setMode("login")} className="hover:underline" style={{ color: '#0D1B2E', fontWeight: 400 }}>{t("common:auth.submitLogin")}</button>
+                  <button onClick={() => setMode("login")} className="hover:underline" style={{ color: 'hsl(var(--auth-foreground))', fontWeight: 400 }}>{t("common:auth.submitLogin")}</button>
                 </p>
               )}
               {mode === "forgot" && (
-                <p style={{ color: '#0D1B2E', fontSize: 14, fontWeight: 400 }}>
-                  <button onClick={() => setMode("login")} className="hover:underline" style={{ color: '#0D1B2E', fontWeight: 400 }}>{t("common:auth.backToLogin")}</button>
+                <p style={{ color: 'hsl(var(--auth-foreground))', fontSize: 14, fontWeight: 400 }}>
+                  <button onClick={() => setMode("login")} className="hover:underline" style={{ color: 'hsl(var(--auth-foreground))', fontWeight: 400 }}>{t("common:auth.backToLogin")}</button>
                 </p>
               )}
               {mode === "forgot" && (
-                <p className="mt-3 text-xs leading-relaxed" style={{ color: '#0D1B2E', fontWeight: 400 }}>
+                <p className="mt-3 text-xs leading-relaxed" style={{ color: 'hsl(var(--auth-foreground))', fontWeight: 400 }}>
                   {t("common:auth.forgotHint")}
                 </p>
               )}
@@ -1047,20 +1026,20 @@ const AuthPage = () => {
 
             {/* Support + legal footer */}
             <div className="text-center mt-6 space-y-3">
-              <p className="flex items-center justify-center gap-1.5" style={{ color: '#0D1B2E', fontSize: 12.5, fontWeight: 400 }}>
-                <LifeBuoy className="h-3.5 w-3.5" style={{ color: '#0D1B2E' }} />
+              <p className="flex items-center justify-center gap-1.5" style={{ color: 'hsl(var(--auth-foreground))', fontSize: 12.5, fontWeight: 400 }}>
+                <LifeBuoy className="h-3.5 w-3.5" style={{ color: 'hsl(var(--auth-foreground))' }} />
                 {t("common:auth.needHelp")}{" "}
                 <a
                   href="https://wa.me/972594336699"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="hover:underline"
-                  style={{ color: '#0D1B2E', fontWeight: 400 }}
+                  style={{ color: 'hsl(var(--auth-foreground))', fontWeight: 400 }}
                 >
                   {t("common:auth.contactSupport")}
                 </a>
               </p>
-              <p style={{ color: '#0D1B2E', fontSize: 11.5, fontWeight: 400 }}>
+              <p style={{ color: 'hsl(var(--auth-foreground))', fontSize: 11.5, fontWeight: 400 }}>
                 <Link to="/privacy" className="hover:underline">{t("common:auth.footerPrivacy")}</Link>
                 <span className="mx-2">·</span>
                 <Link to="/terms" className="hover:underline">{t("common:auth.footerTerms")}</Link>
