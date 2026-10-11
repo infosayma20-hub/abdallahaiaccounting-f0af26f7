@@ -110,6 +110,9 @@ const T = {
     dash: "لوحة التحكم", sales: "المبيعات", exp: "المصاريف", profit: "صافي الربح",
     statuses: [["جديدة", "#8C7F70"], ["قيد التجهيز", "#a8693f"], ["تم الشحن", "#6b5a4b"], ["تم التسليم", "#4f7a5a"], ["مرتجعة", "#b0503a"]],
     stockShort: `باقي ${num(3, "ar")} قطع`, newOrder: "طلبية جديدة",
+    ribbonTitle: "متجرك بيرتّب منتجاتك لحاله", ribbonText: "أقسام، بحث، فلاتر، وصفحة لكل منتج. بتضيف المنتج مرة وحدة وهو بيترتب بمكانه.",
+    bothDevices: "ونفس المتجر بيشتغل على الجوال والكمبيوتر.", layers: ["واجهة المتجر", "الطلبيات", "المخزون", "الحسابات"],
+    pkgNote: `هاد كله داخل باقة الـ ${num(NEW_PRICE, "ar")}$.`, want: "بدي هاد", searchPh: "ابحث عن منتج",
     stock: `باقي ${num(3, "ar")} قطع من طاولة وسط خشب`,
     cards: [["الطلبيات", "كل طلبية بحالتها وتفاصيلها، من لحظة الطلب للتسليم."], ["المخزون", "بتعرف شو باقي عندك وشو لازم تطلب، بدون جرد يدوي."], ["الحسابات", "مبيعاتك ومصاريفك وربحك قدامك أول بأول."]],
     inclNote: `هاد كله داخل باقة الـ ${num(NEW_PRICE, "ar")}$. هاد الحد الأدنى للمتجر عنا، والزيادات حسب طلبك.`,
@@ -142,6 +145,9 @@ const T = {
     dash: "Dashboard", sales: "Sales", exp: "Expenses", profit: "Net profit",
     statuses: [["New", "#8C7F70"], ["Preparing", "#a8693f"], ["Shipped", "#6b5a4b"], ["Delivered", "#4f7a5a"], ["Returned", "#b0503a"]],
     stockShort: "Only 3 left", newOrder: "New order",
+    ribbonTitle: "Your store organizes your products by itself", ribbonText: "Categories, search, filters, and a page for every product. Add a product once and it falls into place.",
+    bothDevices: "And the same store works on phone and desktop.", layers: ["Storefront", "Orders", "Stock", "Accounts"],
+    pkgNote: `All of this is in the $${NEW_PRICE} package.`, want: "I want this", searchPh: "Search products",
     stock: "Only 3 left of Wooden coffee table",
     cards: [["Orders", "Every order with its status and details, from order to delivery."], ["Stock", "Know what's left and what to reorder, no manual counting."], ["Accounts", "Your sales, expenses and profit, always up to date."]],
     inclNote: `All of this is in the $${NEW_PRICE} package. That's our minimum store; extras as you need.`,
@@ -419,205 +425,3 @@ function Countdown({ lang }: { lang: Lang }) {
   );
 }
 
-/* ===== الصفحة ===== */
-export default function WebsitesLandingPage() {
-  const [lang, setLang] = useState<Lang>(() => { try { return (localStorage.getItem("wl-lang") as Lang) || "ar"; } catch { return "ar"; } });
-  const t = T[lang];
-  useMeta(lang);
-  usePixel();
-  useEffect(() => { getRef(); }, []);
-  const switchLang = () => { const n: Lang = lang === "ar" ? "en" : "ar"; setLang(n); try { localStorage.setItem("wl-lang", n); } catch { /* */ } };
-
-  // builder — الافتراضي أثاث
-  const [typeIdx, setTypeIdx] = useState(1);
-  const [shop, setShop] = useState("");
-  const [colorIdx, setColorIdx] = useState(0);
-  const shopName = shop.trim() || t.defName;
-  const designLink: WaContext = { kind: "design", type: STORE_TYPES[typeIdx].ar, name: shop.trim() || "متجري", color: COLORS[colorIdx].ar };
-  const ESP = "#2A221C";
-
-  // flip
-  const flipRef = useRef<HTMLDivElement>(null);
-  const [flipped, setFlipped] = useState(false);
-  const [seen, setSeen] = useState(false);
-  useEffect(() => {
-    const el = flipRef.current; if (!el) return;
-    const io = new IntersectionObserver(([e]) => {
-      if (e.isIntersecting && e.intersectionRatio > .6 && !seen) { setSeen(true); setTimeout(() => setFlipped(true), 700); }
-    }, { threshold: [0, .6, 1] });
-    io.observe(el); return () => io.disconnect();
-  }, [seen]);
-
-  // sticky bar
-  const heroRef = useRef<HTMLElement>(null);
-  const finalRef = useRef<HTMLElement>(null);
-  const [pastHero, setPastHero] = useState(false);
-  const [atFinal, setAtFinal] = useState(false);
-  useEffect(() => {
-    const a = new IntersectionObserver(([e]) => setPastHero(!e.isIntersecting && e.boundingClientRect.top < 0));
-    const b = new IntersectionObserver(([e]) => setAtFinal(e.isIntersecting));
-    heroRef.current && a.observe(heroRef.current);
-    finalRef.current && b.observe(finalRef.current);
-    return () => { a.disconnect(); b.disconnect(); };
-  }, []);
-
-  const myStore = lang === "ar" ? "متجري" : "My Store";
-
-  return (
-    <div className="wl" dir={lang === "ar" ? "rtl" : "ltr"}>
-      <div className="wl-beam" aria-hidden />
-      <header className="wl-top">
-        <img src={logo} alt="UNIFY" />
-        <button className="wl-lang wl-glass" onClick={switchLang}>{t.lang}</button>
-      </header>
-
-      {/* أ — الهيرو */}
-      <section className="wl-hero" ref={heroRef}>
-        <div className="wl-wrap wl-hero-grid">
-          <div className="wl-hero-copy">
-            <span className="wl-eyebrow wl-glass">{t.eyebrow}</span>
-            <h1 className="wl-h1">{t.h1}</h1>
-            <p className="wl-sub">{t.sub}</p>
-            <Price lang={lang} />
-            <CouponBox lang={lang} />
-            <WaButton ctx={{ kind: "default" }} label={t.cta} name="hero" />
-          </div>
-          <Stage lang={lang} typeIdx={1} intro screen={<StoreScreen lang={lang} typeIdx={1} name={myStore} color={ESP} />} />
-        </div>
-      </section>
-
-      {/* ب — جرّب بنفسك */}
-      <section className="wl-sec alt">
-        <div className="wl-wrap">
-          <h2>{t.tryTitle}</h2>
-          <div className="wl-builder">
-            <div>
-              <div className="wl-step wl-glass">
-                <h3><span>{num(1, lang)}</span>{t.s1}</h3>
-                <div className="wl-chips">
-                  {STORE_TYPES.map((s, i) => <button key={s.id} type="button" className="wl-chip" aria-pressed={typeIdx === i} onClick={() => setTypeIdx(i)}>{s[lang]}</button>)}
-                </div>
-              </div>
-              <div className="wl-step wl-glass">
-                <h3><span>{num(2, lang)}</span>{t.s2}</h3>
-                <input className="wl-input" value={shop} maxLength={24} placeholder={t.namePh} onChange={(e) => setShop(e.target.value)} />
-              </div>
-              <div className="wl-step wl-glass">
-                <h3><span>{num(3, lang)}</span>{t.s3}</h3>
-                <div className="wl-dots">
-                  {COLORS.map((c, i) => <button key={c.id} type="button" className="wl-dot" aria-label={c[lang]} aria-pressed={colorIdx === i} style={{ background: c.hex }} onClick={() => setColorIdx(i)} />)}
-                </div>
-              </div>
-              <WaButton ctx={designLink} label={t.sendDesign} name="design" />
-            </div>
-            <Stage lang={lang} typeIdx={typeIdx} screen={<StoreScreen lang={lang} typeIdx={typeIdx} name={shopName} color={COLORS[colorIdx].hex} />} />
-          </div>
-        </div>
-      </section>
-
-      {/* ج — من برّا ومن جوّا */}
-      <section className="wl-sec">
-        <div className="wl-wrap">
-          <h2>{t.insideTitle}</h2>
-          <div className={`wl-flipwrap ${flipped ? "on" : ""}`}>
-            <div ref={flipRef} className="wl-flip">
-              <div className="wl-flip-in">
-                <div className="wl-face"><div className="wl-phone"><i className="wl-island" /><StoreScreen lang={lang} typeIdx={1} name={myStore} color={ESP} /></div></div>
-                <div className="wl-face back"><div className="wl-phone"><i className="wl-island" /><div className="wl-screen"><div className="wl-dash">
-                  <h4>{t.dash}</h4>
-                  <div className="wl-kpis">
-                    <div><b><CountUp to={4850} lang={lang} run={flipped} /></b><small>{t.sales} ₪</small></div>
-                    <div><b><CountUp to={1230} lang={lang} run={flipped} /></b><small>{t.exp} ₪</small></div>
-                    <div><b><CountUp to={3620} lang={lang} run={flipped} /></b><small>{t.profit} ₪</small></div>
-                  </div>
-                  {t.statuses.map(([s, c], i) => (
-                    <div className="wl-order" key={s}>
-                      <span>#{num(1042 - i, lang)}</span>
-                      <span className="wl-badge" style={{ background: `${c}22`, color: c }}>{s}</span>
-                    </div>
-                  ))}
-                  <div className="wl-alert"><AlertTriangle size={13} />{t.stock}</div>
-                </div></div></div></div>
-              </div>
-            </div>
-            <ul className="wl-statlist" aria-label={t.dash}>
-              {t.statuses.map(([s, c], i) => (
-                <li key={s} className="wl-glass" style={{ "--d": `${i * 90}ms` } as React.CSSProperties}>
-                  <i style={{ background: c }} /><span>#{num(1042 - i, lang)}</span><b>{s}</b>
-                </li>
-              ))}
-            </ul>
-          </div>
-          <div style={{ textAlign: "center", marginTop: 14 }}>
-            <button type="button" className="wl-btn2" onClick={() => setFlipped((f) => !f)}><RotateCw size={16} />{flipped ? t.seeOutside : t.seeInside}</button>
-          </div>
-          <div className="wl-cards3">
-            {[ClipboardList, Boxes, Calculator].map((I, i) => (
-              <div className="wl-card wl-glass" key={i}><I size={24} /><h3>{t.cards[i][0]}</h3><p>{t.cards[i][1]}</p></div>
-            ))}
-          </div>
-          <p className="wl-note">{t.inclNote}</p>
-        </div>
-      </section>
-
-      {/* د — قمر براند */}
-      <section className="wl-sec alt">
-        <div className="wl-wrap">
-          <h2>{t.liveTitle}</h2>
-          <div className="wl-qamar">
-            <Stage lang={lang} typeIdx={1} only={["back", "mid"]} screen={
-              <div className="wl-screen wl-view"><img src={qamarShot} alt="Qamar Brand" loading="lazy" decoding="async" /></div>
-            } />
-            <div>
-              <p className="wl-live">{t.liveText}</p>
-              <div className="wl-row">
-                <a className="wl-btn2" href="https://qamarbrand.com"><ExternalLink size={16} />{t.visit}</a>
-                <a className="wl-btn2" href="https://www.instagram.com/qamar_brand1/"><Instagram size={16} />{t.insta}</a>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* هـ — الأنواع */}
-      <section className="wl-sec">
-        <div className="wl-wrap">
-          <h2>{t.typesTitle}</h2>
-          <div className="wl-types">
-            {SITE_TYPES.map((s, i) => (
-              <a key={s.wa} className={`wl-type wl-glass ${i === 0 ? "big" : ""}`} href={buildWhatsAppLink({ kind: "type", site: s.wa })} onClick={() => trackContact(`type:${s.wa}`)}>
-                <s.icon size={i === 0 ? 32 : 24} /><h3>{s[lang][0]}</h3><p>{s[lang][1]}</p>
-              </a>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* و — كيف بنشتغل */}
-      <section className="wl-sec alt">
-        <div className="wl-wrap">
-          <h2>{t.howTitle}</h2>
-          <ol className="wl-steps">{t.how.map((h, i) => <li key={h} className="wl-glass"><b>{num(i + 1, lang)}</b>{h}</li>)}</ol>
-        </div>
-      </section>
-
-      {/* ز — الختام */}
-      <section className="wl-sec wl-final" ref={finalRef}>
-        <div className="wl-wrap">
-          <h2>{t.finalTitle}</h2>
-          <Price lang={lang} />
-          <CouponBox lang={lang} />
-          <WaButton ctx={{ kind: "default" }} label={t.cta} name="final" />
-          <Countdown lang={lang} />
-        </div>
-      </section>
-
-      <footer className="wl-foot">{t.foot}</footer>
-
-      {/* ح — الشريط الثابت */}
-      <div className={`wl-sticky ${pastHero && !atFinal ? "" : "hide"}`} aria-hidden={!(pastHero && !atFinal)}>
-        <WaButton ctx={{ kind: "default" }} label={t.sticky} name="sticky" />
-      </div>
-    </div>
-  );
-}
