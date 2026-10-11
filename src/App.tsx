@@ -55,7 +55,7 @@ const HomeDashboard = lazy(() => import("./pages/HomeDashboard"));
 const LandingPage = lazy(() => import("./pages/LandingPage"));
 const UnifyStoryLanding = lazy(() => import("./pages/UnifyStoryLanding"));
 const FeaturesPage = lazy(() => import("./pages/marketing/FeaturesPage"));
-const WebsitesLandingPage = lazy(() => import("./pages/marketing/WebsitesLandingPage"));
+const WebsitesLandingPage = lazy(() => import("./pages/marketing/WebsitesLandingPage").then((m) => ({ default: m.default })));
 const BlogIndexPage = lazy(() => import("./pages/marketing/BlogIndexPage"));
 const BlogPostPage = lazy(() => import("./pages/marketing/BlogPostPage"));
 const ReferralPage = lazy(() => import("./pages/ReferralPage"));
