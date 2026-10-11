@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
 import {
   ShoppingBag, Package, Building2, UtensilsCrossed, CalendarCheck, Copy, Check, MessageCircle,
   ShoppingCart, Bell, ClipboardList, Boxes, Calculator, AlertTriangle, RotateCw, ExternalLink, Instagram,
@@ -425,3 +426,469 @@ function Countdown({ lang }: { lang: Lang }) {
   );
 }
 
+/* ===== محرّك المشاهد (تثبيت + scrub) ===== */
+const clamp = (v: number, a = 0, b = 1) => Math.min(b, Math.max(a, v));
+const ease = (x: number) => (x < .5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2);
+const isMobileW = () => typeof window !== "undefined" && window.innerWidth < 760;
+
+/** يحسب نسبة التمرير داخل القسم (0..1) ويستدعي cb عبر rAF فقط قرب الشاشة */
+function useScrub(ref: React.RefObject<HTMLElement>, cb: (p: number) => void) {
+  const cbRef = useRef(cb); cbRef.current = cb;
+  useEffect(() => {
+    const el = ref.current; if (!el) return;
+    if (reducedMotion()) { cbRef.current(1); return; }
+    let raf = 0;
+    const run = () => {
+      raf = 0; const r = el.getBoundingClientRect(); const vh = window.innerHeight;
+      if (r.bottom < -vh || r.top > 2 * vh) return;
+      const d = r.height - vh;
+      const p = d > 60 ? -r.top / d : (vh - r.top) / (r.height + vh);
+      cbRef.current(clamp(p));
+    };
+    const on = () => { if (!raf) raf = requestAnimationFrame(run); };
+    run();
+    window.addEventListener("scroll", on, { passive: true }); window.addEventListener("resize", on);
+    return () => { cancelAnimationFrame(raf); window.removeEventListener("scroll", on); window.removeEventListener("resize", on); };
+  }, [ref]);
+}
+
+function Scene({ alt, loose, className = "", onP, children, sref }: { alt?: boolean; loose?: boolean; className?: string; onP?: (p: number) => void; children: React.ReactNode; sref?: React.RefObject<HTMLElement> }) {
+  const own = useRef<HTMLElement>(null);
+  const ref = sref || own;
+  const pin = useRef<HTMLDivElement>(null);
+  useScrub(ref, (p) => {
+    const pe = pin.current;
+    if (pe && !reducedMotion()) { const o = clamp((p - .9) / .1); pe.style.opacity = String(1 - o * .45); pe.style.transform = o ? `scale(${1 - o * .05})` : ""; }
+    onP?.(p);
+  });
+  return <section ref={ref as any} className={`wl-scene ${alt ? "alt" : ""} ${loose ? "loose" : ""} ${className}`}><div ref={pin} className="wl-pin">{children}</div></section>;
+}
+
+const RIBBON_ITEMS = STORE_TYPES.slice(0, 5).flatMap((s) => [0, 1, 2, 3].map((j) => ({ s, j })));
+const lerpHex = (a: number[], b: number[], k: number) => `rgb(${a.map((v, i) => Math.round(v + (b[i] - v) * k)).join(",")})`;
+const SAND = [236, 228, 216], COFFEE = [92, 70, 52];
+
+/* المشهد ١ — شريط المنتجات */
+function RibbonScene({ lang }: { lang: Lang }) {
+  const t = T[lang];
+  const [n, setN] = useState(48);
+  useEffect(() => { setN(isMobileW() ? 24 : 48); }, []);
+  const stage = useRef<HTMLDivElement>(null);
+  const cards = useRef<(HTMLDivElement | null)[]>([]);
+  const txt = useRef<HTMLParagraphElement>(null);
+  const onP = (p: number) => {
+    const st = stage.current; if (!st) return;
+    const W = st.clientWidth, mobile = W < 700;
+    const cols = mobile ? 2 : 4, gw = mobile ? 150 : 170, gh = mobile ? 96 : 140, gap = 10, shown = 8;
+    const rows = Math.ceil(shown / cols);
+    const gridW = cols * gw + (cols - 1) * gap, gridH = rows * gh + (rows - 1) * gap;
+    const wave = clamp(p / .45), m = ease(clamp((p - .38) / .4));
+    const sp = mobile ? 17 : 22;
+    const rtl = lang === "ar" ? -1 : 1;
+    cards.current.forEach((c, i) => {
+      if (!c) return;
+      const ph = wave * Math.PI * 2 + i * .38;
+      const wx = (i - (n - 1) / 2) * sp - (wave - .5) * 80, wy = Math.sin(ph) * 34, wz = Math.cos(ph) * 50, wr = Math.sin(ph) * 55;
+      let x = wx, y = wy, z = wz, r = wr, sx = .16, sy = 1.15, o = 1;
+      if (i < shown) {
+        const col = i % cols, row = Math.floor(i / cols);
+        const gx = rtl * (-gridW / 2 + col * (gw + gap) + gw / 2), gy = -gridH / 2 + row * (gh + gap) + gh / 2;
+        x = wx + (gx - wx) * m; y = wy + (gy - wy) * m; z = wz * (1 - m); r = wr * (1 - m); sx = .16 + .84 * m; sy = 1.15 - .15 * m;
+      } else { y = wy + 380 * m; o = 1 - m; }
+      c.style.transform = `translate3d(${x.toFixed(1)}px,${y.toFixed(1)}px,${z.toFixed(1)}px) rotateY(${r.toFixed(1)}deg) scale(${sx.toFixed(3)},${sy.toFixed(3)})`;
+      c.style.opacity = o.toFixed(2);
+      c.style.setProperty("--m", m.toFixed(2));
+      c.style.width = `${gw}px`; c.style.height = `${gh}px`; c.style.marginLeft = `${-gw / 2}px`; c.style.marginTop = `${-gh / 2}px`;
+    });
+    if (txt.current) { const k = clamp((p - .78) / .14); txt.current.style.opacity = String(k); txt.current.style.transform = `translateY(${(1 - k) * 14}px)`; }
+  };
+  return (
+    <Scene onP={onP}>
+      <h2 className="wl-scene-h">{t.ribbonTitle}</h2>
+      <div className="wl-ribbon" ref={stage} aria-hidden>
+        {Array.from({ length: n }, (_, i) => {
+          const it = RIBBON_ITEMS[i % RIBBON_ITEMS.length]; const [nm, pr] = it.s.items[lang][it.j]; const I = it.s.icon;
+          return (
+            <div key={i} className="wl-rc" ref={(el) => (cards.current[i] = el)}>
+              <div className="wl-rc-strip" style={{ background: `linear-gradient(180deg,${lerpHex(SAND, COFFEE, i / n)},${lerpHex(SAND, COFFEE, Math.min(1, i / n + .15))})` }} />
+              <div className="wl-rc-prod"><div className="wl-rc-img"><I size={22} /></div><b>{nm}</b><i>{num(pr as number, lang)} ₪</i></div>
+            </div>
+          );
+        })}
+      </div>
+      <p className="wl-scene-p" ref={txt}>{t.ribbonText}</p>
+    </Scene>
+  );
+}
+
+/* المشهد ٢ — صمّم متجرك على نافذة متصفح */
+function BrowserStore({ lang, typeIdx, name, color }: { lang: Lang; typeIdx: number; name: string; color: string }) {
+  const ty = STORE_TYPES[typeIdx]; const I = ty.icon; const t = T[lang];
+  return (
+    <div className="wl-bs" key={typeIdx}>
+      <div className="wl-bs-nav"><b style={{ color }}>{name}</b><span className="wl-bs-search">{t.searchPh}</span><span className="wl-bs-cart" style={{ background: color }}><ShoppingCart size={12} /></span></div>
+      <div className="wl-bs-cats">{t.cats.map((c, i) => <span key={c} style={i === 0 ? { background: color, color: "#fff" } : undefined}>{c}</span>)}</div>
+      <div className="wl-bs-banner" style={{ background: color }}><I size={30} /><span>{ty[lang]}</span></div>
+      <div className="wl-bs-grid">
+        {ty.items[lang].map(([nm, pr], i) => (
+          <div key={nm as string} className="wl-bs-p"><div style={{ background: TINTS[i] }}><I size={22} color={color} /></div><b>{nm}</b><i>{num(pr as number, lang)} ₪</i></div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function BuilderScene({ lang }: { lang: Lang }) {
+  const t = T[lang];
+  const [typeIdx, setTypeIdx] = useState(1);
+  const [shop, setShop] = useState("");
+  const [colorIdx, setColorIdx] = useState(0);
+  const shopName = shop.trim() || t.defName;
+  const designLink: WaContext = { kind: "design", type: STORE_TYPES[typeIdx].ar, name: shop.trim() || "متجري", color: COLORS[colorIdx].ar };
+  const win = useRef<HTMLDivElement>(null);
+  const onP = (p: number) => { if (win.current) win.current.style.transform = `perspective(1400px) rotateX(${(8 * (1 - clamp(p / .5))).toFixed(2)}deg)`; };
+  const slug = (shop.trim() || (lang === "ar" ? "متجري" : "mystore")).replace(/\s+/g, "");
+  return (
+    <Scene alt loose onP={onP}>
+      <h2 className="wl-scene-h">{t.tryTitle}</h2>
+      <div className="wl-builder2">
+        <div className="wl-controls">
+          <div className="wl-step wl-glass">
+            <h3><span>{num(1, lang)}</span>{t.s1}</h3>
+            <div className="wl-chips">{STORE_TYPES.map((s, i) => <button key={s.id} type="button" className="wl-chip" aria-pressed={typeIdx === i} onClick={() => setTypeIdx(i)}>{s[lang]}</button>)}</div>
+          </div>
+          <div className="wl-step wl-glass">
+            <h3><span>{num(2, lang)}</span>{t.s2}</h3>
+            <input className="wl-input" value={shop} maxLength={24} placeholder={t.namePh} onChange={(e) => setShop(e.target.value)} />
+          </div>
+          <div className="wl-step wl-glass">
+            <h3><span>{num(3, lang)}</span>{t.s3}</h3>
+            <div className="wl-dots">{COLORS.map((c, i) => <button key={c.id} type="button" className="wl-dot" aria-label={c[lang]} aria-pressed={colorIdx === i} style={{ background: c.hex }} onClick={() => setColorIdx(i)} />)}</div>
+          </div>
+          <WaButton ctx={designLink} label={t.sendDesign} name="design" />
+        </div>
+        <div className="wl-winwrap">
+          <div className="wl-win" ref={win}>
+            <div className="wl-win-bar"><i /><i /><i /><span>{slug}.ps</span></div>
+            <div className="wl-win-body"><BrowserStore lang={lang} typeIdx={typeIdx} name={shopName} color={COLORS[colorIdx].hex} /></div>
+          </div>
+          <div className="wl-win-glow" aria-hidden />
+          <p className="wl-mut wl-small">{t.bothDevices}</p>
+        </div>
+      </div>
+    </Scene>
+  );
+}
+
+/* المشهد ٣ — المنظر المتفكك */
+function ExplodedScene({ lang }: { lang: Lang }) {
+  const t = T[lang];
+  const [mobile, setMobile] = useState(false);
+  useEffect(() => setMobile(isMobileW()), []);
+  const iso = useRef<HTMLDivElement>(null);
+  const layers = useRef<(HTMLDivElement | null)[]>([]);
+  const nums = useRef<(HTMLElement | null)[]>([]);
+  const note = useRef<HTMLParagraphElement>(null);
+  const ids = mobile ? [0, 1, 3] : [0, 1, 2, 3];
+  const TOT = [4850, 1230, 3620];
+  const onP = (p: number) => {
+    const tilt = ease(clamp(p / .3)), sep = ease(clamp((p - .28) / .4)), lab = clamp((p - .55) / .2), cnt = ease(clamp((p - .5) / .3));
+    const rx = (mobile ? 42 : 55) * tilt, rz = (mobile ? -22 : -30) * tilt, gap = mobile ? 70 : 88;
+    if (iso.current) iso.current.style.transform = `rotateX(${rx.toFixed(1)}deg) rotateZ(${rz.toFixed(1)}deg)`;
+    const L = ids.length;
+    layers.current.forEach((el, i) => {
+      if (!el) return;
+      el.style.transform = `translateZ(${((L - 1 - i) * gap * sep).toFixed(1)}px)`;
+      el.style.setProperty("--lab", lab.toFixed(2));
+      el.style.opacity = i === 0 || sep > .02 ? "1" : "0";
+    });
+    nums.current.forEach((el, i) => { if (el) el.textContent = num(Math.round(TOT[i] * cnt).toLocaleString("en-US"), lang); });
+    if (note.current) note.current.style.opacity = String(clamp((p - .8) / .12));
+  };
+  const body = (id: number) => {
+    if (id === 0) return <><div className="wl-ly-head">{t.defName}</div><div className="wl-ly-grid">{[0, 1, 2, 3].map((k) => <span key={k} style={{ background: TINTS[k] }} />)}</div></>;
+    if (id === 1) return <div className="wl-ly-orders">{t.statuses.map(([s, c], k) => <span key={s} style={{ background: `${c}22`, color: c }}>#{num(1042 - k, lang)} {s}</span>)}</div>;
+    if (id === 2) return <div className="wl-ly-bars">{[70, 45, 88, 12, 60].map((h, k) => <span key={k} className={k === 3 ? "low" : ""} style={{ height: `${h}%` }}>{k === 3 && <em>{t.stockShort}</em>}</span>)}</div>;
+    return <div className="wl-ly-kpi">{[t.sales, t.exp, t.profit].map((l, k) => <div key={l}><b ref={(e) => (nums.current[k] = e)}>{num(TOT[k].toLocaleString("en-US"), lang)}</b><small>{l} ₪</small></div>)}</div>;
+  };
+  return (
+    <Scene onP={onP}>
+      <h2 className="wl-scene-h">{t.insideTitle}</h2>
+      <div className="wl-isostage" aria-hidden>
+        <div className="wl-iso" ref={iso}>
+          {ids.map((id, i) => (
+            <div key={id} className="wl-ly" ref={(e) => (layers.current[i] = e)}>
+              {body(id)}
+              <span className="wl-ly-label">{t.layers[id]}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+      <p className="wl-scene-p strong" ref={note}>{t.pkgNote}</p>
+    </Scene>
+  );
+}
+
+/* المشهد ٤ — الجزيئات */
+async function sampleIcon(Icon: any, n: number, size = 200): Promise<Float32Array> {
+  const svg = renderToStaticMarkup(<Icon size={size} strokeWidth={1.7} color="#000" />);
+  const img = new Image();
+  img.src = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(svg);
+  await img.decode();
+  const c = document.createElement("canvas"); c.width = c.height = size;
+  const x = c.getContext("2d")!; x.drawImage(img, 0, 0, size, size);
+  const d = x.getImageData(0, 0, size, size).data; const px: number[] = [];
+  for (let i = 0; i < size * size; i++) if (d[i * 4 + 3] > 90) px.push(i);
+  const out = new Float32Array(n * 2);
+  for (let k = 0; k < n; k++) { const i = px[(Math.random() * px.length) | 0] || 0; out[k * 2] = (i % size) / size - .5; out[k * 2 + 1] = Math.floor(i / size) / size - .5; }
+  return out;
+}
+
+function ParticlesScene({ lang }: { lang: Lang }) {
+  const t = T[lang];
+  const sec = useRef<HTMLElement>(null);
+  const cv = useRef<HTMLCanvasElement>(null);
+  const pRef = useRef(0);
+  const [idx, setIdx] = useState(0);
+  const idxRef = useRef(0);
+  const onP = (p: number) => { pRef.current = p; };
+  useEffect(() => {
+    const c = cv.current; if (!c) return;
+    const ctx = c.getContext("2d"); if (!ctx) return;
+    const N = isMobileW() ? 500 : 1200, still = reducedMotion();
+    let shapes: Float32Array[] = [], raf = 0, visible = false, dead = false;
+    const nx = new Float32Array(N), ny = new Float32Array(N), ph = new Float32Array(N);
+    for (let i = 0; i < N; i++) { const a = Math.random() * 6.283, r = Math.sqrt(Math.random()); nx[i] = Math.cos(a) * r; ny[i] = Math.sin(a) * r; ph[i] = Math.random() * 6.283; }
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const resize = () => { c.width = c.offsetWidth * dpr; c.height = c.offsetHeight * dpr; };
+    resize(); window.addEventListener("resize", resize);
+    const draw = (now: number) => {
+      raf = 0;
+      const W = c.width, H = c.height; ctx.clearRect(0, 0, W, H);
+      const S = Math.min(W, H) * .78, ox = (W - S) / 2, oy = (H - S) / 2;
+      // صندوق سلكي وخطوط قياس
+      ctx.strokeStyle = "rgba(42,34,28,.28)"; ctx.lineWidth = dpr; ctx.strokeRect(ox, oy, S, S);
+      ctx.strokeStyle = "rgba(42,34,28,.18)"; ctx.beginPath();
+      ctx.moveTo(ox, oy - 12 * dpr); ctx.lineTo(ox + S, oy - 12 * dpr); ctx.moveTo(ox - 12 * dpr, oy); ctx.lineTo(ox - 12 * dpr, oy + S);
+      for (let k = 0; k <= 4; k++) { const v = (S / 4) * k; ctx.moveTo(ox + v, oy - 16 * dpr); ctx.lineTo(ox + v, oy - 8 * dpr); ctx.moveTo(ox - 16 * dpr, oy + v); ctx.lineTo(ox - 8 * dpr, oy + v); }
+      ctx.stroke();
+      ctx.fillStyle = "rgba(140,127,112,.9)"; ctx.font = `${10 * dpr}px Cairo, sans-serif`; ctx.textAlign = "center";
+      ctx.fillText("1200", ox + S / 2, oy - 20 * dpr); ctx.fillText("1:1", ox + S - 14 * dpr, oy + S + 16 * dpr);
+      ctx.save(); ctx.translate(ox - 22 * dpr, oy + S / 2); ctx.rotate(-Math.PI / 2); ctx.fillText("1200", 0, 0); ctx.restore();
+      if (shapes.length === 5) {
+        const s = pRef.current * 4, a = Math.min(3, Math.floor(s)), b = Math.min(4, a + 1);
+        const f = s >= 4 ? 1 : ease(clamp((s - a - .35) / .65));
+        const cur = f < .5 ? a : b;
+        if (cur !== idxRef.current) { idxRef.current = cur; setIdx(cur); }
+        const A = shapes[a], B = shapes[b], amp = Math.sin(Math.PI * f) * .42, jit = still ? 0 : .004;
+        ctx.fillStyle = "#2A221C";
+        const sz = 1.7 * dpr, sc = S * .8, cx = W / 2, cy = H / 2;
+        for (let i = 0; i < N; i++) {
+          const x = A[i * 2] + (B[i * 2] - A[i * 2]) * f + nx[i] * amp + Math.sin(now * .0015 + ph[i]) * jit;
+          const y = A[i * 2 + 1] + (B[i * 2 + 1] - A[i * 2 + 1]) * f + ny[i] * amp + Math.cos(now * .0013 + ph[i]) * jit;
+          ctx.fillRect(cx + x * sc - sz / 2, cy + y * sc - sz / 2, sz, sz);
+        }
+      }
+      if (visible && !dead) raf = requestAnimationFrame(draw);
+    };
+    Promise.all(SITE_TYPES.map((st) => sampleIcon(st.icon, N))).then((r) => { if (dead) return; shapes = r; if (!raf) raf = requestAnimationFrame(draw); }).catch(() => { /* يبقى الصندوق فقط */ });
+    const io = new IntersectionObserver(([e]) => { visible = e.isIntersecting; if (visible && !raf) raf = requestAnimationFrame(draw); });
+    io.observe(c);
+    return () => { dead = true; io.disconnect(); cancelAnimationFrame(raf); window.removeEventListener("resize", resize); };
+  }, []);
+  const jump = (i: number) => {
+    const el = sec.current; if (!el) return;
+    if (reducedMotion()) { pRef.current = i / 4; return; }
+    const top = el.getBoundingClientRect().top + window.scrollY;
+    const d = el.offsetHeight - window.innerHeight;
+    window.scrollTo({ top: top + Math.max(0, d) * Math.min(1, i / 4 + (i < 4 ? .01 : 0)), behavior: "smooth" });
+  };
+  const st = SITE_TYPES[idx];
+  return (
+    <Scene alt sref={sec} onP={onP}>
+      <h2 className="wl-scene-h">{t.typesTitle}</h2>
+      <div className="wl-pt">
+        <canvas ref={cv} className="wl-pt-cv" aria-hidden />
+        <div className="wl-pt-info" aria-live="polite">
+          <h3 key={idx} className="wl-swap">{st[lang][0]}</h3>
+          <p key={`d${idx}`} className="wl-swap">{st[lang][1]}</p>
+          <a className="wl-btn2 wl-pt-btn" href={buildWhatsAppLink({ kind: "type", site: st.wa })} onClick={() => trackContact(`type:${st.wa}`)}>
+            <MessageCircle size={16} className="wl-wa-ic" />{t.want}
+          </a>
+        </div>
+      </div>
+      <div className="wl-pt-strip">
+        {SITE_TYPES.map((s, i) => <button key={s.wa} type="button" aria-pressed={idx === i} onClick={() => jump(i)}><s.icon size={15} />{s[lang][0]}</button>)}
+      </div>
+    </Scene>
+  );
+}
+
+/* المشهد ٥ — قمر براند */
+function QamarScene({ lang }: { lang: Lang }) {
+  const t = T[lang];
+  const view = useRef<HTMLDivElement>(null), img = useRef<HTMLImageElement>(null), win = useRef<HTMLDivElement>(null), bg = useRef<HTMLImageElement>(null);
+  const [src, setSrc] = useState("/websites/qamar-desktop.webp");
+  const onP = (p: number) => {
+    const v = view.current, im = img.current;
+    if (v && im) { const d = Math.max(0, im.offsetHeight - v.clientHeight); im.style.transform = `translate3d(0,${(-d * ease(clamp((p - .05) / .85))).toFixed(1)}px,0)`; }
+    if (win.current) win.current.style.transform = `perspective(1600px) rotateX(${(6 * (1 - clamp(p / .4))).toFixed(2)}deg) rotateY(${lang === "ar" ? 4 : -4}deg)`;
+    if (bg.current) bg.current.style.transform = `translate3d(0,${((p - .5) * -70).toFixed(1)}px,0) scale(1.1)`;
+  };
+  return (
+    <Scene onP={onP}>
+      <img ref={bg} className="wl-q-bg" src="/websites/og.jpg" alt="" aria-hidden loading="lazy" decoding="async" />
+      <div className="wl-q">
+        <div className="wl-q-text">
+          <h2 className="wl-scene-h start">{t.liveTitle}</h2>
+          <p className="wl-live">{t.liveText}</p>
+          <div className="wl-row">
+            <a className="wl-btn2" href="https://qamarbrand.com"><ExternalLink size={16} />{t.visit}</a>
+            <a className="wl-btn2" href="https://www.instagram.com/qamar_brand1/"><Instagram size={16} />{t.insta}</a>
+          </div>
+        </div>
+        <div className="wl-win big" ref={win}>
+          <div className="wl-win-bar"><i /><i /><i /><span>qamarbrand.com</span></div>
+          <div className="wl-q-view" ref={view}>
+            <img ref={img} src={src} alt="Qamar Brand" loading="lazy" decoding="async"
+              onLoad={(e) => { e.currentTarget.style.maxWidth = `${e.currentTarget.naturalWidth}px`; }}
+              onError={() => { if (src !== qamarShot) setSrc(qamarShot); }} />
+          </div>
+        </div>
+      </div>
+    </Scene>
+  );
+}
+
+/* المشهد ٦ — خط يُرسم */
+function LineScene({ lang }: { lang: Lang }) {
+  const t = T[lang];
+  const pathH = useRef<SVGPathElement>(null), pathV = useRef<SVGPathElement>(null);
+  const steps = useRef<(HTMLLIElement | null)[]>([]);
+  const onP = (p: number) => {
+    const d = clamp(p / .85);
+    [pathH.current, pathV.current].forEach((el) => el && (el.style.strokeDashoffset = String(1 - d)));
+    steps.current.forEach((el, i) => el && el.classList.toggle("on", d >= i / 3 - .02));
+  };
+  return (
+    <Scene alt onP={onP}>
+      <h2 className="wl-scene-h">{t.howTitle}</h2>
+      <div className="wl-line">
+        <svg className="wl-line-h" viewBox="0 0 1000 120" preserveAspectRatio="none" aria-hidden>
+          <path ref={pathH} pathLength={1} d="M125 60 C 250 10, 250 110, 375 60 S 500 10, 625 60 S 750 110, 875 60" />
+        </svg>
+        <svg className="wl-line-v" viewBox="0 0 60 1000" preserveAspectRatio="none" aria-hidden>
+          <path ref={pathV} pathLength={1} d="M30 60 C 5 200, 55 250, 30 375 S 5 500, 30 625 S 55 750, 30 940" />
+        </svg>
+        <ol>
+          {t.how.map((h, i) => (
+            <li key={h} ref={(e) => (steps.current[i] = e)} style={{ "--i": i } as React.CSSProperties}>
+              <b>{num(i + 1, lang)}</b><span>{h}</span>
+            </li>
+          ))}
+        </ol>
+      </div>
+    </Scene>
+  );
+}
+
+/* المشهد ٧ — الختام */
+function FinalScene({ lang, sref }: { lang: Lang; sref: React.RefObject<HTMLElement> }) {
+  const t = T[lang];
+  const N = 28;
+  const card = useRef<HTMLDivElement>(null);
+  const strips = useRef<(HTMLSpanElement | null)[]>([]);
+  const seeds = useMemo(() => Array.from({ length: N }, () => [Math.random() * 2 - 1, Math.random() * 2 - 1, Math.random() * 180 - 90]), []);
+  const onP = (p: number) => {
+    const c = card.current; if (!c) return;
+    const w = c.offsetWidth + 34, h = c.offsetHeight + 34, per = 2 * (w + h);
+    const m = ease(clamp(p / .6));
+    strips.current.forEach((el, i) => {
+      if (!el) return;
+      let d = (i / N) * per, x: number, y: number, r: number;
+      if (d < w) { x = -w / 2 + d; y = -h / 2; r = 90; }
+      else if ((d -= w) < h) { x = w / 2; y = -h / 2 + d; r = 0; }
+      else if ((d -= h) < w) { x = w / 2 - d; y = h / 2; r = 90; }
+      else { d -= w; x = -w / 2; y = h / 2 - d; r = 0; }
+      const [sx, sy, sr] = seeds[i];
+      const X = sx * 520 + (x - sx * 520) * m, Y = sy * 420 + (y - sy * 420) * m, R = sr + (r - sr) * m;
+      el.style.transform = `translate3d(${X.toFixed(1)}px,${Y.toFixed(1)}px,0) rotate(${R.toFixed(1)}deg)`;
+      el.style.opacity = String(.35 + .65 * m);
+    });
+  };
+  return (
+    <Scene sref={sref} className="wl-final2" onP={onP}>
+      <div className="wl-fwrap">
+        {Array.from({ length: N }, (_, i) => <span key={i} className="wl-fstrip" ref={(e) => (strips.current[i] = e)} style={{ background: lerpHex(SAND, COFFEE, (i % 7) / 7) }} aria-hidden />)}
+        <div className="wl-fcard wl-glass" ref={card}>
+          <h2>{t.finalTitle}</h2>
+          <Price lang={lang} />
+          <CouponBox lang={lang} />
+          <WaButton ctx={{ kind: "default" }} label={t.cta} name="final" />
+          <Countdown lang={lang} />
+        </div>
+      </div>
+    </Scene>
+  );
+}
+
+/* ===== الصفحة ===== */
+export default function WebsitesLandingPage() {
+  const [lang, setLang] = useState<Lang>(() => { try { return (localStorage.getItem("wl-lang") as Lang) || "ar"; } catch { return "ar"; } });
+  const t = T[lang];
+  useMeta(lang);
+  usePixel();
+  useEffect(() => { getRef(); }, []);
+  const switchLang = () => { const n: Lang = lang === "ar" ? "en" : "ar"; setLang(n); try { localStorage.setItem("wl-lang", n); } catch { /* */ } };
+  const ESP = "#2A221C";
+
+  const heroRef = useRef<HTMLElement>(null);
+  const finalRef = useRef<HTMLElement>(null);
+  const [pastHero, setPastHero] = useState(false);
+  const [atFinal, setAtFinal] = useState(false);
+  useEffect(() => {
+    const a = new IntersectionObserver(([e]) => setPastHero(!e.isIntersecting && e.boundingClientRect.top < 0));
+    const b = new IntersectionObserver(([e]) => setAtFinal(e.isIntersecting && e.intersectionRatio > .35), { threshold: [0, .35, .6] });
+    heroRef.current && a.observe(heroRef.current);
+    finalRef.current && b.observe(finalRef.current);
+    return () => { a.disconnect(); b.disconnect(); };
+  }, []);
+
+  return (
+    <div className="wl" dir={lang === "ar" ? "rtl" : "ltr"}>
+      <div className="wl-beam" aria-hidden />
+      <header className="wl-top">
+        <img src={logo} alt="UNIFY" />
+        <button className="wl-lang wl-glass" onClick={switchLang}>{t.lang}</button>
+      </header>
+
+      <section className="wl-hero" ref={heroRef}>
+        <div className="wl-wrap wl-hero-grid">
+          <div className="wl-hero-copy">
+            <span className="wl-eyebrow wl-glass">{t.eyebrow}</span>
+            <h1 className="wl-h1">{t.h1}</h1>
+            <p className="wl-sub">{t.sub}</p>
+            <Price lang={lang} />
+            <CouponBox lang={lang} />
+            <WaButton ctx={{ kind: "default" }} label={t.cta} name="hero" />
+          </div>
+          <Stage lang={lang} typeIdx={1} intro screen={<StoreScreen lang={lang} typeIdx={1} name={lang === "ar" ? "متجري" : "My Store"} color={ESP} />} />
+        </div>
+      </section>
+
+      <RibbonScene lang={lang} />
+      <BuilderScene lang={lang} />
+      <ExplodedScene lang={lang} />
+      <ParticlesScene lang={lang} />
+      <QamarScene lang={lang} />
+      <LineScene lang={lang} />
+      <FinalScene lang={lang} sref={finalRef} />
+
+      <footer className="wl-foot">{t.foot}</footer>
+
+      <div className={`wl-sticky ${pastHero && !atFinal ? "" : "hide"}`} aria-hidden={!(pastHero && !atFinal)}>
+        <WaButton ctx={{ kind: "default" }} label={t.sticky} name="sticky" />
+      </div>
+    </div>
+  );
+}
