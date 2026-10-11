@@ -676,11 +676,11 @@ function ParticlesScene({ lang }: { lang: Lang }) {
       ctx.fillText("1200", ox + S / 2, oy - 20 * dpr); ctx.fillText("1:1", ox + S - 14 * dpr, oy + S + 16 * dpr);
       ctx.save(); ctx.translate(ox - 22 * dpr, oy + S / 2); ctx.rotate(-Math.PI / 2); ctx.fillText("1200", 0, 0); ctx.restore();
       if (shapes.length === 5) {
-        const s = pRef.current * 4, a = Math.min(3, Math.floor(s)), b = Math.min(4, a + 1);
-        const f = s >= 4 ? 1 : ease(clamp((s - a - .35) / .65));
+        const s = clamp(pRef.current * 4.5 - .25, 0, 4), a = Math.min(3, Math.floor(s)), b = Math.min(4, a + 1);
+        const f = s >= 4 ? 1 : ease(clamp((s - a - .5) / .5));
         const cur = f < .5 ? a : b;
         if (cur !== idxRef.current) { idxRef.current = cur; setIdx(cur); }
-        const A = shapes[a], B = shapes[b], amp = Math.sin(Math.PI * f) * .42, jit = still ? 0 : .004;
+        const A = shapes[a], B = shapes[b], amp = Math.sin(Math.PI * f) * .32, jit = still ? 0 : .004;
         ctx.fillStyle = "#2A221C";
         const sz = 1.7 * dpr, sc = S * .8, cx = W / 2, cy = H / 2;
         for (let i = 0; i < N; i++) {
@@ -701,7 +701,7 @@ function ParticlesScene({ lang }: { lang: Lang }) {
     if (reducedMotion()) { pRef.current = i / 4; return; }
     const top = el.getBoundingClientRect().top + window.scrollY;
     const d = el.offsetHeight - window.innerHeight;
-    window.scrollTo({ top: top + Math.max(0, d) * Math.min(1, i / 4 + (i < 4 ? .01 : 0)), behavior: "smooth" });
+    window.scrollTo({ top: top + Math.max(0, d) * clamp((i + .25) / 4.5), behavior: "smooth" });
   };
   const st = SITE_TYPES[idx];
   return (
