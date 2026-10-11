@@ -78,6 +78,7 @@ const USER_ACTION: Record<string, string> = {
 };
 
 export function HrActivitySummary() {
+  const navigate = useNavigate();
   const [daysBack, setDaysBack] = useState<number>(30);
   const since = useMemo(
     () => new Date(Date.now() - daysBack * DAY_MS).toISOString(),
@@ -243,9 +244,13 @@ export function HrActivitySummary() {
                         onClick={
                           clickable
                             ? (e: ReactMouseEvent) => {
-                                // أي تعديل مستقبلي على المفتاح يمر من هنا: كبسة عادية = نافذة جديدة دائمًا.
+                                // كبسة عادية: جوال = نفس التبويب (تبويب جديد يفقد جلسة
+                                // الصلاحيات أحيانًا فيرمي لاختيار مساحة العمل)،
+                                // كمبيوتر = نافذة جديدة. كبسة يمين/وسط تبقى متاحة دائمًا.
                                 e.preventDefault();
-                                window.open(href, "_blank", "noopener,noreferrer");
+                                const coarse = window.matchMedia("(pointer: coarse)").matches;
+                                if (coarse) navigate(href!);
+                                else window.open(href, "_blank", "noopener,noreferrer");
                               }
                             : undefined
                         }
