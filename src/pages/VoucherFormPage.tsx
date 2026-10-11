@@ -1180,6 +1180,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
                   isEndorsed: true as const,
                   source: "cheques" as const,
                   linked_transaction_id: c.voucher_id,
+                  endorsed_to_name: c.endorsed_to_name || null,
                   alreadyEndorsed: true,
                 })));
               }

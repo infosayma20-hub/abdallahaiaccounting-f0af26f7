@@ -25,6 +25,8 @@ export interface EndorsedCheque {
   source_bank_account_id?: string | null;
   /** True when loaded from DB in edit mode — already endorsed, skip re-endorsement on save. */
   alreadyEndorsed?: boolean;
+  /** Party the cheque was endorsed to (edit-mode display). */
+  endorsed_to_name?: string | null;
 }
 
 interface Props {
