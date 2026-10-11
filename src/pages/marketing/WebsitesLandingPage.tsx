@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   ShoppingBag, Package, Building2, UtensilsCrossed, CalendarCheck, Copy, Check, MessageCircle,
   ShoppingCart, Bell, ClipboardList, Boxes, Calculator, AlertTriangle, RotateCw, ExternalLink, Instagram,
@@ -108,7 +108,8 @@ const T = {
     sendDesign: "ابعتلي هالتصميم على الواتساب",
     insideTitle: "من برّا متجر… ومن جوّا نظام كامل", seeInside: "شوف من جوّا", seeOutside: "شوف من برّا",
     dash: "لوحة التحكم", sales: "المبيعات", exp: "المصاريف", profit: "صافي الربح",
-    statuses: [["جديدة", "#38bdf8"], ["قيد التجهيز", "#f59e0b"], ["تم الشحن", "#a78bfa"], ["تم التسليم", "#22c55e"], ["مرتجعة", "#f87171"]],
+    statuses: [["جديدة", "#8C7F70"], ["قيد التجهيز", "#a8693f"], ["تم الشحن", "#6b5a4b"], ["تم التسليم", "#4f7a5a"], ["مرتجعة", "#b0503a"]],
+    stockShort: `باقي ${num(3, "ar")} قطع`, newOrder: "طلبية جديدة",
     stock: `باقي ${num(3, "ar")} قطع من طاولة وسط خشب`,
     cards: [["الطلبيات", "كل طلبية بحالتها وتفاصيلها، من لحظة الطلب للتسليم."], ["المخزون", "بتعرف شو باقي عندك وشو لازم تطلب، بدون جرد يدوي."], ["الحسابات", "مبيعاتك ومصاريفك وربحك قدامك أول بأول."]],
     inclNote: `هاد كله داخل باقة الـ ${num(NEW_PRICE, "ar")}$. هاد الحد الأدنى للمتجر عنا، والزيادات حسب طلبك.`,
@@ -122,7 +123,7 @@ const T = {
     ends: "العرض بينتهي خلال", d: "يوم", h: "ساعة", m: "دقيقة", s: "ثانية",
     foot: "يونيفاي — UNIFY",
     title: `مواقع يونيفاي — متجرك بـ ${num(NEW_PRICE, "ar")}$`,
-    desc: "متجر إلكتروني كامل بواجهة للزباين ولوحة تحكم للطلبيات والمخزون والحسابات. عرض خاص مع كوبون UNIFY500.",
+    desc: `متجر إلكتروني كامل مع لوحة تحكم للطلبيات والمخزون والحسابات. بدل ${num(OLD_PRICE, "ar")}$ صار ${num(NEW_PRICE, "ar")}$ مع الكوبون.`,
   },
   en: {
     lang: "عربي",
@@ -139,7 +140,8 @@ const T = {
     sendDesign: "Send me this design on WhatsApp",
     insideTitle: "A store outside… a full system inside", seeInside: "See inside", seeOutside: "See outside",
     dash: "Dashboard", sales: "Sales", exp: "Expenses", profit: "Net profit",
-    statuses: [["New", "#38bdf8"], ["Preparing", "#f59e0b"], ["Shipped", "#a78bfa"], ["Delivered", "#22c55e"], ["Returned", "#f87171"]],
+    statuses: [["New", "#8C7F70"], ["Preparing", "#a8693f"], ["Shipped", "#6b5a4b"], ["Delivered", "#4f7a5a"], ["Returned", "#b0503a"]],
+    stockShort: "Only 3 left", newOrder: "New order",
     stock: "Only 3 left of Wooden coffee table",
     cards: [["Orders", "Every order with its status and details, from order to delivery."], ["Stock", "Know what's left and what to reorder, no manual counting."], ["Accounts", "Your sales, expenses and profit, always up to date."]],
     inclNote: `All of this is in the $${NEW_PRICE} package. That's our minimum store; extras as you need.`,
@@ -153,7 +155,7 @@ const T = {
     ends: "Offer ends in", d: "days", h: "hours", m: "min", s: "sec",
     foot: "UNIFY",
     title: `UNIFY Websites — your store for $${NEW_PRICE}`,
-    desc: "A complete online store with a customer storefront and a dashboard for orders, stock and accounts. Special offer with coupon UNIFY500.",
+    desc: `A complete online store with a dashboard for orders, stock and accounts. Was $${OLD_PRICE}, now $${NEW_PRICE} with the coupon.`,
   },
 };
 
@@ -170,6 +172,11 @@ function useMeta(lang: Lang) {
     set('meta[name="description"]', "name", "description", t.desc);
     set('meta[property="og:title"]', "property", "og:title", t.title);
     set('meta[property="og:description"]', "property", "og:description", t.desc);
+    set('meta[property="og:url"]', "property", "og:url", "https://unifyerp.app/websites");
+    set('meta[property="og:image"]', "property", "og:image", "https://unifyerp.app/websites/og.jpg");
+    set('meta[property="og:image:width"]', "property", "og:image:width", "1200");
+    set('meta[property="og:image:height"]', "property", "og:image:height", "630");
+    set('meta[name="twitter:image"]', "name", "twitter:image", "https://unifyerp.app/websites/og.jpg");
     document.documentElement.lang = lang;
   }, [lang]);
 }
@@ -225,62 +232,161 @@ function Price({ lang }: { lang: Lang }) {
 function WaButton({ ctx, label, name }: { ctx: WaContext; label: string; name: string }) {
   return (
     <a className="wl-cta" href={buildWhatsAppLink(ctx)} onClick={() => trackContact(name)}>
-      <MessageCircle size={20} />{label}
+      <MessageCircle size={18} className="wl-wa-ic" />{label}
     </a>
   );
 }
 
-function HeroCanvas() {
+
+/* ===== مسرح الجوال والعناصر الطايرة ===== */
+const reducedMotion = () => typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+/** مجلد صور كل نوع متجر — null = أيقونة فقط */
+const IMG_DIR: Record<string, string | null> = { clothes: "fashion", furniture: "furniture", beauty: "beauty", food: "food", tech: "electronics", other: null };
+
+function ProdImg({ typeId, i, Icon, size = 30 }: { typeId: string; i: number; Icon: any; size?: number }) {
+  const [bad, setBad] = useState(false);
+  const dir = IMG_DIR[typeId];
+  if (!dir || bad) return <div className="wl-glass wl-ph"><Icon size={size} /></div>;
+  return <img className="wl-cut" src={`/websites/products/${dir}/${i + 1}.webp`} alt="" loading="lazy" decoding="async" onError={() => setBad(true)} />;
+}
+
+/** أقواس ضوئية خفيفة تدور حول الجوال — تتوقف خارج الشاشة */
+function LightArcs() {
   const ref = useRef<HTMLCanvasElement>(null);
   useEffect(() => {
-    const c = ref.current; if (!c) return;
-    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    const c = ref.current; if (!c || reducedMotion()) return;
     const ctx = c.getContext("2d"); if (!ctx) return;
-    let raf = 0, visible = true;
-    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    let raf = 0, visible = false;
+    const dpr = Math.min(window.devicePixelRatio || 1, 1.5);
     const resize = () => { c.width = c.offsetWidth * dpr; c.height = c.offsetHeight * dpr; };
     resize(); window.addEventListener("resize", resize);
-    const pts = Array.from({ length: 34 }, () => ({ x: Math.random(), y: Math.random(), vx: (Math.random() - .5) * .0006, vy: (Math.random() - .5) * .0006 }));
-    const tick = () => {
-      const W = c.width, H = c.height;
-      ctx.clearRect(0, 0, W, H);
-      for (const p of pts) {
-        p.x = (p.x + p.vx + 1) % 1; p.y = (p.y + p.vy + 1) % 1;
-        ctx.fillStyle = "rgba(125,211,252,.55)";
-        ctx.beginPath(); ctx.arc(p.x * W, p.y * H, 1.4 * dpr, 0, 6.3); ctx.fill();
-      }
-      for (let i = 0; i < pts.length; i++) for (let j = i + 1; j < pts.length; j++) {
-        const dx = (pts[i].x - pts[j].x) * W, dy = (pts[i].y - pts[j].y) * H, d = Math.hypot(dx, dy);
-        if (d < 110 * dpr) { ctx.strokeStyle = `rgba(56,189,248,${0.18 * (1 - d / (110 * dpr))})`; ctx.beginPath(); ctx.moveTo(pts[i].x * W, pts[i].y * H); ctx.lineTo(pts[j].x * W, pts[j].y * H); ctx.stroke(); }
-      }
+    const arcs = [{ rx: .42, ry: .16, tilt: -.35, sp: .00018 }, { rx: .36, ry: .22, tilt: .5, sp: -.00013 }, { rx: .47, ry: .12, tilt: .12, sp: .0001 }];
+    const tick = (now: number) => {
+      const W = c.width, H = c.height; ctx.clearRect(0, 0, W, H);
+      arcs.forEach((a, k) => {
+        const rot = now * a.sp + k * 2;
+        ctx.save(); ctx.translate(W / 2, H / 2); ctx.rotate(a.tilt);
+        ctx.strokeStyle = "rgba(255,255,255,.9)"; ctx.lineWidth = 1.2 * dpr;
+        ctx.shadowColor = "rgba(140,127,112,.25)"; ctx.shadowBlur = 4 * dpr;
+        ctx.beginPath(); ctx.ellipse(0, 0, a.rx * W, a.ry * H, 0, rot, rot + 2.2); ctx.stroke();
+        const x = Math.cos(rot + 2.2) * a.rx * W, y = Math.sin(rot + 2.2) * a.ry * H;
+        ctx.fillStyle = "#fff"; ctx.shadowBlur = 10 * dpr; ctx.shadowColor = "rgba(255,255,255,1)";
+        ctx.beginPath(); ctx.arc(x, y, 2.2 * dpr, 0, 6.3); ctx.fill();
+        ctx.restore();
+      });
       if (visible) raf = requestAnimationFrame(tick);
     };
     const io = new IntersectionObserver(([e]) => { visible = e.isIntersecting; cancelAnimationFrame(raf); if (visible) raf = requestAnimationFrame(tick); });
     io.observe(c);
     return () => { io.disconnect(); cancelAnimationFrame(raf); window.removeEventListener("resize", resize); };
   }, []);
-  return <canvas ref={ref} className="wl-canvas" aria-hidden />;
+  return <canvas ref={ref} className="wl-arcs" aria-hidden />;
 }
 
-const TINTS = ["#e0f2fe", "#fce7f3", "#dcfce7", "#fef3c7"];
+/** parallax + ميلان الجوال: ماوس على الكمبيوتر، تمرير على الجوال */
+function useStageMotion(ref: React.RefObject<HTMLDivElement>) {
+  useEffect(() => {
+    const el = ref.current; if (!el || reducedMotion()) return;
+    const fine = window.matchMedia("(pointer: fine)").matches;
+    let raf = 0, visible = false;
+    const apply = () => {
+      raf = 0; const r = el.getBoundingClientRect();
+      const p = (r.top + r.height / 2 - window.innerHeight / 2) / window.innerHeight; // -1..1
+      el.style.setProperty("--py", (p * 60).toFixed(1));
+      if (!fine) { el.style.setProperty("--ty", (p * -6).toFixed(2)); el.style.setProperty("--tx", (p * 4).toFixed(2)); }
+    };
+    const onScroll = () => { if (visible && !raf) raf = requestAnimationFrame(apply); };
+    const onMove = (e: PointerEvent) => {
+      if (!visible) return; const r = el.getBoundingClientRect();
+      const x = (e.clientX - r.left) / r.width - .5, y = (e.clientY - r.top) / r.height - .5;
+      el.style.setProperty("--ty", (x * 12).toFixed(2)); el.style.setProperty("--tx", (y * -12).toFixed(2));
+    };
+    const io = new IntersectionObserver(([e]) => { visible = e.isIntersecting; el.classList.toggle("live", visible); if (visible) apply(); });
+    io.observe(el);
+    window.addEventListener("scroll", onScroll, { passive: true });
+    if (fine) window.addEventListener("pointermove", onMove, { passive: true });
+    return () => { io.disconnect(); cancelAnimationFrame(raf); window.removeEventListener("scroll", onScroll); window.removeEventListener("pointermove", onMove); };
+  }, [ref]);
+}
 
-function StoreScreen({ lang, typeIdx, name, color, build }: { lang: Lang; typeIdx: number; name: string; color: string; build?: boolean }) {
+type Fly = { l: "back" | "mid" | "front"; x: number; y: number; kind: "thumb" | "cut" | "order" | "price" | "stock"; i?: number; f: number };
+const FLY: Fly[] = [
+  { l: "back", kind: "thumb", i: 1, x: -205, y: -185, f: 5.2 },
+  { l: "back", kind: "thumb", i: 2, x: 200, y: -205, f: 4.6 },
+  { l: "back", kind: "thumb", i: 3, x: -195, y: 205, f: 5.8 },
+  { l: "mid", kind: "cut", i: 0, x: 190, y: -40, f: 4.2 },
+  { l: "mid", kind: "cut", i: 1, x: -210, y: 30, f: 3.6 },
+  { l: "mid", kind: "cut", i: 2, x: 175, y: 190, f: 4.8 },
+  { l: "front", kind: "order", x: 125, y: -240, f: 3.4 },
+  { l: "front", kind: "price", x: -170, y: -95, f: 4.4 },
+  { l: "front", kind: "stock", x: -140, y: 150, f: 3.9 },
+];
+
+function Stage({ lang, typeIdx, screen, intro, only }: { lang: Lang; typeIdx: number; screen: React.ReactNode; intro?: boolean; only?: Fly["l"][] }) {
+  const ref = useRef<HTMLDivElement>(null);
+  useStageMotion(ref);
+  const [shown, setShown] = useState(typeIdx);
+  const [phase, setPhase] = useState<"in" | "out">(intro && !reducedMotion() ? "in" : "out");
+  useEffect(() => { if (phase === "in" && intro) { const id = setTimeout(() => setPhase("out"), 1150); return () => clearTimeout(id); } }, []); // eslint-disable-line
+  useEffect(() => {
+    if (typeIdx === shown) return;
+    if (reducedMotion()) { setShown(typeIdx); return; }
+    setPhase("in");
+    const id = setTimeout(() => { setShown(typeIdx); requestAnimationFrame(() => requestAnimationFrame(() => setPhase("out"))); }, 380);
+    return () => clearTimeout(id);
+  }, [typeIdx]); // eslint-disable-line
+  const ty = STORE_TYPES[shown];
+  const Icon = ty.icon;
+  const items = ty.items[lang];
+  const t = T[lang];
+  const fly = FLY.filter((f) => !only || only.includes(f.l));
+  const node = (f: Fly) => {
+    if (f.kind === "thumb") return <div className="wl-glass wl-thumb"><ProdImg key={ty.id} typeId={ty.id} i={f.i!} Icon={Icon} size={18} /></div>;
+    if (f.kind === "cut") return <div className="wl-cutbox"><ProdImg key={ty.id} typeId={ty.id} i={f.i!} Icon={Icon} /></div>;
+    if (f.kind === "order") return <div className="wl-glass wl-card-s"><Bell size={14} /><span>{t.newOrder}</span><b>{num(320, lang)} ₪</b></div>;
+    if (f.kind === "price") return <div className="wl-glass wl-card-s col"><span>{items[0][0]}</span><b>{num(items[0][1] as number, lang)} ₪</b></div>;
+    return <div className="wl-glass wl-card-s"><Boxes size={14} /><span>{t.stockShort}</span></div>;
+  };
+  return (
+    <div className={`wl-stage ${intro ? "intro" : ""}`} data-phase={phase} ref={ref}>
+      <div className="wl-glow" aria-hidden />
+      <LightArcs />
+      {(["back", "mid", "front"] as const).map((layer) => (
+        <div key={layer} className={`wl-layer ${layer}`} aria-hidden>
+          {fly.filter((f) => f.l === layer).map((f, k) => (
+            <div key={k} className="wl-fi" style={{ "--x": f.x, "--y": f.y, "--d": `${FLY.indexOf(f) * 80}ms` } as React.CSSProperties}>
+              <div className="wl-fl" style={{ animationDuration: `${f.f}s`, animationDelay: `-${(FLY.indexOf(f) * 0.7).toFixed(1)}s` }}>{node(f)}</div>
+            </div>
+          ))}
+        </div>
+      ))}
+      <div className="wl-rise">
+        <div className="wl-shadow" aria-hidden />
+        <div className="wl-tilt"><div className="wl-phone"><i className="wl-island" />{screen}</div></div>
+      </div>
+    </div>
+  );
+}
+
+const TINTS = ["#efe7dc", "#f2e8e2", "#e9eae0", "#f1eadb"];
+
+function StoreScreen({ lang, typeIdx, name, color }: { lang: Lang; typeIdx: number; name: string; color: string }) {
   const t = STORE_TYPES[typeIdx];
   const Icon = t.icon;
   return (
-    <div className={`wl-screen ${build ? "wl-build" : ""}`}>
-      <div className="wl-s-head b1" style={{ background: color }}>{name}</div>
-      <div className="wl-s-cats b2">{T[lang].cats.map((c, i) => <span key={c} style={i === 0 ? { background: color, color: "#fff" } : undefined}>{c}</span>)}</div>
+    <div className="wl-screen">
+      <div className="wl-s-head" style={{ background: color }}>{name}</div>
+      <div className="wl-s-cats">{T[lang].cats.map((c, i) => <span key={c} style={i === 0 ? { background: color, color: "#fff" } : undefined}>{c}</span>)}</div>
       <div className="wl-s-grid">
         {t.items[lang].map(([n, p], i) => (
-          <div className={`wl-p b${3 + i}`} key={n as string}>
-            <div className="wl-p-img" style={{ background: TINTS[i] }}><Icon size={28} color={color} /></div>
+          <div className="wl-p" key={n as string}>
+            <div className="wl-p-img" style={{ background: TINTS[i] }}><Icon size={26} color={color} /></div>
             <b>{n}</b><i>{num(p as number, lang)} ₪</i>
           </div>
         ))}
       </div>
-      <div className="wl-s-cart b7" style={{ background: color }}><ShoppingCart size={13} style={{ verticalAlign: "-2px" }} /> {T[lang].cart}</div>
-      {build && <div className="wl-toast b8"><Bell size={13} />{T[lang].toast}</div>}
+      <div className="wl-s-cart" style={{ background: color }}><ShoppingCart size={13} style={{ verticalAlign: "-2px" }} /> {T[lang].cart}</div>
     </div>
   );
 }
@@ -288,7 +394,7 @@ function StoreScreen({ lang, typeIdx, name, color, build }: { lang: Lang; typeId
 function CountUp({ to, lang, run }: { to: number; lang: Lang; run: boolean }) {
   const [v, setV] = useState(to);
   useEffect(() => {
-    if (!run || window.matchMedia("(prefers-reduced-motion: reduce)").matches) { setV(to); return; }
+    if (!run || reducedMotion()) { setV(to); return; }
     let raf = 0; const start = performance.now();
     const step = (now: number) => { const k = Math.min(1, (now - start) / 1200); setV(Math.round(to * (1 - Math.pow(1 - k, 3)))); if (k < 1) raf = requestAnimationFrame(step); };
     raf = requestAnimationFrame(step); return () => cancelAnimationFrame(raf);
@@ -307,8 +413,8 @@ function Countdown({ lang }: { lang: Lang }) {
   const parts: [number, string][] = [[Math.floor(left / 864e5), t.d], [Math.floor(left / 36e5) % 24, t.h], [Math.floor(left / 6e4) % 60, t.m], [Math.floor(left / 1e3) % 60, t.s]];
   return (
     <div style={{ marginTop: 20 }}>
-      <p style={{ color: "var(--mut)" }}>{t.ends}</p>
-      <div className="wl-count">{parts.map(([n, l]) => <div key={l}><b>{num(String(n).padStart(2, "0"), lang)}</b><small>{l}</small></div>)}</div>
+      <p className="wl-mut">{t.ends}</p>
+      <div className="wl-count">{parts.map(([n, l]) => <div key={l} className="wl-glass"><b>{num(String(n).padStart(2, "0"), lang)}</b><small>{l}</small></div>)}</div>
     </div>
   );
 }
@@ -322,12 +428,13 @@ export default function WebsitesLandingPage() {
   useEffect(() => { getRef(); }, []);
   const switchLang = () => { const n: Lang = lang === "ar" ? "en" : "ar"; setLang(n); try { localStorage.setItem("wl-lang", n); } catch { /* */ } };
 
-  // builder
+  // builder — الافتراضي أثاث
   const [typeIdx, setTypeIdx] = useState(1);
   const [shop, setShop] = useState("");
   const [colorIdx, setColorIdx] = useState(0);
   const shopName = shop.trim() || t.defName;
   const designLink: WaContext = { kind: "design", type: STORE_TYPES[typeIdx].ar, name: shop.trim() || "متجري", color: COLORS[colorIdx].ar };
+  const ESP = "#2A221C";
 
   // flip
   const flipRef = useRef<HTMLDivElement>(null);
@@ -354,46 +461,48 @@ export default function WebsitesLandingPage() {
     return () => { a.disconnect(); b.disconnect(); };
   }, []);
 
+  const myStore = lang === "ar" ? "متجري" : "My Store";
+
   return (
     <div className="wl" dir={lang === "ar" ? "rtl" : "ltr"}>
+      <div className="wl-beam" aria-hidden />
       <header className="wl-top">
         <img src={logo} alt="UNIFY" />
-        <button className="wl-lang" onClick={switchLang}>{t.lang}</button>
+        <button className="wl-lang wl-glass" onClick={switchLang}>{t.lang}</button>
       </header>
 
       {/* أ — الهيرو */}
       <section className="wl-hero" ref={heroRef}>
-        <HeroCanvas />
         <div className="wl-wrap wl-hero-grid">
-          <div>
-            <span className="wl-eyebrow">{t.eyebrow}</span>
+          <div className="wl-hero-copy">
+            <span className="wl-eyebrow wl-glass">{t.eyebrow}</span>
             <h1 className="wl-h1">{t.h1}</h1>
             <p className="wl-sub">{t.sub}</p>
             <Price lang={lang} />
             <CouponBox lang={lang} />
             <WaButton ctx={{ kind: "default" }} label={t.cta} name="hero" />
           </div>
-          <div className="wl-phone"><StoreScreen lang={lang} typeIdx={1} name={lang === "ar" ? "متجري" : "My Store"} color="#0D1B2E" build /></div>
+          <Stage lang={lang} typeIdx={1} intro screen={<StoreScreen lang={lang} typeIdx={1} name={myStore} color={ESP} />} />
         </div>
       </section>
 
       {/* ب — جرّب بنفسك */}
-      <section className="wl-sec wl-reveal">
+      <section className="wl-sec alt">
         <div className="wl-wrap">
           <h2>{t.tryTitle}</h2>
           <div className="wl-builder">
             <div>
-              <div className="wl-step">
+              <div className="wl-step wl-glass">
                 <h3><span>{num(1, lang)}</span>{t.s1}</h3>
                 <div className="wl-chips">
                   {STORE_TYPES.map((s, i) => <button key={s.id} type="button" className="wl-chip" aria-pressed={typeIdx === i} onClick={() => setTypeIdx(i)}>{s[lang]}</button>)}
                 </div>
               </div>
-              <div className="wl-step">
+              <div className="wl-step wl-glass">
                 <h3><span>{num(2, lang)}</span>{t.s2}</h3>
                 <input className="wl-input" value={shop} maxLength={24} placeholder={t.namePh} onChange={(e) => setShop(e.target.value)} />
               </div>
-              <div className="wl-step">
+              <div className="wl-step wl-glass">
                 <h3><span>{num(3, lang)}</span>{t.s3}</h3>
                 <div className="wl-dots">
                   {COLORS.map((c, i) => <button key={c.id} type="button" className="wl-dot" aria-label={c[lang]} aria-pressed={colorIdx === i} style={{ background: c.hex }} onClick={() => setColorIdx(i)} />)}
@@ -401,41 +510,50 @@ export default function WebsitesLandingPage() {
               </div>
               <WaButton ctx={designLink} label={t.sendDesign} name="design" />
             </div>
-            <div className="wl-phone"><StoreScreen lang={lang} typeIdx={typeIdx} name={shopName} color={COLORS[colorIdx].hex} /></div>
+            <Stage lang={lang} typeIdx={typeIdx} screen={<StoreScreen lang={lang} typeIdx={typeIdx} name={shopName} color={COLORS[colorIdx].hex} />} />
           </div>
         </div>
       </section>
 
       {/* ج — من برّا ومن جوّا */}
-      <section className="wl-sec wl-reveal">
+      <section className="wl-sec">
         <div className="wl-wrap">
           <h2>{t.insideTitle}</h2>
-          <div ref={flipRef} className={`wl-flip ${flipped ? "on" : ""}`}>
-            <div className="wl-flip-in">
-              <div className="wl-face"><div className="wl-phone"><StoreScreen lang={lang} typeIdx={1} name={lang === "ar" ? "متجري" : "My Store"} color="#0D1B2E" /></div></div>
-              <div className="wl-face back"><div className="wl-phone"><div className="wl-screen"><div className="wl-dash">
-                <h4>{t.dash}</h4>
-                <div className="wl-kpis">
-                  <div><b><CountUp to={4850} lang={lang} run={flipped} /></b><small>{t.sales} ₪</small></div>
-                  <div><b><CountUp to={1230} lang={lang} run={flipped} /></b><small>{t.exp} ₪</small></div>
-                  <div><b><CountUp to={3620} lang={lang} run={flipped} /></b><small>{t.profit} ₪</small></div>
-                </div>
-                {t.statuses.map(([s, c], i) => (
-                  <div className="wl-order" key={s}>
-                    <span>#{num(1042 - i, lang)}</span>
-                    <span className="wl-badge" style={{ background: `${c}33`, color: c }}>{s}</span>
+          <div className={`wl-flipwrap ${flipped ? "on" : ""}`}>
+            <div ref={flipRef} className="wl-flip">
+              <div className="wl-flip-in">
+                <div className="wl-face"><div className="wl-phone"><i className="wl-island" /><StoreScreen lang={lang} typeIdx={1} name={myStore} color={ESP} /></div></div>
+                <div className="wl-face back"><div className="wl-phone"><i className="wl-island" /><div className="wl-screen"><div className="wl-dash">
+                  <h4>{t.dash}</h4>
+                  <div className="wl-kpis">
+                    <div><b><CountUp to={4850} lang={lang} run={flipped} /></b><small>{t.sales} ₪</small></div>
+                    <div><b><CountUp to={1230} lang={lang} run={flipped} /></b><small>{t.exp} ₪</small></div>
+                    <div><b><CountUp to={3620} lang={lang} run={flipped} /></b><small>{t.profit} ₪</small></div>
                   </div>
-                ))}
-                <div className="wl-alert"><AlertTriangle size={13} />{t.stock}</div>
-              </div></div></div></div>
+                  {t.statuses.map(([s, c], i) => (
+                    <div className="wl-order" key={s}>
+                      <span>#{num(1042 - i, lang)}</span>
+                      <span className="wl-badge" style={{ background: `${c}22`, color: c }}>{s}</span>
+                    </div>
+                  ))}
+                  <div className="wl-alert"><AlertTriangle size={13} />{t.stock}</div>
+                </div></div></div></div>
+              </div>
             </div>
+            <ul className="wl-statlist" aria-label={t.dash}>
+              {t.statuses.map(([s, c], i) => (
+                <li key={s} className="wl-glass" style={{ "--d": `${i * 90}ms` } as React.CSSProperties}>
+                  <i style={{ background: c }} /><span>#{num(1042 - i, lang)}</span><b>{s}</b>
+                </li>
+              ))}
+            </ul>
           </div>
           <div style={{ textAlign: "center", marginTop: 14 }}>
             <button type="button" className="wl-btn2" onClick={() => setFlipped((f) => !f)}><RotateCw size={16} />{flipped ? t.seeOutside : t.seeInside}</button>
           </div>
           <div className="wl-cards3">
             {[ClipboardList, Boxes, Calculator].map((I, i) => (
-              <div className="wl-card" key={i}><I size={26} /><h3>{t.cards[i][0]}</h3><p>{t.cards[i][1]}</p></div>
+              <div className="wl-card wl-glass" key={i}><I size={24} /><h3>{t.cards[i][0]}</h3><p>{t.cards[i][1]}</p></div>
             ))}
           </div>
           <p className="wl-note">{t.inclNote}</p>
@@ -443,16 +561,15 @@ export default function WebsitesLandingPage() {
       </section>
 
       {/* د — قمر براند */}
-      <section className="wl-sec wl-reveal">
+      <section className="wl-sec alt">
         <div className="wl-wrap">
           <h2>{t.liveTitle}</h2>
           <div className="wl-qamar">
-            <div className="wl-browser">
-              <div className="wl-bar"><i /><i /><i /><span style={{ marginInlineStart: 8 }}>qamarbrand.com</span></div>
-              <div className="wl-view"><img src={qamarShot} alt="Qamar Brand" loading="lazy" decoding="async" /></div>
-            </div>
+            <Stage lang={lang} typeIdx={1} only={["back", "mid"]} screen={
+              <div className="wl-screen wl-view"><img src={qamarShot} alt="Qamar Brand" loading="lazy" decoding="async" /></div>
+            } />
             <div>
-              <p style={{ fontSize: 17, lineHeight: 1.9 }}>{t.liveText}</p>
+              <p className="wl-live">{t.liveText}</p>
               <div className="wl-row">
                 <a className="wl-btn2" href="https://qamarbrand.com"><ExternalLink size={16} />{t.visit}</a>
                 <a className="wl-btn2" href="https://www.instagram.com/qamar_brand1/"><Instagram size={16} />{t.insta}</a>
@@ -463,13 +580,13 @@ export default function WebsitesLandingPage() {
       </section>
 
       {/* هـ — الأنواع */}
-      <section className="wl-sec wl-reveal">
+      <section className="wl-sec">
         <div className="wl-wrap">
           <h2>{t.typesTitle}</h2>
           <div className="wl-types">
             {SITE_TYPES.map((s, i) => (
-              <a key={s.wa} className={`wl-type ${i === 0 ? "big" : ""}`} href={buildWhatsAppLink({ kind: "type", site: s.wa })} onClick={() => trackContact(`type:${s.wa}`)}>
-                <s.icon size={i === 0 ? 34 : 26} /><h3>{s[lang][0]}</h3><p>{s[lang][1]}</p>
+              <a key={s.wa} className={`wl-type wl-glass ${i === 0 ? "big" : ""}`} href={buildWhatsAppLink({ kind: "type", site: s.wa })} onClick={() => trackContact(`type:${s.wa}`)}>
+                <s.icon size={i === 0 ? 32 : 24} /><h3>{s[lang][0]}</h3><p>{s[lang][1]}</p>
               </a>
             ))}
           </div>
@@ -477,10 +594,10 @@ export default function WebsitesLandingPage() {
       </section>
 
       {/* و — كيف بنشتغل */}
-      <section className="wl-sec wl-reveal">
+      <section className="wl-sec alt">
         <div className="wl-wrap">
           <h2>{t.howTitle}</h2>
-          <ol className="wl-steps">{t.how.map((h, i) => <li key={h}><b>{num(i + 1, lang)}</b>{h}</li>)}</ol>
+          <ol className="wl-steps">{t.how.map((h, i) => <li key={h} className="wl-glass"><b>{num(i + 1, lang)}</b>{h}</li>)}</ol>
         </div>
       </section>
 
