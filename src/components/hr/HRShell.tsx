@@ -24,7 +24,7 @@ export function HRShell({ children }: { children: ReactNode }) {
         <HRTopNav />
         {showPayrollNav && <PayrollSubNav />}
       </div>
-      <div className="p-5 lg:p-8">{children}</div>
+      <div className="p-3 sm:p-5 lg:p-8 min-w-0">{children}</div>
     </>
   );
 }

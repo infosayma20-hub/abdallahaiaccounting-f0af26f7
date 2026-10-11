@@ -1545,7 +1545,7 @@ export default function EmployeeFormsManagementPage() {
 
         <div className="w-full space-y-3" dir="rtl">
             {/* Category chips — D365 flat pill row */}
-            <div className="flex flex-wrap gap-1 bg-white border border-[#EDEBE9] rounded-sm p-1.5" dir="rtl">
+            <div className="flex flex-nowrap md:flex-wrap overflow-x-auto gap-1 bg-white border border-[#EDEBE9] rounded-sm p-1.5 [scrollbar-width:none]" dir="rtl">
               {CATEGORY_CHIPS.filter(c => c.key !== "complaints" || canViewComplaints).map(c => {
                 const active = filterCategory === c.key;
                 const count = categoryCounts[c.key] || 0;
@@ -1555,7 +1555,7 @@ export default function EmployeeFormsManagementPage() {
                     key={c.key}
                     type="button"
                     onClick={() => { setFilterCategory(c.key); setFilterType("all"); setPage(1); }}
-                    className={`h-7 px-2.5 rounded-sm text-[12px] font-normal transition-colors flex items-center gap-1.5 border ${
+                    className={`shrink-0 whitespace-nowrap h-9 md:h-7 px-2.5 rounded-sm text-[12px] font-normal transition-colors flex items-center gap-1.5 border ${
                       active
                         ? "bg-[#EFF6FC] text-[#0F6CBD] border-[#0F6CBD]"
                         : "bg-transparent text-[#323130] border-transparent hover:bg-[#F3F2F1]"
@@ -1573,17 +1573,17 @@ export default function EmployeeFormsManagementPage() {
 
             {/* Filters — D365 filter bar */}
             <div className="flex items-center gap-2 flex-wrap bg-white border border-[#EDEBE9] rounded-sm p-2" dir="rtl">
-              <div className="relative">
+              <div className="relative w-full md:w-auto">
                 <Search className="h-3.5 w-3.5 absolute left-2 top-1/2 -translate-y-1/2 text-[#605E5C] pointer-events-none" />
                 <Input
                   value={search}
                   onChange={e => setSearch(e.target.value)}
                   placeholder="بحث باسم الموظف..."
-                  className="ps-7 pe-2 w-[240px] h-8 text-[12px] rounded-sm border-[#EDEBE9] focus-visible:ring-1 focus-visible:ring-[#0F6CBD]"
+                  className="ps-7 pe-2 w-full md:w-[240px] h-10 md:h-8 text-[12px] rounded-sm border-[#EDEBE9] focus-visible:ring-1 focus-visible:ring-[#0F6CBD]"
                 />
               </div>
               <Select value={filterStatus} onValueChange={v => { setFilterStatus(v); setPage(1); }}>
-                <SelectTrigger className="w-[130px] h-8 text-[12px] rounded-sm border-[#EDEBE9]"><SelectValue placeholder="الحالة" /></SelectTrigger>
+                <SelectTrigger className="w-[calc(50%-4px)] md:w-[130px] h-10 md:h-8 text-[12px] rounded-sm border-[#EDEBE9]"><SelectValue placeholder="الحالة" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">الكل</SelectItem>
                   <SelectItem value="pending">قيد المراجعة</SelectItem>
@@ -1593,7 +1593,7 @@ export default function EmployeeFormsManagementPage() {
                 </SelectContent>
               </Select>
               <Select value={filterArchive} onValueChange={v => { setFilterArchive(v as any); setPage(1); }}>
-                <SelectTrigger className="w-[130px] h-8 text-[12px] rounded-sm border-[#EDEBE9]"><SelectValue placeholder="الأرشيف" /></SelectTrigger>
+                <SelectTrigger className="w-[calc(50%-4px)] md:w-[130px] h-10 md:h-8 text-[12px] rounded-sm border-[#EDEBE9]"><SelectValue placeholder="الأرشيف" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="active">النشط</SelectItem>
                   <SelectItem value="archived">الأرشيف</SelectItem>
@@ -1629,7 +1629,7 @@ export default function EmployeeFormsManagementPage() {
                     <PopoverTrigger asChild>
                       <Button
                         variant="outline"
-                        className={`h-8 min-w-[180px] max-w-[280px] justify-between gap-1.5 text-[12px] rounded-sm border-[#EDEBE9] font-normal ${
+                        className={`h-10 md:h-8 w-full md:w-auto md:min-w-[180px] md:max-w-[280px] justify-between gap-1.5 text-[12px] rounded-sm border-[#EDEBE9] font-normal ${
                           formKeys.length ? "bg-[#EFF6FC] text-[#0F6CBD] border-[#0F6CBD]" : ""
                         }`}
                         title="فلترة النماذج: تحديد ما يخصك أو استثناء ما لا يخصك"
@@ -1705,7 +1705,7 @@ export default function EmployeeFormsManagementPage() {
               })()}
               {branches.length > 0 && (
                 <Select value={filterBranch} onValueChange={v => { setFilterBranch(v); setPage(1); }}>
-                  <SelectTrigger className="w-[130px] h-8 text-[12px] rounded-sm border-[#EDEBE9]"><SelectValue placeholder="الفرع" /></SelectTrigger>
+                  <SelectTrigger className="w-[calc(50%-4px)] md:w-[130px] h-10 md:h-8 text-[12px] rounded-sm border-[#EDEBE9]"><SelectValue placeholder="الفرع" /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">كل الفروع</SelectItem>
                     {branches.map(b => <SelectItem key={b} value={b}>{b}</SelectItem>)}
@@ -1719,7 +1719,7 @@ export default function EmployeeFormsManagementPage() {
                 if (receiveBranches.length === 0) return null;
                 return (
                   <Select value={filterReceiveBranch} onValueChange={v => { setFilterReceiveBranch(v); setPage(1); }}>
-                    <SelectTrigger className="w-[160px] h-8 text-[12px] rounded-sm border-[#EDEBE9]"><SelectValue placeholder="استلام من فرع" /></SelectTrigger>
+                    <SelectTrigger className="w-[calc(50%-4px)] md:w-[160px] h-10 md:h-8 text-[12px] rounded-sm border-[#EDEBE9]"><SelectValue placeholder="استلام من فرع" /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="all">استلام من كل الفروع</SelectItem>
                       {receiveBranches.map(b => <SelectItem key={b} value={b}>{b}</SelectItem>)}
@@ -1733,8 +1733,8 @@ export default function EmployeeFormsManagementPage() {
                 onFromChange={(v) => { setDateFrom(v); setPage(1); }}
                 onToChange={(v) => { setDateTo(v); setPage(1); }}
                 inlineLabels
-                className="shrink-0"
-                fieldClassName="w-auto [&_input]:h-8 [&_input]:w-[128px] [&_input]:text-[12px] [&_input]:rounded-sm [&_input]:border-[#EDEBE9]"
+                className="shrink-0 w-full md:w-auto"
+                fieldClassName="flex-1 md:flex-none min-w-0 w-auto [&_input]:h-8 [&_input]:w-full md:[&_input]:w-[128px] [&_input]:text-[12px] [&_input]:rounded-sm [&_input]:border-[#EDEBE9]"
               />
             </div>
 
@@ -1782,7 +1782,7 @@ export default function EmployeeFormsManagementPage() {
                   </div>
                 )}
                 <div className="overflow-x-auto">
-                  <Table dir="rtl">
+                  <Table dir="rtl" className="mobile-cards">
                     <TableHeader className="bg-[#0D1B2E]">
                       <TableRow className="hover:bg-[#0D1B2E] border-b-0">
                         <TableHead className="text-center text-white font-semibold w-10">
@@ -1860,7 +1860,7 @@ export default function EmployeeFormsManagementPage() {
                           const isExpanded = expandedDetails.has(f.id);
                           return (
                             <TableRow key={f.id} className="hover:bg-muted/40 border-b border-border">
-                              <TableCell className="text-center align-middle">
+                              <TableCell data-mc="select" className="text-center align-middle">
                                 {selectable ? (
                                   <Checkbox
                                     checked={selectedIds.has(f.id)}
@@ -1875,9 +1875,9 @@ export default function EmployeeFormsManagementPage() {
                                   />
                                 ) : null}
                               </TableCell>
-                              <TableCell className="font-medium text-sm whitespace-nowrap text-right">{emp?.name || "—"}</TableCell>
-                              <TableCell className="text-xs text-muted-foreground whitespace-nowrap text-right">{emp?.branch || "—"}</TableCell>
-                              <TableCell className="text-xs whitespace-nowrap text-right">
+                              <TableCell data-mc="title" className="font-medium text-sm whitespace-nowrap text-right">{emp?.name || "—"}</TableCell>
+                              <TableCell data-label="الفرع" data-mc="half" className="text-xs text-muted-foreground whitespace-nowrap text-right">{emp?.branch || "—"}</TableCell>
+                              <TableCell data-label="النموذج" data-mc="half" className="text-xs whitespace-nowrap text-right">
                                 {(() => {
                                   const Icon = formTypeIcons[f.form_type] || FileText;
                                   const label = f.form_type === "dynamic_template" && (f as any).title
@@ -1901,7 +1901,7 @@ export default function EmployeeFormsManagementPage() {
                                   );
                                 })()}
                               </TableCell>
-                              <TableCell className="text-xs text-muted-foreground text-right align-top w-[320px] max-w-[320px]" title={details}>
+                              <TableCell data-label="التفاصيل" className="text-xs text-muted-foreground text-right align-top w-[320px] max-w-[320px]" title={details}>
                                 {details ? (
                                   <>
                                     <span
@@ -1939,7 +1939,7 @@ export default function EmployeeFormsManagementPage() {
                               {filterCategory === "leaves" && (() => {
                                 const reasonText = displayReason(f?.form_data?.reason || f?.reason || "");
                                 return (
-                                  <TableCell className="text-xs text-right align-top max-w-[220px]" title={reasonText}>
+                                  <TableCell data-label="سبب الإجازة" className="text-xs text-right align-top max-w-[220px]" title={reasonText}>
                                     {reasonText ? (
                                       <span
                                         className="block whitespace-pre-wrap break-words text-foreground"
@@ -1954,12 +1954,12 @@ export default function EmployeeFormsManagementPage() {
                                 );
                               })()}
                               {(filterCategory === "all" || filterCategory === "advances") && (
-                                <TableCell className="text-xs text-muted-foreground whitespace-nowrap text-right">
+                                <TableCell data-label="استلام من فرع" data-mc="half" className="text-xs text-muted-foreground whitespace-nowrap text-right">
                                   {(f.form_data?.receive_branch_name as string) || "—"}
                                 </TableCell>
                               )}
                               {(filterCategory === "all" || filterCategory === "advances" || filterCategory === "loans") && (
-                                <TableCell className="text-sm font-semibold whitespace-nowrap text-right">
+                                <TableCell data-label="المبلغ" data-mc="half" className="text-sm font-semibold whitespace-nowrap text-right">
                                   {amount ? `${Number(amount).toLocaleString()} ₪` : "—"}
                                 </TableCell>
                               )}
@@ -1973,7 +1973,7 @@ export default function EmployeeFormsManagementPage() {
                                 const cats = d ? Object.entries(d.byCat).sort((a, b) => catOrder.indexOf(a[0]) - catOrder.indexOf(b[0])) : [];
                                 return (
                                   <>
-                                    <TableCell className="text-xs whitespace-nowrap text-right">
+                                    <TableCell data-label="تاريخ التعيين" data-mc="half" className="text-xs whitespace-nowrap text-right">
                                       {start ? (
                                         <div className="flex flex-col leading-tight">
                                           <span className="font-medium text-foreground" dir="ltr">{format(new Date(start), "dd/MM/yyyy")}</span>
@@ -1985,7 +1985,7 @@ export default function EmployeeFormsManagementPage() {
                                         <span className="text-muted-foreground">غير مسجّل</span>
                                       )}
                                     </TableCell>
-                                    <TableCell className="text-xs whitespace-nowrap text-right">
+                                    <TableCell data-label="خصومات الشهر" data-mc="half" className="text-xs whitespace-nowrap text-right">
                                       {total > 0 ? (
                                         <Popover>
                                           <PopoverTrigger asChild>
@@ -2012,14 +2012,14 @@ export default function EmployeeFormsManagementPage() {
                                   </>
                                 );
                               })()}
-                              <TableCell className="text-xs text-muted-foreground whitespace-nowrap text-right">
+                              <TableCell data-label="التاريخ" data-mc="half" className="text-xs text-muted-foreground whitespace-nowrap text-right">
                                 <div className="flex flex-col leading-tight" dir="ltr">
                                   <span className="font-medium text-foreground">{format(new Date(f.created_at), "dd/MM/yyyy")}</span>
                                   <span className="text-[10px] text-muted-foreground">{format(new Date(f.created_at), "HH:mm")}</span>
                                 </div>
                               </TableCell>
-                              <TableCell className="text-right">
-                                <div className="flex flex-col items-end gap-1">
+                              <TableCell data-label="الحالة" data-mc="half" className="text-right">
+                                <div className="flex flex-col items-start md:items-end gap-1">
                                   <Badge variant={st.variant} className="text-[10px]">{st.label}</Badge>
                                   {isPending && isDisciplinary && (
                                     f.hr_recommendation ? (
@@ -2032,7 +2032,7 @@ export default function EmployeeFormsManagementPage() {
                                   )}
                                 </div>
                               </TableCell>
-                              <TableCell className="text-xs text-right align-top min-w-[200px] max-w-[260px]">
+                              <TableCell data-label="ملاحظة / سبب الرفض" className="text-xs text-right align-top min-w-[200px] max-w-[260px]">
                                 {f.hr_recommendation_notes && (() => {
                                   const hrKey = f.id + ":hr";
                                   const hrExpanded = expandedDetails.has(hrKey);
@@ -2084,7 +2084,7 @@ export default function EmployeeFormsManagementPage() {
                                   <span className="text-muted-foreground">—</span>
                                 )}
                               </TableCell>
-                              <TableCell>
+                              <TableCell data-mc="actions">
                                 <div className="flex items-center justify-center gap-1">
                                   {!isAttendanceCorrection && (
                                     <>
