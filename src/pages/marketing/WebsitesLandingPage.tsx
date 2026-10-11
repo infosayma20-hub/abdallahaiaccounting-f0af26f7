@@ -1,9 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { motion, useScroll, useTransform, useReducedMotion } from "framer-motion";
-import { ShoppingBag, Package, Building2, UtensilsCrossed, CalendarCheck, Smartphone, Zap, Search, Copy, Check, MessageCircle, Sparkles as _unused } from "lucide-react";
+import { ShoppingBag, Package, Building2, UtensilsCrossed, CalendarCheck, Smartphone, Zap, Search, Copy, Check, MessageCircle } from "lucide-react";
 import "./websites.css";
 
-void _unused;
 const WA_NUMBER = "972594336699";
 const COUPON = "UNIFY500";
 const OLD_PRICE = 1200;
