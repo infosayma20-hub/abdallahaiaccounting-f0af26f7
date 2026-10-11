@@ -6,7 +6,7 @@
 .wl a{color:inherit;text-decoration:none}
 .wl-wrap{max-width:1120px;margin:0 auto;padding:0 18px}
 .wl-top{display:flex;align-items:center;justify-content:space-between;padding:14px 18px;max-width:1120px;margin:0 auto;position:relative;z-index:3}
-.wl-top img{height:34px;width:auto}
+.wl-top img{height:46px;width:auto}
 .wl-lang{border:1px solid var(--line);background:transparent;color:#fff;border-radius:999px;padding:6px 14px;font:600 13px Cairo;cursor:pointer}
 .wl-hero{position:relative;padding:8px 0 48px;overflow:hidden}
 .wl-canvas{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;opacity:.7}
