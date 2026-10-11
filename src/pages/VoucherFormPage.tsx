@@ -1153,6 +1153,36 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
                 // Legacy fallback: single cheque stored on the header.
                 setCheques([{ number: data.cheque_number || "", date: data.cheque_due_date || "", bank: data.cheque_bank_name || "", amount: String(data.amount || data.amount_ils || ""), accountNumber: "", notes: "" }]);
               }
+              // Load endorsed (مُجيّرة) cheques linked to this voucher so they
+              // appear in edit mode. Marked alreadyEndorsed so saving does not
+              // re-run the endorsement lifecycle or duplicate its GL entry.
+              const { data: endorsedList } = await supabase
+                .from("cheques")
+                .select("id, cheque_number, bank_name, amount, cheque_date, currency, status, contact_id, voucher_id")
+                .eq("user_id", ownerId)
+                .eq("endorsement_voucher_id", editId);
+              if (endorsedList && endorsedList.length > 0) {
+                const contactIds = [...new Set(endorsedList.map((c: any) => c.contact_id).filter(Boolean))] as string[];
+                let nameMap: Record<string, string> = {};
+                if (contactIds.length > 0) {
+                  const { data: cs } = await supabase.from("contacts").select("id, contact_name").in("id", contactIds);
+                  nameMap = Object.fromEntries((cs || []).map((c: any) => [c.id, c.contact_name]));
+                }
+                setEndorsedCheques(endorsedList.map((c: any) => ({
+                  id: c.id,
+                  cheque_number: c.cheque_number,
+                  bank_name: c.bank_name,
+                  party_name: (c.contact_id && nameMap[c.contact_id]) || "—",
+                  amount: Number(c.amount) || 0,
+                  cheque_date: c.cheque_date || "",
+                  currency: c.currency || "ILS",
+                  status: c.status || "مظهر",
+                  isEndorsed: true as const,
+                  source: "cheques" as const,
+                  linked_transaction_id: c.voucher_id,
+                  alreadyEndorsed: true,
+                })));
+              }
             }
             setEditVoucherStatus(data.status || "posted");
             if (data.bank_account_id) { setDepositType("bank"); setSelectedBankAccount(data.bank_account_id); }
