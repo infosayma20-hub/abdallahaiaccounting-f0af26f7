@@ -1,0 +1,74 @@
+.wl {
+  --wl-bg: 214 56% 12%;
+  --wl-bg2: 224 64% 33%;
+  --wl-neon: 188 86% 53%;
+  --wl-fg: 210 40% 98%;
+  --wl-muted: 215 25% 72%;
+  --wl-card: 214 50% 16%;
+  background: hsl(var(--wl-bg));
+  color: hsl(var(--wl-fg));
+  font-family: 'Cairo', 'DM Sans', sans-serif;
+  min-height: 100dvh;
+  overflow-x: hidden;
+}
+.wl-muted { color: hsl(var(--wl-muted)); }
+.wl-neon { color: hsl(var(--wl-neon)); }
+.wl-grid {
+  background-image:
+    linear-gradient(hsl(var(--wl-neon) / .07) 1px, transparent 1px),
+    linear-gradient(90deg, hsl(var(--wl-neon) / .07) 1px, transparent 1px);
+  background-size: 56px 56px;
+  mask-image: radial-gradient(ellipse at center, #000 30%, transparent 75%);
+}
+.wl-orb { position: absolute; border-radius: 9999px; filter: blur(80px); pointer-events: none; }
+.wl-orb-a { background: hsl(var(--wl-neon) / .35); }
+.wl-orb-b { background: hsl(var(--wl-bg2) / .8); }
+.wl-gradient-text {
+  background: linear-gradient(90deg, hsl(var(--wl-fg)), hsl(var(--wl-neon)), hsl(var(--wl-fg)));
+  background-size: 200% auto;
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+  animation: wl-shine 5s linear infinite;
+}
+@keyframes wl-shine { to { background-position: 200% center; } }
+.wl-card {
+  background: linear-gradient(160deg, hsl(var(--wl-card) / .9), hsl(var(--wl-bg) / .6));
+  border: 1px solid hsl(var(--wl-neon) / .15);
+  backdrop-filter: blur(12px);
+  border-radius: 1.5rem;
+  transition: border-color .3s, transform .3s, box-shadow .3s;
+}
+.wl-card:hover { border-color: hsl(var(--wl-neon) / .6); box-shadow: 0 0 40px -10px hsl(var(--wl-neon) / .5); }
+.wl-btn {
+  display: inline-flex; align-items: center; gap: .6rem; justify-content: center;
+  background: hsl(var(--wl-neon)); color: hsl(var(--wl-bg));
+  font-weight: 900; border-radius: 9999px; padding: 1rem 2rem;
+  box-shadow: 0 0 30px hsl(var(--wl-neon) / .55);
+  transition: transform .2s, box-shadow .2s;
+}
+.wl-btn:hover { transform: translateY(-2px) scale(1.03); box-shadow: 0 0 55px hsl(var(--wl-neon) / .8); }
+.wl-btn-ghost {
+  display: inline-flex; align-items: center; gap: .5rem;
+  border: 1px solid hsl(var(--wl-fg) / .25); border-radius: 9999px; padding: .5rem 1rem;
+  font-weight: 700; font-size: .85rem;
+}
+.wl-chip { border: 1px solid hsl(var(--wl-neon) / .4); background: hsl(var(--wl-neon) / .1); color: hsl(var(--wl-neon)); border-radius: 9999px; padding: .35rem .9rem; font-size: .8rem; font-weight: 800; }
+.wl-coupon {
+  border: 2px dashed hsl(var(--wl-neon) / .7);
+  background: radial-gradient(circle at 20% 0%, hsl(var(--wl-neon) / .18), transparent 60%), hsl(var(--wl-card));
+  border-radius: 2rem;
+}
+.wl-strike { text-decoration: line-through; text-decoration-color: hsl(var(--wl-neon)); text-decoration-thickness: 3px; }
+.wl-browser { background: hsl(var(--wl-card)); border: 1px solid hsl(var(--wl-neon) / .25); border-radius: 1.25rem; overflow: hidden; box-shadow: 0 30px 80px -20px hsl(var(--wl-neon) / .35); }
+.wl-bar { background: hsl(var(--wl-bg)); }
+.wl-dot { width: .6rem; height: .6rem; border-radius: 9999px; background: hsl(var(--wl-fg) / .25); }
+.wl-skel { background: hsl(var(--wl-fg) / .1); border-radius: .5rem; }
+.wl-skel-neon { background: hsl(var(--wl-neon) / .7); border-radius: .5rem; }
+.wl-marquee { display: flex; gap: 3rem; width: max-content; animation: wl-marq 28s linear infinite; }
+[dir="ltr"] .wl-marquee { animation-direction: reverse; }
+@keyframes wl-marq { to { transform: translateX(50%); } }
+.wl-float { position: fixed; bottom: 1.25rem; inset-inline-start: 1.25rem; z-index: 60; }
+.wl-pulse { animation: wl-pulse 2s infinite; }
+@keyframes wl-pulse { 0% { box-shadow: 0 0 0 0 hsl(var(--wl-neon) / .7);} 70% { box-shadow: 0 0 0 22px hsl(var(--wl-neon) / 0);} 100% { box-shadow: 0 0 0 0 hsl(var(--wl-neon) / 0);} }
+.wl-nav { background: hsl(var(--wl-bg) / .7); backdrop-filter: blur(14px); border-bottom: 1px solid hsl(var(--wl-neon) / .12); }
+.wl-step-num { background: hsl(var(--wl-neon) / .15); color: hsl(var(--wl-neon)); border: 1px solid hsl(var(--wl-neon) / .4); }
+@media (prefers-reduced-motion: reduce) { .wl-marquee, .wl-gradient-text, .wl-pulse { animation: none; } }

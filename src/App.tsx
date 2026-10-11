@@ -55,6 +55,7 @@ const HomeDashboard = lazy(() => import("./pages/HomeDashboard"));
 const LandingPage = lazy(() => import("./pages/LandingPage"));
 const UnifyStoryLanding = lazy(() => import("./pages/UnifyStoryLanding"));
 const FeaturesPage = lazy(() => import("./pages/marketing/FeaturesPage"));
+const WebsitesLandingPage = lazy(() => import("./pages/marketing/WebsitesLandingPage"));
 const BlogIndexPage = lazy(() => import("./pages/marketing/BlogIndexPage"));
 const BlogPostPage = lazy(() => import("./pages/marketing/BlogPostPage"));
 const ReferralPage = lazy(() => import("./pages/ReferralPage"));
@@ -664,6 +665,7 @@ const App = () => (
               <Route path="/pricing" element={<PricingPage />} />
               <Route path="/support" element={<PublicSupportPage />} />
               <Route path="/features" element={<FeaturesPage />} />
+              <Route path="/websites" element={<WebsitesLandingPage />} />
               <Route path="/blog" element={<BlogIndexPage />} />
               <Route path="/blog/:slug" element={<BlogPostPage />} />
               <Route path="/landing" element={<UnifyStoryLanding />} />
