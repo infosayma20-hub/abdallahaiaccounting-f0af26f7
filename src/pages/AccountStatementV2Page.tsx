@@ -1158,6 +1158,12 @@ const AccountStatementV2Page = () => {
     if (statementOptions.hideCancelledEntries) {
       r = r.filter(x => !x.isCancelled);
     }
+    // Pairs hidden together net to zero. When the ORIGINAL voucher sits before
+    // the period (already inside openingBalance) but its reversal falls inside
+    // the period and gets hidden, we must neutralize the original from the
+    // opening too — otherwise the opening (and every running balance) is off by
+    // the voucher amount depending on the chosen start date.
+    let openingAdj = 0;
     if (statementOptions.hideReversalEntries) {
       // A reversal row's `reversedById` points at the ORIGINAL voucher it cancels.
       // Hiding a reversal without hiding its original leaves the ledger showing
@@ -1165,10 +1171,16 @@ const AccountStatementV2Page = () => {
       // So collect every original id referenced by any reversal row in view, and
       // hide both sides together.
       const cancelledOriginalIds = new Set<string>();
+      const idsInView = new Set<string>(r.map(x => x.transaction_id));
       for (const x of r) {
         const t = (x.transaction_type || "").toLowerCase();
         if ((t === "reversal" || t.includes("reverse")) && x.reversedById) {
           cancelledOriginalIds.add(x.reversedById);
+          if (!idsInView.has(x.reversedById)) {
+            const d = Number(x.debit) || 0;
+            const c = Number(x.credit) || 0;
+            if (!(d > 0 && c > 0 && Math.abs(d - c) < 1e-6)) openingAdj += d - c;
+          }
         }
       }
       r = r.filter(x => {
@@ -1187,7 +1199,7 @@ const AccountStatementV2Page = () => {
     // rows (hidden reversals / cancelled entries must not leak into totals).
     // When the user hides the opening balance, the on-screen running balance
     // starts from zero (period movements only) — same rule as the printout.
-    const effectiveOpening = statementOptions.hideOpeningBalance ? 0 : openingBalance;
+    const effectiveOpening = statementOptions.hideOpeningBalance ? 0 : openingBalance + openingAdj;
     let running = effectiveOpening;
     let sD = 0, sC = 0;
     const withBalances = r.map(x => {
@@ -1202,12 +1214,14 @@ const AccountStatementV2Page = () => {
     (withBalances as any).__totalDebit = sD;
     (withBalances as any).__totalCredit = sC;
     (withBalances as any).__closingBalance = running;
+    (withBalances as any).__openingBalance = openingBalance + openingAdj;
     return withBalances;
   }, [groupedRows, debouncedTxSearch, txTypeFilter, txCostCenter, statementOptions.hideCancelledEntries, statementOptions.hideReversalEntries, statementOptions.hideOpeningBalance, openingBalance, lineCommentFor]);
 
   // Totals that follow the currently visible rows (respect hide filters).
   const displayTotalDebit = (filteredRows as any).__totalDebit ?? totalDebit;
   const displayTotalCredit = (filteredRows as any).__totalCredit ?? totalCredit;
+  const displayOpeningBalance: number = (filteredRows as any).__openingBalance ?? openingBalance;
   const displayClosingBalance = (filteredRows as any).__closingBalance ?? closingBalance;
 
   // ─── COLUMN SORTING (display only) ───
@@ -1554,9 +1568,9 @@ const AccountStatementV2Page = () => {
     const openingRow = statementOptions.hideOpeningBalance ? null : cols.map(c => {
       if (c.key === "date") return dateFrom ? fmtDate(dateFrom) : "";
       if (c.key === "description") return "رصيد أول المدة";
-      if (c.key === "debit") return openingBalance > 0 ? openingBalance : "";
-      if (c.key === "credit") return openingBalance < 0 ? Math.abs(openingBalance) : "";
-      if (c.key === "balance") return openingBalance;
+      if (c.key === "debit") return displayOpeningBalance > 0 ? displayOpeningBalance : "";
+      if (c.key === "credit") return displayOpeningBalance < 0 ? Math.abs(displayOpeningBalance) : "";
+      if (c.key === "balance") return displayOpeningBalance;
       return "";
     });
     const data = statementRowsWithDetails.map(r => cols.map(c => c.value(r)));
@@ -1630,7 +1644,7 @@ const AccountStatementV2Page = () => {
     })),
     // Single source of truth = the screen. The builder renders these as-is and
     // never re-applies the hide-opening-balance adjustment.
-    openingBalance,
+    openingBalance: displayOpeningBalance,
     totalDebit: displayTotalDebit,
     totalCredit: displayTotalCredit,
     closingBalance: displayClosingBalance,
@@ -1648,7 +1662,7 @@ const AccountStatementV2Page = () => {
     mixedCurrencies: hasMixedCurrencies,
   }), [
     companyInfo, selectedEntityName, selectedContact, isEmployeesTab, isAccountsTab,
-    selectedEntityCode, sortedRows, openingBalance, displayTotalDebit, displayTotalCredit,
+    selectedEntityCode, sortedRows, displayOpeningBalance, displayTotalDebit, displayTotalCredit,
     displayClosingBalance, dateFrom, dateTo, stableSOANumber, statementCurrency,
     statementOptions, detailsMap.invoiceDetailsById, taxEnabled, lineCommentFor,
     hasMixedCurrencies,
@@ -1944,7 +1958,7 @@ const AccountStatementV2Page = () => {
                   </div>
                 )}
                  {!statementOptions.hideOpeningBalance ? (
-                   <div><span style={{ color: "#6B7280" }}>رصيد افتتاحي: </span><span style={{ color: "#111827", fontWeight: 600 }}>{fmtAmount(openingBalance, statementCurrency)}</span></div>
+                   <div><span style={{ color: "#6B7280" }}>رصيد افتتاحي: </span><span style={{ color: "#111827", fontWeight: 600 }}>{fmtAmount(displayOpeningBalance, statementCurrency)}</span></div>
                  ) : (
                    <div><span style={{ color: "#92400E", fontWeight: 600, fontSize: 12 }}>بدون الرصيد الافتتاحي — الأرصدة من حركات الفترة فقط</span></div>
                  )}
@@ -2073,9 +2087,9 @@ const AccountStatementV2Page = () => {
                       if (c.key === "date") return <td key={c.key} style={{ padding: "3px 8px", fontSize: 11, color: "#6B7280", fontStyle: "italic" }}>{fmtDate(dateFrom)}</td>;
                       if (c.key === "reference") return <td key={c.key} style={{ padding: "3px 8px", fontSize: 11, color: "#6B7280" }}>—</td>;
                       if (c.key === "description") return <td key={c.key} style={{ padding: "3px 8px", fontSize: 11, color: "#6B7280", fontStyle: "italic" }}>رصيد أول المدة</td>;
-                      if (c.key === "debit") return <td key={c.key} style={{ padding: "3px 8px", fontSize: 11, fontWeight: 600, color: "#1E40AF", textAlign: "left", direction: "ltr" }}>{openingBalance > 0 ? fmtAmount(openingBalance, statementCurrency) : "—"}</td>;
-                      if (c.key === "credit") return <td key={c.key} style={{ padding: "3px 8px", fontSize: 11, fontWeight: 600, color: "#065F46", textAlign: "left", direction: "ltr" }}>{openingBalance < 0 ? fmtAmount(openingBalance, statementCurrency) : "—"}</td>;
-                      if (c.key === "balance") return <td key={c.key} style={{ padding: "3px 8px", fontSize: 11, fontWeight: 600, color: balColor(openingBalance), textAlign: "left", direction: "ltr" }}>{fmtAmount(openingBalance, statementCurrency)}</td>;
+                      if (c.key === "debit") return <td key={c.key} style={{ padding: "3px 8px", fontSize: 11, fontWeight: 600, color: "#1E40AF", textAlign: "left", direction: "ltr" }}>{displayOpeningBalance > 0 ? fmtAmount(displayOpeningBalance, statementCurrency) : "—"}</td>;
+                      if (c.key === "credit") return <td key={c.key} style={{ padding: "3px 8px", fontSize: 11, fontWeight: 600, color: "#065F46", textAlign: "left", direction: "ltr" }}>{displayOpeningBalance < 0 ? fmtAmount(displayOpeningBalance, statementCurrency) : "—"}</td>;
+                      if (c.key === "balance") return <td key={c.key} style={{ padding: "3px 8px", fontSize: 11, fontWeight: 600, color: balColor(displayOpeningBalance), textAlign: "left", direction: "ltr" }}>{fmtAmount(displayOpeningBalance, statementCurrency)}</td>;
                       return <td key={c.key} style={{ padding: "3px 8px" }} />;
                     })}
                   </tr>
