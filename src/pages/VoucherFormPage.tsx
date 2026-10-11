@@ -1878,6 +1878,9 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
         // then hand the real cheque IDs to the atomic RPC (status → مظهر + GL postings).
         const endorsedIds: string[] = [];
         for (const ec of endorsedCheques) {
+          // Skip cheques already endorsed to this voucher (edit mode) — their
+          // endorsement GL entries already exist and must not be duplicated.
+          if ((ec as any).alreadyEndorsed) continue;
           endorsedIds.push(await resolveEndorsedChequeId(ec));
         }
         const result = await callCreateMixedVoucherRpc({
@@ -2978,6 +2981,9 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
         if (paymentMethod === "شيك" && !asDraft && endorsedCheques.length > 0 && voucher) {
           const supplierName = selectedContact?.contact_name || selectedGlAccount?.account_name || "";
           for (const ec of endorsedCheques) {
+            // Loaded from DB in edit mode: already endorsed with its GL entry
+            // posted — re-endorsing would duplicate the accounting entry.
+            if ((ec as any).alreadyEndorsed) continue;
             // Some older receipt vouchers were never materialized into `cheques`
             // — create the missing row first, then continue the lifecycle below.
             const chequeId = await resolveEndorsedChequeId(ec);
