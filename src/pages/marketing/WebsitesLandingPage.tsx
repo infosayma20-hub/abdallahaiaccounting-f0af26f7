@@ -191,7 +191,7 @@ export default function WebsitesLandingPage() {
               </div>
             </div>
             <motion.div className="wl-card absolute -bottom-6 start-[-10px] px-4 py-3 flex items-center gap-2" animate={reduce ? {} : { y: [0, -10, 0] }} transition={{ duration: 4, repeat: Infinity }}>
-              <ShoppingBag className="h-5 w-5 wl-neon" /><span className="font-black text-sm">+128 {lang === "ar" ? "طلب" : "orders"}</span>
+              <ShoppingBag className="h-5 w-5 wl-neon" /><span className="font-black text-sm">{lang === "ar" ? "متجرك جاهز" : "Store ready"}</span>
             </motion.div>
           </motion.div>
         </div>
