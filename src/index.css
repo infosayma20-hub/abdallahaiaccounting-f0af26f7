@@ -419,6 +419,41 @@
   }
 }
 
+/* ── جداول تتحول لبطاقات على الجوال فقط (≤767px). الكمبيوتر بلا أي تغيير. ──
+   الاستخدام: أضف class="mobile-cards" على <table>، و data-label="..." على الخلايا
+   التي تحتاج عنوانًا، و data-mc="title" لخلية العنوان، و data-mc="actions" لخلية الأزرار،
+   و data-mc="hide" لخلية لا داعي لها على الجوال. */
+@media (max-width: 767px) {
+  table.mobile-cards, table.mobile-cards tbody { display: block !important; width: 100% !important; }
+  table.mobile-cards thead { display: none !important; }
+  table.mobile-cards tfoot { display: block !important; }
+  table.mobile-cards tfoot tr { display: flex !important; flex-wrap: wrap; justify-content: space-between; }
+  table.mobile-cards tfoot td:empty { display: none !important; }
+  table.mobile-cards tbody tr {
+    display: flex !important; flex-wrap: wrap; align-items: flex-start; gap: 2px 10px;
+    padding: 10px 12px; border-bottom: 6px solid hsl(var(--muted)) !important;
+  }
+  table.mobile-cards tbody td {
+    display: block !important; border: 0 !important; padding: 2px 0 !important;
+    width: 100% !important; max-width: none !important; min-width: 0 !important;
+    white-space: normal !important; text-align: right !important;
+  }
+  table.mobile-cards tbody td[data-label]::before {
+    content: attr(data-label); display: block; font-size: 10px; font-weight: 600;
+    color: hsl(var(--muted-foreground)); margin-bottom: 1px;
+  }
+  table.mobile-cards tbody td[data-mc="half"] { width: calc(50% - 5px) !important; }
+  table.mobile-cards tbody td[data-mc="title"] { width: auto !important; flex: 1 1 0; font-size: 15px !important; font-weight: 700; }
+  table.mobile-cards tbody td[data-mc="select"] { width: auto !important; order: -1; padding-top: 4px !important; }
+  table.mobile-cards tbody td[data-mc="hide"] { display: none !important; }
+  table.mobile-cards tbody td[data-mc="actions"] { border-top: 1px dashed hsl(var(--border)) !important; margin-top: 6px; padding-top: 6px !important; }
+  table.mobile-cards tbody td[data-mc="actions"] > div { justify-content: flex-start !important; flex-wrap: wrap; gap: 6px !important; }
+  table.mobile-cards tbody td[data-mc="actions"] button { height: 36px !important; min-width: 36px !important; }
+  table.mobile-cards tbody td[data-mc="actions"] button svg { width: 18px; height: 18px; }
+  table.mobile-cards tbody td[colspan] { width: 100% !important; text-align: center !important; }
+}
+
+
 @layer utilities {
   .glass-card {
     @apply bg-card;
