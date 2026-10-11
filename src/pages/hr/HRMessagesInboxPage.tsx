@@ -177,12 +177,12 @@ export default function HRMessagesInboxPage() {
 
   return (
     <div dir="rtl" className="space-y-4">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between flex-wrap gap-2">
         <div className="flex items-center gap-2">
           <Inbox className="h-6 w-6 text-primary" />
-          <h1 className="text-2xl font-bold">صندوق الرسائل والإجراءات</h1>
+          <h1 className="text-xl md:text-2xl font-bold">صندوق الرسائل والإجراءات</h1>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           <Popover open={pickerOpen} onOpenChange={setPickerOpen}>
             <PopoverTrigger asChild>
               <Button size="sm" className="gap-1">
