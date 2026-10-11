@@ -1158,7 +1158,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
               // re-run the endorsement lifecycle or duplicate its GL entry.
               const { data: endorsedList } = await supabase
                 .from("cheques")
-                .select("id, cheque_number, bank_name, amount, cheque_date, currency, status, contact_id, voucher_id")
+                .select("id, cheque_number, bank_name, amount, cheque_date, currency, status, contact_id, voucher_id, endorsed_to_name")
                 .eq("user_id", ownerId)
                 .eq("endorsement_voucher_id", editId);
               if (endorsedList && endorsedList.length > 0) {
@@ -1180,6 +1180,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
                   isEndorsed: true as const,
                   source: "cheques" as const,
                   linked_transaction_id: c.voucher_id,
+                  endorsed_to_name: c.endorsed_to_name || null,
                   alreadyEndorsed: true,
                 })));
               }
@@ -4335,7 +4336,8 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
                     </div>
                   </div>
                   <div className="mt-1 text-[10px] text-muted-foreground">
-                    تاريخ الاستحقاق: {ec.cheque_date} | الحالة الأصلية: {ec.status}
+                    تاريخ الاستحقاق: {ec.cheque_date} | الحالة: {(ec as any).alreadyEndorsed ? "مظهر" : ec.status}
+                    {(ec as any).endorsed_to_name ? ` | مُجيَّر إلى: ${(ec as any).endorsed_to_name}` : ""}
                   </div>
                 </div>
               ))}
