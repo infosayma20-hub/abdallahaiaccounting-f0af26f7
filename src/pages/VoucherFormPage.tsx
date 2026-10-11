@@ -4336,7 +4336,8 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
                     </div>
                   </div>
                   <div className="mt-1 text-[10px] text-muted-foreground">
-                    تاريخ الاستحقاق: {ec.cheque_date} | الحالة الأصلية: {ec.status}
+                    تاريخ الاستحقاق: {ec.cheque_date} | الحالة: {(ec as any).alreadyEndorsed ? "مظهر" : ec.status}
+                    {(ec as any).endorsed_to_name ? ` | مُجيَّر إلى: ${(ec as any).endorsed_to_name}` : ""}
                   </div>
                 </div>
               ))}
