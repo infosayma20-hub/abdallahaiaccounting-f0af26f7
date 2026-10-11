@@ -1158,6 +1158,12 @@ const AccountStatementV2Page = () => {
     if (statementOptions.hideCancelledEntries) {
       r = r.filter(x => !x.isCancelled);
     }
+    // Pairs hidden together net to zero. When the ORIGINAL voucher sits before
+    // the period (already inside openingBalance) but its reversal falls inside
+    // the period and gets hidden, we must neutralize the original from the
+    // opening too — otherwise the opening (and every running balance) is off by
+    // the voucher amount depending on the chosen start date.
+    let openingAdj = 0;
     if (statementOptions.hideReversalEntries) {
       // A reversal row's `reversedById` points at the ORIGINAL voucher it cancels.
       // Hiding a reversal without hiding its original leaves the ledger showing
@@ -1165,10 +1171,16 @@ const AccountStatementV2Page = () => {
       // So collect every original id referenced by any reversal row in view, and
       // hide both sides together.
       const cancelledOriginalIds = new Set<string>();
+      const idsInView = new Set<string>(r.map(x => x.transaction_id));
       for (const x of r) {
         const t = (x.transaction_type || "").toLowerCase();
         if ((t === "reversal" || t.includes("reverse")) && x.reversedById) {
           cancelledOriginalIds.add(x.reversedById);
+          if (!idsInView.has(x.reversedById)) {
+            const d = Number(x.debit) || 0;
+            const c = Number(x.credit) || 0;
+            if (!(d > 0 && c > 0 && Math.abs(d - c) < 1e-6)) openingAdj += d - c;
+          }
         }
       }
       r = r.filter(x => {
@@ -1187,7 +1199,7 @@ const AccountStatementV2Page = () => {
     // rows (hidden reversals / cancelled entries must not leak into totals).
     // When the user hides the opening balance, the on-screen running balance
     // starts from zero (period movements only) — same rule as the printout.
-    const effectiveOpening = statementOptions.hideOpeningBalance ? 0 : openingBalance;
+    const effectiveOpening = statementOptions.hideOpeningBalance ? 0 : openingBalance + openingAdj;
     let running = effectiveOpening;
     let sD = 0, sC = 0;
     const withBalances = r.map(x => {
