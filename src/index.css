@@ -443,7 +443,7 @@
     color: hsl(var(--muted-foreground)); margin-bottom: 1px;
   }
   table.mobile-cards tbody td[data-mc="half"] { width: calc(50% - 5px) !important; }
-  table.mobile-cards tbody td[data-mc="title"] { width: auto !important; flex: 1 1 0; font-size: 15px !important; font-weight: 700; }
+  table.mobile-cards tbody td[data-mc="title"] { width: calc(100% - 40px) !important; flex: 1 1 auto; font-size: 15px !important; font-weight: 700; }
   table.mobile-cards tbody td[data-mc="select"] { width: auto !important; order: -1; padding-top: 4px !important; }
   table.mobile-cards tbody td[data-mc="hide"] { display: none !important; }
   table.mobile-cards tbody td[data-mc="actions"] { border-top: 1px dashed hsl(var(--border)) !important; margin-top: 6px; padding-top: 6px !important; }
