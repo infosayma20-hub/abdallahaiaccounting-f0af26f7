@@ -1644,7 +1644,7 @@ const AccountStatementV2Page = () => {
     })),
     // Single source of truth = the screen. The builder renders these as-is and
     // never re-applies the hide-opening-balance adjustment.
-    displayOpeningBalance,
+    openingBalance: displayOpeningBalance,
     totalDebit: displayTotalDebit,
     totalCredit: displayTotalCredit,
     closingBalance: displayClosingBalance,
