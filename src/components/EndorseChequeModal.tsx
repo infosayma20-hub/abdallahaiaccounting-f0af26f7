@@ -23,6 +23,8 @@ export interface EndorsedCheque {
   linked_transaction_id?: string | null;
   contact_id?: string | null;
   source_bank_account_id?: string | null;
+  /** True when loaded from DB in edit mode — already endorsed, skip re-endorsement on save. */
+  alreadyEndorsed?: boolean;
 }
 
 interface Props {
