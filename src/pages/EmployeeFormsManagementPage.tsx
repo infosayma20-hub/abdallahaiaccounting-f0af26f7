@@ -1782,7 +1782,7 @@ export default function EmployeeFormsManagementPage() {
                   </div>
                 )}
                 <div className="overflow-x-auto">
-                  <Table dir="rtl">
+                  <Table dir="rtl" className="mobile-cards">
                     <TableHeader className="bg-[#0D1B2E]">
                       <TableRow className="hover:bg-[#0D1B2E] border-b-0">
                         <TableHead className="text-center text-white font-semibold w-10">
@@ -1860,7 +1860,7 @@ export default function EmployeeFormsManagementPage() {
                           const isExpanded = expandedDetails.has(f.id);
                           return (
                             <TableRow key={f.id} className="hover:bg-muted/40 border-b border-border">
-                              <TableCell className="text-center align-middle">
+                              <TableCell data-mc="select" className="text-center align-middle">
                                 {selectable ? (
                                   <Checkbox
                                     checked={selectedIds.has(f.id)}
@@ -1875,9 +1875,9 @@ export default function EmployeeFormsManagementPage() {
                                   />
                                 ) : null}
                               </TableCell>
-                              <TableCell className="font-medium text-sm whitespace-nowrap text-right">{emp?.name || "—"}</TableCell>
-                              <TableCell className="text-xs text-muted-foreground whitespace-nowrap text-right">{emp?.branch || "—"}</TableCell>
-                              <TableCell className="text-xs whitespace-nowrap text-right">
+                              <TableCell data-mc="title" className="font-medium text-sm whitespace-nowrap text-right">{emp?.name || "—"}</TableCell>
+                              <TableCell data-label="الفرع" data-mc="half" className="text-xs text-muted-foreground whitespace-nowrap text-right">{emp?.branch || "—"}</TableCell>
+                              <TableCell data-label="النموذج" data-mc="half" className="text-xs whitespace-nowrap text-right">
                                 {(() => {
                                   const Icon = formTypeIcons[f.form_type] || FileText;
                                   const label = f.form_type === "dynamic_template" && (f as any).title
@@ -1901,7 +1901,7 @@ export default function EmployeeFormsManagementPage() {
                                   );
                                 })()}
                               </TableCell>
-                              <TableCell className="text-xs text-muted-foreground text-right align-top w-[320px] max-w-[320px]" title={details}>
+                              <TableCell data-label="التفاصيل" className="text-xs text-muted-foreground text-right align-top w-[320px] max-w-[320px]" title={details}>
                                 {details ? (
                                   <>
                                     <span
@@ -1939,7 +1939,7 @@ export default function EmployeeFormsManagementPage() {
                               {filterCategory === "leaves" && (() => {
                                 const reasonText = displayReason(f?.form_data?.reason || f?.reason || "");
                                 return (
-                                  <TableCell className="text-xs text-right align-top max-w-[220px]" title={reasonText}>
+                                  <TableCell data-label="سبب الإجازة" className="text-xs text-right align-top max-w-[220px]" title={reasonText}>
                                     {reasonText ? (
                                       <span
                                         className="block whitespace-pre-wrap break-words text-foreground"
@@ -1954,12 +1954,12 @@ export default function EmployeeFormsManagementPage() {
                                 );
                               })()}
                               {(filterCategory === "all" || filterCategory === "advances") && (
-                                <TableCell className="text-xs text-muted-foreground whitespace-nowrap text-right">
+                                <TableCell data-label="استلام من فرع" data-mc="half" className="text-xs text-muted-foreground whitespace-nowrap text-right">
                                   {(f.form_data?.receive_branch_name as string) || "—"}
                                 </TableCell>
                               )}
                               {(filterCategory === "all" || filterCategory === "advances" || filterCategory === "loans") && (
-                                <TableCell className="text-sm font-semibold whitespace-nowrap text-right">
+                                <TableCell data-label="المبلغ" data-mc="half" className="text-sm font-semibold whitespace-nowrap text-right">
                                   {amount ? `${Number(amount).toLocaleString()} ₪` : "—"}
                                 </TableCell>
                               )}
@@ -1973,7 +1973,7 @@ export default function EmployeeFormsManagementPage() {
                                 const cats = d ? Object.entries(d.byCat).sort((a, b) => catOrder.indexOf(a[0]) - catOrder.indexOf(b[0])) : [];
                                 return (
                                   <>
-                                    <TableCell className="text-xs whitespace-nowrap text-right">
+                                    <TableCell data-label="تاريخ التعيين" data-mc="half" className="text-xs whitespace-nowrap text-right">
                                       {start ? (
                                         <div className="flex flex-col leading-tight">
                                           <span className="font-medium text-foreground" dir="ltr">{format(new Date(start), "dd/MM/yyyy")}</span>
@@ -1985,7 +1985,7 @@ export default function EmployeeFormsManagementPage() {
                                         <span className="text-muted-foreground">غير مسجّل</span>
                                       )}
                                     </TableCell>
-                                    <TableCell className="text-xs whitespace-nowrap text-right">
+                                    <TableCell data-label="خصومات الشهر" data-mc="half" className="text-xs whitespace-nowrap text-right">
                                       {total > 0 ? (
                                         <Popover>
                                           <PopoverTrigger asChild>
@@ -2012,14 +2012,14 @@ export default function EmployeeFormsManagementPage() {
                                   </>
                                 );
                               })()}
-                              <TableCell className="text-xs text-muted-foreground whitespace-nowrap text-right">
+                              <TableCell data-label="التاريخ" data-mc="half" className="text-xs text-muted-foreground whitespace-nowrap text-right">
                                 <div className="flex flex-col leading-tight" dir="ltr">
                                   <span className="font-medium text-foreground">{format(new Date(f.created_at), "dd/MM/yyyy")}</span>
                                   <span className="text-[10px] text-muted-foreground">{format(new Date(f.created_at), "HH:mm")}</span>
                                 </div>
                               </TableCell>
-                              <TableCell className="text-right">
-                                <div className="flex flex-col items-end gap-1">
+                              <TableCell data-label="الحالة" data-mc="half" className="text-right">
+                                <div className="flex flex-col items-start md:items-end gap-1">
                                   <Badge variant={st.variant} className="text-[10px]">{st.label}</Badge>
                                   {isPending && isDisciplinary && (
                                     f.hr_recommendation ? (
@@ -2032,7 +2032,7 @@ export default function EmployeeFormsManagementPage() {
                                   )}
                                 </div>
                               </TableCell>
-                              <TableCell className="text-xs text-right align-top min-w-[200px] max-w-[260px]">
+                              <TableCell data-label="ملاحظة / سبب الرفض" className="text-xs text-right align-top min-w-[200px] max-w-[260px]">
                                 {f.hr_recommendation_notes && (() => {
                                   const hrKey = f.id + ":hr";
                                   const hrExpanded = expandedDetails.has(hrKey);
@@ -2084,7 +2084,7 @@ export default function EmployeeFormsManagementPage() {
                                   <span className="text-muted-foreground">—</span>
                                 )}
                               </TableCell>
-                              <TableCell>
+                              <TableCell data-mc="actions">
                                 <div className="flex items-center justify-center gap-1">
                                   {!isAttendanceCorrection && (
                                     <>
