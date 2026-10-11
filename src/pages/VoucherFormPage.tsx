@@ -1158,7 +1158,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
               // re-run the endorsement lifecycle or duplicate its GL entry.
               const { data: endorsedList } = await supabase
                 .from("cheques")
-                .select("id, cheque_number, bank_name, amount, cheque_date, currency, status, contact_id, voucher_id")
+                .select("id, cheque_number, bank_name, amount, cheque_date, currency, status, contact_id, voucher_id, endorsed_to_name")
                 .eq("user_id", ownerId)
                 .eq("endorsement_voucher_id", editId);
               if (endorsedList && endorsedList.length > 0) {
