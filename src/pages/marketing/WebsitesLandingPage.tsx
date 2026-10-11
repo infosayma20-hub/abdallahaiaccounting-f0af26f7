@@ -101,7 +101,7 @@ function Sparkles2() {
 
 const fadeUp = {
   hidden: { opacity: 0, y: 40 },
-  show: (i = 0) => ({ opacity: 1, y: 0, transition: { delay: i * 0.08, duration: 0.6, ease: [0.2, 0.8, 0.2, 1] } }),
+  show: (i = 0) => ({ opacity: 1, y: 0, transition: { delay: i * 0.08, duration: 0.6, ease: [0.2, 0.8, 0.2, 1] as [number, number, number, number] } }),
 };
 
 export default function WebsitesLandingPage() {
