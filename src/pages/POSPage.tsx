@@ -1395,7 +1395,7 @@ const POSPage = ({ variant = "v1" }: { variant?: "v1" | "v2" } = {}) => {
   // صرف المصروف بدون وضع المدير — لحسابات محددة فقط (بيت الكل amr_x6). الكاشير نفسه يُسجَّل كمعتمِد.
   const openExpenseFlow = () => {
     if (expenseManager) { setShowExpenseDialog(true); return; }
-    if (dataOwnerId && EXPENSE_NO_MANAGER_OWNER_IDS.includes(dataOwnerId) && userId) {
+    if (dataOwnerId && EXPENSE_NO_MANAGER_OWNER_IDS.includes(dataOwnerId) && userId && (isAdmin || posPerms.can_record_expenses)) {
       setExpenseManager({ id: userId, name: session?.cashier_name || "الكاشير" });
       setShowExpenseDialog(true);
       return;
