@@ -19,6 +19,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import JournalAccountPicker, { type PickerAccount } from "@/components/journal/JournalAccountPicker";
+import QuickCreateAccountDialog from "@/components/pos-reports/QuickCreateAccountDialog";
 import { formatOrderTypeLabel } from "@/lib/pos/order-type-label";
 
 interface ForeignAdjustmentRow {
@@ -1521,6 +1522,7 @@ function ExpandableExpensesRow({
   const [saving, setSaving] = useState(false);
   const [leafAccounts, setLeafAccounts] = useState<PickerAccount[]>([]);
   const [ownerId, setOwnerId] = useState<string | null>(null);
+  const [createOpen, setCreateOpen] = useState(false);
 
   // شجرة الحسابات: حسابات فرعية فعّالة فقط (يمنع الترحيل على حساب رئيسي)
   useEffect(() => {
@@ -1579,6 +1581,17 @@ function ExpandableExpensesRow({
   const fmt = (n: number) => `₪${Number(n || 0).toLocaleString(undefined, { maximumFractionDigits: 2 })}`;
   return (
     <div className="divide-y divide-border">
+      {ownerId && (
+        <QuickCreateAccountDialog
+          open={createOpen}
+          onOpenChange={setCreateOpen}
+          ownerId={ownerId}
+          onCreated={(a) => {
+            setLeafAccounts(prev => [...prev.filter(x => x.account_code !== a.account_code), a].sort((x, y) => x.account_code.localeCompare(y.account_code)));
+            setF(prev => ({ ...prev, account_code: a.account_code, account_name: a.account_name }));
+          }}
+        />
+      )}
       <button onClick={() => setOpen(o => !o)} className="w-full flex items-center justify-between px-3 py-2 hover:bg-muted/30 transition-colors text-right">
         <span className="text-muted-foreground text-[12px] flex items-center gap-1.5">
           {open ? <ChevronDown className="w-3 h-3" /> : <ChevronLeft className="w-3 h-3" />}
@@ -1612,14 +1625,23 @@ function ExpandableExpensesRow({
                       <td className="py-1">{EXP_KIND[r.expense_kind || "account"]}</td>
                       <td className="py-1 pl-1"><Input className="h-7 text-xs" value={f.description} onChange={e => setF({ ...f, description: e.target.value })} /></td>
                       <td className="py-1 pl-1 min-w-[200px]">
-                        <JournalAccountPicker
-                          lineId={`exp-${r.id}`}
-                          value={f.account_code}
-                          accountName={f.account_name}
-                          accounts={leafAccounts}
-                          onSelect={(a) => setF({ ...f, account_code: a.account_code, account_name: a.account_name })}
-                          nextFocusSelector={`[data-exp-amount="${r.id}"]`}
-                        />
+                        <div className="flex items-center gap-1">
+                          <div className="flex-1 min-w-0">
+                            <JournalAccountPicker
+                              lineId={`exp-${r.id}`}
+                              value={f.account_code}
+                              accountName={f.account_name}
+                              accounts={leafAccounts}
+                              onSelect={(a) => setF({ ...f, account_code: a.account_code, account_name: a.account_name })}
+                              nextFocusSelector={`[data-exp-amount="${r.id}"]`}
+                            />
+                          </div>
+                          {ownerId && (
+                            <button type="button" onClick={() => setCreateOpen(true)} className="p-1 rounded border border-border text-primary shrink-0" title="حساب جديد في الشجرة">
+                              <Plus className="w-3.5 h-3.5" />
+                            </button>
+                          )}
+                        </div>
                       </td>
                       <td className="py-1"><Input data-exp-amount={r.id} className="h-7 text-xs font-mono" dir="ltr" inputMode="decimal" value={f.amount} onChange={e => setF({ ...f, amount: e.target.value })} /></td>
                       <td className="py-1">
