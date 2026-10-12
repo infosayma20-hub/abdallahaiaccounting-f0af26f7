@@ -743,6 +743,13 @@
       "when": 1791826032506,
       "tag": "0105_pos_purchase_rpcs",
       "breakpoints": true
+    },
+    {
+      "idx": 106,
+      "version": "7",
+      "when": 1791828074904,
+      "tag": "0106_returns_atomic_pilot_v1",
+      "breakpoints": true
     }
   ]
 }
