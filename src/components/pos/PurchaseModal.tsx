@@ -10,6 +10,8 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
+import { purchaseUnitPriceFromTotal } from "@/lib/pos/purchase-amounts";
+
 interface Props {
   open: boolean;
   onOpenChange: (v: boolean) => void;
@@ -38,6 +40,7 @@ export default function PurchaseModal({ open, onOpenChange, dataOwnerId, userId,
   const [noProduct, setNoProduct] = useState(false);
   const [quantity, setQuantity] = useState("");
   const [unitPrice, setUnitPrice] = useState("");
+  const [enteredTotal, setEnteredTotal] = useState<string | null>(null);
   const [paymentType, setPaymentType] = useState("cash");
   const [notes, setNotes] = useState("");
   const [saving, setSaving] = useState(false);
@@ -62,7 +65,9 @@ export default function PurchaseModal({ open, onOpenChange, dataOwnerId, userId,
     });
   }, [open, dataOwnerId]);
 
-  const totalAmount = (parseFloat(quantity) || 0) * (parseFloat(unitPrice) || 0);
+  const effectiveUnitPrice = enteredTotal === null ? unitPrice : purchaseUnitPriceFromTotal(enteredTotal, quantity);
+  const totalAmount = (parseFloat(quantity) || 0) * (parseFloat(effectiveUnitPrice) || 0);
+  const changeUnitPrice = (value: string) => { setEnteredTotal(null); setUnitPrice(value); };
 
   const filteredSuppliers = suppliers.filter(s => s.contact_name.includes(supplierSearch)).slice(0, 15);
   const filteredProducts = products.filter(p => p.name.includes(productSearch)).slice(0, 15);
@@ -70,7 +75,7 @@ export default function PurchaseModal({ open, onOpenChange, dataOwnerId, userId,
   const handleSave = async () => {
     if (!selectedSupplier) { toast.error("اختر المورد"); return; }
     const qty = parseFloat(quantity) || 0;
-    const price = parseFloat(unitPrice) || 0;
+    const price = parseFloat(effectiveUnitPrice) || 0;
     if (qty <= 0 || price <= 0) { toast.error("أدخل الكمية وسعر الوحدة"); return; }
     if (paymentType === "cash" && !canPayCash) { toast.error("ليس لديك صلاحية الدفع نقداً"); return; }
 
@@ -125,7 +130,7 @@ export default function PurchaseModal({ open, onOpenChange, dataOwnerId, userId,
     if (existing) { setSelectedProduct(existing); setProductSearch(existing.name); setShowProductDD(false); return; }
     setSavingProduct(true);
     try {
-      const buy = parseFloat(unitPrice) || 0;
+      const buy = parseFloat(effectiveUnitPrice) || 0;
       const { data, error } = await supabase.rpc("pos_create_purchase_product_v1" as any, { p_data_owner: dataOwnerId, p_name: name, p_buy_price: buy });
       if (error) throw error;
       const p = data as any as ProductItem;
@@ -140,7 +145,7 @@ export default function PurchaseModal({ open, onOpenChange, dataOwnerId, userId,
   const resetForm = () => {
     setSelectedSupplier(null); setSupplierSearch(""); setSelectedProduct(null); setProductSearch("");
     setQuantity(""); setUnitPrice(""); setPaymentType(canPayCash ? "cash" : "credit"); setNotes(""); setNoProduct(false);
-    setAffectInventory(true); setIdemKey(`POS-PUR-${crypto.randomUUID()}`);
+    setEnteredTotal(null); setAffectInventory(true); setIdemKey(`POS-PUR-${crypto.randomUUID()}`);
   };
 
   return (
@@ -211,7 +216,7 @@ export default function PurchaseModal({ open, onOpenChange, dataOwnerId, userId,
                   <div className="absolute z-50 w-full mt-1 bg-popover border rounded-lg shadow-lg max-h-40 overflow-y-auto">
                     {filteredProducts.map(p => (
                       <button key={p.id} className="w-full text-right px-3 py-2 hover:bg-accent text-sm flex justify-between"
-                        onClick={() => { setSelectedProduct(p); setProductSearch(p.name); setShowProductDD(false); setUnitPrice(p.buy_price.toString()); }}>
+                        onClick={() => { setSelectedProduct(p); setProductSearch(p.name); setShowProductDD(false); changeUnitPrice(p.buy_price.toString()); }}>
                         <span>{p.name}</span>
                         <span className="text-muted-foreground text-xs">₪{p.buy_price}</span>
                       </button>
@@ -239,16 +244,16 @@ export default function PurchaseModal({ open, onOpenChange, dataOwnerId, userId,
 
           <div className="grid grid-cols-3 gap-3">
             <div>
-              <Label>الكمية *</Label>
-              <Input type="number" min="1" value={quantity} onChange={e => setQuantity(e.target.value)} placeholder="0" />
+              <Label htmlFor="purchase-quantity">الكمية *</Label>
+              <Input id="purchase-quantity" type="number" min="1" value={quantity} onChange={e => setQuantity(e.target.value)} placeholder="0" />
             </div>
             <div>
-              <Label>سعر الوحدة *</Label>
-              <Input type="number" min="0" step="0.01" value={unitPrice} onChange={e => setUnitPrice(e.target.value)} placeholder="0.00" />
+              <Label htmlFor="purchase-unit-price">سعر الوحدة *</Label>
+              <Input id="purchase-unit-price" type="number" min="0" step="any" value={effectiveUnitPrice} onChange={e => changeUnitPrice(e.target.value)} placeholder="0.00" />
             </div>
             <div>
-              <Label>الإجمالي</Label>
-              <Input value={`₪${totalAmount.toFixed(2)}`} readOnly className="bg-muted/50 font-semibold" />
+              <Label htmlFor="purchase-total">الإجمالي (₪)</Label>
+              <Input id="purchase-total" type="number" min="0" step="0.01" value={enteredTotal ?? (totalAmount > 0 ? totalAmount.toFixed(2) : "")} onChange={e => setEnteredTotal(e.target.value)} placeholder="0.00" className="font-semibold" />
             </div>
           </div>
 
