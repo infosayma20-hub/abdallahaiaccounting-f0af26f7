@@ -8118,10 +8118,10 @@ const POSPage = ({ variant = "v1" }: { variant?: "v1" | "v2" } = {}) => {
         onPriceBlur={handlePriceBlur}
         hasAddons={(i) => { const item = cart[i]; return !!item && !!productModifierMap[item.product_id]?.length; }}
         onAddons={setEditAddonCartIndex}
-        discountActive={!!managerDiscountMeta}
+        discountActive={orderDiscount > 0}
         canDiscount={!isCallCenter && cart.length > 0}
         onDiscount={() => {
-          if (managerDiscountMeta) { setOrderDiscount(0); setManagerDiscountMeta(null); setOrderDiscountType("fixed"); }
+          if (orderDiscount > 0) { setOrderDiscount(0); setManagerDiscountMeta(null); setOrderDiscountType("fixed"); }
           else setShowManagerDiscountDialog(true);
         }}
         orderNote={orderNote}
@@ -11738,12 +11738,13 @@ const POSPage = ({ variant = "v1" }: { variant?: "v1" | "v2" } = {}) => {
 
       <ManagerDiscountDialog
         open={showManagerDiscountDialog}
+        cashierPermissionOwner={!isAdmin && (activeBranchOwnerId || dataOwnerId) === "9e4d10d9-95df-4acf-9cec-ad41099fcbd4" && posPerms.can_apply_discount && posFeatPerm.can("sell", "discount") ? (activeBranchOwnerId || dataOwnerId) : null}
         onClose={() => setShowManagerDiscountDialog(false)}
         onApproved={(data) => {
-          setManagerDiscountMeta(data);
+          setManagerDiscountMeta(data.authorizationKind === "cashier" ? null : data);
           // Bypass cashier permission — this is a manager-authorized discount.
-          setOrderDiscountType(data.type, { bypassPermission: true });
-          setOrderDiscount(data.amount, { bypassPermission: true });
+          setOrderDiscountType(data.type, { bypassPermission: data.authorizationKind !== "cashier" });
+          setOrderDiscount(data.amount, { bypassPermission: data.authorizationKind !== "cashier" });
           setShowManagerDiscountDialog(false);
           toast.success(
             data.type === "percent"

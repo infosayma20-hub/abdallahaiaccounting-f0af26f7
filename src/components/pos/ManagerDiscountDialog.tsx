@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/dialog";
 import { verifyManagerCredentials, getCurrentUserManagerIdentity } from "@/lib/pos/manager-verify";
 import { supabase } from "@/integrations/supabase/client";
+import { discountWithinLimit, readCashierDiscountPermission } from "@/lib/pos/cashier-discount";
 import type { PosV2Tokens } from "@/components/pos/v2/posV2Theme";
 
 /**
@@ -29,6 +30,7 @@ export interface ManagerDiscountApproved {
   reason: string;
   managerUserId: string;
   managerName: string;
+  authorizationKind?: "cashier" | "manager";
 }
 
 interface Props {
@@ -44,6 +46,7 @@ interface Props {
   orderSubtotal: number;
   /** ثيم واجهة POS v2 التجريبية — عند تمريره تُرسم النافذة بألوان الشاشة الجديدة. */
   v2Theme?: PosV2Tokens | null;
+  cashierPermissionOwner?: string | null;
 }
 
 export default function ManagerDiscountDialog({
@@ -57,6 +60,7 @@ export default function ManagerDiscountDialog({
   cashierName,
   orderSubtotal,
   v2Theme,
+  cashierPermissionOwner,
 }: Props) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -69,15 +73,33 @@ export default function ManagerDiscountDialog({
   // إذا كان الكاشير الحالي نفسه مديرًا مخوّلًا على الفرع، يعتمد باسمه مباشرة.
   const [selfManager, setSelfManager] = useState<Awaited<ReturnType<typeof getCurrentUserManagerIdentity>>>(null);
   const [useOtherManager, setUseOtherManager] = useState(false);
+  const [cashierIdentity, setCashierIdentity] = useState<Awaited<ReturnType<typeof readCashierDiscountPermission>>>(null);
+  const [identityLoading, setIdentityLoading] = useState(false);
+
+  useEffect(() => {
+    setCashierIdentity(null);
+    if (!open || !cashierPermissionOwner) return;
+    let alive = true;
+    setIdentityLoading(true);
+    readCashierDiscountPermission(cashierPermissionOwner).then(identity => {
+      if (alive) setCashierIdentity(identity);
+    }).catch(() => { if (alive) setCashierIdentity(null); }).finally(() => {
+      if (alive) setIdentityLoading(false);
+    });
+    return () => { alive = false; };
+  }, [open, cashierPermissionOwner]);
 
   useEffect(() => {
     if (!open) return;
     setUseOtherManager(false);
     let alive = true;
-    getCurrentUserManagerIdentity(branchId).then(r => { if (alive) setSelfManager(r); });
+    setSelfManager(null);
+    if (!cashierPermissionOwner) getCurrentUserManagerIdentity(branchId).then(r => { if (alive) setSelfManager(r); });
     return () => { alive = false; };
-  }, [open, branchId]);
+  }, [open, branchId, cashierPermissionOwner]);
   const selfMode = !!selfManager && !useOtherManager;
+  const cashierMode = !!cashierPermissionOwner;
+  const effectiveMaxPct = cashierMode ? cashierIdentity?.maxPercent ?? 0 : maxPct;
 
   useEffect(() => {
     if (!open) return;
@@ -118,13 +140,14 @@ export default function ManagerDiscountDialog({
       : numericAmount;
 
   const handleApprove = async () => {
+    if (loading || identityLoading) return;
     setError("");
     if (numericAmount <= 0) {
       setError("أدخل قيمة الخصم");
       return;
     }
-    if (type === "percent" && numericAmount > maxPct) {
-      setError(`الحد الأقصى للخصم ${maxPct}%`);
+    if (!discountWithinLimit(numericAmount, type, orderSubtotal, effectiveMaxPct)) {
+      setError(`الحد الأقصى للخصم ${effectiveMaxPct}% من قيمة الفاتورة`);
       return;
     }
     if (type === "fixed" && orderSubtotal > 0 && numericAmount > orderSubtotal) {
@@ -137,6 +160,24 @@ export default function ManagerDiscountDialog({
     }
 
     setLoading(true);
+    if (cashierMode && cashierPermissionOwner) {
+      try {
+        const identity = await readCashierDiscountPermission(cashierPermissionOwner);
+        if (!identity) { setError("لم تعد صلاحية الخصم متاحة؛ راجع المدير"); return; }
+        if (!discountWithinLimit(numericAmount, type, orderSubtotal, identity.maxPercent)) {
+          setError(`الحد الأقصى للخصم ${identity.maxPercent}% من قيمة الفاتورة`); return;
+        }
+        const { error: auditError } = await (supabase.from("pos_sensitive_actions_log" as any) as any).insert({
+          company_id: companyId, action: "cashier_discount_approved", session_id: sessionId || null,
+          notes: `خصم كاشير — ${identity.name} | ${reason.trim()}`,
+          metadata: { cashier_user_id: identity.userId, discount_type: type, discount_value: numericAmount, reason: reason.trim(), branch_id: branchId || null },
+        });
+        if (auditError) throw auditError;
+        onApproved({ amount: numericAmount, type, reason: reason.trim(), managerUserId: identity.userId, managerName: identity.name, authorizationKind: "cashier" });
+      } catch { setError("تعذر التحقق من الصلاحية وتوثيق الخصم؛ حاول مرة أخرى"); }
+      finally { setLoading(false); }
+      return;
+    }
     const res = selfMode && selfManager
       ? ({ ok: true as const, ...selfManager })
       : await verifyManagerCredentials(email, password);
@@ -196,13 +237,13 @@ export default function ManagerDiscountDialog({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2" style={v2 ? { color: v2.text } : undefined}>
             <Tag className="h-5 w-5" style={v2 ? { color: v2.accent } : { color: "#F59E0B" }} />
-            خصم بإذن مدير الفرع
+            {cashierMode ? "خصم على الفاتورة" : "خصم بإذن مدير الفرع"}
           </DialogTitle>
         </DialogHeader>
         <div className="py-2 space-y-4">
           <p className="text-[11px] text-muted-foreground leading-relaxed" style={v2MutedStyle}>
             هذا الخصم يُسجَّل محاسبياً كحساب مستقل (Contra-Revenue) ويُدرج في سجل
-            التدقيق. الحد الأقصى المسموح به للنسبة: {maxPct}%.
+            التدقيق. الحد الأقصى المسموح به للنسبة: {effectiveMaxPct}%.
           </p>
 
           <div className="grid grid-cols-2 gap-2">
@@ -244,7 +285,7 @@ export default function ManagerDiscountDialog({
 
           <div>
             <label className="text-xs font-medium text-muted-foreground mb-1 block" style={v2MutedStyle}>
-              {type === "percent" ? `قيمة الخصم (%) — حد أقصى ${maxPct}%` : "قيمة الخصم (₪)"}
+              {type === "percent" ? `قيمة الخصم (%) — حد أقصى ${effectiveMaxPct}%` : "قيمة الخصم (₪)"}
             </label>
             <Input
               type="number"
@@ -279,7 +320,9 @@ export default function ManagerDiscountDialog({
             />
           </div>
 
-          {selfMode ? (
+          {cashierMode ? (
+            <p className="text-xs text-muted-foreground">{identityLoading ? "جاري التحقق من صلاحيتك…" : cashierIdentity ? `اعتماد باسم الكاشير: ${cashierIdentity.name}` : "صلاحية الخصم غير متاحة؛ راجع المدير"}</p>
+          ) : selfMode ? (
             <div
               className="pt-2 border-t border-border/60 space-y-2"
               style={v2 ? { borderColor: v2.border } : undefined}
@@ -354,7 +397,7 @@ export default function ManagerDiscountDialog({
           <Button
             size="sm"
             onClick={handleApprove}
-            disabled={loading || numericAmount <= 0 || (!selfMode && (!email.trim() || !password.trim()))}
+            disabled={loading || identityLoading || numericAmount <= 0 || (cashierMode ? !cashierIdentity : !selfMode && (!email.trim() || !password.trim()))}
             className="bg-amber-500 hover:bg-amber-600 text-white"
             style={v2 ? { background: v2.accent, color: v2.onAccent } : undefined}
           >
