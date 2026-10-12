@@ -30,7 +30,7 @@ export default function QuickCreateAccountDialog({
   // تعريف حساب أب جديد
   const [newParentOpen, setNewParentOpen] = useState(false);
   const [gpCode, setGpCode] = useState("");
-  const [npType, setNpType] = useState("Expenses");
+  const [npType, setNpType] = useState("مصاريف");
   const [npName, setNpName] = useState("");
   const [npCode, setNpCode] = useState("");
 
@@ -170,9 +170,9 @@ export default function QuickCreateAccountDialog({
                   <div>
                     <label className="text-xs text-muted-foreground">نوع الحساب</label>
                     <select className="w-full h-10 rounded-md border border-input bg-background px-2" value={npType} onChange={e => setNpType(e.target.value)}>
-                      <option value="Expenses">مصروفات</option><option value="Purchases">مشتريات</option>
-                      <option value="Revenue">إيرادات</option><option value="Asset">أصول</option>
-                      <option value="Liability">التزامات</option><option value="Owner's Equity">حقوق ملكية</option>
+                      <option value="مصاريف">مصروفات</option><option value="مشتريات">مشتريات</option>
+                      <option value="إيرادات">إيرادات</option><option value="أصول">أصول</option>
+                      <option value="خصوم">التزامات</option><option value="حقوق ملكية">حقوق ملكية</option>
                     </select>
                   </div>
                 )}
