@@ -104,6 +104,8 @@ const getDayName = (d: string) => { try { const date = parseISO(d); const diff =
 const getTypeBadge = (txType: string) => {
   if (txType === "reversal" || txType.includes("reverse")) return "قيد عكسي";
   if (txType.includes("pos")) return "مبيعات POS";
+  if (txType === "sales_return" || txType === "sale_return") return "مردود مبيعات";
+  if (txType === "purchase_return") return "مردود مشتريات";
   if (txType.includes("sale") || txType.includes("فاتورة")) return "فاتورة مبيعات";
   if (txType.includes("receipt") || txType.includes("قبض")) return "سند قبض";
   if (txType.includes("payment") || txType.includes("صرف")) return "سند صرف";

@@ -1518,6 +1518,7 @@ const InvoicesPage = () => {
             { key: "export", label: tt("تصدير Excel"), icon: FileSpreadsheet, onClick: handleExport, disabled: sorted.length === 0 },
             { key: "print-list", label: tt("طباعة الكشف"), icon: Printer, onClick: handlePrintList, disabled: sorted.length === 0 },
             { key: "finance-home", label: tt("مركز المالية"), icon: Home, onClick: () => navigate("/finance") },
+            { key: "returns", label: filterType === "purchase" ? tt("مردودات المشتريات") : tt("مردودات المبيعات"), icon: Receipt, onClick: () => navigate(filterType === "purchase" ? "/purchases/returns" : "/sales/returns") },
           ],
         },
       ],

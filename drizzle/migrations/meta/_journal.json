@@ -757,6 +757,13 @@
       "when": 1791829158875,
       "tag": "0107_returns_pilot_runtime_contracts",
       "breakpoints": true
+    },
+    {
+      "idx": 108,
+      "version": "7",
+      "when": 1791829834162,
+      "tag": "0108_returns_pilot_source_vat_guard",
+      "breakpoints": true
     }
   ]
 }

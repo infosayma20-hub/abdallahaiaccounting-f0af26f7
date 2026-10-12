@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { Plus, FileText, Search, Loader2, Eye, Pencil, Trash2, RefreshCw, XCircle, Printer, LayoutGrid, Table2, X, FileSpreadsheet } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
@@ -52,6 +52,7 @@ interface Props {
 
 const ReturnsListPage = ({ returnType }: Props) => {
   const navigate = useNavigate();
+  const [params] = useSearchParams();
   const { user } = useAuth();
   const { dataOwnerId } = useDataOwnerId();
   const ownerId = dataOwnerId || user?.id;
@@ -63,7 +64,7 @@ const ReturnsListPage = ({ returnType }: Props) => {
   const { taxEnabled } = useTaxEnabled();
   const [rows, setRows] = useState<ReturnRow[]>([]);
   const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState("");
+  const [search, setSearch] = useState(params.get("search") || "");
   const [statusFilter, setStatusFilter] = useState("all");
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
@@ -469,11 +470,11 @@ const ReturnsListPage = ({ returnType }: Props) => {
                             </Button>
                           )}
                           {canProcess && r.status === "draft" && (!pilot || r.posting_version === 1) && (
-                            <Button size="icon" variant="ghost" onClick={() => handleDelete(r)}>
+                            <Button size="icon" variant="ghost" title="حذف المسودة" aria-label="حذف المسودة" onClick={() => handleDelete(r)}>
                               <Trash2 className="h-4 w-4 text-destructive" />
                             </Button>
                           )}
-                          <Button size="icon" variant="ghost" onClick={() => navigate(`${newPath}?view=${r.id}`)}>
+                          <Button size="icon" variant="ghost" title="عرض السند" aria-label="عرض السند" onClick={() => navigate(`${newPath}?view=${r.id}`)}>
                             <Eye className="h-4 w-4" />
                           </Button>
                         </div>

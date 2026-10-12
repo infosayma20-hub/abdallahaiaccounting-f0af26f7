@@ -244,8 +244,10 @@ const ReturnCreatePage = ({ returnType }: Props) => {
         .select("*")
         .eq("id", recordId)
         .eq("user_id", ownerId)
+        .eq("return_type", returnType)
+        .eq("is_deleted", false)
         .single();
-      if (!ret) return;
+      if (!ret) { toast({ title: "المردود غير موجود أو غير متاح", variant: "destructive" }); navigate(listPath); return; }
       const r = ret as any;
       setRevision(r.revision || 0);
       setPostingVersion(r.posting_version || 0);
@@ -291,7 +293,7 @@ const ReturnCreatePage = ({ returnType }: Props) => {
         if (linked) setForm(p => ({ ...p, linkedInvoiceNumber: (linked as any).invoice_number || "" }));
       }
     })();
-  }, [user, ownerId, recordId]);
+  }, [user, ownerId, recordId, returnType]);
 
   // Pull items from linked invoice (with returnable quantities)
   const pullItemsFromInvoice = async (invId: string) => {
@@ -698,7 +700,7 @@ const ReturnCreatePage = ({ returnType }: Props) => {
           key: "main",
           label: "عام",
           groups: [
-            { key: "view", label: "عرض", items: [{key: "preview", label: "معاينة", icon: Eye, onClick: () => setShowPreview(true)}, {key: "print", label: "طباعة", icon: Printer, onClick: printForm}] },
+            { key: "view", label: "عرض", items: [{key: "preview", label: "معاينة", icon: Eye, onClick: () => setShowPreview(true)}, {key: "print", label: "طباعة", icon: Printer, onClick: printForm}, ...(isView && canProcess && !isCancelled && (!pilot || postingVersion === 1) ? [{key: "edit-return", label: "تعديل المردود", icon: FileText, onClick: () => navigate(`${listPath}/new?edit=${recordId}`)}] : [])] },
             ...(!readonly ? [{
               key: "save",
               label: "حفظ",
@@ -762,7 +764,7 @@ const ReturnCreatePage = ({ returnType }: Props) => {
                           key={c.id}
                           value={c.id}
                           onSelect={() => {
-                            setForm(p => ({ ...p, contactId: c.id, contactName: c.contact_name, linkedInvoiceId: null, linkedInvoiceNumber: "" }));
+            setForm(p => ({ ...p, contactId: c.id, contactName: c.contact_name, linkedInvoiceId: null, linkedInvoiceNumber: "", items: p.items.map(it => ({ ...it, sourceInvoiceItemId: null, maxReturnableQty: null })) }));
                             setContactPopover(false);
                           }}
                         >
@@ -799,7 +801,7 @@ const ReturnCreatePage = ({ returnType }: Props) => {
                     <CommandEmpty>لا توجد فواتير</CommandEmpty>
                     <CommandGroup>
                       <CommandItem onSelect={() => {
-                        setForm(p => ({ ...p, linkedInvoiceId: null, linkedInvoiceNumber: "" }));
+                        setForm(p => ({ ...p, linkedInvoiceId: null, linkedInvoiceNumber: "", items: p.items.map(it => ({ ...it, sourceInvoiceItemId: null, maxReturnableQty: null })) }));
                         setInvoicePopover(false);
                       }}>
                         — بدون ربط —

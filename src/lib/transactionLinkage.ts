@@ -10,6 +10,8 @@
 export type LinkedDocType =
   | "invoice_sale"
   | "invoice_purchase"
+  | "return_sales"
+  | "return_purchase"
   | "voucher_receipt"
   | "voucher_payment"
   | "cheque"
@@ -80,9 +82,22 @@ export function classifyTransaction(tx: {
   transaction_type?: string | null;
   reference?: string | null;
   is_opening_balance?: boolean | null;
+  return_id?: string | null;
 }): LinkageInfo {
   const t = (tx.transaction_type || "").toLowerCase();
   const ref = tx.reference || "";
+
+  // Return documents are not invoices, including their VAT/reversal lines.
+  if (tx.return_id || ["sales_return", "sale_return", "purchase_return"].includes(t) || /^(SR|PR)-/i.test(ref)) {
+    const sales = t === "sales_return" || t === "sale_return" || /^SR-/i.test(ref);
+    const base = sales ? "/sales/returns" : "/purchases/returns";
+    return {
+      isLinked: true,
+      docType: sales ? "return_sales" : "return_purchase",
+      label: sales ? "من مردود مبيعات" : "من مردود مشتريات",
+      navigatePath: tx.return_id ? `${base}/new?view=${encodeURIComponent(tx.return_id)}` : `${base}?search=${encodeURIComponent(ref)}`,
+    };
+  }
 
   // قيود المحاسب الذكي (Haseeb) — تبدأ بـ AI- ولا يوجد لها مستند فعلي
   // تُعامل كقيود يدوية قابلة للتعديل/الحذف من دفتر اليومية
