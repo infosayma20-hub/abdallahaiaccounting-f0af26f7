@@ -17,6 +17,7 @@ interface Props {
   userId: string;
   sessionId?: string;
   canCreateSupplier?: boolean;
+  canCreateProduct?: boolean;
   canAffectInventory?: boolean;
   canPayCash?: boolean;
   onSuccess?: () => void;
@@ -25,7 +26,7 @@ interface Props {
 interface Supplier { id: string; contact_name: string; phone: string | null; }
 interface ProductItem { id: string; name: string; buy_price: number; quantity: number; unit: string; }
 
-export default function PurchaseModal({ open, onOpenChange, dataOwnerId, userId, sessionId, canCreateSupplier, canAffectInventory, canPayCash, onSuccess }: Props) {
+export default function PurchaseModal({ open, onOpenChange, dataOwnerId, userId, sessionId, canCreateSupplier, canCreateProduct, canAffectInventory, canPayCash, onSuccess }: Props) {
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [products, setProducts] = useState<ProductItem[]>([]);
   const [supplierSearch, setSupplierSearch] = useState("");
@@ -43,9 +44,8 @@ export default function PurchaseModal({ open, onOpenChange, dataOwnerId, userId,
   const [affectInventory, setAffectInventory] = useState(true);
 
   // New supplier
-  const [showNewSupplier, setShowNewSupplier] = useState(false);
-  const [newSupplier, setNewSupplier] = useState({ name: "", phone: "", account_name: "" });
   const [savingSupplier, setSavingSupplier] = useState(false);
+  const [savingProduct, setSavingProduct] = useState(false);
 
   useEffect(() => {
     if (!open) return;
@@ -139,35 +139,52 @@ export default function PurchaseModal({ open, onOpenChange, dataOwnerId, userId,
     }
   };
 
+  // إضافة مورد مباشرة بالاسم المكتوب (مثل الفواتير) — الحساب الفرعي تحت 2110 يُنشأ تلقائيًا
   const handleCreateSupplier = async () => {
-    if (!newSupplier.name.trim()) { toast.error("أدخل اسم المورد"); return; }
+    const name = supplierSearch.trim();
+    if (!name) { toast.error("اكتب اسم المورد"); return; }
+    const existing = suppliers.find(s => s.contact_name.trim() === name);
+    if (existing) { setSelectedSupplier(existing); setSupplierSearch(existing.contact_name); setShowSupplierDD(false); return; }
     setSavingSupplier(true);
     try {
       const { data, error } = await supabase.from("contacts").insert({
-        user_id: dataOwnerId,
-        contact_name: newSupplier.name,
-        contact_type: "مورد",
-        phone: newSupplier.phone || null,
-        is_active: true,
+        user_id: dataOwnerId, contact_name: name, contact_type: "مورد", is_active: true,
       }).select("id, contact_name, phone").single();
       if (error) throw error;
       setSuppliers(prev => [...prev, data]);
-      setSelectedSupplier(data);
-      setSupplierSearch(data.contact_name);
-      setShowNewSupplier(false);
-      setNewSupplier({ name: "", phone: "", account_name: "" });
-      toast.success("تم إضافة المورد");
+      setSelectedSupplier(data); setSupplierSearch(data.contact_name); setShowSupplierDD(false);
+      toast.success(`تمت إضافة المورد «${data.contact_name}»`);
     } catch (e: any) {
       toast.error(e.message || "فشل إنشاء المورد");
-    } finally {
-      setSavingSupplier(false);
-    }
+    } finally { setSavingSupplier(false); }
+  };
+
+  // إضافة صنف مشترى بالاسم المكتوب — مخفي من شاشة البيع حتى يُسعّر من الإدارة
+  const handleCreateProduct = async () => {
+    const name = productSearch.trim();
+    if (!name) { toast.error("اكتب اسم الصنف"); return; }
+    const existing = products.find(p => p.name.trim() === name);
+    if (existing) { setSelectedProduct(existing); setProductSearch(existing.name); setShowProductDD(false); return; }
+    setSavingProduct(true);
+    try {
+      const buy = parseFloat(unitPrice) || 0;
+      const { data, error } = await supabase.from("products").insert({
+        user_id: dataOwnerId, name, buy_price: buy, is_pos_available: false,
+      } as any).select("id, name, buy_price, quantity, unit").single();
+      if (error) throw error;
+      const p = data as any as ProductItem;
+      setProducts(prev => [...prev, p]);
+      setSelectedProduct(p); setProductSearch(p.name); setShowProductDD(false);
+      toast.success(`تمت إضافة الصنف «${p.name}»`);
+    } catch (e: any) {
+      toast.error(e.message || "فشل إضافة الصنف");
+    } finally { setSavingProduct(false); }
   };
 
   const resetForm = () => {
     setSelectedSupplier(null); setSupplierSearch(""); setSelectedProduct(null); setProductSearch("");
     setQuantity(""); setUnitPrice(""); setPaymentType("cash"); setNotes(""); setNoProduct(false);
-    setShowNewSupplier(false); setAffectInventory(true);
+    setAffectInventory(true);
   };
 
   return (
@@ -207,31 +224,13 @@ export default function PurchaseModal({ open, onOpenChange, dataOwnerId, userId,
                 {filteredSuppliers.length === 0 && <div className="p-3 text-sm text-muted-foreground text-center">لا توجد نتائج</div>}
                 {canCreateSupplier && (
                   <button className="w-full text-right px-3 py-2 hover:bg-accent text-sm text-primary flex items-center gap-2 border-t"
-                    onClick={() => { setShowNewSupplier(true); setShowSupplierDD(false); }}>
-                    <Plus className="w-3 h-3" /> إضافة مورد جديد
+                    disabled={savingSupplier} onClick={handleCreateSupplier}>
+                    {savingSupplier ? <Loader2 className="w-3 h-3 animate-spin" /> : <Plus className="w-3 h-3" />} إضافة مورد «{supplierSearch.trim()}»
                   </button>
                 )}
               </div>
             )}
           </div>
-
-          {showNewSupplier && (
-            <div className="border rounded-lg p-3 space-y-3 bg-muted/30">
-              <div className="flex justify-between items-center">
-                <span className="text-sm font-semibold">مورد جديد</span>
-                <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setShowNewSupplier(false)}><X className="w-3 h-3" /></Button>
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <Input placeholder="اسم المورد *" value={newSupplier.name} onChange={e => setNewSupplier(p => ({ ...p, name: e.target.value }))} className="col-span-2" />
-                <Input placeholder="الهاتف" value={newSupplier.phone} onChange={e => setNewSupplier(p => ({ ...p, phone: e.target.value }))} />
-                <Input placeholder="اسم الحساب" value={newSupplier.account_name} onChange={e => setNewSupplier(p => ({ ...p, account_name: e.target.value }))} />
-              </div>
-              <Button size="sm" onClick={handleCreateSupplier} disabled={savingSupplier} className="w-full">
-                {savingSupplier ? <Loader2 className="w-4 h-4 animate-spin ml-1" /> : <Plus className="w-4 h-4 ml-1" />}
-                حفظ وتحديد
-              </Button>
-            </div>
-          )}
 
           {/* Product */}
           <div>
@@ -262,6 +261,12 @@ export default function PurchaseModal({ open, onOpenChange, dataOwnerId, userId,
                       </button>
                     ))}
                     {filteredProducts.length === 0 && <div className="p-3 text-sm text-muted-foreground text-center">لا توجد نتائج</div>}
+                    {canCreateProduct && (
+                      <button className="w-full text-right px-3 py-2 hover:bg-accent text-sm text-primary flex items-center gap-2 border-t"
+                        disabled={savingProduct} onClick={handleCreateProduct}>
+                        {savingProduct ? <Loader2 className="w-3 h-3 animate-spin" /> : <Plus className="w-3 h-3" />} إضافة صنف «{productSearch.trim()}»
+                      </button>
+                    )}
                   </div>
                 )}
               </div>

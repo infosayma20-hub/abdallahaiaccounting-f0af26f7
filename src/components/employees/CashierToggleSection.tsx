@@ -3,8 +3,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Monitor, Headphones, Loader2, ExternalLink, ConciergeBell } from "lucide-react";
+import { Monitor, Headphones, Loader2, ExternalLink, ConciergeBell, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
+import CashierPermissionsDialog from "./CashierPermissionsDialog";
 
 interface Props {
   employeeId: string;
@@ -25,6 +26,7 @@ export default function CashierToggleSection({ employeeId, employeeName, authUse
   const [pos, setPos] = useState<POSRow | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState<"cashier" | "call_center" | "waiter" | null>(null);
+  const [permsOpen, setPermsOpen] = useState(false);
 
   const load = async () => {
     if (!authUserId) { setPos(null); setLoading(false); return; }
@@ -62,6 +64,7 @@ export default function CashierToggleSection({ employeeId, employeeName, authUse
       await callProvision(checked ? "enable" : "disable", false);
       toast.success(checked ? `تم تفعيل الكاشير لـ ${employeeName}` : "تم إيقاف صلاحية الكاشير");
       await load();
+      if (checked) setPermsOpen(true);
       onChanged?.();
     } catch (e: any) {
       toast.error(e.message || "فشل التحديث");
@@ -164,6 +167,15 @@ export default function CashierToggleSection({ employeeId, employeeName, authUse
           </Badge>
         )}
       </div>
+
+      {pos && isCashier && (
+        <Button size="sm" variant="outline" className="h-6 px-2 text-xs gap-1" onClick={() => setPermsOpen(true)}>
+          <ShieldCheck className="h-3 w-3" /> صلاحيات الكاشير
+        </Button>
+      )}
+      {pos && (
+        <CashierPermissionsDialog open={permsOpen} onOpenChange={setPermsOpen} posUserId={pos.id} employeeName={employeeName} />
+      )}
 
       {isActive && (
         <Button
