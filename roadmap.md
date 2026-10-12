@@ -1,5 +1,6 @@
 # Roadmap — Inventory costing (plan approved 2026-10-06)
 - [x] Returns: invoice-like sales/purchase form and list; pilot-only atomic lifecycle tested for service sales/purchase and linked sales-stock create, replay, edit, cancel; original stock restored and financial net effect zero. No historical documents changed.
+- [ ] Full returns audit: certify ledger, cash/bank refunds, invoices table links, opening/editing source return documents, stock and tax effects on the test owner without changing legacy data.
 - [ ] Returns rollout: certify purchase-stock, costing methods and cash/bank refund cases before enabling atomic commands beyond the test owner; wider rollout waits on approval.
 - [x] Cashier discount: Aboud's saved permission verified; shared dialog re-reads tenant/cashier permission, caps fixed/percent discounts, self-approves without manager bypass; authenticated isolated-dialog test passed, session unchanged; other tenant approval behavior unchanged.
 - [ ] Cashier discount station check: verify from the full POS button on an authorized branch device; sandbox is blocked by the existing device guard, no guard bypass or sale performed.
