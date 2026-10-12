@@ -22568,6 +22568,42 @@ export type Database = {
           },
         ]
       }
+      return_command_audit_v1: {
+        Row: {
+          action: string
+          actor_id: string
+          after_snapshot: Json | null
+          before_snapshot: Json | null
+          command_key: string
+          created_at: string
+          id: string
+          owner_id: string
+          return_id: string
+        }
+        Insert: {
+          action: string
+          actor_id: string
+          after_snapshot?: Json | null
+          before_snapshot?: Json | null
+          command_key: string
+          created_at?: string
+          id?: string
+          owner_id: string
+          return_id: string
+        }
+        Update: {
+          action?: string
+          actor_id?: string
+          after_snapshot?: Json | null
+          before_snapshot?: Json | null
+          command_key?: string
+          created_at?: string
+          id?: string
+          owner_id?: string
+          return_id?: string
+        }
+        Relationships: []
+      }
       return_items: {
         Row: {
           created_at: string
@@ -22580,6 +22616,7 @@ export type Database = {
           return_id: string
           source_invoice_item_id: string | null
           tax_amount: number
+          tax_category: string | null
           tax_rate: number
           unit_price: number
           user_id: string
@@ -22595,6 +22632,7 @@ export type Database = {
           return_id: string
           source_invoice_item_id?: string | null
           tax_amount?: number
+          tax_category?: string | null
           tax_rate?: number
           unit_price?: number
           user_id: string
@@ -22610,6 +22648,7 @@ export type Database = {
           return_id?: string
           source_invoice_item_id?: string | null
           tax_amount?: number
+          tax_category?: string | null
           tax_rate?: number
           unit_price?: number
           user_id?: string
@@ -22633,16 +22672,19 @@ export type Database = {
       }
       returns: {
         Row: {
+          command_key: string | null
           company_id: string | null
           contact_id: string | null
           contact_name: string | null
           cost_center_id: string | null
           created_at: string
+          created_by: string | null
           discount_amount: number
           id: string
           is_deleted: boolean
           journal_entry_id: string | null
           notes: string | null
+          posting_version: number | null
           reason: string | null
           refund_account_code: string | null
           refund_method: string | null
@@ -22650,24 +22692,31 @@ export type Database = {
           return_date: string
           return_number: string
           return_type: Database["public"]["Enums"]["return_type_enum"]
+          revision: number | null
           status: Database["public"]["Enums"]["return_status_enum"]
           subtotal: number
           tax_amount: number
+          tax_inclusive: boolean | null
           total_amount: number
           updated_at: string
+          updated_by: string | null
           user_id: string
+          warehouse_id: string | null
         }
         Insert: {
+          command_key?: string | null
           company_id?: string | null
           contact_id?: string | null
           contact_name?: string | null
           cost_center_id?: string | null
           created_at?: string
+          created_by?: string | null
           discount_amount?: number
           id?: string
           is_deleted?: boolean
           journal_entry_id?: string | null
           notes?: string | null
+          posting_version?: number | null
           reason?: string | null
           refund_account_code?: string | null
           refund_method?: string | null
@@ -22675,24 +22724,31 @@ export type Database = {
           return_date?: string
           return_number: string
           return_type: Database["public"]["Enums"]["return_type_enum"]
+          revision?: number | null
           status?: Database["public"]["Enums"]["return_status_enum"]
           subtotal?: number
           tax_amount?: number
+          tax_inclusive?: boolean | null
           total_amount?: number
           updated_at?: string
+          updated_by?: string | null
           user_id: string
+          warehouse_id?: string | null
         }
         Update: {
+          command_key?: string | null
           company_id?: string | null
           contact_id?: string | null
           contact_name?: string | null
           cost_center_id?: string | null
           created_at?: string
+          created_by?: string | null
           discount_amount?: number
           id?: string
           is_deleted?: boolean
           journal_entry_id?: string | null
           notes?: string | null
+          posting_version?: number | null
           reason?: string | null
           refund_account_code?: string | null
           refund_method?: string | null
@@ -22700,12 +22756,16 @@ export type Database = {
           return_date?: string
           return_number?: string
           return_type?: Database["public"]["Enums"]["return_type_enum"]
+          revision?: number | null
           status?: Database["public"]["Enums"]["return_status_enum"]
           subtotal?: number
           tax_amount?: number
+          tax_inclusive?: boolean | null
           total_amount?: number
           updated_at?: string
+          updated_by?: string | null
           user_id?: string
+          warehouse_id?: string | null
         }
         Relationships: [
           {
@@ -32010,6 +32070,16 @@ export type Database = {
         Args: { p_session_id: string }
         Returns: undefined
       }
+      cancel_return_command_v1: {
+        Args: {
+          p_command_key: string
+          p_delete_draft?: boolean
+          p_expected_revision: number
+          p_owner: string
+          p_return_id: string
+        }
+        Returns: Json
+      }
       cancel_stale_pending_call_center_orders: { Args: never; Returns: number }
       cancel_stock_document: {
         Args: { p_doc_id: string; p_reason?: string }
@@ -34795,6 +34865,23 @@ export type Database = {
         Args: { p_session_id: string }
         Returns: Json
       }
+      returns_can_access_v1: { Args: { p_owner: string }; Returns: boolean }
+      returns_guard_period_v1: {
+        Args: { p_date: string; p_owner: string }
+        Returns: undefined
+      }
+      returns_managed_stock_v1: {
+        Args: { p_in: boolean; p_return: string }
+        Returns: undefined
+      }
+      returns_reverse_finance_v1: {
+        Args: { p_return: string }
+        Returns: undefined
+      }
+      returns_validate_account_v1: {
+        Args: { p_code: string; p_owner: string }
+        Returns: undefined
+      }
       reverse_invoice_stock: { Args: { p_invoice_id: string }; Returns: number }
       reverse_periodic_inventory_adjustment: {
         Args: { _count_id: string }
@@ -34848,6 +34935,18 @@ export type Database = {
           _profile?: Json
           _target_step?: number
           _user_id: string
+        }
+        Returns: Json
+      }
+      save_return_command_v1: {
+        Args: {
+          p_command_key: string
+          p_confirm?: boolean
+          p_document: Json
+          p_expected_revision?: number
+          p_items: Json
+          p_owner: string
+          p_return_id?: string
         }
         Returns: Json
       }
