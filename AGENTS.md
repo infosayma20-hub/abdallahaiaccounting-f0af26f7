@@ -21,3 +21,4 @@
 <!-- LOVABLE:BEGIN -->
 - POS v2 stockout creation reuses `StockoutAlertButton` beside pending-order alerts, gated by Malaky data owner ID and cashier mode; kitchen navigation lives in More. Why: keep one alert workflow and tenant-specific presentation.
 <!-- LOVABLE:END -->
+- POS expenses are cancelled only via RPC `pos_cancel_expense_v1` (admin, mandatory reason): it posts a mirror reversal with `create_reverse_entry` and flags `pos_expenses.cancelled_at`; every shift/cash sum must exclude cancelled rows. Why: never delete posted cash entries.
