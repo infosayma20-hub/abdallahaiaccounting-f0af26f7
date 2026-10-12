@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { pickTenantAccountCode } from "@/lib/tenantAccountResolver";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Loader2, Save, Send, Plus, Trash2, AlertTriangle, Package, Search, ArrowRight, XCircle } from "lucide-react";
@@ -21,6 +21,13 @@ import { FinanceShell } from "@/components/finance/shell";
 import type { ActionTab } from "@/components/finance/shell";
 import { broadcastChange } from "@/lib/crossTabSync";
 import { ensureContactSubAccount } from "@/lib/contactAccountResolver";
+import ReturnItemsEditor from "@/components/returns/ReturnItemsEditor";
+import { calculateReturnSummary, calculateReturnLine, cancelManagedReturn, isReturnsPilot } from "@/lib/returns";
+import { useAccountantPermissions } from "@/hooks/useAccountantPermissions";
+import InvoicePrintView from "@/components/InvoicePrintView";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { createRoot } from "react-dom/client";
+import { Eye, Printer, FileText } from "lucide-react";
 import useSavePostShortcut from "@/hooks/useSavePostShortcut";
 
 type TaxCategory = "taxable" | "zero" | "exempt";
@@ -33,6 +40,7 @@ interface Item {
   quantity: number;
   unitPrice: number;
   discount: number;
+  discountType?: "amount" | "percent";
   taxCategory: TaxCategory;
   taxRate: number;
   maxReturnableQty?: number | null; // for invoice-linked items
@@ -110,6 +118,16 @@ const ReturnCreatePage = ({ returnType }: Props) => {
   const { user } = useAuth();
   const { dataOwnerId } = useDataOwnerId();
   const ownerId = dataOwnerId || user?.id;
+  const pilot = isReturnsPilot(ownerId);
+  const { can, loading: permissionsLoading } = useAccountantPermissions();
+  const canProcess = !permissionsLoading && can("can_process_returns");
+  const commandKeyRef = useRef(crypto.randomUUID());
+  const [revision, setRevision] = useState(0);
+  const [postingVersion, setPostingVersion] = useState(0);
+  const [returnNumber, setReturnNumber] = useState("");
+  const [showPreview, setShowPreview] = useState(false);
+  const [warehouses, setWarehouses] = useState<{id: string; name: string}[]>([]);
+  const [accounts, setAccounts] = useState<{account_code: string; account_name: string; parent_code: string | null; system_role: string | null; currency: string | null}[]>([]);
   const { toast } = useToast();
   const { settings } = useCompanySettings();
   const { data: costCenters = [] } = useCostCenters();
@@ -148,11 +166,26 @@ const ReturnCreatePage = ({ returnType }: Props) => {
     reason: "",
     reasonOther: "",
     notes: "",
+    warehouseId: null as string | null,
+    refundAccountCode: "",
+    taxInclusive: false,
     refundMethod: "credit" as "credit" | "cash" | "bank",
     costCenterId: null as string | null,
     items: [newItem()] as Item[],
     status: "draft" as "draft" | "confirmed" | "cancelled",
   });
+
+  useEffect(() => {
+    if (!ownerId || !pilot) return;
+    let active = true;
+    Promise.all([
+      supabase.from("warehouses").select("id,name").eq("user_id", ownerId).order("name"),
+      supabase.from("accounts").select("account_code,account_name,parent_code,system_role,currency").eq("user_id", ownerId).eq("is_active", true),
+    ]).then(([wh, acc]) => { if (active) { setWarehouses(wh.data || []); setAccounts(acc.data || []); } });
+    return () => { active = false; };
+  }, [ownerId, pilot]);
+
+  useEffect(() => { commandKeyRef.current = crypto.randomUUID(); }, [recordId, returnType]);
 
   // Load contacts
   useEffect(() => {
@@ -214,6 +247,9 @@ const ReturnCreatePage = ({ returnType }: Props) => {
         .single();
       if (!ret) return;
       const r = ret as any;
+      setRevision(r.revision || 0);
+      setPostingVersion(r.posting_version || 0);
+      setReturnNumber(r.return_number || "");
       const { data: items } = await supabase
         .from("return_items" as any)
         .select("*")
@@ -226,7 +262,7 @@ const ReturnCreatePage = ({ returnType }: Props) => {
         quantity: Number(it.quantity) || 1,
         unitPrice: Number(it.unit_price) || 0,
         discount: Number(it.discount) || 0,
-        taxCategory: (Number(it.tax_rate) > 0 ? "taxable" : "zero") as TaxCategory,
+        taxCategory: (it.tax_category || (Number(it.tax_rate) > 0 ? "taxable" : "zero")) as TaxCategory,
         taxRate: Number(it.tax_rate) || 0,
       }));
       setForm({
@@ -238,6 +274,9 @@ const ReturnCreatePage = ({ returnType }: Props) => {
         reason: r.reason || "",
         reasonOther: "",
         notes: r.notes || "",
+        warehouseId: r.warehouse_id || null,
+        refundAccountCode: r.refund_account_code || "",
+        taxInclusive: r.tax_inclusive || false,
         refundMethod: (r.refund_method as any) || "credit",
         costCenterId: r.cost_center_id || null,
         items: mapped.length > 0 ? mapped : [newItem()],
@@ -260,16 +299,22 @@ const ReturnCreatePage = ({ returnType }: Props) => {
       .from("invoice_items_returnable" as any)
       .select("*")
       .eq("invoice_id", invId);
+    const { data: original } = await supabase.from("invoice_items").select("id,description,discount,discount_type,quantity,unit_price,tax_rate").eq("invoice_id", invId);
+    const originalMap = new Map((original || []).map(x => [x.id, x]));
+    if (pilot) {
+      const { data: invoice } = await supabase.from("invoices").select("warehouse_id,tax_inclusive").eq("id", invId).eq("user_id", ownerId || "").maybeSingle();
+      setForm(p => ({ ...p, warehouseId: invoice?.warehouse_id || null, taxInclusive: invoice?.tax_inclusive || false }));
+    }
     const items: Item[] = ((data as any[]) || [])
       .filter((it: any) => Number(it.remaining_returnable_quantity) > 0)
       .map((it: any) => ({
         id: crypto.randomUUID(),
         productId: it.product_id || null,
         sourceInvoiceItemId: it.invoice_item_id,
-        description: it.description || "",
+        description: originalMap.get(it.invoice_item_id)?.description || it.description || "",
         quantity: Number(it.remaining_returnable_quantity) || 0,
         unitPrice: Number(it.unit_price) || 0,
-        discount: 0,
+        discount: pilot ? (() => { const src = originalMap.get(it.invoice_item_id); return src?.discount_type === "percent" ? Number(src.discount || 0) * Number(it.unit_price || 0) * Number(it.remaining_returnable_quantity || 0) / 100 : Number(src?.discount || 0) * Number(it.remaining_returnable_quantity || 0) / Math.max(Number(src?.quantity || 0), 1); })() : 0,
         taxCategory: (Number(it.tax_rate) > 0 ? "taxable" : "zero") as TaxCategory,
         taxRate: Number(it.tax_rate) || 0,
         maxReturnableQty: Number(it.remaining_returnable_quantity) || 0,
@@ -292,6 +337,7 @@ const ReturnCreatePage = ({ returnType }: Props) => {
   }, [contacts, contactSearch]);
 
   const summary = useMemo(() => {
+    if (pilot) return calculateReturnSummary(form.items, taxEnabled, form.taxInclusive);
     let net = 0, discount = 0, tax = 0;
     form.items.forEach(it => {
       const gross = it.quantity * it.unitPrice;
@@ -303,7 +349,7 @@ const ReturnCreatePage = ({ returnType }: Props) => {
       }
     });
     return { subtotal: net + discount, discount, net, tax, total: net + tax };
-  }, [form.items, taxEnabled]);
+  }, [form.items, taxEnabled, pilot, form.taxInclusive]);
 
   const updateItem = (id: string, patch: Partial<Item>) => {
     setForm(p => ({
@@ -347,11 +393,25 @@ const ReturnCreatePage = ({ returnType }: Props) => {
   };
 
   const handleSave = async (asDraft: boolean) => {
-    if (!user || !ownerId) return;
+    if (!user || !ownerId || saving || readonly || !canProcess) return;
     if (!validate(asDraft)) return;
     setSaving(true);
     try {
       const finalReason = form.reason === "أخرى" ? form.reasonOther.trim() : form.reason;
+      if (pilot) {
+        const { data, error } = await supabase.rpc("save_return_command_v1", {
+          p_owner: ownerId, p_command_key: commandKeyRef.current,
+          p_document: { return_type: returnType, contact_id: form.contactId, return_date: form.date, related_invoice_id: form.linkedInvoiceId, reason: finalReason, notes: form.notes, refund_method: form.refundMethod, refund_account_code: form.refundAccountCode || null, cost_center_id: form.costCenterId, warehouse_id: form.warehouseId, tax_inclusive: form.taxInclusive },
+          p_items: form.items.filter(it => it.description.trim()).map(it => ({ product_id: it.productId || null, source_invoice_item_id: it.sourceInvoiceItemId || null, description: it.description, quantity: it.quantity, unit_price: it.unitPrice, discount: calculateReturnLine(it, taxEnabled, form.taxInclusive).storedDiscount, tax_rate: it.taxRate, tax_category: it.taxCategory })),
+          p_return_id: editId || undefined, p_expected_revision: editId ? revision : undefined, p_confirm: !asDraft,
+        });
+        if (error) throw error;
+        const result = data as { id?: string; return_number?: string } | null;
+        toast({ title: asDraft ? "تم حفظ المسودة" : `تم حفظ وترحيل ${titleAr} ${result?.return_number || ""}` });
+        broadcastChange("transaction", "updated", result?.id);
+        navigate(listPath);
+        return;
+      }
       const targetStatus: "draft" | "confirmed" = asDraft ? "draft" : "confirmed";
 
       const payload: any = {
@@ -542,7 +602,7 @@ const ReturnCreatePage = ({ returnType }: Props) => {
   //   3) Purge the tax-ledger reversal entry.
   //   4) Clear the stale journal_entry_id link.
   const handleCancel = async () => {
-    if (!user || !ownerId || !recordId) return;
+    if (!user || !ownerId || !recordId || !canProcess || cancelling || saving) return;
     if (form.status !== "confirmed") {
       toast({ title: "لا يمكن الإلغاء", description: "المردود ليس مرحّلاً", variant: "destructive" });
       return;
@@ -550,6 +610,13 @@ const ReturnCreatePage = ({ returnType }: Props) => {
     if (!confirm(`إلغاء المردود؟\nسيتم عكس القيد المحاسبي وحركة المخزون تلقائياً.\nهذا الإجراء لا يحذف السجل — يبقى للمراجعة كـ"ملغى".`)) return;
     setCancelling(true);
     try {
+      if (pilot) {
+        await cancelManagedReturn(ownerId, { id: recordId, revision });
+        broadcastChange("transaction", "deleted", recordId);
+        toast({ title: "تم إلغاء المردود وعكس آثاره" });
+        navigate(listPath);
+        return;
+      }
       // 1) Reverse stock via status flip (trigger handles it)
       const { error: statusErr } = await supabase
         .from("returns" as any)
@@ -585,7 +652,31 @@ const ReturnCreatePage = ({ returnType }: Props) => {
 
   const wasPosted = form.status === "confirmed" && !!recordId;
   const isCancelled = form.status === "cancelled";
-  const readonly = isView || isCancelled;
+  const readonly = isView || isCancelled || !canProcess || (pilot && !!recordId && postingVersion !== 1);
+
+  const refundAccounts = accounts.filter(a => {
+    if (accounts.some(child => child.parent_code === a.account_code) || !["شيكل", "ILS", "₪"].includes(a.currency || "شيكل")) return false;
+    let current: typeof a | undefined = a;
+    const seen = new Set<string>();
+    while (current && !seen.has(current.account_code)) {
+      seen.add(current.account_code);
+      if (form.refundMethod === "cash" ? current.account_code === "1110" || current.system_role === "cash" : current.account_code === "1120" || current.system_role === "bank") return true;
+      const parent: string | null = current.parent_code;
+      current = accounts.find(x => x.account_code === parent);
+    }
+    return false;
+  });
+  const printPayload = { type: returnType === "sales" ? "sales" as const : "purchase" as const, invoiceNumber: returnNumber || "مسودة", date: form.date, contactName: form.contactName, items: form.items.map(it => ({ description: it.description, quantity: it.quantity, unitPrice: it.unitPrice, discount: calculateReturnLine(it, taxEnabled, pilot && form.taxInclusive).storedDiscount, discountType: "amount" as const, taxRate: it.taxRate, taxCategory: it.taxCategory, subtotal: calculateReturnLine(it, taxEnabled, pilot && form.taxInclusive).total, unitOfMeasure: products.find(p => p.id === it.productId)?.unit || undefined })), notes: [form.reason === "أخرى" ? form.reasonOther : form.reason, form.notes].filter(Boolean).join(" — "), status: form.status, paymentMethod: form.refundMethod === "bank" ? "transfer" : form.refundMethod, subtotal: summary.subtotal, totalDiscount: summary.discount, totalTax: summary.tax, total: summary.total, paidAmount: form.refundMethod === "credit" ? 0 : summary.total, remainingAmount: form.refundMethod === "credit" ? summary.total : 0, currency: "شيكل", taxInclusive: pilot && form.taxInclusive };
+  const printForm = () => {
+    const win = window.open("", "_blank");
+    if (!win) return;
+    win.document.write("<html dir=\"rtl\"><head><title>مردود</title></head><body><div id=\"return-print\"></div></body></html>");
+    win.document.close();
+    const node = win.document.getElementById("return-print");
+    if (!node) return;
+    createRoot(node).render(<InvoicePrintView invoice={printPayload} settings={settings} printMode="return" />);
+    setTimeout(() => win.print(), 700);
+  };
 
   useSavePostShortcut(() => handleSave(false), !saving && !readonly);
 
@@ -596,28 +687,28 @@ const ReturnCreatePage = ({ returnType }: Props) => {
   return (
     <FinanceShell
       title={isView ? `معاينة ${titleAr}` : recordId ? `تعديل ${titleAr}` : `إنشاء ${titleAr}`}
-      subtitle={isSales
-        ? "إرجاع بضاعة من العميل وإعادتها إلى المخزون تلقائياً"
-        : "إرجاع بضاعة للمورد وخصمها من المخزون تلقائياً"}
+      compact
       breadcrumb={[
         { label: "الرئيسية", href: "/" },
         { label: isSales ? "المبيعات" : "المشتريات" },
         { label: titleAr, href: listPath },
       ]}
-      actionTabs={!readonly ? ([
+      actionTabs={([
         {
           key: "main",
           label: "عام",
           groups: [
-            {
+            { key: "view", label: "عرض", items: [{key: "preview", label: "معاينة", icon: Eye, onClick: () => setShowPreview(true)}, {key: "print", label: "طباعة", icon: Printer, onClick: printForm}] },
+            ...(!readonly ? [{
               key: "save",
               label: "حفظ",
               items: [
-                { key: "draft", label: "حفظ كمسودة", icon: Save, onClick: () => handleSave(true), disabled: saving },
-                { key: "confirm", label: wasPosted ? "إعادة الترحيل" : "تأكيد وترحيل", icon: Send, variant: "primary", onClick: () => handleSave(false), disabled: saving },
+                { key: "draft", label: "حفظ كمسودة", icon: Save, onClick: () => handleSave(true), disabled: saving || readonly },
+                { key: "confirm", label: wasPosted ? "إعادة الترحيل" : "تأكيد وترحيل", icon: Send, variant: "primary", onClick: () => handleSave(false), disabled: saving || readonly },
               ],
             },
-            ...(wasPosted ? [{
+            }] : []),
+            ...(wasPosted && !readonly ? [{
               key: "cancel",
               label: "إلغاء",
               items: [
@@ -633,26 +724,26 @@ const ReturnCreatePage = ({ returnType }: Props) => {
             },
           ],
         },
-      ] satisfies ActionTab[]) : []}
+      ] satisfies ActionTab[])}
     >
-    <div className="space-y-4 pb-32" dir="rtl">
+    <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 pb-10" dir="rtl">
       {isCancelled && (
-        <div className="flex items-center gap-2 p-3 rounded-md bg-rose-50 border border-rose-200 text-rose-900 text-sm">
+        <div className="lg:col-span-12 flex items-center gap-2 p-3 rounded-md bg-destructive/10 border border-destructive/20 text-destructive text-sm">
           <XCircle className="h-4 w-4" />
           هذا المردود ملغى. تم عكس القيد المحاسبي وحركة المخزون. للعرض فقط.
         </div>
       )}
       {wasPosted && !isView && (
-        <div className="flex items-center gap-2 p-3 rounded-md bg-amber-50 border border-amber-200 text-amber-900 text-sm">
+        <div className="lg:col-span-12 flex items-center gap-2 p-3 rounded-md bg-muted border border-border text-foreground text-sm">
           <AlertTriangle className="h-4 w-4" />
           هذا المردود مرحَّل محاسبياً ومخزنياً. عند حفظ التعديل سيتم عكس القيد والمخزون القديم تلقائياً ثم إعادة الترحيل بالبيانات الجديدة (سياسة "احذف وأنشئ").
         </div>
       )}
 
       {/* Header data */}
-      <Card>
-        <CardHeader><CardTitle className="text-base">بيانات المردود</CardTitle></CardHeader>
-        <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-3">
+      <section className="lg:col-span-8 border border-border rounded-lg bg-background">
+        <CardHeader className="border-b border-border py-3"><CardTitle className="text-sm">بيانات المردود</CardTitle></CardHeader>
+        <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-4">
           <div className="space-y-1">
             <Label>{partyLabel} <span className="text-destructive">*</span></Label>
             <Popover open={contactPopover} onOpenChange={setContactPopover}>
@@ -661,7 +752,7 @@ const ReturnCreatePage = ({ returnType }: Props) => {
                   {form.contactName || `اختر ${partyLabel}...`}
                 </Button>
               </PopoverTrigger>
-              <PopoverContent className="p-0 w-[320px]">
+              <PopoverContent className="p-0 w-[320px] max-w-[calc(100vw-2rem)]" dir="rtl">
                 <Command shouldFilter={false}>
                   <CommandInput placeholder={`بحث عن ${partyLabel}...`} value={contactSearch} onValueChange={setContactSearch} />
                   <CommandList>
@@ -702,7 +793,7 @@ const ReturnCreatePage = ({ returnType }: Props) => {
                   {form.linkedInvoiceNumber || (form.contactId ? "اختر الفاتورة الأصلية..." : `اختر ${partyLabel} أولاً`)}
                 </Button>
               </PopoverTrigger>
-              <PopoverContent className="p-0 w-[360px]">
+              <PopoverContent className="p-0 w-[360px] max-w-[calc(100vw-2rem)]" dir="rtl">
                 <Command>
                   <CommandInput placeholder="بحث برقم الفاتورة..." />
                   <CommandList>
@@ -735,7 +826,7 @@ const ReturnCreatePage = ({ returnType }: Props) => {
 
           <div className="space-y-1">
             <Label>طريقة الاسترداد</Label>
-            <Select value={form.refundMethod} disabled={readonly} onValueChange={v => setForm(p => ({ ...p, refundMethod: v as any }))}>
+            <Select dir="rtl" value={form.refundMethod} disabled={readonly} onValueChange={v => setForm(p => ({ ...p, refundMethod: v as any, refundAccountCode: "" }))}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="credit">{isSales ? "على ذمة العميل (آجل)" : "على ذمة المورد (آجل)"}</SelectItem>
@@ -747,7 +838,7 @@ const ReturnCreatePage = ({ returnType }: Props) => {
 
           <div className="space-y-1">
             <Label>مركز التكلفة</Label>
-            <Select
+            <Select dir="rtl"
               value={form.costCenterId || "none"}
               disabled={readonly}
               onValueChange={v => setForm(p => ({ ...p, costCenterId: v === "none" ? null : v }))}
@@ -766,7 +857,7 @@ const ReturnCreatePage = ({ returnType }: Props) => {
 
           <div className="space-y-1">
             <Label>السبب</Label>
-            <Select value={form.reason} disabled={readonly} onValueChange={v => setForm(p => ({ ...p, reason: v }))}>
+            <Select dir="rtl" value={form.reason} disabled={readonly} onValueChange={v => setForm(p => ({ ...p, reason: v }))}>
               <SelectTrigger><SelectValue placeholder="اختر السبب..." /></SelectTrigger>
               <SelectContent>
                 {reasons.map(r => <SelectItem key={r} value={r}>{r}</SelectItem>)}
@@ -782,153 +873,23 @@ const ReturnCreatePage = ({ returnType }: Props) => {
             )}
           </div>
 
-          <div className="space-y-1 md:col-span-2">
+          {pilot && form.refundMethod !== "credit" && <div className="space-y-1"><Label>حساب {form.refundMethod === "cash" ? "الصندوق" : "البنك"}</Label><Select dir="rtl" value={form.refundAccountCode} disabled={readonly} onValueChange={v => setForm(p => ({ ...p, refundAccountCode: v }))}><SelectTrigger><SelectValue placeholder="اختر الحساب الفرعي..." /></SelectTrigger><SelectContent>{refundAccounts.map(a => <SelectItem key={a.account_code} value={a.account_code}>{a.account_code} — {a.account_name}</SelectItem>)}</SelectContent></Select></div>}
+          {pilot && warehouses.length > 0 && <div className="space-y-1"><Label>المستودع</Label><Select dir="rtl" value={form.warehouseId || "default"} disabled={readonly || !!form.linkedInvoiceId} onValueChange={v => setForm(p => ({ ...p, warehouseId: v === "default" ? null : v }))}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="default">المستودع الافتراضي</SelectItem>{warehouses.map(w => <SelectItem key={w.id} value={w.id}>{w.name}</SelectItem>)}</SelectContent></Select></div>}
+          <div className="space-y-1 sm:col-span-2">
             <Label>ملاحظات</Label>
             <Textarea rows={2} value={form.notes} disabled={readonly} onChange={e => setForm(p => ({ ...p, notes: e.target.value }))} />
           </div>
         </CardContent>
-      </Card>
+      </section>
 
-      {/* Items */}
-      <Card>
-        <CardHeader className="flex-row justify-between items-center">
-          <CardTitle className="text-base">البنود المرتجعة</CardTitle>
-          {!readonly && (
-            <Button variant="outline" size="sm" onClick={addItem} className="gap-1">
-              <Plus className="h-4 w-4" /> إضافة بند
-            </Button>
-          )}
-        </CardHeader>
-        <CardContent className="space-y-2">
-          {form.items.map((it, idx) => (
-            <div key={it.id} className="grid grid-cols-12 gap-2 items-end p-2 rounded border">
-              <div className="col-span-12 md:col-span-4 space-y-1">
-                <Label className="text-xs flex items-center gap-1">
-                  <Package className="h-3 w-3" /> الصنف <span className="text-destructive">*</span>
-                </Label>
-                <Popover
-                  open={productPopoverFor === it.id}
-                  onOpenChange={(o) => setProductPopoverFor(o ? it.id : null)}
-                >
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      disabled={readonly}
-                      className="w-full justify-between h-9 text-xs font-normal"
-                    >
-                      <span className="truncate">
-                        {it.description || "اختر الصنف..."}
-                      </span>
-                      <Search className="h-3 w-3 opacity-50 shrink-0" />
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="p-0 w-[360px]" align="start">
-                    <Command>
-                      <CommandInput placeholder="ابحث بالاسم / SKU / الباركود / التصنيف..." />
-                      <CommandList>
-                        <CommandEmpty>لا توجد منتجات</CommandEmpty>
-                        <CommandGroup>
-                          {products.map((p) => {
-                            const defaultPrice = isSales ? Number(p.sell_price || 0) : Number(p.buy_price || 0);
-                            const keywords = [p.name, p.sku, p.barcode, p.category].filter(Boolean).join(" ");
-                            return (
-                              <CommandItem
-                                key={p.id}
-                                value={`${keywords} ${p.id}`}
-                                onSelect={() => {
-                                  updateItem(it.id, {
-                                    productId: p.id,
-                                    description: p.name,
-                                    unitPrice: it.unitPrice > 0 ? it.unitPrice : defaultPrice,
-                                  });
-                                  setProductPopoverFor(null);
-                                }}
-                              >
-                                <div className="flex flex-col gap-0.5 w-full">
-                                  <div className="flex items-center justify-between gap-2">
-                                    <span className="font-medium truncate">{p.name}</span>
-                                    <span className="text-[10px] text-muted-foreground tabular-nums shrink-0">
-                                      ₪{defaultPrice.toLocaleString()}
-                                    </span>
-                                  </div>
-                                  <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
-                                    {p.sku && <span>SKU: {p.sku}</span>}
-                                    {p.barcode && <span>• {p.barcode}</span>}
-                                    {p.category && <span>• {p.category}</span>}
-                                    {p.product_type === "service" && <span className="text-primary">• خدمة</span>}
-                                  </div>
-                                </div>
-                              </CommandItem>
-                            );
-                          })}
-                        </CommandGroup>
-                      </CommandList>
-                    </Command>
-                  </PopoverContent>
-                </Popover>
-              </div>
-              <div className="col-span-4 md:col-span-2 space-y-1">
-                <Label className="text-xs">
-                  الكمية
-                  {it.maxReturnableQty != null && <span className="text-muted-foreground"> (الحد: {it.maxReturnableQty})</span>}
-                </Label>
-                <Input
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  max={it.maxReturnableQty ?? undefined}
-                  value={it.quantity}
-                  disabled={readonly}
-                  onChange={e => updateItem(it.id, { quantity: Number(e.target.value) || 0 })}
-                />
-              </div>
-              <div className="col-span-4 md:col-span-2 space-y-1">
-                <Label className="text-xs">السعر</Label>
-                <Input
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  value={it.unitPrice}
-                  disabled={readonly}
-                  onChange={e => updateItem(it.id, { unitPrice: Number(e.target.value) || 0 })}
-                />
-              </div>
-              <div className="col-span-4 md:col-span-2 space-y-1">
-                <Label className="text-xs">خصم</Label>
-                <Input
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  value={it.discount}
-                  disabled={readonly}
-                  onChange={e => updateItem(it.id, { discount: Number(e.target.value) || 0 })}
-                />
-              </div>
-              <div className="col-span-10 md:col-span-1 space-y-1">
-                <Label className="text-xs">ضريبة</Label>
-                <Select value={it.taxCategory} disabled={readonly || !taxEnabled} onValueChange={v => updateItem(it.id, { taxCategory: v as TaxCategory })}>
-                  <SelectTrigger className="h-9 text-xs"><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    {TAX_OPTS.map(o => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="col-span-2 md:col-span-1 flex justify-end">
-                {!readonly && form.items.length > 1 && (
-                  <Button size="icon" variant="ghost" onClick={() => removeItem(it.id)}>
-                    <Trash2 className="h-4 w-4 text-destructive" />
-                  </Button>
-                )}
-              </div>
-            </div>
-          ))}
-        </CardContent>
-      </Card>
+      <div className="lg:col-span-12 lg:order-3 min-w-0">
+        <ReturnItemsEditor items={form.items} products={products} isSales={isSales} readonly={readonly} linked={!!form.linkedInvoiceId} taxEnabled={taxEnabled} inclusive={pilot && form.taxInclusive} allowPercent={pilot} onUpdate={updateItem} onAdd={addItem} onRemove={removeItem} />
+      </div>
 
       {/* Summary */}
-      <Card>
+      <aside className="lg:col-span-4 lg:order-2 self-start lg:sticky lg:top-20 border border-border rounded-lg bg-background">
         <CardContent className="p-4">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+          <div className="grid grid-cols-2 gap-4 text-sm">
             <div>
               <div className="text-xs text-muted-foreground">الصافي قبل الضريبة</div>
               <div className="text-lg font-semibold">₪{summary.net.toLocaleString()}</div>
@@ -938,34 +899,22 @@ const ReturnCreatePage = ({ returnType }: Props) => {
               <div className="text-lg font-semibold">₪{summary.discount.toLocaleString()}</div>
             </div>
             <div>
-              <div className="text-xs text-muted-foreground">ضريبة (16%)</div>
+              <div className="text-xs text-muted-foreground">الضريبة</div>
               <div className="text-lg font-semibold">₪{summary.tax.toLocaleString()}</div>
             </div>
             <div>
               <div className="text-xs text-muted-foreground">الإجمالي</div>
-              <div className={`text-2xl font-bold ${isSales ? "text-emerald-600" : "text-rose-600"}`}>
+              <div className="text-2xl font-bold text-primary tabular-nums">
                 ₪{summary.total.toLocaleString()}
               </div>
             </div>
           </div>
         </CardContent>
-      </Card>
+      <div className="px-4 pb-4 space-y-2 text-xs text-muted-foreground"><p className="flex items-center gap-2"><FileText className="h-4 w-4" />{returnNumber || titleAr}</p><p>{form.contactName || partyLabel}</p><p>{form.items.filter(it => it.description.trim()).length} بند</p>{pilot && <label className="flex items-center gap-2"><input type="checkbox" checked={form.taxInclusive} disabled={readonly || !!form.linkedInvoiceId} onChange={e => setForm(p => ({ ...p, taxInclusive: e.target.checked }))} />الأسعار شاملة الضريبة</label>}</div>
+      </aside>
 
-      {/* Actions */}
-      {!readonly && (
-        <div className="fixed bottom-0 left-0 right-0 bg-background border-t p-3 z-30">
-          <div className="container mx-auto flex justify-end gap-2">
-            <Button variant="outline" onClick={() => navigate(listPath)}>إلغاء</Button>
-            <Button variant="secondary" disabled={saving} onClick={() => handleSave(true)} className="gap-2">
-              {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />} حفظ كمسودة
-            </Button>
-            <Button disabled={saving} onClick={() => handleSave(false)} className="gap-2">
-              {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />} {wasPosted ? "إعادة الترحيل" : "تأكيد وترحيل"}
-            </Button>
-          </div>
-        </div>
-      )}
     </div>
+    <Dialog open={showPreview} onOpenChange={setShowPreview}><DialogContent dir="rtl" className="max-w-5xl max-h-[90dvh] overflow-y-auto"><DialogHeader><DialogTitle>معاينة {titleAr}</DialogTitle></DialogHeader><InvoicePrintView invoice={printPayload} settings={settings} printMode="return" /></DialogContent></Dialog>
     </FinanceShell>
   );
 };
