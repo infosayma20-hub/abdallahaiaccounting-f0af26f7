@@ -11455,6 +11455,7 @@ const POSPage = ({ variant = "v1" }: { variant?: "v1" | "v2" } = {}) => {
         userId={userId || ""}
         sessionId={session?.id}
         canCreateSupplier={isAdmin || posPerms.can_create_supplier}
+        canCreateProduct={isAdmin || posPerms.can_create_product}
         canAffectInventory={isAdmin || posPerms.can_affect_inventory_on_purchase}
         canPayCash={isAdmin || posPerms.can_pay_purchases_cash}
         onSuccess={() => {
