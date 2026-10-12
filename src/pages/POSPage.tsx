@@ -443,6 +443,7 @@ const POSPage = ({ variant = "v1" }: { variant?: "v1" | "v2" } = {}) => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { user } = useAuth();
+  const posFeatPerm = usePermission("pos");
   const [isDemoTenant, setIsDemoTenant] = useState(false);
   useEffect(() => {
     let cancelled = false;
@@ -1450,7 +1451,6 @@ const POSPage = ({ variant = "v1" }: { variant?: "v1" | "v2" } = {}) => {
    const [dataOwnerId, setDataOwnerId] = useState<string | null>(null);
     const isAdmin = userId === dataOwnerId; // Employee has different dataOwnerId
     // Feature permission overrides (composed with posPerms below)
-    const posFeatPerm = usePermission("pos");
 
   // 🕒 Scheduled orders: keep the badge count fresh and act as a client-side
   // safety net for the server cron that releases due orders to the branch.
