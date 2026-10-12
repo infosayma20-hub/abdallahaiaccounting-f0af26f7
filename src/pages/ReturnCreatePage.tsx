@@ -706,7 +706,6 @@ const ReturnCreatePage = ({ returnType }: Props) => {
                 { key: "draft", label: "حفظ كمسودة", icon: Save, onClick: () => handleSave(true), disabled: saving || readonly },
                 { key: "confirm", label: wasPosted ? "إعادة الترحيل" : "تأكيد وترحيل", icon: Send, variant: "primary", onClick: () => handleSave(false), disabled: saving || readonly },
               ],
-            },
             }] : []),
             ...(wasPosted && !readonly ? [{
               key: "cancel",
