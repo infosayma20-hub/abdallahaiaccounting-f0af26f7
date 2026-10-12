@@ -56,6 +56,7 @@ import CallCenterDispatchDialog from "@/components/pos/CallCenterDispatchDialog"
 import { extractBaseNote } from "@/lib/order-note-utils";
 import PendingOrdersPanel from "@/components/pos/PendingOrdersPanel";
 import ManagerDiscountDialog, { type ManagerDiscountApproved } from "@/components/pos/ManagerDiscountDialog";
+import { CASHIER_DISCOUNT_OWNER } from "@/lib/pos/cashier-discount";
 import DispatchedOrdersLog from "@/components/pos/DispatchedOrdersLog";
 import AppOrdersInboxPanel from "@/components/pos/AppOrdersInboxPanel";
 import ScheduleOrderDialog from "@/components/pos/ScheduleOrderDialog";
@@ -442,6 +443,7 @@ const POSPage = ({ variant = "v1" }: { variant?: "v1" | "v2" } = {}) => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { user } = useAuth();
+  const posFeatPerm = usePermission("pos");
   const [isDemoTenant, setIsDemoTenant] = useState(false);
   useEffect(() => {
     let cancelled = false;
@@ -708,7 +710,7 @@ const POSPage = ({ variant = "v1" }: { variant?: "v1" | "v2" } = {}) => {
       return;
     }
     updateActiveOrder(o => ({ ...o, orderDiscount: d }));
-  }, [updateActiveOrder]);
+  }, [updateActiveOrder, posFeatPerm]);
 
   const setOrderDiscountType = useCallback((t: "fixed" | "percent", opts?: { bypassPermission?: boolean }) => {
     if (!opts?.bypassPermission && !posFeatPerm.can("sell", "discount")) {
@@ -716,7 +718,7 @@ const POSPage = ({ variant = "v1" }: { variant?: "v1" | "v2" } = {}) => {
       return;
     }
     updateActiveOrder(o => ({ ...o, orderDiscountType: t }));
-  }, [updateActiveOrder]);
+  }, [updateActiveOrder, posFeatPerm]);
 
   const setOrderNote = useCallback((n: string) => {
     updateActiveOrder(o => ({ ...o, orderNote: n }));
@@ -1449,7 +1451,6 @@ const POSPage = ({ variant = "v1" }: { variant?: "v1" | "v2" } = {}) => {
    const [dataOwnerId, setDataOwnerId] = useState<string | null>(null);
     const isAdmin = userId === dataOwnerId; // Employee has different dataOwnerId
     // Feature permission overrides (composed with posPerms below)
-    const posFeatPerm = usePermission("pos");
 
   // 🕒 Scheduled orders: keep the badge count fresh and act as a client-side
   // safety net for the server cron that releases due orders to the branch.
@@ -8118,10 +8119,10 @@ const POSPage = ({ variant = "v1" }: { variant?: "v1" | "v2" } = {}) => {
         onPriceBlur={handlePriceBlur}
         hasAddons={(i) => { const item = cart[i]; return !!item && !!productModifierMap[item.product_id]?.length; }}
         onAddons={setEditAddonCartIndex}
-        discountActive={!!managerDiscountMeta}
+        discountActive={orderDiscount > 0}
         canDiscount={!isCallCenter && cart.length > 0}
         onDiscount={() => {
-          if (managerDiscountMeta) { setOrderDiscount(0); setManagerDiscountMeta(null); setOrderDiscountType("fixed"); }
+          if (orderDiscount > 0) { setOrderDiscount(0); setManagerDiscountMeta(null); setOrderDiscountType("fixed"); }
           else setShowManagerDiscountDialog(true);
         }}
         orderNote={orderNote}
@@ -11738,12 +11739,13 @@ const POSPage = ({ variant = "v1" }: { variant?: "v1" | "v2" } = {}) => {
 
       <ManagerDiscountDialog
         open={showManagerDiscountDialog}
+        cashierPermissionOwner={!isAdmin && (activeBranchOwnerId || dataOwnerId) === CASHIER_DISCOUNT_OWNER && posFeatPerm.can("sell", "discount") ? (activeBranchOwnerId || dataOwnerId) : null}
         onClose={() => setShowManagerDiscountDialog(false)}
         onApproved={(data) => {
-          setManagerDiscountMeta(data);
+          setManagerDiscountMeta(data.authorizationKind === "cashier" ? null : data);
           // Bypass cashier permission — this is a manager-authorized discount.
-          setOrderDiscountType(data.type, { bypassPermission: true });
-          setOrderDiscount(data.amount, { bypassPermission: true });
+          setOrderDiscountType(data.type, { bypassPermission: data.authorizationKind !== "cashier" });
+          setOrderDiscount(data.amount, { bypassPermission: data.authorizationKind !== "cashier" });
           setShowManagerDiscountDialog(false);
           toast.success(
             data.type === "percent"
