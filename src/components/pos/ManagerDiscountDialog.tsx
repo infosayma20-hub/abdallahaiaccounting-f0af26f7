@@ -168,7 +168,7 @@ export default function ManagerDiscountDialog({
           setError(`الحد الأقصى للخصم ${identity.maxPercent}% من قيمة الفاتورة`); return;
         }
         const { error: auditError } = await (supabase.from("pos_sensitive_actions_log" as any) as any).insert({
-          company_id: companyId, action: "cashier_discount_approved", session_id: sessionId || null,
+          company_id: cashierPermissionOwner, action: "cashier_discount_approved", session_id: sessionId || null,
           notes: `خصم كاشير — ${identity.name} | ${reason.trim()}`,
           metadata: { cashier_user_id: identity.userId, discount_type: type, discount_value: numericAmount, reason: reason.trim(), branch_id: branchId || null },
         });
