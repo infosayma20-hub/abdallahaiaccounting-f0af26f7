@@ -94,11 +94,11 @@ export default function ManagerDiscountDialog({
     setUseOtherManager(false);
     let alive = true;
     setSelfManager(null);
-    if (!cashierPermissionOwner) getCurrentUserManagerIdentity(branchId).then(r => { if (alive) setSelfManager(r); });
+    getCurrentUserManagerIdentity(branchId).then(r => { if (alive) setSelfManager(r); });
     return () => { alive = false; };
   }, [open, branchId, cashierPermissionOwner]);
   const selfMode = !!selfManager && !useOtherManager;
-  const cashierMode = !!cashierPermissionOwner;
+  const cashierMode = !!cashierIdentity;
   const effectiveMaxPct = cashierMode ? cashierIdentity?.maxPercent ?? 0 : maxPct;
 
   useEffect(() => {
@@ -320,7 +320,7 @@ export default function ManagerDiscountDialog({
             />
           </div>
 
-          {cashierMode ? (
+          {identityLoading ? <p className="text-xs text-muted-foreground">جاري التحقق من صلاحيتك…</p> : cashierMode ? (
             <p className="text-xs text-muted-foreground">{identityLoading ? "جاري التحقق من صلاحيتك…" : cashierIdentity ? `اعتماد باسم الكاشير: ${cashierIdentity.name}` : "صلاحية الخصم غير متاحة؛ راجع المدير"}</p>
           ) : selfMode ? (
             <div
