@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { Plus, Minus, Trash2, User, X, Tag, StickyNote, PauseCircle, ShoppingCart, Save, Printer, MoreHorizontal, ShoppingBag, Truck, UtensilsCrossed, Send, Smartphone, ClipboardList, Clock } from "lucide-react";
 import type { PosV2Tokens } from "./posV2Theme";
 import { fmtMoney } from "./posV2Theme";
