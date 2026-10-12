@@ -116,8 +116,7 @@ export default function ExpenseModal({ open, onOpenChange, dataOwnerId, userId, 
         idempotency_key: `POS-EXP-${Date.now()}`,
       });
 
-      const newBalance = sessionBalance - amt;
-      toast.success(`تم تسجيل مصروف ₪${amt.toFixed(2)} — رصيدك الحالي: ₪${newBalance.toFixed(2)}`);
+      toast.success(`تم تسجيل مصروف ₪${amt.toFixed(2)}`);
       onSuccess?.();
       resetForm();
       onOpenChange(false);
