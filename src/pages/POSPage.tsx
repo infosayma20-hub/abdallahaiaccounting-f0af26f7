@@ -10176,6 +10176,7 @@ const POSPage = ({ variant = "v1" }: { variant?: "v1" | "v2" } = {}) => {
                   defaultCardGlAccountCode={defaultCardGl}
                   exchangeRates={exchangeRates}
                   currencies={currencies}
+                  visaApps={posVisaApps}
                 />
               )}
 
