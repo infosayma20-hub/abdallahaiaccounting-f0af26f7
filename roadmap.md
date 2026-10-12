@@ -1,5 +1,6 @@
 # Roadmap — Inventory costing (plan approved 2026-10-06)
 - [ ] Returns: unify sales/purchase return screens with invoice experience; certify atomic accounting, VAT, tenant permissions and stock lifecycle without changing historical documents.
+- [ ] Cashier discount: verify Aboud Al-Shbeiri's granted discount permission in Beit Alkul and fix manager authorization restarting the cashier session without changing other cashiers' permissions.
 - [x] Import Beit Alkul catalog: 105 products + 31 size/type choices in 15 required single-choice groups; bakery-only links, zero stock, 105 audit entries; catalog/choice hashes match CSV exactly; historical products untouched. Photos await user uploads.
 - [x] POS v2: restore Malaky-only stockout dialog beside transferred-order alerts; move kitchen into More; verified with 3 tests and isolated browser rendering, without changing sales/stock data.
 - [x] Phase 1: engine (moving avg / FIFO / reversal / negative stock), settings choice + lock + audit, readiness check, valuation report reads engine
