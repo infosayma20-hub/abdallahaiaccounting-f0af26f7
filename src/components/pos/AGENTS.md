@@ -8,3 +8,5 @@
 - Multi-business tenants: `business_units` groups branches/warehouses; `product_business_units` limits a product to units (no rows = shared). POS hides other-unit products from the grid only (scans still resolve), cached per branch in localStorage. Why: lighten each shop's POS without forking products or touching history.
 
 - Purchase amount entry derives unit price from an editable total without premature rounding and retains the existing purchase RPC. Why: keep supplier, cash and stock posting unchanged.
+- POS screen/print language: `pos_terminals.receipt_language` (set in the new-device wizard) wins, else `branches.receipt_language`, else ar. Why: per-station config.
+- POS expenses are cancelled only via RPC `pos_cancel_expense_v1` (admin, mandatory reason): it posts a mirror reversal with `create_reverse_entry` and flags `pos_expenses.cancelled_at`; every shift/cash sum must exclude cancelled rows. Why: never delete posted cash entries.
