@@ -31669,6 +31669,10 @@ export type Database = {
             }
             Returns: Json
           }
+      _pos_purchase_perm: {
+        Args: { p_owner: string; p_perm: string }
+        Returns: boolean
+      }
       _pos_resolve_cash_gl: {
         Args: {
           p_currency: string
@@ -34376,6 +34380,14 @@ export type Database = {
         Args: { cutoff?: number; ts: string }
         Returns: string
       }
+      pos_create_purchase_product_v1: {
+        Args: { p_buy_price: number; p_data_owner: string; p_name: string }
+        Returns: Json
+      }
+      pos_create_supplier_v1: {
+        Args: { p_data_owner: string; p_name: string }
+        Returns: Json
+      }
       pos_link_loyalty_contact: { Args: { _card_code: string }; Returns: Json }
       pos_mark_item_delivered: {
         Args: { _by_name?: string; _line_id: string }
@@ -34404,6 +34416,21 @@ export type Database = {
           p_reference: string
           p_session_id: string
           p_start_month: string
+        }
+        Returns: Json
+      }
+      pos_record_purchase_v1: {
+        Args: {
+          p_affect_inventory: boolean
+          p_data_owner: string
+          p_idempotency_key: string
+          p_notes: string
+          p_payment_type: string
+          p_product_id: string
+          p_quantity: number
+          p_session_id: string
+          p_supplier_id: string
+          p_unit_price: number
         }
         Returns: Json
       }
