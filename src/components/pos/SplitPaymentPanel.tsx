@@ -28,13 +28,15 @@ interface Props {
   defaultCardGlAccountCode: string | null;
   exchangeRates?: Record<string, number>;
   currencies?: Array<{ code: string; symbol: string; name: string }>;
+  /** مصادر فيزا الشركات (ويلز، يمي، فود أون تايم…) — نفس خيارات دفع البطاقة. */
+  visaApps?: Array<{ id: string; name: string; icon?: string | null; gl: string }>;
 }
 
 /**
  * Mixed payment panel — cash + card combinations only (ILS only).
  * Backward compatible: parent component drives whether to use split tenders or single-tender flow.
  */
-export default function SplitPaymentPanel({ total, tenders, setTenders, userId, defaultCardGlAccountCode, exchangeRates = {}, currencies = [] }: Props) {
+export default function SplitPaymentPanel({ total, tenders, setTenders, userId, defaultCardGlAccountCode, exchangeRates = {}, currencies = [], visaApps = [] }: Props) {
   const { dir, t: tr } = usePosLang();
   const [cardOptions, setCardOptions] = useState<BankAccountOption[]>([]);
 
@@ -53,6 +55,9 @@ export default function SplitPaymentPanel({ total, tenders, setTenders, userId, 
       setCardOptions(list);
     })();
   }, [userId]);
+
+  const appGls = new Set(visaApps.map((a) => a.gl));
+  const regularGl = defaultCardGlAccountCode || cardOptions[0]?.gl_account_code || undefined;
 
   const paid = tenders.reduce((s, t) => s + (Number(t.amount) || 0), 0);
   const remaining = Math.round((total - paid) * 100) / 100;
@@ -231,7 +236,7 @@ export default function SplitPaymentPanel({ total, tenders, setTenders, userId, 
               </select>
             )}
 
-            {t.method === "card" && cardOptions.length > 1 && (
+            {t.method === "card" && cardOptions.length > 1 && !(t.visa_gl_account_code && appGls.has(t.visa_gl_account_code)) && (
               <select
                 value={t.visa_gl_account_code || ""}
                 onChange={(e) => updateTender(idx, { visa_gl_account_code: e.target.value || undefined })}
@@ -270,6 +275,34 @@ export default function SplitPaymentPanel({ total, tenders, setTenders, userId, 
               </button>
             )}
             </div>
+            {t.method === "card" && visaApps.length > 0 && (
+              <div className="flex flex-wrap gap-1.5 px-1">
+                {(() => {
+                  const isApp = !!t.visa_gl_account_code && appGls.has(t.visa_gl_account_code);
+                  const chip = (active: boolean) => ({
+                    background: active ? "#DEECF9" : "#fff",
+                    border: active ? "1px solid #0078D4" : "1px solid #d1d5db",
+                    color: active ? "#0078D4" : "#323130",
+                    borderRadius: 4, padding: "3px 8px", fontSize: 11, fontWeight: 600,
+                  });
+                  return (
+                    <>
+                      <button type="button" style={chip(!isApp)}
+                        onClick={() => updateTender(idx, { visa_gl_account_code: regularGl })}>
+                        {tr("فيزا عادية")}
+                      </button>
+                      {visaApps.map((a) => (
+                        <button key={a.id} type="button" title={`الحساب: ${a.gl}`}
+                          style={chip(t.visa_gl_account_code === a.gl)}
+                          onClick={() => updateTender(idx, { visa_gl_account_code: a.gl })}>
+                          {a.icon ? `${a.icon} ` : ""}{tr("فيزا")} {a.name}
+                        </button>
+                      ))}
+                    </>
+                  );
+                })()}
+              </div>
+            )}
             {t.method === "cash" && t.currency && t.currency !== "ILS" && (
               <div className="flex items-center justify-between gap-2 text-[11px] px-1" style={{ color: "#6b7280" }}>
                 <div className="flex items-center gap-1.5">
