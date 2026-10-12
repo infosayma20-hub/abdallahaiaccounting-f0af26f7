@@ -260,7 +260,7 @@ export default function POSExpenseDialog({
       return;
     }
     if (overdraft) {
-      toast.error(`المبلغ أكبر من رصيد العهدة (₪${sessionBalance.toFixed(2)})`);
+      toast.error("المبلغ غير متاح في العهدة");
       return;
     }
 
@@ -400,11 +400,10 @@ export default function POSExpenseDialog({
         /* non-fatal */
       }
 
-      const newBalance = sessionBalance - amt;
       toast.success(
         `✅ تم تسجيل ${
           mode === "employee" ? "صرف لموظف" : "مصروف"
-        } بقيمة ₪${amt.toFixed(2)} — رصيد العهدة: ₪${newBalance.toFixed(2)}`
+        } بقيمة ₪${amt.toFixed(2)}`
       );
       onSuccess?.();
       onOpenChange(false);
@@ -461,10 +460,6 @@ export default function POSExpenseDialog({
               <span className="font-semibold">وضع المدير</span>
               <span>· {managerName || "—"}</span>
             </div>
-            <span>رصيد العهدة:</span>
-            <span className="font-mono font-bold" style={{ color: D365.text }}>
-              ₪{sessionBalance.toFixed(2)}
-            </span>
           </div>
         </div>
 
@@ -768,7 +763,7 @@ export default function POSExpenseDialog({
                     />
                     {overdraft && (
                       <div className="text-[10px] mt-1" style={{ color: D365.danger }}>
-                        تجاوز رصيد العهدة (₪{sessionBalance.toFixed(2)})
+                        المبلغ غير متاح في العهدة
                       </div>
                     )}
                   </Field>

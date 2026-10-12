@@ -84,7 +84,7 @@ export default function ExpenseModal({ open, onOpenChange, dataOwnerId, userId, 
 
     // Check balance
     if (amt > sessionBalance && sessionBalance > 0) {
-      toast.error(`المبلغ أكبر من رصيد العهدة (₪${sessionBalance.toFixed(2)})`);
+      toast.error("المبلغ غير متاح في العهدة");
       return;
     }
 
