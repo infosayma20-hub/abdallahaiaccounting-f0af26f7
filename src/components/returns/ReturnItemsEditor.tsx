@@ -1,3 +1,4 @@
+import type React from "react";
 import { Package, Plus, Trash2, Percent, Coins } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
