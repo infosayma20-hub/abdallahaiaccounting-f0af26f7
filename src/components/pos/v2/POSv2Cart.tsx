@@ -86,6 +86,7 @@ export default function POSv2Cart(p: Props) {
   const { dir, t: tr } = usePosLang();
   const [noteOpen, setNoteOpen] = useState(false);
   const [customerOpen, setCustomerOpen] = useState(false);
+  useEffect(() => { if (p.customerLinked) setCustomerOpen(false); }, [p.customerLinked]);
   const c = !!p.compact;
   const outlineBtn = { height: c ? 28 : 32, borderRadius: 9, border: `1px solid ${t.border}`, background: "transparent", color: t.text, fontSize: 11.5, fontWeight: 700 } as const;
   const empty = p.lines.length === 0;
