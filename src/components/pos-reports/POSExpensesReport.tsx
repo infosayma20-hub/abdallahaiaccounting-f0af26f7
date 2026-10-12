@@ -11,7 +11,7 @@ interface Props {
 
 interface Row {
   id: string; amount: number; description: string | null; shift_id: string | null;
-  created_at: string; expense_kind: string | null; account_code: string | null;
+  created_at: string; expense_kind: string | null; account_code: string | null; cancelled_at?: string | null; cancel_reason?: string | null;
 }
 
 const KIND: Record<string, string> = {
@@ -30,7 +30,7 @@ const POSExpensesReport = ({ dataOwnerId, dateFrom, dateTo, sessions }: Props) =
       setLoading(true);
       const { data } = await supabase
         .from("pos_expenses" as any)
-        .select("id, amount, description, shift_id, created_at, expense_kind, account_code")
+        .select("id, amount, description, shift_id, created_at, expense_kind, account_code, cancelled_at, cancel_reason")
         .eq("user_id", dataOwnerId)
         .gte("created_at", dateFrom.toISOString())
         .lte("created_at", dateTo.toISOString())
@@ -56,10 +56,11 @@ const POSExpensesReport = ({ dataOwnerId, dateFrom, dateTo, sessions }: Props) =
     return (id: string | null) => (id ? m[id] || "—" : "—");
   }, [sessions, shiftNames]);
 
-  const total = rows.reduce((s, r) => s + (Number(r.amount) || 0), 0);
+  const active = rows.filter(r => !r.cancelled_at);
+  const total = active.reduce((s, r) => s + (Number(r.amount) || 0), 0);
   const byCashier = useMemo(() => {
     const m: Record<string, { total: number; count: number }> = {};
-    rows.forEach(r => {
+    active.forEach(r => {
       const n = nameOf(r.shift_id);
       m[n] = m[n] || { total: 0, count: 0 };
       m[n].total += Number(r.amount) || 0; m[n].count += 1;
@@ -74,7 +75,7 @@ const POSExpensesReport = ({ dataOwnerId, dateFrom, dateTo, sessions }: Props) =
         <div className="bg-card border border-border rounded-lg p-4">
           <p className="text-xs font-medium text-muted-foreground">إجمالي المصاريف من نقطة البيع</p>
           <p className="text-2xl font-bold text-destructive mt-2 font-mono">₪{total.toLocaleString()}</p>
-          <p className="text-xs text-muted-foreground mt-1">{rows.length} عملية — تُخصم من نقدية الوردية عند الإغلاق</p>
+          <p className="text-xs text-muted-foreground mt-1">{active.length} عملية — تُخصم من نقدية الوردية عند الإغلاق</p>
         </div>
         <div className="bg-card border border-border rounded-lg p-4">
           <p className="text-xs font-medium text-muted-foreground mb-2">حسب الموظف</p>
@@ -101,7 +102,7 @@ const POSExpensesReport = ({ dataOwnerId, dateFrom, dateTo, sessions }: Props) =
                 <td className="px-4 py-3 text-sm font-mono text-muted-foreground">{format(new Date(r.created_at), "dd/MM/yyyy HH:mm")}</td>
                 <td className="px-4 py-3 text-sm">{nameOf(r.shift_id)}</td>
                 <td className="px-4 py-3 text-sm">{KIND[r.expense_kind || "account"] || r.expense_kind}</td>
-                <td className="px-4 py-3 text-sm text-muted-foreground">{r.description || "—"}</td>
+                <td className="px-4 py-3 text-sm text-muted-foreground">{r.cancelled_at ? <><span className="line-through">{r.description || "—"}</span> <span className="text-destructive text-xs font-semibold">ملغى{r.cancel_reason ? ` — ${r.cancel_reason}` : ""}</span></> : (r.description || "—")}</td>
                 <td className="px-4 py-3 text-xs font-mono text-muted-foreground">{r.account_code || "—"}</td>
                 <td className="px-4 py-3 text-sm font-mono font-bold text-destructive">₪{Number(r.amount).toLocaleString()}</td>
               </tr>
