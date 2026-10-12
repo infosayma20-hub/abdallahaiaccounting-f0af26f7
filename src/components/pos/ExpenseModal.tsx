@@ -84,7 +84,7 @@ export default function ExpenseModal({ open, onOpenChange, dataOwnerId, userId, 
 
     // Check balance
     if (amt > sessionBalance && sessionBalance > 0) {
-      toast.error(`المبلغ أكبر من رصيد العهدة (₪${sessionBalance.toFixed(2)})`);
+      toast.error("المبلغ غير متاح في العهدة");
       return;
     }
 
@@ -116,8 +116,7 @@ export default function ExpenseModal({ open, onOpenChange, dataOwnerId, userId, 
         idempotency_key: `POS-EXP-${Date.now()}`,
       });
 
-      const newBalance = sessionBalance - amt;
-      toast.success(`تم تسجيل مصروف ₪${amt.toFixed(2)} — رصيدك الحالي: ₪${newBalance.toFixed(2)}`);
+      toast.success(`تم تسجيل مصروف ₪${amt.toFixed(2)}`);
       onSuccess?.();
       resetForm();
       onOpenChange(false);
