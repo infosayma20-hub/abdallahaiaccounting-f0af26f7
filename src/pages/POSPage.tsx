@@ -6769,7 +6769,8 @@ const POSPage = ({ variant = "v1" }: { variant?: "v1" | "v2" } = {}) => {
     const { data: expensesData } = await supabase
       .from("pos_expenses")
       .select("amount, description, expense_kind, account_code, employee_id")
-      .eq("shift_id", session.id);
+      .eq("shift_id", session.id)
+      .is("cancelled_at", null);
     const totalExpenses = (expensesData || []).reduce((sum: number, e: any) => sum + (Number(e.amount) || 0), 0);
     const expenseBreakdown = (expensesData || []).map((e: any) => ({
       kind: e.expense_kind || "account",

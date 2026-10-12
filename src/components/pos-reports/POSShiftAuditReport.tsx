@@ -300,7 +300,8 @@ function ShiftDetail({ session }: { session: POSSession }) {
         supabase
           .from("pos_expenses")
           .select("amount")
-          .eq("shift_id", session.id),
+          .eq("shift_id", session.id)
+          .is("cancelled_at", null),
         supabase
           .from("pos_purchases")
           .select("total_amount, payment_type")
@@ -714,6 +715,7 @@ function ShiftDetail({ session }: { session: POSSession }) {
             sessionId={session.id}
             total={cashAdjustments.expensesILS + cashAdjustments.purchasesCashILS}
             canEdit={canEditAdjustments}
+            canCancel={roles.some((r) => r === "admin" || r === "super_admin")}
             reloadKey={reloadKey}
             onChanged={() => setReloadKey(k => k + 1)}
           />
@@ -1511,8 +1513,10 @@ function ForeignAdjustmentsSection({
 // ── Cash expenses/purchases breakdown with accountant edit ──
 const EXP_KIND: Record<string, string> = { account: "مصروف", employee_advance: "سلفة موظف", employee_loan: "قرض موظف" };
 function ExpandableExpensesRow({
-  sessionId, total, canEdit, reloadKey, onChanged,
-}: { sessionId: string; total: number; canEdit: boolean; reloadKey: number; onChanged: () => void }) {
+  sessionId, total, canEdit, canCancel = false, reloadKey, onChanged,
+}: { sessionId: string; total: number; canEdit: boolean; canCancel?: boolean; reloadKey: number; onChanged: () => void }) {
+  const [cancelId, setCancelId] = useState<string | null>(null);
+  const [cancelReason, setCancelReason] = useState("");
   const [open, setOpen] = useState(false);
   const [exps, setExps] = useState<any[]>([]);
   const [purch, setPurch] = useState<any[]>([]);
@@ -1544,7 +1548,7 @@ function ExpandableExpensesRow({
     (async () => {
       setLoading(true);
       const [e, p] = await Promise.all([
-        supabase.from("pos_expenses").select("id, amount, description, account_code, expense_kind, created_at").eq("shift_id", sessionId).order("created_at"),
+        supabase.from("pos_expenses").select("id, amount, description, account_code, expense_kind, created_at, cancelled_at, cancel_reason").eq("shift_id", sessionId).order("created_at"),
         supabase.from("pos_purchases").select("id, total_amount, payment_type, notes, created_at").eq("shift_id", sessionId).order("created_at"),
       ]);
       const list = ((e.data as any[]) || []);
@@ -1576,6 +1580,17 @@ function ExpandableExpensesRow({
     if (error) { toast.error(error.message); return; }
     toast.success("تم تعديل المصروف وقيده");
     setEditId(null); onChanged();
+  };
+
+  const cancelExpense = async (id: string) => {
+    const reason = cancelReason.trim();
+    if (reason.length < 3) { toast.error("اكتب سبب الإلغاء"); return; }
+    setSaving(true);
+    const { error } = await supabase.rpc("pos_cancel_expense_v1" as any, { p_expense_id: id, p_reason: reason });
+    setSaving(false);
+    if (error) { toast.error(error.message); return; }
+    toast.success("تم إلغاء المصروف وتسجيل قيد عكسي على الصندوق");
+    setCancelId(null); setCancelReason(""); onChanged();
   };
 
   const fmt = (n: number) => `₪${Number(n || 0).toLocaleString(undefined, { maximumFractionDigits: 2 })}`;
@@ -1610,7 +1625,7 @@ function ExpandableExpensesRow({
                   <th className="text-right py-1 font-medium">البيان</th>
                   <th className="text-right py-1 font-medium">الحساب</th>
                   <th className="text-left py-1 font-medium w-20">المبلغ</th>
-                  {canEdit && <th className="w-14" />}
+                  {(canEdit || canCancel) && <th className="w-14" />}
                 </tr>
               </thead>
               <tbody className="divide-y divide-border/60">
@@ -1618,7 +1633,25 @@ function ExpandableExpensesRow({
                   <tr><td colSpan={6} className="py-2 text-muted-foreground">لا توجد حركات</td></tr>
                 )}
                 {exps.map(r => {
-                  const editable = canEdit && (r.expense_kind || "account") === "account";
+                  const isCancelled = !!r.cancelled_at;
+                  const editable = canEdit && !isCancelled && (r.expense_kind || "account") === "account";
+                  const cancellable = canCancel && !isCancelled && (r.expense_kind || "account") === "account";
+                  if (cancelId === r.id) return (
+                    <tr key={r.id} className="bg-destructive/5">
+                      <td className="py-1 font-mono text-muted-foreground">{format(new Date(r.created_at), "HH:mm")}</td>
+                      <td className="py-1">{EXP_KIND[r.expense_kind || "account"]}</td>
+                      <td className="py-1 pl-1" colSpan={2}>
+                        <Input autoFocus className="h-7 text-xs" placeholder="سبب إلغاء المصروف (إلزامي)" value={cancelReason} onChange={e => setCancelReason(e.target.value)} />
+                      </td>
+                      <td className="py-1 text-left font-mono">{fmt(r.amount)}</td>
+                      <td className="py-1">
+                        <div className="flex gap-1 justify-end">
+                          <button disabled={saving} onClick={() => cancelExpense(r.id)} className="p-1 text-destructive" title="تأكيد الإلغاء"><Check className="w-3.5 h-3.5" /></button>
+                          <button onClick={() => { setCancelId(null); setCancelReason(""); }} className="p-1 text-muted-foreground" title="تراجع"><X className="w-3.5 h-3.5" /></button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
                   if (editId === r.id) return (
                     <tr key={r.id}>
                       <td className="py-1 font-mono text-muted-foreground">{format(new Date(r.created_at), "HH:mm")}</td>
@@ -1653,14 +1686,22 @@ function ExpandableExpensesRow({
                     </tr>
                   );
                   return (
-                    <tr key={r.id}>
+                    <tr key={r.id} className={isCancelled ? "opacity-60" : undefined}>
                       <td className="py-1 font-mono text-muted-foreground">{format(new Date(r.created_at), "HH:mm")}</td>
                       <td className="py-1">{EXP_KIND[r.expense_kind || "account"] || r.expense_kind}</td>
-                      <td className="py-1">{r.description || "—"}</td>
+                      <td className="py-1">
+                        <span className={isCancelled ? "line-through" : undefined}>{r.description || "—"}</span>
+                        {isCancelled && <Badge variant="destructive" className="mr-1 text-[9px] px-1 py-0">ملغى{r.cancel_reason ? ` — ${r.cancel_reason}` : ""}</Badge>}
+                      </td>
                       <td className="py-1"><span className="font-mono">{r.account_code || "—"}</span>{r.account_name && <span className="text-muted-foreground"> · {r.account_name}</span>}</td>
-                      <td className="py-1 text-left font-mono">{fmt(r.amount)}</td>
-                      {canEdit && (
-                        <td className="py-1 text-left">
+                      <td className={cn("py-1 text-left font-mono", isCancelled && "line-through")}>{fmt(r.amount)}</td>
+                      {(canEdit || canCancel) && (
+                        <td className="py-1 text-left whitespace-nowrap">
+                          {cancellable && (
+                            <button onClick={() => { setEditId(null); setCancelId(r.id); setCancelReason(""); }} className="p-1 text-muted-foreground hover:text-destructive" title="إلغاء المصروف بقيد عكسي">
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          )}
                           {editable && (
                             <button onClick={() => { setEditId(r.id); setF({ amount: String(r.amount), description: r.description || "", account_code: r.account_code || "", account_name: r.account_name || "" }); }} className="p-1 text-muted-foreground hover:text-foreground" title="تعديل">
                               <Pencil className="w-3.5 h-3.5" />
@@ -1678,7 +1719,7 @@ function ExpandableExpensesRow({
                     <td className="py-1">{p.notes || "—"}</td>
                     <td className="py-1">—</td>
                     <td className="py-1 text-left font-mono">{fmt(p.total_amount)}</td>
-                    {canEdit && <td />}
+                    {(canEdit || canCancel) && <td />}
                   </tr>
                 ))}
               </tbody>

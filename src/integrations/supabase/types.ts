@@ -16589,6 +16589,9 @@ export type Database = {
           account_code: string | null
           advance_id: string | null
           amount: number
+          cancel_reason: string | null
+          cancelled_at: string | null
+          cancelled_by: string | null
           category_id: string | null
           created_at: string
           created_by: string | null
@@ -16598,6 +16601,7 @@ export type Database = {
           id: string
           manager_user_id: string | null
           payment_method: string
+          reversal_transaction_id: string | null
           shift_id: string | null
           transaction_id: string | null
           user_id: string
@@ -16606,6 +16610,9 @@ export type Database = {
           account_code?: string | null
           advance_id?: string | null
           amount?: number
+          cancel_reason?: string | null
+          cancelled_at?: string | null
+          cancelled_by?: string | null
           category_id?: string | null
           created_at?: string
           created_by?: string | null
@@ -16615,6 +16622,7 @@ export type Database = {
           id?: string
           manager_user_id?: string | null
           payment_method?: string
+          reversal_transaction_id?: string | null
           shift_id?: string | null
           transaction_id?: string | null
           user_id: string
@@ -16623,6 +16631,9 @@ export type Database = {
           account_code?: string | null
           advance_id?: string | null
           amount?: number
+          cancel_reason?: string | null
+          cancelled_at?: string | null
+          cancelled_by?: string | null
           category_id?: string | null
           created_at?: string
           created_by?: string | null
@@ -16632,6 +16643,7 @@ export type Database = {
           id?: string
           manager_user_id?: string | null
           payment_method?: string
+          reversal_transaction_id?: string | null
           shift_id?: string | null
           transaction_id?: string | null
           user_id?: string
@@ -34449,6 +34461,10 @@ export type Database = {
       pos_business_date: {
         Args: { cutoff?: number; ts: string }
         Returns: string
+      }
+      pos_cancel_expense_v1: {
+        Args: { p_expense_id: string; p_reason: string }
+        Returns: Json
       }
       pos_create_purchase_product_v1: {
         Args: { p_buy_price: number; p_data_owner: string; p_name: string }
