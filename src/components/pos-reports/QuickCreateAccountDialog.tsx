@@ -27,6 +27,12 @@ export default function QuickCreateAccountDialog({
   const [obType, setObType] = useState<"debit" | "credit">("debit");
   const [obDate, setObDate] = useState(new Date().toISOString().slice(0, 10));
   const [saving, setSaving] = useState(false);
+  // تعريف حساب أب جديد
+  const [newParentOpen, setNewParentOpen] = useState(false);
+  const [gpCode, setGpCode] = useState("");
+  const [npType, setNpType] = useState("Expenses");
+  const [npName, setNpName] = useState("");
+  const [npCode, setNpCode] = useState("");
 
   useEffect(() => {
     if (!open) return;
@@ -61,15 +67,46 @@ export default function QuickCreateAccountDialog({
   const obAmount = Number(ob) || 0;
   const valid = !!parent && name.trim() && code && !codeError && obAmount >= 0;
 
+  const hasPostings = async (c: string) => {
+    const { count } = await (supabase as any).from("transactions").select("id", { count: "exact", head: true })
+      .eq("user_id", ownerId).eq("is_deleted", false)
+      .or(`debit_account_code.eq.${c},credit_account_code.eq.${c}`);
+    return (count || 0) > 0;
+  };
+
+  const gp = accounts.find(a => a.account_code === gpCode) || null;
+  const npCodeError = !npCode ? "" : !/^\d{3,10}$/.test(npCode) ? "الرقم يجب أن يكون 3-10 أرقام" : usedCodes.has(npCode) ? "هذا الرقم مستخدم" : "";
+  const createParent = async () => {
+    if (!npName.trim() || !npCode || npCodeError) return;
+    setSaving(true);
+    try {
+      if (gp && await hasPostings(gp.account_code)) {
+        toast.error("الحساب الأعلى عليه قيود مرحّلة؛ اختر حسابًا رئيسيًا آخر");
+        return;
+      }
+      const row = {
+        user_id: ownerId, account_code: npCode, account_name: npName.trim(),
+        account_type: gp ? gp.account_type : npType, parent_code: gp ? gp.account_code : null,
+        currency: gp?.currency || "شيكل",
+      };
+      const { data: ins, error } = await (supabase as any).from("accounts").insert(row)
+        .select("id, account_code, account_name, account_type, parent_code, is_active, currency").single();
+      if (error) throw error;
+      setAccounts(prev => [...prev, ins as Acc]);
+      setUsedCodes(prev => new Set([...prev, npCode]));
+      setParentCode(npCode); setCodeEdited(false);
+      setNewParentOpen(false); setNpName(""); setNpCode(""); setGpCode("");
+      toast.success(`تم تعريف الحساب الأب ${npCode} — ${row.account_name}`);
+    } catch (e: any) { toast.error(e.message || "تعذر إنشاء الحساب الأب"); }
+    finally { setSaving(false); }
+  };
+
   const submit = async () => {
     if (!valid || !parent) return;
     setSaving(true);
     try {
       // الأب الذي عليه قيود يصبح رئيسيًا فتختفي حركاته عن الترحيل — نمنع ذلك
-      const { count } = await (supabase as any).from("transactions").select("id", { count: "exact", head: true })
-        .eq("user_id", ownerId).eq("is_deleted", false)
-        .or(`debit_account_code.eq.${parent.account_code},credit_account_code.eq.${parent.account_code}`);
-      if ((count || 0) > 0) {
+      if (await hasPostings(parent.account_code)) {
         toast.error("الحساب الأب عليه قيود مرحّلة؛ اختر حسابًا رئيسيًا لا تُرحّل عليه حركات");
         return;
       }
@@ -111,13 +148,48 @@ export default function QuickCreateAccountDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent dir="rtl" className="max-w-md">
+      <DialogContent dir="rtl" className="max-w-2xl w-[95vw] max-h-[90vh] overflow-y-auto">
         <DialogHeader><DialogTitle>حساب جديد في شجرة الحسابات</DialogTitle></DialogHeader>
         <div className="space-y-3 text-sm">
           <div>
             <label className="text-xs text-muted-foreground">الحساب الأب *</label>
             <JournalAccountPicker lineId="qc-parent" value={parentCode} accountName={parent?.account_name || ""}
               accounts={parentOptions} onSelect={(a) => { setParentCode(a.account_code); setCodeEdited(false); }} />
+            <button type="button" onClick={() => setNewParentOpen(o => !o)} className="text-xs text-primary mt-1.5 underline-offset-2 hover:underline">
+              {newParentOpen ? "إخفاء تعريف حساب أب جديد" : "+ تعريف حساب أب جديد"}
+            </button>
+            {newParentOpen && (
+              <div className="mt-2 rounded-lg border border-border bg-muted/30 p-3 space-y-2">
+                <div>
+                  <label className="text-xs text-muted-foreground">يتبع لحساب رئيسي (اختياري)</label>
+                  <JournalAccountPicker lineId="qc-gp" value={gpCode} accountName={gp?.account_name || ""}
+                    accounts={parentOptions} onSelect={(a) => setGpCode(a.account_code)} />
+                  {gpCode && <button type="button" className="text-[11px] text-muted-foreground mt-1" onClick={() => setGpCode("")}>بدون حساب رئيسي (مستوى أول)</button>}
+                </div>
+                {!gp && (
+                  <div>
+                    <label className="text-xs text-muted-foreground">نوع الحساب</label>
+                    <select className="w-full h-10 rounded-md border border-input bg-background px-2" value={npType} onChange={e => setNpType(e.target.value)}>
+                      <option value="Expenses">مصروفات</option><option value="Purchases">مشتريات</option>
+                      <option value="Revenue">إيرادات</option><option value="Asset">أصول</option>
+                      <option value="Liability">التزامات</option><option value="Owner's Equity">حقوق ملكية</option>
+                    </select>
+                  </div>
+                )}
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <label className="text-xs text-muted-foreground">اسم الحساب الأب *</label>
+                    <Input value={npName} onChange={e => setNpName(e.target.value)} />
+                  </div>
+                  <div>
+                    <label className="text-xs text-muted-foreground">رقم الحساب الأب *</label>
+                    <Input dir="ltr" className="font-mono" value={npCode} onChange={e => setNpCode(e.target.value.trim())} />
+                    {npCodeError && <p className="text-[11px] text-destructive mt-1">{npCodeError}</p>}
+                  </div>
+                </div>
+                <Button size="sm" variant="secondary" disabled={saving || !npName.trim() || !npCode || !!npCodeError} onClick={createParent}>إنشاء الحساب الأب واختياره</Button>
+              </div>
+            )}
             {parent && <p className="text-[11px] text-muted-foreground mt-1">النوع: {parent.account_type} · العملة: {parent.currency || "شيكل"}</p>}
           </div>
           <div>
