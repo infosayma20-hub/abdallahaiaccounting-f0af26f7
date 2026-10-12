@@ -23,6 +23,7 @@ type Props = {
   activeType: OrderType | null;
   onOrderType: (t: OrderType) => void;
   customerName: string;
+  customerLinked?: boolean;
   onClearCustomer: () => void;
   customerNode: ReactNode;
   lines: PosV2Line[];
@@ -151,11 +152,11 @@ export default function POSv2Cart(p: Props) {
 
       {/* c) customer */}
       <div className="px-4 pb-2 shrink-0">
-        {p.customerName ? (
+        {p.customerName && (p.customerLinked || !customerOpen) ? (
           <div className="flex items-center gap-2" style={{ height: 44, padding: "0 12px", borderRadius: 12, background: t.input, border: `1px solid ${t.border}` }}>
             <User style={{ width: 16, height: 16, color: t.muted }} />
             <span className="flex-1 truncate" style={{ fontSize: 13, fontWeight: 700 }}>{p.customerName}</span>
-            <button type="button" onClick={p.onClearCustomer} style={{ color: t.muted }} title={tr("إزالة الزبون")}><X style={{ width: 16, height: 16 }} /></button>
+            <button type="button" onClick={() => { p.onClearCustomer(); setCustomerOpen(false); }} style={{ color: t.muted }} title={tr("إزالة الزبون")}><X style={{ width: 16, height: 16 }} /></button>
           </div>
         ) : customerOpen ? (
           <div className="flex items-center gap-2">
