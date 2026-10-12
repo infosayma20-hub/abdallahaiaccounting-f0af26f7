@@ -176,14 +176,14 @@ const ReturnCreatePage = ({ returnType }: Props) => {
   });
 
   useEffect(() => {
-    if (!ownerId || !pilot) return;
+    if (!ownerId) return;
     let active = true;
     Promise.all([
       supabase.from("warehouses").select("id,name").eq("user_id", ownerId).order("name"),
       supabase.from("accounts").select("account_code,account_name,parent_code,system_role,currency").eq("user_id", ownerId).eq("is_active", true),
     ]).then(([wh, acc]) => { if (active) { setWarehouses(wh.data || []); setAccounts(acc.data || []); } });
     return () => { active = false; };
-  }, [ownerId, pilot]);
+  }, [ownerId]);
 
   useEffect(() => { commandKeyRef.current = crypto.randomUUID(); }, [recordId, returnType]);
 
@@ -387,6 +387,10 @@ const ReturnCreatePage = ({ returnType }: Props) => {
       toast({ title: "تأكد من اختيار الصنف وتعبئة الكمية والسعر لكل بند", variant: "destructive" });
       return false;
     }
+    if (!asDraft && form.refundMethod !== "credit" && !form.refundAccountCode) {
+      toast({ title: form.refundMethod === "cash" ? "يرجى اختيار الصندوق" : "يرجى اختيار حساب البنك", variant: "destructive" });
+      return false;
+    }
     if (!asDraft && summary.total <= 0) {
       toast({ title: "إجمالي المردود يجب أن يكون أكبر من صفر", variant: "destructive" });
       return false;
@@ -509,11 +513,12 @@ const ReturnCreatePage = ({ returnType }: Props) => {
         // Accounting entry
         // Sales Return:    Dr 4150 Sales Returns       Cr 1130 AR (or 1110 cash / 1120 bank)
         // Purchase Return: Dr 2110 AP (or cash/bank)   Cr 5150 Purchase Returns
-        const cashCode = "1110";
+        const cashCode = form.refundAccountCode || "1110";
         // Resolve a leaf bank code (never the parent 1120).
-        const bankCode = await (
+        let bankCode = await (
           await import("@/lib/resolveBankCode")
         ).resolveBankAccountCode(ownerId);
+        if (form.refundAccountCode && form.refundMethod === "bank") bankCode = form.refundAccountCode;
         const arCode = "1130";
         const apCode = "2110";
 
@@ -742,7 +747,7 @@ const ReturnCreatePage = ({ returnType }: Props) => {
       )}
 
       {/* Header data */}
-      <section className="lg:col-span-8 border border-border rounded-lg bg-background">
+      <section className="lg:col-span-12 lg:order-1 border border-border rounded-lg bg-background">
         <CardHeader className="border-b border-border py-3"><CardTitle className="text-sm">بيانات المردود</CardTitle></CardHeader>
         <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-4">
           <div className="space-y-1">
@@ -874,7 +879,7 @@ const ReturnCreatePage = ({ returnType }: Props) => {
             )}
           </div>
 
-          {pilot && form.refundMethod !== "credit" && <div className="space-y-1"><Label>حساب {form.refundMethod === "cash" ? "الصندوق" : "البنك"}</Label><Select dir="rtl" value={form.refundAccountCode} disabled={readonly} onValueChange={v => setForm(p => ({ ...p, refundAccountCode: v }))}><SelectTrigger><SelectValue placeholder="اختر الحساب الفرعي..." /></SelectTrigger><SelectContent>{refundAccounts.map(a => <SelectItem key={a.account_code} value={a.account_code}>{a.account_code} — {a.account_name}</SelectItem>)}</SelectContent></Select></div>}
+          {form.refundMethod !== "credit" && <div className="space-y-1"><Label>{form.refundMethod === "cash" ? "الصندوق" : "حساب البنك"} <span className="text-destructive">*</span></Label><Select dir="rtl" value={form.refundAccountCode} disabled={readonly} onValueChange={v => setForm(p => ({ ...p, refundAccountCode: v }))}><SelectTrigger><SelectValue placeholder="اختر الحساب الفرعي..." /></SelectTrigger><SelectContent>{refundAccounts.map(a => <SelectItem key={a.account_code} value={a.account_code}>{a.account_code} — {a.account_name}</SelectItem>)}</SelectContent></Select></div>}
           {pilot && warehouses.length > 0 && <div className="space-y-1"><Label>المستودع</Label><Select dir="rtl" value={form.warehouseId || "default"} disabled={readonly || !!form.linkedInvoiceId} onValueChange={v => setForm(p => ({ ...p, warehouseId: v === "default" ? null : v }))}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="default">المستودع الافتراضي</SelectItem>{warehouses.map(w => <SelectItem key={w.id} value={w.id}>{w.name}</SelectItem>)}</SelectContent></Select></div>}
           <div className="space-y-1 sm:col-span-2">
             <Label>ملاحظات</Label>
@@ -883,12 +888,12 @@ const ReturnCreatePage = ({ returnType }: Props) => {
         </CardContent>
       </section>
 
-      <div className="lg:col-span-12 lg:order-3 min-w-0">
+      <div className="lg:col-span-12 lg:order-2 min-w-0">
         <ReturnItemsEditor items={form.items} products={products} isSales={isSales} readonly={readonly} linked={!!form.linkedInvoiceId} taxEnabled={taxEnabled} inclusive={pilot && form.taxInclusive} allowPercent={pilot} onUpdate={updateItem} onAdd={addItem} onRemove={removeItem} />
       </div>
 
       {/* Summary */}
-      <aside className="lg:col-span-4 lg:order-2 self-start lg:sticky lg:top-20 border border-border rounded-lg bg-background">
+      <aside className="lg:col-span-5 lg:col-start-8 lg:order-3 self-start border border-border rounded-lg bg-background">
         <CardContent className="p-4">
           <div className="grid grid-cols-2 gap-4 text-sm">
             <div>
