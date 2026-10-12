@@ -42,6 +42,7 @@ export default function PurchaseModal({ open, onOpenChange, dataOwnerId, userId,
   const [notes, setNotes] = useState("");
   const [saving, setSaving] = useState(false);
   const [affectInventory, setAffectInventory] = useState(true);
+  const [idemKey, setIdemKey] = useState(() => `POS-PUR-${crypto.randomUUID()}`);
 
   // New supplier
   const [savingSupplier, setSavingSupplier] = useState(false);
@@ -49,6 +50,7 @@ export default function PurchaseModal({ open, onOpenChange, dataOwnerId, userId,
 
   useEffect(() => {
     if (!open) return;
+    if (!canPayCash) setPaymentType("credit");
     Promise.all([
       supabase.from("contacts").select("id, contact_name, phone").eq("user_id", dataOwnerId).eq("contact_type", "مورد").eq("is_active", true).neq("is_archived", true).order("contact_name"),
       fetchAllRows<any>((from, to) =>
@@ -72,63 +74,20 @@ export default function PurchaseModal({ open, onOpenChange, dataOwnerId, userId,
     if (qty <= 0 || price <= 0) { toast.error("أدخل الكمية وسعر الوحدة"); return; }
     if (paymentType === "cash" && !canPayCash) { toast.error("ليس لديك صلاحية الدفع نقداً"); return; }
 
+    if (!sessionId) { toast.error("افتح وردية أولاً"); return; }
     setSaving(true);
     try {
-      // 1. Create purchase record
-      await supabase.from("pos_purchases").insert({
-        user_id: dataOwnerId,
-        supplier_id: selectedSupplier.id,
-        product_id: noProduct ? null : selectedProduct?.id || null,
-        quantity: qty,
-        unit_price: price,
-        total_amount: totalAmount,
-        payment_type: paymentType,
-        notes,
-        shift_id: sessionId || null,
-        created_by: userId,
+      // كل شيء ذري على الخادم: الصلاحيات، حساب صندوق الوردية/ذمة المورد، المخزون والقيد
+      const { data, error } = await supabase.rpc("pos_record_purchase_v1" as any, {
+        p_data_owner: dataOwnerId, p_session_id: sessionId, p_supplier_id: selectedSupplier.id,
+        p_product_id: noProduct ? null : selectedProduct?.id || null,
+        p_quantity: qty, p_unit_price: price, p_payment_type: paymentType,
+        p_affect_inventory: !!(selectedProduct && !noProduct && affectInventory && canAffectInventory),
+        p_notes: notes, p_idempotency_key: idemKey,
       });
-
-      // 2. If product selected and affect inventory
-      if (selectedProduct && affectInventory && canAffectInventory) {
-        await supabase.from("pos_inventory_movements").insert({
-          user_id: dataOwnerId,
-          product_id: selectedProduct.id,
-          quantity: qty,
-          type: "purchase_in",
-          notes: `شراء من ${selectedSupplier.contact_name}`,
-          shift_id: sessionId || null,
-          created_by: userId,
-        });
-        // products.quantity is updated by the DB from stock_movements
-        const { error: smErr } = await supabase.from("stock_movements").insert({
-          user_id: dataOwnerId,
-          product_id: selectedProduct.id,
-          quantity: qty,
-          movement_type: "وارد",
-          reference_type: "pos_purchase_in",
-          reference_note: "مشتريات من الكاشير",
-        } as any);
-        if (smErr) throw smErr;
-      }
-
-      // 3. Journal entry
-      const creditCode = paymentType === "cash" ? "1110" : "2110"; // صندوق أو ذمم موردين
-      await supabase.from("transactions").insert({
-        user_id: dataOwnerId,
-        transaction_date: new Date().toISOString().split("T")[0],
-        description: `مشتريات - ${selectedSupplier.contact_name}${selectedProduct ? ` - ${selectedProduct.name}` : ""}`,
-        debit_account_code: "5110",
-        credit_account_code: creditCode,
-        amount: totalAmount,
-        currency: "شيكل",
-        transaction_type: paymentType === "cash" ? "purchase_cash" : "purchase_credit",
-        contact_id: selectedSupplier.id,
-        reference: `PUR-POS-${Date.now()}`,
-        payment_method: paymentType === "cash" ? "نقدي" : "آجل",
-        idempotency_key: `POS-PUR-${Date.now()}`,
-      });
-
-      toast.success(`تم تسجيل مشتريات بقيمة ₪${totalAmount.toFixed(2)} من ${selectedSupplier.contact_name}`);
+      if (error) throw error;
+      const total = Number((data as any)?.total ?? totalAmount);
+      toast.success(`تم تسجيل مشتريات بقيمة ₪${total.toFixed(2)} من ${selectedSupplier.contact_name}`);
       onSuccess?.();
       resetForm();
       onOpenChange(false);
@@ -147,10 +106,9 @@ export default function PurchaseModal({ open, onOpenChange, dataOwnerId, userId,
     if (existing) { setSelectedSupplier(existing); setSupplierSearch(existing.contact_name); setShowSupplierDD(false); return; }
     setSavingSupplier(true);
     try {
-      const { data, error } = await supabase.from("contacts").insert({
-        user_id: dataOwnerId, contact_name: name, contact_type: "مورد", is_active: true,
-      }).select("id, contact_name, phone").single();
+      const { data: res, error } = await supabase.rpc("pos_create_supplier_v1" as any, { p_data_owner: dataOwnerId, p_name: name });
       if (error) throw error;
+      const data = res as any as Supplier;
       setSuppliers(prev => [...prev, data]);
       setSelectedSupplier(data); setSupplierSearch(data.contact_name); setShowSupplierDD(false);
       toast.success(`تمت إضافة المورد «${data.contact_name}»`);
@@ -168,9 +126,7 @@ export default function PurchaseModal({ open, onOpenChange, dataOwnerId, userId,
     setSavingProduct(true);
     try {
       const buy = parseFloat(unitPrice) || 0;
-      const { data, error } = await supabase.from("products").insert({
-        user_id: dataOwnerId, name, buy_price: buy, is_pos_available: false,
-      } as any).select("id, name, buy_price, quantity, unit").single();
+      const { data, error } = await supabase.rpc("pos_create_purchase_product_v1" as any, { p_data_owner: dataOwnerId, p_name: name, p_buy_price: buy });
       if (error) throw error;
       const p = data as any as ProductItem;
       setProducts(prev => [...prev, p]);
@@ -183,8 +139,8 @@ export default function PurchaseModal({ open, onOpenChange, dataOwnerId, userId,
 
   const resetForm = () => {
     setSelectedSupplier(null); setSupplierSearch(""); setSelectedProduct(null); setProductSearch("");
-    setQuantity(""); setUnitPrice(""); setPaymentType("cash"); setNotes(""); setNoProduct(false);
-    setAffectInventory(true);
+    setQuantity(""); setUnitPrice(""); setPaymentType(canPayCash ? "cash" : "credit"); setNotes(""); setNoProduct(false);
+    setAffectInventory(true); setIdemKey(`POS-PUR-${crypto.randomUUID()}`);
   };
 
   return (
@@ -301,8 +257,8 @@ export default function PurchaseModal({ open, onOpenChange, dataOwnerId, userId,
             <Select value={paymentType} onValueChange={setPaymentType}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="cash">نقدي</SelectItem>
-                <SelectItem value="credit">آجل</SelectItem>
+                {canPayCash && <SelectItem value="cash">نقدي من صندوق الوردية</SelectItem>}
+                <SelectItem value="credit">آجل على ذمة المورد</SelectItem>
               </SelectContent>
             </Select>
           </div>
