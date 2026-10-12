@@ -19,10 +19,10 @@ export async function readCashierDiscountPermission(owner: string) {
   const { data: { user }, error: authError } = await supabase.auth.getUser();
   if (authError || !user) return null;
   const { data: cashier, error } = await supabase.from("pos_users")
-    .select("id,user_id,full_name").eq("auth_user_id", user.id).eq("user_id", owner).maybeSingle();
+    .select("id,user_id,name").eq("auth_user_id", user.id).eq("user_id", owner).eq("is_active", true).maybeSingle();
   if (error || !cashier) return null;
   const { data: permission, error: permissionError } = await supabase.from("pos_user_permissions")
     .select("can_apply_discount,max_discount_percent").eq("pos_user_id", cashier.id).maybeSingle();
   if (permissionError || !permission?.can_apply_discount) return null;
-  return { userId: user.id, name: cashier.full_name || "الكاشير", maxPercent: Number(permission.max_discount_percent ?? 100) };
+  return { userId: user.id, name: cashier.name || "الكاشير", maxPercent: Number(permission.max_discount_percent ?? 100) };
 }

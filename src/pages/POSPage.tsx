@@ -56,6 +56,7 @@ import CallCenterDispatchDialog from "@/components/pos/CallCenterDispatchDialog"
 import { extractBaseNote } from "@/lib/order-note-utils";
 import PendingOrdersPanel from "@/components/pos/PendingOrdersPanel";
 import ManagerDiscountDialog, { type ManagerDiscountApproved } from "@/components/pos/ManagerDiscountDialog";
+import { CASHIER_DISCOUNT_OWNER } from "@/lib/pos/cashier-discount";
 import DispatchedOrdersLog from "@/components/pos/DispatchedOrdersLog";
 import AppOrdersInboxPanel from "@/components/pos/AppOrdersInboxPanel";
 import ScheduleOrderDialog from "@/components/pos/ScheduleOrderDialog";
@@ -708,7 +709,7 @@ const POSPage = ({ variant = "v1" }: { variant?: "v1" | "v2" } = {}) => {
       return;
     }
     updateActiveOrder(o => ({ ...o, orderDiscount: d }));
-  }, [updateActiveOrder]);
+  }, [updateActiveOrder, posFeatPerm]);
 
   const setOrderDiscountType = useCallback((t: "fixed" | "percent", opts?: { bypassPermission?: boolean }) => {
     if (!opts?.bypassPermission && !posFeatPerm.can("sell", "discount")) {
@@ -716,7 +717,7 @@ const POSPage = ({ variant = "v1" }: { variant?: "v1" | "v2" } = {}) => {
       return;
     }
     updateActiveOrder(o => ({ ...o, orderDiscountType: t }));
-  }, [updateActiveOrder]);
+  }, [updateActiveOrder, posFeatPerm]);
 
   const setOrderNote = useCallback((n: string) => {
     updateActiveOrder(o => ({ ...o, orderNote: n }));
@@ -11738,7 +11739,7 @@ const POSPage = ({ variant = "v1" }: { variant?: "v1" | "v2" } = {}) => {
 
       <ManagerDiscountDialog
         open={showManagerDiscountDialog}
-        cashierPermissionOwner={!isAdmin && (activeBranchOwnerId || dataOwnerId) === "9e4d10d9-95df-4acf-9cec-ad41099fcbd4" && posPerms.can_apply_discount && posFeatPerm.can("sell", "discount") ? (activeBranchOwnerId || dataOwnerId) : null}
+        cashierPermissionOwner={!isAdmin && (activeBranchOwnerId || dataOwnerId) === CASHIER_DISCOUNT_OWNER && posFeatPerm.can("sell", "discount") ? (activeBranchOwnerId || dataOwnerId) : null}
         onClose={() => setShowManagerDiscountDialog(false)}
         onApproved={(data) => {
           setManagerDiscountMeta(data.authorizationKind === "cashier" ? null : data);
