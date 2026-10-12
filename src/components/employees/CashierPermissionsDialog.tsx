@@ -43,6 +43,15 @@ const GROUPS: { title: string; items: Item[] }[] = [
   ]},
 ];
 const ALL_KEYS = GROUPS.flatMap(g => g.items.map(i => i.key));
+// ما تطبّقه نقطة البيع فعليًا عند عدم وجود صلاحيات محفوظة للكاشير (POSPage) — نعرضه كما هو حتى لا تُضلّل الشاشة
+const POS_FALLBACK: Record<string, boolean> = {
+  can_open_register: true, can_close_register: true, can_view_profits: false,
+  can_apply_discount: true, can_edit_prices: true, allow_credit_sale: true, open_cash_drawer: false, can_remove_cart_items: true,
+  can_view_invoice_history: true, can_edit_invoices: true, can_cancel_invoices: true, print_invoices: true,
+  manage_products_categories: false, can_add_inventory: false, can_create_product: false, can_record_purchases: false,
+  can_pay_purchases_cash: false, can_create_supplier: false, can_affect_inventory_on_purchase: false,
+  can_record_expenses: false, can_create_expense_category: false,
+};
 
 export default function CashierPermissionsDialog({
   open, onOpenChange, posUserId, employeeName,
@@ -65,10 +74,9 @@ export default function CashierPermissionsDialog({
       setOwner(pu || null);
       setRowExists(!!perm);
       const v: Record<string, boolean> = {};
-      ALL_KEYS.forEach(k => { v[k] = !!(perm as any)?.[k]; });
-      if (!perm) { v.can_open_register = true; v.can_close_register = true; v.can_view_invoice_history = true; v.can_remove_cart_items = true; }
+      ALL_KEYS.forEach(k => { v[k] = perm ? !!(perm as any)[k] : !!POS_FALLBACK[k]; });
       setVals(v);
-      setMaxDisc(String((perm as any)?.max_discount_percent ?? 0));
+      setMaxDisc(String(perm ? ((perm as any).max_discount_percent ?? 0) : 100));
       setLoading(false);
     })();
   }, [open, posUserId]);
@@ -100,6 +108,9 @@ export default function CashierPermissionsDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent dir="rtl" className="max-w-3xl w-[95vw] max-h-[90vh] overflow-y-auto">
         <DialogHeader><DialogTitle>صلاحيات الكاشير — {employeeName}</DialogTitle></DialogHeader>
+        {!loading && !rowExists && (
+          <p className="text-xs rounded-md border border-border bg-muted/40 p-2">لا توجد صلاحيات محفوظة لهذا الكاشير؛ المعروض هو ما يعمل به حاليًا افتراضيًا. اضبطها واحفظ لتثبيتها.</p>
+        )}
         {loading ? <div className="py-10 flex justify-center"><Loader2 className="w-5 h-5 animate-spin" /></div> : (
           <div className="grid sm:grid-cols-2 gap-3">
             {GROUPS.map(g => (
