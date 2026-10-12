@@ -221,10 +221,12 @@ const AccountFormPage = ({ mode }: AccountFormPageProps) => {
   // Validate code
   useEffect(() => {
     if (!code) { setCodeError(""); return; }
-    if (!/^\d{3,10}$/.test(code)) { setCodeError("يجب أن يكون 3-10 أرقام"); return; }
+    // الحسابات القديمة قد تحمل رقمًا بصيغة قديمة (مثل 5500-006) — لا نمنع تعديل الاسم ما دام الرقم لم يتغير
+    const unchangedLegacy = mode === "edit" && existingAccount && code === existingAccount.account_code;
+    if (!unchangedLegacy && !/^\d{3,10}$/.test(code)) { setCodeError("يجب أن يكون 3-10 أرقام"); return; }
     const exists = accounts.some(a => a.account_code === code && a.id !== accountId);
     setCodeError(exists ? "هذا الرمز مستخدم" : "");
-  }, [code, accounts, accountId]);
+  }, [code, accounts, accountId, mode, existingAccount]);
 
   const eligibleParents = useMemo(() => {
     if (!accountType) return accounts;
