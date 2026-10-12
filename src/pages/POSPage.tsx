@@ -3070,6 +3070,10 @@ const POSPage = ({ variant = "v1" }: { variant?: "v1" | "v2" } = {}) => {
   const handleQuickAddCustomer = async (overrideName?: string) => {
     const nameToUse = overrideName || newCustomerName;
     if (!nameToUse.trim() || !dataOwnerId) return;
+    if (isV2 && newCustomerPhone.trim().length < 9) {
+      toast.error("أدخل رقم جوال الزبون (9 أرقام على الأقل)");
+      return;
+    }
     setSavingCustomer(true);
     try {
       const phoneToUse = newCustomerPhone.trim() || null;
@@ -7829,7 +7833,7 @@ const POSPage = ({ variant = "v1" }: { variant?: "v1" | "v2" } = {}) => {
                     type="tel"
                     inputMode="numeric"
                     autoComplete="off"
-                    placeholder={pt("رقم الهاتف (اختياري)")}
+                    placeholder={pt(isV2 ? "رقم الجوال" : "رقم الهاتف (اختياري)")}
                     value={newCustomerPhone}
                     onChange={e => setNewCustomerPhone(e.target.value.replace(/\D/g, ""))}
                     onMouseDown={e => e.stopPropagation()}
@@ -8099,6 +8103,7 @@ const POSPage = ({ variant = "v1" }: { variant?: "v1" | "v2" } = {}) => {
         activeType={v2ActiveType}
         onOrderType={v2SelectOrderType}
         customerName={customerName}
+        customerLinked={!!(activeOrder?.posCustomerId || activeOrder?.customerId)}
         onClearCustomer={() => { setCustomerSearch(""); setCustomerName("", null, "", null); }}
         customerNode={customerSearchNode}
         lines={cart as any}
