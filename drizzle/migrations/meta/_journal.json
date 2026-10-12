@@ -729,6 +729,13 @@
       "when": 1791652655504,
       "tag": "0103_stock_count_barcode_edit",
       "breakpoints": true
+    },
+    {
+      "idx": 104,
+      "version": "7",
+      "when": 1791803336603,
+      "tag": "0104_migration",
+      "breakpoints": true
     }
   ]
 }
