@@ -8,19 +8,16 @@ import { Input } from "@/components/ui/input";
 import { Loader2 } from "lucide-react";
 
 type Item = { key: string; label: string; dependsOn?: string };
-// نفس مفاتيح وتسميات شاشة إدارة مستخدمي نقطة البيع — مصدر واحد في جدول pos_user_permissions
+// فقط الصلاحيات المطبّقة فعليًا في نقطة البيع — نفس مفاتيح وتسميات شاشة إدارة مستخدمي نقطة البيع — مصدر واحد في جدول pos_user_permissions
 const GROUPS: { title: string; items: Item[] }[] = [
   { title: "الوردية", items: [
     { key: "can_open_register", label: "فتح الوردية" },
     { key: "can_close_register", label: "إغلاق الوردية" },
-    { key: "can_view_shift_details", label: "مشاهدة تفاصيل الوردية" },
     { key: "can_view_profits", label: "مشاهدة الأرباح" },
   ]},
   { title: "البيع", items: [
     { key: "can_apply_discount", label: "تطبيق خصم" },
     { key: "can_edit_prices", label: "تعديل الأسعار" },
-    { key: "can_void_sales", label: "إلغاء عمليات بيع" },
-    { key: "can_refund", label: "استرجاع" },
     { key: "allow_credit_sale", label: "الدفع المؤجل / الدين" },
     { key: "open_cash_drawer", label: "فتح درج الكاش" },
     { key: "can_remove_cart_items", label: "حذف أصناف من السلة" },
@@ -31,12 +28,8 @@ const GROUPS: { title: string; items: Item[] }[] = [
     { key: "can_cancel_invoices", label: "إلغاء الفواتير", dependsOn: "can_view_invoice_history" },
     { key: "print_invoices", label: "طباعة الفواتير" },
   ]},
-  { title: "الأصناف والزبائن", items: [
+  { title: "الأصناف", items: [
     { key: "manage_products_categories", label: "تعريف منتجات وتصنيفات" },
-    { key: "edit_products", label: "تعديل المنتجات" },
-    { key: "view_inventory", label: "مشاهدة المخزون" },
-    { key: "add_customer", label: "إضافة زبون جديد" },
-    { key: "view_customers", label: "مشاهدة بيانات الزبائن" },
   ]},
   { title: "المخزون والمشتريات والمصاريف", items: [
     { key: "can_add_inventory", label: "إدخال بضاعة للمخزون" },
