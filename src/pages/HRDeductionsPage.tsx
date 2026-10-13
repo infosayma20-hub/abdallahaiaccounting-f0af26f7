@@ -1032,8 +1032,8 @@ export default function HRDeductionsPage() {
   /** نطاق شهر الخصم المثبَّت (أول/آخر يوم بالشهر) — البند المثبَّت يتبع شهر خصمه
       في كل أنماط العرض (شهر كامل أو نطاق مخصص) حتى تتطابق الشاشة بين كل الحسابات. */
   const getPinnedRange = useCallback(
-    (r: { id: string; employeeName: string; amount: number; date: string; reference?: string }) => {
-      const key = getPinnedMonth(r);
+    (r: { id: string; employeeName: string; amount: number; date: string; reference?: string; carriedMonth?: string | null }) => {
+      const key = r.carriedMonth || getPinnedMonth(r);
       if (!key) return null;
       const [y, m] = key.split("-").map(Number);
       if (!y || !m) return null;
@@ -1428,8 +1428,14 @@ export default function HRDeductionsPage() {
       .map((r) => {
         const bucket = bucketOf(r);
         const adj = bucket === "shortage" || bucket === "surplus" ? findAdjustment(r) : undefined;
+        // سلف الملكي المرحّلة (مثل 1–10/10 → راتب 9) تُثبَّت على شهر الراتب الذي خُصمت منه
+        // بدل حذفها: تظهر بشهرها الصحيح ولا تتكرر بالشهر التالي.
+        const carriedMonth = isMalaky
+          ? carriedAdvancePayrollMonth({ movement_date: r.date, category: bucket, description: `${r.type} ${r.description}` })
+          : null;
         return {
           ...r,
+          carriedMonth,
           excluded: !!findExclusion(r),
           amount: adj ? adj.adjusted : r.amount,
           originalAmount: r.amount,
@@ -1439,11 +1445,6 @@ export default function HRDeductionsPage() {
         };
       })
       .filter((r) => showExcluded || !r.excluded)
-      .filter((r) => !isMalaky || !isCarriedOverJuneAdvance({
-          movement_date: r.date,
-          category: bucketOf(r),
-          description: `${r.type} ${r.description}`,
-        }))
       .sort((a, b) => (b.date || "").localeCompare(a.date || "") || b.id.localeCompare(a.id));
   }, [manualDeductions, employeeTransactions, latestVoucherByTransactionId, paymentVouchers, posTransactions, employeeSettlements, subledgerDebits, surplusTransactions, advances, loanInstallments, financialMovements, movementCoveredTxIds, employeeDirectory, branchMap, dateTo, company?.name, excludedMap, showExcluded, findAdjustment, bucketOf]);
 
