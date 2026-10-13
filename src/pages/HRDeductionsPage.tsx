@@ -28,7 +28,7 @@ import { setNextExportBranding } from "@/lib/excel-export";
 import { useCompany } from "@/hooks/useCompanyContext";
 import { printVoucherList, type PrintListColumn } from "@/components/print/buildVoucherListPrint";
 import { esc } from "@/lib/print/openPrintWindow";
-import { hasExplicitAdvanceEvidence, carriedAdvancePayrollMonth, isLoanDisbursement, isSalaryReturnEntry, isStructuredDeductionCategory } from "@/lib/hr/deductionAuditRules";
+import { hasExplicitAdvanceEvidence, carriedAdvancePayrollMonth, isExplicitSalaryPayoutText, isLoanDisbursement, isSalaryReturnEntry, isStructuredDeductionCategory } from "@/lib/hr/deductionAuditRules";
 
 const fmtNum = (v: number) =>
   new Intl.NumberFormat("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(Number(v || 0));
@@ -132,9 +132,7 @@ const isSalaryPayout = (description: string = "", reference: string = "", catego
 
   const ref = String(reference || "").trim();
   // صرف راتب/رواتب صريح = دفعة راتب وليست خصماً مهما كان التصنيف
-  const isExplicitSalaryPayout =
-    /(صرف\s*رواتب|صرف\s*رات[بة]\s*شهر|رواتب\s*شهر\s*\d+)/.test(d) &&
-    !/(خصم|المخصوم|تخصم|خصمها)/.test(d);
+  const isExplicitSalaryPayout = isExplicitSalaryPayoutText(d);
   if (isExplicitSalaryPayout) return true;
   if (isStructuredDeductionCategory(category)) return false;
   if (/^BPV-2026-(0011|0013)$/.test(ref)) return true;
@@ -1033,7 +1031,8 @@ export default function HRDeductionsPage() {
       في كل أنماط العرض (شهر كامل أو نطاق مخصص) حتى تتطابق الشاشة بين كل الحسابات. */
   const getPinnedRange = useCallback(
     (r: { id: string; employeeName: string; amount: number; date: string; reference?: string; carriedMonth?: string | null }) => {
-      const key = r.carriedMonth || getPinnedMonth(r);
+      // شهر الخصم المختار صراحة في السند يغلب قاعدة الترحيل التلقائية (1–10/10 → راتب 9)
+      const key = getPinnedMonth(r) || r.carriedMonth;
       if (!key) return null;
       const [y, m] = key.split("-").map(Number);
       if (!y || !m) return null;
