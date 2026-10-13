@@ -64,6 +64,17 @@ export function isSalaryReturnEntry(description?: string | null): boolean {
 }
 
 /**
+ * صرف راتب/رواتب صريح = دفعة راتب وليست خصماً مهما كان التصنيف.
+ * يشمل اسم فرع بين «رواتب» و«شهر» مثل «رواتب فيصل شهر9».
+ */
+export function isExplicitSalaryPayoutText(description?: string | null): boolean {
+  const d = String(description || "");
+  if (/(خصم|المخصوم|تخصم|خصمها)/.test(d)) return false;
+  return /(صرف\s*رواتب|صرف\s*رات[بة]\s*شهر|رواتب\s*شهر\s*\d+|رواتب\s+[^\s\d]+(?:\s+[^\s\d]+)?\s+شهر\s*\d+)/.test(d);
+}
+
+
+/**
  * صرف أصل القرض الحسن ليس خصماً — الخصم يكون بالقسط الشهري فقط.
  * (source === "قرض حسن" يأتي من مولّد الأقساط loan_installments فيُستثنى من هذا المنع.)
  */

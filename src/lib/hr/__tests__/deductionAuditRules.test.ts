@@ -70,3 +70,16 @@ describe("carried advances payroll month", () => {
     expect(carriedAdvancePayrollMonth({ movement_date: "2026-07-02", category: "advance" })).toBe("2026-06");
   });
 });
+
+import { isExplicitSalaryPayoutText } from "../deductionAuditRules";
+describe("explicit salary payouts", () => {
+  it("treats a branch salary payout as salary, not an advance", () => {
+    expect(isExplicitSalaryPayoutText("رواتب فيصل شهر9 - ذمم موظف - ايسر محمود ابراهيم مرشد")).toBe(true);
+    expect(isExplicitSalaryPayoutText("رواتب شهر 9")).toBe(true);
+  });
+  it("keeps real advances and deductions", () => {
+    expect(isExplicitSalaryPayoutText("سلفه")).toBe(false);
+    expect(isExplicitSalaryPayoutText("سلفة - ذمم موظف - ايسر محمود ابراهيم مرشد")).toBe(false);
+    expect(isExplicitSalaryPayoutText("خصم من رواتب فيصل شهر9")).toBe(false);
+  });
+});
