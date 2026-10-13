@@ -1,9 +1,9 @@
 export const CARRIED_ADVANCE_FROM = "2026-07-01";
 export const CARRIED_ADVANCE_TO = "2026-07-08";
 /** نوافذ سلف الملكي المخصومة على راتب الشهر السابق (لا تُخصم مرة ثانية). */
-export const CARRIED_ADVANCE_WINDOWS: ReadonlyArray<{ from: string; to: string }> = [
-  { from: CARRIED_ADVANCE_FROM, to: CARRIED_ADVANCE_TO }, // مخصومة من راتب 6
-  { from: "2026-10-01", to: "2026-10-10" }, // مخصومة من راتب 9
+export const CARRIED_ADVANCE_WINDOWS: ReadonlyArray<{ from: string; to: string; payrollMonth: string }> = [
+  { from: CARRIED_ADVANCE_FROM, to: CARRIED_ADVANCE_TO, payrollMonth: "2026-06" }, // مخصومة من راتب 6
+  { from: "2026-10-01", to: "2026-10-10", payrollMonth: "2026-09" }, // مخصومة من راتب 9
 ];
 
 const ADVANCE_TEXT = /سلفة|سلف|دفعة\s*(?:موظف|موظفين)?/;
@@ -32,11 +32,19 @@ export function isAdvanceMovement(movement: DeductionMovement): boolean {
     || ADVANCE_TEXT.test(String(movement.description || ""));
 }
 
+/**
+ * شهر الراتب الذي خُصمت منه سلفة مرحّلة (1–8/7 → 6، 1–10/10/2026 → 9) بصيغة YYYY-MM.
+ * السلفة تُعرض ضمن ذلك الشهر فقط، ولا تظهر مرة ثانية بالشهر التالي.
+ */
+export function carriedAdvancePayrollMonth(movement: DeductionMovement): string | null {
+  if (!isAdvanceMovement(movement)) return null;
+  const date = String(movement.movement_date || "").slice(0, 10);
+  return CARRIED_ADVANCE_WINDOWS.find((w) => date >= w.from && date <= w.to)?.payrollMonth ?? null;
+}
+
 /** سلف الملكي المصروفة 1–8/7 (راتب 6) و1–10/10/2026 (راتب 9) لا تُخصم مرة ثانية. */
 export function isCarriedOverJuneAdvance(movement: DeductionMovement): boolean {
-  if (!isAdvanceMovement(movement)) return false;
-  const date = String(movement.movement_date || "").slice(0, 10);
-  return CARRIED_ADVANCE_WINDOWS.some((w) => date >= w.from && date <= w.to);
+  return carriedAdvancePayrollMonth(movement) !== null;
 }
 
 /** أولوية تصنيف السلفة تمنع أسماء مثل «حمزة مخالفة» من تحويل السلفة إلى مخالفة. */
