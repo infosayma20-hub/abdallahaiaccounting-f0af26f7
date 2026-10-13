@@ -268,6 +268,14 @@ export const navigationSections: NavSection[] = [
             ],
           },
           {
+            groupLabel: "سندات البضاعة",
+            children: [
+              { label: "سندات المخزون", path: "/stock-documents" },
+              { label: "سند إدخال بضاعة", path: "/stock-documents/new?type=in" },
+              { label: "سند إخراج بضاعة", path: "/stock-documents/new?type=out" },
+            ],
+          },
+          {
             groupLabel: "الحركات والتقييم",
             children: [
               { label: "حركات المخزون", path: "/inventory-movements" },
