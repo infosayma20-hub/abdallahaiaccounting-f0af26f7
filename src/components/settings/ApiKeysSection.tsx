@@ -9,6 +9,8 @@ import {
 } from "@/components/ui/table";
 import { Plus, Copy, Ban, Smartphone, RefreshCw, CheckCircle2 } from "lucide-react";
 import { SettingsSection } from "./shell/SettingsSection";
+import posDirectDoc from "@/assets/docs/Unify_Orders_API_POS_Direct.docx.asset.json";
+import callCenterDoc from "@/assets/docs/Unify_Orders_API_Call_Center.docx.asset.json";
 
 interface ApiKeyRow {
   id: string;
@@ -163,8 +165,10 @@ const ApiKeysSection = () => {
             ملف التوثيق للشركات ({routing === "pos_direct" ? "مباشرة لنقطة البيع" : "عبر الكول سنتر"}):
           </span>
           <a
-            href={routing === "pos_direct" ? "/docs/Unify_Orders_API_POS_Direct.docx" : "/docs/Unify_Orders_API_Call_Center.docx"}
-            download
+            href={routing === "pos_direct" ? posDirectDoc.url : callCenterDoc.url}
+            download={routing === "pos_direct" ? "Unify_Orders_API_POS_Direct.docx" : "Unify_Orders_API_Call_Center.docx"}
+            target="_blank"
+            rel="noopener noreferrer"
             className="font-semibold text-primary underline underline-offset-2"
           >
             تنزيل الملف (Word)
