@@ -9790,6 +9790,7 @@ export type Database = {
           key_prefix: string
           label: string
           last_used_at: string | null
+          order_routing: string
           updated_at: string
           user_id: string
         }
@@ -9802,6 +9803,7 @@ export type Database = {
           key_prefix: string
           label: string
           last_used_at?: string | null
+          order_routing?: string
           updated_at?: string
           user_id: string
         }
@@ -9814,6 +9816,7 @@ export type Database = {
           key_prefix?: string
           label?: string
           last_used_at?: string | null
+          order_routing?: string
           updated_at?: string
           user_id?: string
         }
