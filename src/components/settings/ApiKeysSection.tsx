@@ -158,6 +158,20 @@ const ApiKeysSection = () => {
           </Button>
         </div>
 
+        <div className="flex flex-wrap items-center gap-2 rounded-md border border-border bg-muted/40 px-3 py-2 text-xs">
+          <span className="text-muted-foreground">
+            ملف التوثيق للشركات ({routing === "pos_direct" ? "مباشرة لنقطة البيع" : "عبر الكول سنتر"}):
+          </span>
+          <a
+            href={routing === "pos_direct" ? "/docs/Unify_Orders_API_POS_Direct.docx" : "/docs/Unify_Orders_API_Call_Center.docx"}
+            download
+            className="font-semibold text-primary underline underline-offset-2"
+          >
+            تنزيل الملف (Word)
+          </a>
+        </div>
+
+
         {/* Newly created key — shown once */}
         {newKey && (
           <div className="rounded-lg border-2 border-emerald-500/50 bg-emerald-500/10 p-3 space-y-2">
