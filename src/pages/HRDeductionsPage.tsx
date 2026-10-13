@@ -28,7 +28,7 @@ import { setNextExportBranding } from "@/lib/excel-export";
 import { useCompany } from "@/hooks/useCompanyContext";
 import { printVoucherList, type PrintListColumn } from "@/components/print/buildVoucherListPrint";
 import { esc } from "@/lib/print/openPrintWindow";
-import { hasExplicitAdvanceEvidence, isCarriedOverJuneAdvance, isLoanDisbursement, isSalaryReturnEntry, isStructuredDeductionCategory } from "@/lib/hr/deductionAuditRules";
+import { hasExplicitAdvanceEvidence, carriedAdvancePayrollMonth, isLoanDisbursement, isSalaryReturnEntry, isStructuredDeductionCategory } from "@/lib/hr/deductionAuditRules";
 
 const fmtNum = (v: number) =>
   new Intl.NumberFormat("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(Number(v || 0));
