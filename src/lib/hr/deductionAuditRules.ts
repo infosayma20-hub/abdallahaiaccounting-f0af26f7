@@ -1,5 +1,10 @@
 export const CARRIED_ADVANCE_FROM = "2026-07-01";
 export const CARRIED_ADVANCE_TO = "2026-07-08";
+/** نوافذ سلف الملكي المخصومة على راتب الشهر السابق (لا تُخصم مرة ثانية). */
+export const CARRIED_ADVANCE_WINDOWS: ReadonlyArray<{ from: string; to: string }> = [
+  { from: CARRIED_ADVANCE_FROM, to: CARRIED_ADVANCE_TO }, // مخصومة من راتب 6
+  { from: "2026-10-01", to: "2026-10-10" }, // مخصومة من راتب 9
+];
 
 const ADVANCE_TEXT = /سلفة|سلف|دفعة\s*(?:موظف|موظفين)?/;
 const ADVANCE_SOURCE_TYPES = new Set(["hr_advance", "advance"]);
@@ -27,11 +32,11 @@ export function isAdvanceMovement(movement: DeductionMovement): boolean {
     || ADVANCE_TEXT.test(String(movement.description || ""));
 }
 
-/** سلف الملكي المصروفة 1–8/7/2026 محسوبة على راتب شهر 6 ولا تُخصم مرة ثانية. */
+/** سلف الملكي المصروفة 1–8/7 (راتب 6) و1–10/10/2026 (راتب 9) لا تُخصم مرة ثانية. */
 export function isCarriedOverJuneAdvance(movement: DeductionMovement): boolean {
   if (!isAdvanceMovement(movement)) return false;
   const date = String(movement.movement_date || "").slice(0, 10);
-  return date >= CARRIED_ADVANCE_FROM && date <= CARRIED_ADVANCE_TO;
+  return CARRIED_ADVANCE_WINDOWS.some((w) => date >= w.from && date <= w.to);
 }
 
 /** أولوية تصنيف السلفة تمنع أسماء مثل «حمزة مخالفة» من تحويل السلفة إلى مخالفة. */

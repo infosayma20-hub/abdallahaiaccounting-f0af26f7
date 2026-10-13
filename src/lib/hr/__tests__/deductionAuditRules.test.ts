@@ -39,6 +39,13 @@ describe("HR deduction audit rules", () => {
     expect(isStructuredDeductionCategory("advance")).toBe(true);
     expect(isStructuredDeductionCategory("other")).toBe(false);
   });
+
+  it("excludes October 1–10 advances (deducted from September) but keeps October 11", () => {
+    expect(isCarriedOverJuneAdvance({ movement_date: "2026-10-01", category: "advance" })).toBe(true);
+    expect(isCarriedOverJuneAdvance({ movement_date: "2026-10-10", description: "سلفه" })).toBe(true);
+    expect(isCarriedOverJuneAdvance({ movement_date: "2026-10-11", category: "advance" })).toBe(false);
+    expect(isCarriedOverJuneAdvance({ movement_date: "2026-10-05", category: "purchase", description: "مشتريات" })).toBe(false);
+  });
 });
 describe("salary returns and loan disbursements", () => {
   it("excludes salary-return vouchers even when tagged as advance", () => {
