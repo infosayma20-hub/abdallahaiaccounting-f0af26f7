@@ -59,3 +59,14 @@ describe("salary returns and loan disbursements", () => {
     expect(isLoanDisbursement("قسط قرض حسن", "قرض حسن")).toBe(false);
   });
 });
+
+import { carriedAdvancePayrollMonth } from "../deductionAuditRules";
+describe("carried advances payroll month", () => {
+  it("pins Oct 1–10 advances to September payroll", () => {
+    expect(carriedAdvancePayrollMonth({ movement_date: "2026-10-08", category: "advance" })).toBe("2026-09");
+    expect(carriedAdvancePayrollMonth({ movement_date: "2026-10-11", category: "advance" })).toBeNull();
+  });
+  it("pins July 1–8 advances to June payroll", () => {
+    expect(carriedAdvancePayrollMonth({ movement_date: "2026-07-02", category: "advance" })).toBe("2026-06");
+  });
+});
