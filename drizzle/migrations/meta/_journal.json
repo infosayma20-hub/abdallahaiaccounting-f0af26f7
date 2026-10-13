@@ -785,6 +785,13 @@
       "when": 1791875092479,
       "tag": "0111_api_key_order_routing",
       "breakpoints": true
+    },
+    {
+      "idx": 112,
+      "version": "7",
+      "when": 1791876564877,
+      "tag": "0112_fix_product_qty_sync_root",
+      "breakpoints": true
     }
   ]
 }
