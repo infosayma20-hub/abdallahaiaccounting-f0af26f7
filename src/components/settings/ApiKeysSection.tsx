@@ -15,6 +15,7 @@ interface ApiKeyRow {
   label: string;
   key_prefix: string;
   environment?: string | null;
+  order_routing?: string | null;
   is_active: boolean;
   last_used_at: string | null;
   created_at: string;
@@ -28,6 +29,7 @@ const ApiKeysSection = () => {
   const [creating, setCreating] = useState(false);
   const [label, setLabel] = useState("");
   const [environment, setEnvironment] = useState<"live" | "test">("live");
+  const [routing, setRouting] = useState<"call_center" | "pos_direct">("call_center");
   const [newKey, setNewKey] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [revoking, setRevoking] = useState<string | null>(null);
@@ -65,7 +67,7 @@ const ApiKeysSection = () => {
   const handleCreate = async () => {
     setCreating(true);
     try {
-      const res = await invoke("POST", "/admin/keys", { label: label || "تطبيق الجوال", environment });
+      const res = await invoke("POST", "/admin/keys", { label: label || "تطبيق الجوال", environment, order_routing: routing });
       if (res?.ok) {
         setNewKey(res.key.api_key);
         setLabel("");
@@ -133,6 +135,20 @@ const ApiKeysSection = () => {
               </button>
             ))}
           </div>
+          <div className="flex rounded-md border border-border overflow-hidden" title="وجهة الطلبيات">
+            {(["call_center", "pos_direct"] as const).map((r) => (
+              <button
+                key={r}
+                type="button"
+                onClick={() => setRouting(r)}
+                className={`px-3 py-1.5 text-xs font-semibold transition-colors ${
+                  routing === r ? "bg-primary text-primary-foreground" : "bg-background text-muted-foreground"
+                }`}
+              >
+                {r === "call_center" ? "عبر الكول سنتر" : "مباشرة لنقطة البيع"}
+              </button>
+            ))}
+          </div>
           <Button onClick={handleCreate} disabled={creating} className="gap-1.5">
             <Plus className="h-4 w-4" />
             {creating ? "جاري الإنشاء..." : "إنشاء مفتاح جديد"}
@@ -175,6 +191,7 @@ const ApiKeysSection = () => {
                 <TableHead>الاسم</TableHead>
                 <TableHead>المفتاح</TableHead>
                 <TableHead>البيئة</TableHead>
+                <TableHead>الوجهة</TableHead>
                 <TableHead>الحالة</TableHead>
                 <TableHead>آخر استخدام</TableHead>
                 <TableHead>أُنشئ</TableHead>
@@ -191,6 +208,11 @@ const ApiKeysSection = () => {
                   <TableCell>
                     <Badge variant="outline" className={`text-[10px] ${k.environment === "test" ? "border-amber-500/40 text-amber-600" : "border-sky-500/40 text-sky-600"}`}>
                       {k.environment === "test" ? "تجريبي" : "إنتاج"}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant="outline" className="text-[10px]">
+                      {k.order_routing === "pos_direct" ? "مباشرة لنقطة البيع" : "عبر الكول سنتر"}
                     </Badge>
                   </TableCell>
                   <TableCell>

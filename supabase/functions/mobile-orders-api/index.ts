@@ -55,13 +55,13 @@ function generateWebhookSecret(): string {
 }
 
 /** Resolve the tenant owner from an x-api-key header. Returns null when invalid. */
-async function resolveApiKey(req: Request): Promise<{ ownerId: string; keyId: string; environment: "live" | "test" } | null> {
+async function resolveApiKey(req: Request): Promise<{ ownerId: string; keyId: string; environment: "live" | "test"; routing: "call_center" | "pos_direct" } | null> {
   const raw = req.headers.get("x-api-key") || "";
   if (!raw || raw.length < 16 || raw.length > 128) return null;
   const hash = await sha256Hex(raw);
   const { data } = await admin
     .from("external_api_keys")
-    .select("id, user_id, environment")
+    .select("id, user_id, environment, order_routing")
     .eq("key_hash", hash)
     .eq("is_active", true)
     .maybeSingle();
@@ -72,6 +72,7 @@ async function resolveApiKey(req: Request): Promise<{ ownerId: string; keyId: st
     ownerId: data.user_id as string,
     keyId: data.id as string,
     environment: ((data as any).environment === "test" ? "test" : "live"),
+    routing: ((data as any).order_routing === "pos_direct" ? "pos_direct" : "call_center"),
   };
 }
 
@@ -283,7 +284,10 @@ async function loadMappings(ownerId: string, entityType: string, ids: string[]) 
 
 // ---------- order handlers ----------
 
-async function handleCreateOrder(req: Request, ownerId: string, environment: "live" | "test" = "live") {
+async function handleCreateOrder(req: Request, ownerId: string, environment: "live" | "test" = "live", routing: "call_center" | "pos_direct" = "call_center") {
+  // pos_direct: order lands straight in the branch POS "transferred invoices" (status 'pending');
+  // call_center (default, e.g. Malaky): waits for call-center review first.
+  const initialStatus = routing === "pos_direct" ? "pending" : "awaiting_call_center";
   const started = Date.now();
   const isTestKey = environment === "test";
   // Test keys never write real orders — they always behave as a validation sandbox.
@@ -510,7 +514,7 @@ async function handleCreateOrder(req: Request, ownerId: string, environment: "li
       items: items as any,
       total,
       order_note: finalOrderNote,
-      status: "awaiting_call_center",
+      status: initialStatus,
       dispatched_by_name: "تطبيق الجوال",
       delivery_fee: deliveryFee || 0,
       delivery_info: {
@@ -596,10 +600,10 @@ async function handleCreateOrder(req: Request, ownerId: string, environment: "li
     unify_order_id: inserted.id,
     pos_order_id: null,
     reference: body.client_reference_id,
-    status: "awaiting_call_center",
+    status: initialStatus,
     total,
     branch_name: branch.name,
-    message: "تم استلام الطلبية وهي بانتظار مراجعة الكول سنتر",
+    message: routing === "pos_direct" ? "تم استلام الطلبية وتحويلها لشاشة الكاشير في الفرع" : "تم استلام الطلبية وهي بانتظار مراجعة الكول سنتر",
   };
   await logWebhook({ ownerId, eventType: "mobile_order", endpoint: "POST /orders", payload, status: 201, response: res, success: true, orderId: inserted.id, reference: body.client_reference_id, durationMs: Date.now() - started });
   return json(res, 201);
@@ -974,7 +978,7 @@ async function handleCancelOrder(req: Request, ownerId: string, reference: strin
 async function handleListKeys(userId: string) {
   const { data } = await admin
     .from("external_api_keys")
-    .select("id, label, key_prefix, environment, is_active, last_used_at, created_at")
+    .select("id, label, key_prefix, environment, order_routing, is_active, last_used_at, created_at")
     .eq("user_id", userId)
     .order("created_at", { ascending: false });
   return json({ ok: true, keys: data || [] });
@@ -989,8 +993,8 @@ async function handleCreateKey(req: Request, userId: string) {
   const hash = await sha256Hex(rawKey);
   const { data, error } = await admin
     .from("external_api_keys")
-    .insert({ user_id: userId, label, environment, key_hash: hash, key_prefix: rawKey.slice(0, 16) })
-    .select("id, label, key_prefix, environment, created_at")
+    .insert({ user_id: userId, label, environment, order_routing: body?.order_routing === "pos_direct" ? "pos_direct" : "call_center", key_hash: hash, key_prefix: rawKey.slice(0, 16) })
+    .select("id, label, key_prefix, environment, order_routing, created_at")
     .single();
   if (error) return json({ ok: false, error: "create_failed", message: error.message }, 500);
   return json({ ok: true, key: { ...data, api_key: rawKey } }, 201); // raw key shown ONCE
@@ -1143,7 +1147,7 @@ Deno.serve(async (req: Request) => {
     if (segments[0] === "orders" && req.method === "POST" && segments.length === 1) {
       const rl = await enforceRateLimit(keyCtx.keyId, "write");
       if (rl) return rl;
-      return await handleCreateOrder(req, keyCtx.ownerId, keyCtx.environment);
+      return await handleCreateOrder(req, keyCtx.ownerId, keyCtx.environment, keyCtx.routing);
     }
     if (segments[0] === "orders" && req.method === "GET" && segments.length === 2) {
       const rl = await enforceRateLimit(keyCtx.keyId, "read");
