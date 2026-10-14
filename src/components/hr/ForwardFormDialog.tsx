@@ -8,11 +8,12 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { formatHRDateTime } from "@/lib/hrDate";
 
-interface Emp { id: string; full_name: string; job_title?: string | null }
+interface Emp { id: string; full_name: string; job_title?: string | null; portalAuthId?: string }
 
 interface Referral {
   id: string;
-  assignee_employee_id: string;
+  assignee_employee_id: string | null;
+  assignee_auth_user_id?: string | null;
   note: string | null;
   status: string;
   response_notes: string | null;
@@ -66,15 +67,23 @@ export default function ForwardFormDialog({
           .eq("is_active", true)
           .order("full_name");
         if (dataOwnerId) empQ = empQ.eq("user_id", dataOwnerId);
-        const [empRes, refRes] = await Promise.all([
+        const [empRes, refRes, portalRes] = await Promise.all([
           empQ,
           supabase
             .from("employee_form_referrals" as any)
-            .select("id, assignee_employee_id, note, status, response_notes, created_at, assigned_by_name")
+            .select("id, assignee_employee_id, assignee_auth_user_id, note, status, response_notes, created_at, assigned_by_name")
             .eq("form_id", form.id)
             .order("created_at", { ascending: false }),
+          supabase.rpc("list_form_referral_portal_assignees" as any),
         ]);
-        setEmployees(((empRes.data as unknown) as Emp[]) || []);
+        // Management-portal users (e.g. owners) are not employees; list them first.
+        const portal: Emp[] = (((portalRes.data as unknown) as any[]) || []).map((p) => ({
+          id: `portal:${p.auth_user_id}`,
+          full_name: p.full_name,
+          job_title: "بوابة الإدارة",
+          portalAuthId: p.auth_user_id,
+        }));
+        setEmployees([...portal, ...(((empRes.data as unknown) as Emp[]) || [])]);
         setReferrals(((refRes.data as unknown) as Referral[]) || []);
       } finally {
         setLoading(false);
@@ -105,7 +114,8 @@ export default function ForwardFormDialog({
         .from("employee_form_referrals" as any)
         .insert({
           form_id: form.id,
-          assignee_employee_id: selected.id,
+          assignee_employee_id: selected.portalAuthId ? null : selected.id,
+          assignee_auth_user_id: selected.portalAuthId ?? undefined,
           note: note.trim() || null,
           assigned_by_name: actorName,
           form_title: form.title || null,
@@ -113,7 +123,7 @@ export default function ForwardFormDialog({
           submitter_name: submitterName || null,
           form_snapshot: form.form_data || {},
         })
-        .select("id, assignee_employee_id, note, status, response_notes, created_at, assigned_by_name")
+        .select("id, assignee_employee_id, assignee_auth_user_id, note, status, response_notes, created_at, assigned_by_name")
         .single();
       if (error) throw error;
       setReferrals((prev) => [data as any, ...prev]);
@@ -166,7 +176,7 @@ export default function ForwardFormDialog({
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 flex-wrap">
                           <span className="text-xs font-semibold truncate">
-                            {empById[r.assignee_employee_id]?.full_name || "موظف"}
+                            {(r.assignee_employee_id ? empById[r.assignee_employee_id] : empById[`portal:${r.assignee_auth_user_id}`])?.full_name || "موظف"}
                           </span>
                           <Badge variant="outline" className={`text-[10px] ${st.cls}`}>{st.text}</Badge>
                         </div>
