@@ -813,6 +813,27 @@
       "when": 1791961038039,
       "tag": "0115_delivery_notes_require_contact",
       "breakpoints": true
+    },
+    {
+      "idx": 116,
+      "version": "7",
+      "when": 1791961378149,
+      "tag": "0116_delivery_note_customer_account_linking",
+      "breakpoints": true
+    },
+    {
+      "idx": 117,
+      "version": "7",
+      "when": 1791961419696,
+      "tag": "0117_fix_contact_account_fk_timing",
+      "breakpoints": true
+    },
+    {
+      "idx": 118,
+      "version": "7",
+      "when": 1791961450452,
+      "tag": "0118_fix_delivery_note_number_collision",
+      "breakpoints": true
     }
   ]
 }
