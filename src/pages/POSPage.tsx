@@ -984,13 +984,6 @@ const POSPage = ({ variant = "v1" }: { variant?: "v1" | "v2" } = {}) => {
   const [cashBoxBranchId, setCashBoxBranchId] = useState<string | null>(null);
   const [cashBoxBranchChecked, setCashBoxBranchChecked] = useState(false);
   const [activeBranchOwnerId, setActiveBranchOwnerId] = useState<string | null>(null);
-  useEffect(() => {
-    const owner = activeBranchOwnerId || dataOwnerId;
-    if (isAdmin || owner !== CASHIER_DISCOUNT_OWNER) { setCashierPosDiscount(false); return; }
-    let off = false;
-    readCashierDiscountPermission(owner).then((p) => { if (!off) setCashierPosDiscount(!!p); });
-    return () => { off = true; };
-  }, [activeBranchOwnerId, dataOwnerId, isAdmin]);
   // خصم بإذن مدير الفرع (Contra-Revenue). يُمسح بعد كل بيع ناجح أو إلغاء.
   const [showManagerDiscountDialog, setShowManagerDiscountDialog] = useState(false);
   const [managerDiscountMeta, setManagerDiscountMeta] = useState<ManagerDiscountApproved | null>(null);
@@ -1460,6 +1453,13 @@ const POSPage = ({ variant = "v1" }: { variant?: "v1" | "v2" } = {}) => {
   }, [userId]);
    const [dataOwnerId, setDataOwnerId] = useState<string | null>(null);
     const isAdmin = userId === dataOwnerId; // Employee has different dataOwnerId
+  useEffect(() => {
+    const owner = activeBranchOwnerId || dataOwnerId;
+    if (isAdmin || owner !== CASHIER_DISCOUNT_OWNER) { setCashierPosDiscount(false); return; }
+    let off = false;
+    readCashierDiscountPermission(owner).then((p) => { if (!off) setCashierPosDiscount(!!p); });
+    return () => { off = true; };
+  }, [activeBranchOwnerId, dataOwnerId, isAdmin]);
     // Feature permission overrides (composed with posPerms below)
 
   // 🕒 Scheduled orders: keep the badge count fresh and act as a client-side
