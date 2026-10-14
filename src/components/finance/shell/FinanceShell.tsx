@@ -123,8 +123,8 @@ rightSlot,
             {compact && (rightSlot || filterFields.length > 0) && (
               <div className="hidden md:block h-6 w-px bg-border shrink-0 mx-1" />
             )}
-            <div className="flex items-center gap-1.5 shrink-0 pr-1">
-              {rightSlot}
+            <div className={cn("flex flex-wrap items-center gap-1.5 min-w-0 max-w-full md:flex-nowrap md:shrink-0 pr-1", rightSlot && "w-full md:w-auto")}>
+              {rightSlot && <div className="w-full min-w-0 md:w-auto">{rightSlot}</div>}
               {isMobile && actionTabs.length > 0 && <MobileActionSheet tabs={actionTabs} />}
               {filterFields.length > 0 && (
                 <Button
