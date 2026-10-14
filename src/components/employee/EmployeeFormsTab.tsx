@@ -1,3 +1,4 @@
+import { isLeaveIntakeOpen } from "@/lib/hr/leaveIntake";
 import { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -202,14 +203,17 @@ export default function EmployeeFormsTab({
     const ownerId = ownerData || userId;
     const { data } = await supabase
       .from("company_settings")
-      .select("hr_show_policies, hr_show_loan_form, hr_allow_advance_requests, hr_allow_leave_requests, hr_advance_requests_closed_message, hr_leave_requests_closed_message")
+      .select("hr_show_policies, hr_show_loan_form, hr_allow_advance_requests, hr_allow_leave_requests, hr_advance_requests_closed_message, hr_leave_requests_closed_message, hr_leave_branch_overrides")
       .eq("user_id", ownerId)
       .maybeSingle();
     if (data) {
       setShowPolicies(data.hr_show_policies !== false);
       setShowLoanForm(data.hr_show_loan_form !== false);
       setAllowAdvance((data as any).hr_allow_advance_requests !== false);
-      setAllowLeave((data as any).hr_allow_leave_requests !== false);
+      {
+        const { data: empB } = await supabase.from("employees").select("branch_id").eq("id", employeeId).maybeSingle();
+        setAllowLeave(isLeaveIntakeOpen((data as any).hr_allow_leave_requests, (data as any).hr_leave_branch_overrides, (empB as any)?.branch_id));
+      }
       setAdvanceClosedMsg(((data as any).hr_advance_requests_closed_message ?? "") as string);
       setLeaveClosedMsg(((data as any).hr_leave_requests_closed_message ?? "") as string);
     }
