@@ -2,12 +2,7 @@ import * as React from "react";
 
 export function Table({ children, className, ...props }: React.HTMLAttributes<HTMLTableElement>) {
   return (
-    <div style={{
-      border: '1px solid #E2E8F0',
-      borderRadius: '12px',
-      overflow: 'clip',
-      direction: 'rtl',
-    }}>
+    <div className="shared-table-scroll w-full max-w-full overflow-x-auto rounded-lg border border-border" dir="rtl">
       <table style={{
         width: '100%',
         borderCollapse: 'collapse',

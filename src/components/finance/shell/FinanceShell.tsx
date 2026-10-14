@@ -57,7 +57,7 @@ rightSlot,
   const conditions = filters || [];
 
   return (
-    <div className="flex h-full bg-background" dir="rtl">
+    <div className="finance-shell flex h-full min-w-0 max-w-full bg-background" dir="rtl">
       <div className="flex-1 flex flex-col min-w-0">
         {/* Header */}
         <div
@@ -86,7 +86,7 @@ rightSlot,
             </nav>
           )}
           <div className={cn("flex flex-wrap items-center justify-between gap-x-3 gap-y-1", !compact && "items-end")}>
-            <div className={cn("min-w-0 flex items-center gap-2", compact && "shrink-0")}>
+            <div className={cn("min-w-0 max-w-full flex items-center gap-2", compact && "md:shrink-0")}>
               {showBack && <BackButton className={compact ? "!p-1.5 -mr-1.5" : "!p-2 -mr-2"} />}
 
               <h1
@@ -123,8 +123,8 @@ rightSlot,
             {compact && (rightSlot || filterFields.length > 0) && (
               <div className="hidden md:block h-6 w-px bg-border shrink-0 mx-1" />
             )}
-            <div className="flex items-center gap-1.5 shrink-0 pr-1">
-              {rightSlot}
+            <div className={cn("flex flex-wrap items-center gap-1.5 min-w-0 max-w-full md:flex-nowrap md:shrink-0 pr-1", rightSlot && "w-full md:w-auto")}>
+              {rightSlot && <div className="w-full min-w-0 md:w-auto">{rightSlot}</div>}
               {isMobile && actionTabs.length > 0 && <MobileActionSheet tabs={actionTabs} />}
               {filterFields.length > 0 && (
                 <Button
@@ -152,10 +152,10 @@ rightSlot,
         </div>
 
         {/* Action Pane — only in normal (non-compact) mode */}
-        {!compact && actionTabs.length > 0 && <ActionPane tabs={actionTabs} />}
+        {!compact && actionTabs.length > 0 && !isMobile && <ActionPane tabs={actionTabs} />}
 
         {/* Body */}
-        <div className={cn("flex-1 min-h-0 overflow-auto", compact ? "p-3" : "p-4")}>
+        <div className={cn("finance-body flex-1 min-h-0 min-w-0 max-w-full overflow-auto", compact ? "p-3" : "p-4")}>
           {children}
         </div>
       </div>

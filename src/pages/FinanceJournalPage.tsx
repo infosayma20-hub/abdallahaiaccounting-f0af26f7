@@ -714,9 +714,9 @@ const FinanceJournalPage = () => {
                       {show("actions") && <td className="px-3 py-2">
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
-                            <button className="p-1.5 rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground transition-colors">
+                            <Button variant="ghost" size="icon" aria-label={tt("إجراءات السند")} className="p-1.5 rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground transition-colors">
                               <MoreVertical className="h-3.5 w-3.5" />
-                            </button>
+                            </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="start" className="min-w-[140px]">
                             <DropdownMenuItem onClick={() => openVoucherForEdit(v.id)} className="gap-2 text-xs">

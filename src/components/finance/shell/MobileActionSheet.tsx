@@ -73,19 +73,20 @@ export function MobileActionSheet({ tabs }: { tabs: ActionTab[] }) {
                 )}
                 <div className="grid grid-cols-2 gap-1.5">
                   {g.items.map((it) => (
-                    <button
+                    <Button
                       key={it.key}
+                      variant="outline"
                       disabled={it.disabled}
                       onClick={() => handleClick(it)}
                       data-testid={`action-${it.key}`}
                       className={cn(
-                        "flex items-center gap-2 rounded-lg border border-border bg-card px-3 py-3 text-right text-[13px] min-h-[48px] disabled:opacity-40",
+                        "h-auto justify-start whitespace-normal gap-2 rounded-lg border border-border bg-card px-3 py-3 text-right text-[13px] min-h-[48px] disabled:opacity-40",
                         variantClass(it.variant),
                       )}
                     >
                       {it.icon && <it.icon className="h-4 w-4 shrink-0" />}
-                      <span className="truncate">{it.label}</span>
-                    </button>
+                      <span className="min-w-0 break-words">{it.label}</span>
+                    </Button>
                   ))}
                 </div>
                 {gi < groups.length - 1 && <div className="h-px bg-border/60 my-2 mx-3" />}

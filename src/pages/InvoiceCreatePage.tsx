@@ -12,7 +12,6 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { FinanceShell, ActionPane, type ActionTab } from "@/components/finance/shell";
-import { CompactActionRibbon } from "@/components/finance/shell/CompactActionRibbon";
 import { Link } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -2783,31 +2782,15 @@ const InvoiceCreatePage = () => {
   }
 
   return (
-    <>
-    {/* Compact D365-style header — sticky above the horizontal accounting scroller.
-        Must live OUTSIDE <AccountingShell> because that wrapper creates its own
-        overflow context, which cancels position:sticky. */}
-    <div className="sticky top-0 z-40 px-4 lg:px-6 pt-1 pb-1 border-b border-border bg-card shadow-sm">
-      <nav className="flex items-center gap-1 text-[10.5px] text-muted-foreground mb-0.5">
-        <Link to="/accounting-center" className="hover:text-foreground">{tt("المالية")}</Link>
-        <ChevronLeft className="h-3 w-3 rotate-180" />
-        <Link to="/invoices" className="hover:text-foreground">{tt("الفواتير")}</Link>
-        <ChevronLeft className="h-3 w-3 rotate-180" />
-        <span>{isEditMode ? (isReadOnly ? tt("عرض الفاتورة") : tt("تعديل الفاتورة")) : tt("إنشاء فاتورة")}</span>
-      </nav>
-      <div className="flex items-center gap-2">
-        <h1 className="text-[15px] font-bold text-foreground truncate shrink-0 flex items-center gap-2">
-          {isEditMode ? (isReadOnly ? tt("عرض الفاتورة") : tt("تعديل الفاتورة")) : tt("إنشاء فاتورة جديدة")}
-          {isEditMode && nextInvoiceNumber && (
-            <span className="text-[12px] font-normal text-muted-foreground">— {nextInvoiceNumber}</span>
-          )}
-        </h1>
-        <div className="h-6 w-px bg-border shrink-0 mx-1" />
-        <div className="flex-1 min-w-0 flex justify-start">
-          <CompactActionRibbon tabs={invoiceActionTabs} />
-        </div>
-      </div>
-    </div>
+    <FinanceShell
+      title={isEditMode ? (isReadOnly ? tt("عرض الفاتورة") : tt("تعديل الفاتورة")) : tt("إنشاء فاتورة جديدة")}
+      breadcrumb={[
+        { label: tt("المالية"), href: "/accounting-center" },
+        { label: tt("الفواتير"), href: "/invoices" },
+        { label: isEditMode ? tt("عرض الفاتورة") : tt("إنشاء فاتورة") },
+      ]}
+      actionTabs={invoiceActionTabs}
+    >
     <AccountingShell>
     <SmartFormScope
       className="px-4 lg:px-6 pt-3 pb-32 w-full max-w-[1600px] mx-auto"
@@ -3342,7 +3325,7 @@ const InvoiceCreatePage = () => {
                       variant="outline"
                       size="icon"
                       className={`h-10 w-10 rounded-xl shrink-0 ${form.costCenterId ? "border-primary/60 text-primary bg-primary/5" : ""}`}
-                      title={form.costCenterId ? tt("تم اختيار مركز تكلفة — انقر للتعديل") : tt("مركز التكلفة (اختياري — لتقارير الربحية)")}
+                      aria-label={tt("مركز التكلفة")}
                     >
                       <Tag className="h-4 w-4" />
                     </Button>
@@ -4581,7 +4564,7 @@ const InvoiceCreatePage = () => {
     </div>
     </SmartFormScope>
     </AccountingShell>
-    </>
+    </FinanceShell>
   );
 };
 

@@ -736,12 +736,12 @@ const BankAccountsPage = () => {
                   <TableCell className="text-center">
                     <div className="flex items-center justify-center gap-1">
                       <Button variant="ghost" size="sm" className="h-7 px-2" onClick={() => openDetail(bank)} title="فتح">
-                        <Pencil className="h-3.5 w-3.5" />
+                        <Pencil className="h-3.5 w-3.5" /><span className="md:hidden">فتح</span>
                       </Button>
                       <Button variant="ghost" size="sm" className="h-7 px-2"
                         onClick={() => navigate(`/account-statement?code=${bank.gl_account_code || "1120"}`)}
                         title="كشف حساب">
-                        <FileText className="h-3.5 w-3.5" />
+                        <FileText className="h-3.5 w-3.5" /><span className="md:hidden">كشف حساب</span>
                       </Button>
                     </div>
                   </TableCell>

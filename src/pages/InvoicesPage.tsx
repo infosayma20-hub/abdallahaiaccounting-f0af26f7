@@ -1602,12 +1602,12 @@ const InvoicesPage = () => {
         <p className="text-xs text-muted-foreground">{sorted.length} فاتورة</p>
         <div className="flex flex-wrap items-center gap-2">
           <div className="flex items-center bg-muted/50 rounded-xl p-0.5">
-            <button onClick={() => setViewMode("cards")} className={`p-1.5 rounded-lg transition-all ${viewMode === "cards" ? "bg-background shadow-sm text-foreground" : "text-muted-foreground"}`}>
+            <Button variant="ghost" size="icon" aria-label={tt("بطاقات")} onClick={() => setViewMode("cards")} className={`p-1.5 rounded-lg transition-all ${viewMode === "cards" ? "bg-background shadow-sm text-foreground" : "text-muted-foreground"}`}>
               <LayoutGrid className="h-4 w-4" />
-            </button>
-            <button onClick={() => setViewMode("table")} className={`p-1.5 rounded-lg transition-all ${viewMode === "table" ? "bg-background shadow-sm text-foreground" : "text-muted-foreground"}`}>
+            </Button>
+            <Button variant="ghost" size="icon" aria-label={tt("جدول")} onClick={() => setViewMode("table")} className={`p-1.5 rounded-lg transition-all ${viewMode === "table" ? "bg-background shadow-sm text-foreground" : "text-muted-foreground"}`}>
               <Table2 className="h-4 w-4" />
-            </button>
+            </Button>
           </div>
           {viewMode === "table" && <ColumnVisibilityMenu state={invoiceColState} />}
           <Can app={filterType === "purchase" ? "purchases" : "sales"} feature={filterType === "purchase" ? "purchase_invoices" : "invoices"} perm="export" disableInsteadOfHide>
@@ -1891,8 +1891,8 @@ const InvoicesPage = () => {
 
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
-                              <Button size="icon" variant="ghost" className="h-7 w-7">
-                                <MoreHorizontal className="h-3.5 w-3.5" />
+                              <Button size="icon" variant="ghost" className="h-auto w-auto md:h-7 md:w-7">
+                                <MoreHorizontal className="h-3.5 w-3.5" /><span className="md:hidden text-xs">المزيد</span>
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end" className="bg-background min-w-[160px]">
@@ -1953,11 +1953,11 @@ const InvoicesPage = () => {
                         <p className="text-sm font-semibold text-foreground truncate">{inv.contactName}</p>
                         <p className="text-sm font-bold text-foreground tabular-nums">₪{inv.total.toLocaleString()}</p>
                       </div>
-                      <div className="flex items-center justify-between mt-1">
+                      <div className="flex flex-wrap items-center justify-between gap-2 mt-1">
                         <p className="text-[10px] text-muted-foreground">
                           {inv.invoiceNumber} • {inv.date} {arabicDayName(inv.date)}{inv.createdAt ? ` ${formatHrTime12(inv.createdAt)}` : ""}{inv.orderRef ? ` • طلبية ${inv.orderRef}` : ""}
                         </p>
-                        <div className="flex gap-1">
+                        <div className="flex flex-wrap gap-1">
                           <Badge className={`text-[9px] px-2 py-0 border-0 ${st.color}`}>{st.label}</Badge>
                           {inv.status !== 'cancelled' && (
                             <Badge className={`text-[9px] px-2 py-0 border-0 ${paymentStatusConfig[inv.paymentStatus]?.color || ''}`}>

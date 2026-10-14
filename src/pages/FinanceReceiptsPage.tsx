@@ -551,14 +551,14 @@ export default function FinanceReceiptsPage() {
       onFiltersChange={setShellFilters}
       storageKey="finance-receipts-page"
       rightSlot={
-        <div className="flex items-center gap-1.5">
-          <div className="relative">
+        <div className="flex min-w-0 flex-1 md:flex-none items-center gap-1.5">
+          <div className="relative min-w-0 flex-1">
             <Search className="absolute right-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground/60" />
             <Input
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder={tt("بحث سريع...")}
-              className="h-8 w-56 pr-8 text-xs"
+              className="h-8 w-full md:w-56 pr-8 text-xs"
             />
           </div>
           <ColumnVisibilityMenu state={colState} />
@@ -664,21 +664,21 @@ export default function FinanceReceiptsPage() {
                   <>
                     {canEdit(r.raw) && (
                       <Can app="finance" feature="receipts" perm="update">
-                        <button onClick={() => handleEdit(r)} className="p-2 rounded-lg hover:bg-primary/10 text-muted-foreground hover:text-primary" title={tt("تعديل")}>
+                        <Button variant="ghost" size="icon" onClick={() => handleEdit(r)} className="p-2 rounded-lg hover:bg-primary/10 text-muted-foreground hover:text-primary" title={tt("تعديل")}>
                           <Pencil className="h-4 w-4" />
-                        </button>
+                        </Button>
                       </Can>
                     )}
                     {canDelete(r.raw) && r.status !== "cancelled" && (
                       <Can app="finance" feature="receipts" perm="delete">
-                        <button onClick={() => handleDelete(r)} className="p-2 rounded-lg hover:bg-destructive/10 text-muted-foreground hover:text-destructive" title={tt("حذف")}>
+                        <Button variant="ghost" size="icon" onClick={() => handleDelete(r)} className="p-2 rounded-lg hover:bg-destructive/10 text-muted-foreground hover:text-destructive" title={tt("حذف")}>
                           <Trash2 className="h-4 w-4" />
-                        </button>
+                        </Button>
                       </Can>
                     )}
-                    <button onClick={() => handleDuplicate(r)} className="p-2 rounded-lg hover:bg-muted text-muted-foreground hover:text-primary" title={tt("جديد مشابه")}>
+                    <Button variant="ghost" size="icon" onClick={() => handleDuplicate(r)} className="p-2 rounded-lg hover:bg-muted text-muted-foreground hover:text-primary" title={tt("جديد مشابه")}>
                       <Copy className="h-4 w-4" />
-                    </button>
+                    </Button>
                   </>
                 ),
               }))}
