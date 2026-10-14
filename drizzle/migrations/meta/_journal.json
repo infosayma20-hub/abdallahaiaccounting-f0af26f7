@@ -799,6 +799,13 @@
       "when": 1791960741968,
       "tag": "0113_fix_convert_delivery_note_to_invoice",
       "breakpoints": true
+    },
+    {
+      "idx": 114,
+      "version": "7",
+      "when": 1791960777100,
+      "tag": "0114_fix_convert_dn_generated_col",
+      "breakpoints": true
     }
   ]
 }
