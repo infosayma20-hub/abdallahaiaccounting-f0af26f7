@@ -17,6 +17,13 @@ describe("shared Button slot contract", () => {
     expect(onClick).toHaveBeenCalledTimes(1);
   });
 
+  it("preserves navigation when both tooltip and icon button delegate to their child", () => {
+    const onClick = vi.fn((event: React.MouseEvent<HTMLButtonElement>) => event.preventDefault());
+    render(<TooltipProvider><Tooltip><TooltipTrigger asChild><Button asChild size="icon" onClick={onClick}><a href="/employee-forms-management" aria-label="صوت الموظف"><svg /></a></Button></TooltipTrigger><TooltipContent>صوت الموظف</TooltipContent></Tooltip></TooltipProvider>);
+    fireEvent.click(screen.getByRole("link", { name: "صوت الموظف" }));
+    expect(onClick).toHaveBeenCalledTimes(1);
+  });
+
   it("preserves the single child for icon navigation with an accessible label", () => {
     render(<Button asChild size="icon" title="الموظفون"><a href="/hr/people" aria-label="الموظفون"><svg /></a></Button>);
     expect(screen.getByRole("link", { name: "الموظفون" })).toHaveAttribute("href", "/hr/people");

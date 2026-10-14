@@ -26,8 +26,8 @@ const TooltipTrigger = React.forwardRef<
   React.ComponentPropsWithoutRef<typeof TooltipPrimitive.Trigger>
 >(({ children, asChild, ...props }, ref) => {
   const label = React.useContext(ActionLabelContext);
-  const child = React.isValidElement<{ children?: React.ReactNode; size?: string }>(children) ? children : null;
-  const labelledChild = asChild && label && child?.props.size === "icon"
+  const child = React.isValidElement<{ children?: React.ReactNode; size?: string; asChild?: boolean }>(children) ? children : null;
+  const labelledChild = asChild && label && child?.props.size === "icon" && !child.props.asChild
     ? React.cloneElement(child, {}, <>{child.props.children}<span className="mobile-action-label hidden">{label}</span></>)
     : children;
   return <TooltipPrimitive.Trigger ref={ref} asChild={asChild} {...props}>{labelledChild}</TooltipPrimitive.Trigger>;
