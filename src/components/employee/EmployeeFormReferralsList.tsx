@@ -52,11 +52,14 @@ const FIELD_LABEL: Record<string, string> = {
 /** Forms/complaints forwarded to this employee by HR or management. */
 export default function EmployeeFormReferralsList({
   employeeId,
+  assigneeAuthUserId,
   hideHeader = false,
   showEmpty = false,
   defaultExpandFirst = false,
 }: {
-  employeeId: string;
+  employeeId?: string;
+  /** Management-portal user: list referrals addressed to this auth user. */
+  assigneeAuthUserId?: string;
   /** Hide the "محوَّل إليّ" heading (used inside the inbox sheet which has its own title). */
   hideHeader?: boolean;
   /** Render an empty-state message instead of returning null. */
@@ -71,12 +74,12 @@ export default function EmployeeFormReferralsList({
   const [replies, setReplies] = useState<Record<string, string>>({});
 
   const load = async () => {
-    if (!employeeId) return;
+    if (!employeeId && !assigneeAuthUserId) { setLoading(false); return; }
     setLoading(true);
     const { data } = await supabase
       .from("employee_form_referrals" as any)
       .select("id, form_id, note, status, response_notes, created_at, assigned_by_name, form_title, form_type, submitter_name, form_snapshot")
-      .eq("assignee_employee_id", employeeId)
+      .eq(employeeId ? "assignee_employee_id" : "assignee_auth_user_id", (employeeId || assigneeAuthUserId)!)
       .order("created_at", { ascending: false });
     const list = ((data as unknown) as Row[]) || [];
     setRows(list);
@@ -84,7 +87,7 @@ export default function EmployeeFormReferralsList({
     setLoading(false);
   };
 
-  useEffect(() => { load(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [employeeId]);
+  useEffect(() => { load(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [employeeId, assigneeAuthUserId]);
 
   const update = async (r: Row, status: string) => {
     setBusy(r.id);

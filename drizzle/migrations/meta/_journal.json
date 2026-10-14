@@ -848,6 +848,13 @@
       "when": 1791961983275,
       "tag": "0120_delivery_note_show_prices_setting",
       "breakpoints": true
+    },
+    {
+      "idx": 121,
+      "version": "7",
+      "when": 1791973905160,
+      "tag": "0121_form_referrals_portal_assignees",
+      "breakpoints": true
     }
   ]
 }

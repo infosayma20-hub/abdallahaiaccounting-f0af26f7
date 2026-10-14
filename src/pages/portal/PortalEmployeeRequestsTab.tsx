@@ -8,6 +8,7 @@ import { getDetailGroups, sanitizeHumanText } from "@/lib/employeeRequestDisplay
 import { openEmployeeFormsStorageFile } from "@/lib/employeeStorageFiles";
 import { displayReason } from "@/lib/hrMessages";
 import { downloadEmployeeFormWord, shareEmployeeFormViaWhatsApp } from "@/lib/employee-forms/exportFormWord";
+import EmployeeFormReferralsList from "@/components/employee/EmployeeFormReferralsList";
 import { getJobApplicationStatus, jobApplicationStatusToUnified } from "@/lib/hr/jobApplicationStatus";
 
 const ACCENT = '#2A7B9B';
@@ -158,6 +159,8 @@ export default function PortalEmployeeRequestsTab({ theme = 'light', focusFormId
   const t = getThemeColors(theme);
 
   useEffect(() => { fetchData(); }, []);
+  const [myAuthId, setMyAuthId] = useState<string | null>(null);
+  useEffect(() => { supabase.auth.getUser().then(({ data }) => setMyAuthId(data.user?.id ?? null)); }, []);
 
   // Opened from a notification deep-link (?form=<id>): drop the status filter so
   // the request is visible regardless of state, expand it, and scroll to it.
@@ -343,6 +346,7 @@ export default function PortalEmployeeRequestsTab({ theme = 'light', focusFormId
 
   return (
     <div style={{ paddingBottom: 'calc(100px + env(safe-area-inset-bottom, 0px))' }}>
+      {myAuthId && !focusFormId && <div style={{ marginBottom: 12 }}><EmployeeFormReferralsList assigneeAuthUserId={myAuthId} /></div>}
       {focusFormId && onBackToNotifications && (
         <button
           onClick={onBackToNotifications}
