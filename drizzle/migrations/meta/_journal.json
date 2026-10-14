@@ -827,6 +827,13 @@
       "when": 1791961419696,
       "tag": "0117_fix_contact_account_fk_timing",
       "breakpoints": true
+    },
+    {
+      "idx": 118,
+      "version": "7",
+      "when": 1791961450452,
+      "tag": "0118_fix_delivery_note_number_collision",
+      "breakpoints": true
     }
   ]
 }
