@@ -869,6 +869,13 @@
       "when": 1791981680101,
       "tag": "0123_perf_pos_orders_kds_indexes",
       "breakpoints": true
+    },
+    {
+      "idx": 124,
+      "version": "7",
+      "when": 1791984119325,
+      "tag": "0124_pos_purchases_supplier_fk_contacts",
+      "breakpoints": true
     }
   ]
 }

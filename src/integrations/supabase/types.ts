@@ -17993,7 +17993,7 @@ export type Database = {
             foreignKeyName: "pos_purchases_supplier_id_fkey"
             columns: ["supplier_id"]
             isOneToOne: false
-            referencedRelation: "pos_suppliers"
+            referencedRelation: "contacts"
             referencedColumns: ["id"]
           },
         ]
