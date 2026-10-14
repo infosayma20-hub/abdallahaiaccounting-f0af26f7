@@ -8267,7 +8267,7 @@ export type Database = {
           assigned_by: string | null
           assigned_by_name: string | null
           assignee_auth_user_id: string | null
-          assignee_employee_id: string
+          assignee_employee_id: string | null
           company_id: string | null
           completed_at: string | null
           created_at: string
@@ -8288,7 +8288,7 @@ export type Database = {
           assigned_by?: string | null
           assigned_by_name?: string | null
           assignee_auth_user_id?: string | null
-          assignee_employee_id: string
+          assignee_employee_id?: string | null
           company_id?: string | null
           completed_at?: string | null
           created_at?: string
@@ -8309,7 +8309,7 @@ export type Database = {
           assigned_by?: string | null
           assigned_by_name?: string | null
           assignee_auth_user_id?: string | null
-          assignee_employee_id?: string
+          assignee_employee_id?: string | null
           company_id?: string | null
           completed_at?: string | null
           created_at?: string
@@ -34144,6 +34144,14 @@ export type Database = {
         Args: { p_days?: number; p_limit?: number }
         Returns: {
           object_name: string
+        }[]
+      }
+      list_form_referral_portal_assignees: {
+        Args: never
+        Returns: {
+          auth_user_id: string
+          full_name: string
+          role: string
         }[]
       }
       list_internal_message_people: {
