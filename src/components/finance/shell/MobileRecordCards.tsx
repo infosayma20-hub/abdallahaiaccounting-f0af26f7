@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
 
 export interface MobileCardField {
   label: string;
@@ -44,26 +45,27 @@ export function MobileRecordCards({
         <div
           key={it.key}
           className={cn(
-            "rounded-xl border border-border/60 bg-card p-3 shadow-sm",
+            "rounded-lg border border-border/60 bg-card p-3 shadow-sm",
             it.cancelled && "opacity-60",
           )}
         >
-          <div className="flex items-start justify-between gap-2">
+          <div className="flex flex-wrap items-start justify-between gap-2">
             <div className="min-w-0 flex-1">
-              <button
+              <Button
+                variant="link"
                 type="button"
                 onClick={it.onClick}
                 disabled={!it.onClick}
                 className={cn(
-                  "text-right font-mono text-[13px] text-primary truncate max-w-full bg-transparent border-0 p-0",
+                  "h-auto justify-start whitespace-normal break-all text-right font-mono text-[13px] text-primary max-w-full bg-transparent border-0 p-0",
                   it.cancelled && "line-through",
                   !it.onClick && "text-foreground cursor-default",
                 )}
               >
                 {it.title}
-              </button>
+              </Button>
               {it.subtitle && (
-                <div className="text-[13px] font-medium text-foreground truncate mt-0.5">
+                <div className="text-[13px] font-medium text-foreground break-words mt-0.5">
                   {it.subtitle}
                 </div>
               )}
@@ -81,14 +83,14 @@ export function MobileRecordCards({
               {it.fields.map((f, i) => (
                 <div key={i} className="min-w-0">
                   <div className="text-[10px] text-muted-foreground">{f.label}</div>
-                  <div className="text-[12px] truncate">{f.value ?? "—"}</div>
+                  <div className="text-[12px] break-words">{f.value ?? "—"}</div>
                 </div>
               ))}
             </div>
           )}
 
           {it.actions && (
-            <div className="mt-2 flex items-center justify-end gap-1 border-t border-border/40 pt-2 [&_button]:min-h-[38px] [&_button]:min-w-[38px]">
+            <div className="mt-2 flex flex-wrap items-center justify-start gap-1 border-t border-border/40 pt-2 [&_button]:min-h-11 [&_button]:min-w-11">
               {it.actions}
             </div>
           )}

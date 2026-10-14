@@ -37,12 +37,16 @@ export interface ButtonProps
 }
 
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
-  ({ className, variant, size, asChild = false, style, ...props }, ref) => {
+  ({ className, variant, size, asChild = false, style, children, ...props }, ref) => {
     const Comp = asChild ? Slot : "button";
     const accentStyle = variant === "accent"
       ? { background: "linear-gradient(135deg, #E8A020, #F45E0C)", boxShadow: "0 4px 14px rgba(232,160,32,0.3)", ...style }
       : style;
-    return <Comp className={cn(buttonVariants({ variant, size, className }))} ref={ref} style={accentStyle} {...props} />;
+    const mobileLabel = !asChild && size === "icon" ? props.title || props["aria-label"] : undefined;
+    return <Comp className={cn(buttonVariants({ variant, size, className }))} ref={ref} style={accentStyle} {...props}>
+      {children}
+      {mobileLabel && <span className="mobile-action-label hidden">{mobileLabel}</span>}
+    </Comp>;
   },
 );
 Button.displayName = "Button";

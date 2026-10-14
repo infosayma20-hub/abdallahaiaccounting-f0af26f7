@@ -87,7 +87,7 @@ const WebLayoutContent = ({ children }: WebLayoutProps) => {
     pathname === "/smart-report";
 
   return (
-    <div className="flex h-screen w-full overflow-hidden bg-background" dir="rtl" style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}>
+    <div className="flex h-dvh w-full overflow-hidden bg-background" dir="rtl" style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}>
       {/* Sidebar — always visible. Auto-collapses 5s after expand */}
       <div
         onMouseEnter={clearAutoCollapse}
@@ -128,8 +128,8 @@ const WebLayoutContent = ({ children }: WebLayoutProps) => {
             isFullHeightRoute
               ? "flex-1 min-h-0 overflow-hidden flex flex-col"
               : isHRRoute || isCompactRoute
-              ? "flex-1 overflow-y-auto"
-              : "flex-1 overflow-y-auto p-5 lg:p-8"
+              ? "flex-1 min-h-0 min-w-0 overflow-y-auto"
+              : "flex-1 min-h-0 min-w-0 overflow-y-auto p-2 md:p-5 lg:p-8"
           }
         >
           <TrialExpiredGate>

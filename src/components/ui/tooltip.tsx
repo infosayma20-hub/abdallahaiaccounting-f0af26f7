@@ -5,9 +5,34 @@ import { cn } from "@/lib/utils";
 
 const TooltipProvider = TooltipPrimitive.Provider;
 
-const Tooltip = TooltipPrimitive.Root;
+const ActionLabelContext = React.createContext<React.ReactNode>(null);
 
-const TooltipTrigger = TooltipPrimitive.Trigger;
+// Reuse the existing tooltip text for touch users without adding an action.
+function Tooltip({ children, ...props }: React.ComponentProps<typeof TooltipPrimitive.Root>) {
+  const content = React.Children.toArray(children).find(
+    (child) => React.isValidElement(child) && child.type === TooltipContent,
+  );
+  const label = React.isValidElement<{ children?: React.ReactNode }>(content)
+    ? content.props.children : null;
+  return (
+    <ActionLabelContext.Provider value={label}>
+      <TooltipPrimitive.Root {...props}>{children}</TooltipPrimitive.Root>
+    </ActionLabelContext.Provider>
+  );
+}
+
+const TooltipTrigger = React.forwardRef<
+  React.ElementRef<typeof TooltipPrimitive.Trigger>,
+  React.ComponentPropsWithoutRef<typeof TooltipPrimitive.Trigger>
+>(({ children, asChild, ...props }, ref) => {
+  const label = React.useContext(ActionLabelContext);
+  const child = React.isValidElement<{ children?: React.ReactNode; size?: string }>(children) ? children : null;
+  const labelledChild = asChild && label && child?.props.size === "icon"
+    ? React.cloneElement(child, {}, <>{child.props.children}<span className="mobile-action-label hidden">{label}</span></>)
+    : children;
+  return <TooltipPrimitive.Trigger ref={ref} asChild={asChild} {...props}>{labelledChild}</TooltipPrimitive.Trigger>;
+});
+TooltipTrigger.displayName = "TooltipTrigger";
 
 const TooltipContent = React.forwardRef<
   React.ElementRef<typeof TooltipPrimitive.Content>,

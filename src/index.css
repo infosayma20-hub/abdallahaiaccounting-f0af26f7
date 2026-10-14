@@ -519,6 +519,43 @@
    * a comfortable minimum width so it scrolls horizontally instead.
    */
   @media (max-width: 767px) {
+    .finance-shell .shared-table-scroll {
+      -webkit-overflow-scrolling: touch;
+    }
+    .finance-shell table {
+      min-width: 760px;
+      table-layout: auto;
+    }
+    .finance-shell table > colgroup > col {
+      width: auto !important;
+    }
+    .finance-shell table td > .flex {
+      flex-wrap: wrap;
+    }
+    .finance-shell button:has(.mobile-action-label) {
+      width: auto;
+      height: auto;
+      min-height: 44px;
+      padding: 8px 10px;
+      white-space: normal;
+    }
+    .finance-shell .mobile-action-label {
+      display: inline;
+      font-size: 12px;
+      line-height: 1.4;
+    }
+    .finance-shell .mobile-action-label p {
+      display: inline;
+    }
+    .finance-body button {
+      min-height: 44px;
+    }
+    .finance-body input, .finance-body select, .finance-body textarea {
+      font-size: 16px;
+    }
+    .finance-body {
+      padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 16px);
+    }
     .fin-table-wrap {
       overflow-x: auto;
       -webkit-overflow-scrolling: touch;
