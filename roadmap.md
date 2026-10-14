@@ -1,4 +1,5 @@
 # Roadmap — Inventory costing (plan approved 2026-10-06)
+- [ ] Print-note number order: verify receipt/kitchen SVGs and bilingual output; installation on branch printers requires deploying the corrected bridge source.
 - [x] Returns: invoice-like sales/purchase form and list; pilot-only atomic lifecycle tested for service sales/purchase and linked sales-stock create, replay, edit, cancel; original stock restored and financial net effect zero. No historical documents changed.
 - [x] Returns audit (pilot): verified sales/purchase cash and bank ±116 refunds and reversal to original balances; purchase-stock create/edit/cancel restored product qty 99, cost value 396 and supplier balance 0; statement opens the return and UI edit persisted revision 2; VAT-category tampering rejected with unchanged stock; return transactions route to return documents, not invoices. All test postings cancelled, legacy documents untouched.
 - [ ] Returns rollout: broader FIFO/periodic/perpetual GL certification and replacement of legacy delete-on-cancel remain prerequisites; production rollout waits on approval, not enabled.
