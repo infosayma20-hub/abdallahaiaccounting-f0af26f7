@@ -129,7 +129,7 @@ const InvoicePrintView = ({
 
   // للإرساليات: إخفاء كل ما يخص الضريبة والأسعار
   const taxEnabled = isDelivery ? false : (settings.vat_enabled ?? true);
-  const showPrices = !isDelivery;
+  const showPrices = !isDelivery || (settings as any).delivery_note_show_prices === true;
   const hasExtraWideLogo = settings.user_id === LARGE_WIDE_LOGO_OWNER_ID;
   // ── حجم الشعار القابل للتخصيص من الإعدادات (لا يكسر باقي المستخدمين: القيمة الافتراضية = medium = القيم القديمة) ──
   const logoSizeKey: "small" | "medium" | "large" | "xlarge" =

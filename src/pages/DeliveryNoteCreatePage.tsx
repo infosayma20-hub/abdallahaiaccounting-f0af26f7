@@ -399,7 +399,7 @@ const DeliveryNoteCreatePage = () => {
       date,
       contactName,
       items: items.filter(i => i.product_name.trim()).map(i => ({
-        description: i.product_name, quantity: i.quantity, unit: i.unit || "",
+        description: i.product_name, quantity: i.quantity, unit: i.unit || "", unitPrice: i.unit_price,
       })),
       notes, driverName, vehicleNumber, deliveryAddress,
       status: noteStatus,
