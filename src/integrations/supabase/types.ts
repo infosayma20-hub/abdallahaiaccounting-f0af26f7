@@ -3973,6 +3973,7 @@ export type Database = {
           default_payment_terms: string | null
           default_receivable_account: string | null
           default_revenue_account: string | null
+          delivery_note_show_prices: boolean
           e_invoice_enabled: boolean | null
           email: string | null
           employee_count_range: string | null
@@ -4184,6 +4185,7 @@ export type Database = {
           default_payment_terms?: string | null
           default_receivable_account?: string | null
           default_revenue_account?: string | null
+          delivery_note_show_prices?: boolean
           e_invoice_enabled?: boolean | null
           email?: string | null
           employee_count_range?: string | null
@@ -4395,6 +4397,7 @@ export type Database = {
           default_payment_terms?: string | null
           default_receivable_account?: string | null
           default_revenue_account?: string | null
+          delivery_note_show_prices?: boolean
           e_invoice_enabled?: boolean | null
           email?: string | null
           employee_count_range?: string | null

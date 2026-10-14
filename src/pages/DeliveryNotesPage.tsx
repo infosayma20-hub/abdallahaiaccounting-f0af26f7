@@ -179,6 +179,7 @@ const DeliveryNotesPage = () => {
         description: i.product_name,
         quantity: i.quantity,
         unit: i.unit || "",
+        unitPrice: i.unit_price,
       })),
       notes: note.notes,
       driverName: note.driver_name,

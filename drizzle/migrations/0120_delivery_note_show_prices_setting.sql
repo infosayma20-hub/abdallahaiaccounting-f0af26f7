@@ -1,0 +1,2 @@
+ALTER TABLE public.company_settings ADD COLUMN delivery_note_show_prices boolean NOT NULL DEFAULT false;
+COMMENT ON COLUMN public.company_settings.delivery_note_show_prices IS 'إظهار الأسعار والإجمالي عند طباعة إرسالية المبيعات (الافتراضي: مخفية)';

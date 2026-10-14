@@ -12,7 +12,7 @@ export interface DeliveryNoteData {
   contactName: string;
   contactPhone?: string;
   contactAddress?: string;
-  items: { description: string; quantity: number; unit?: string; productCode?: string }[];
+  items: { description: string; quantity: number; unit?: string; productCode?: string; unitPrice?: number }[];
   notes?: string;
   driverName?: string;
   vehicleNumber?: string;
@@ -32,20 +32,29 @@ interface Props {
 }
 
 const DeliveryNotePrintView = ({ note, settings, copyLabel }: Props) => {
-  const items = (note.items || []).map((it) => ({
-    description: it.description,
-    productCode: it.productCode,
-    quantity: Number(it.quantity) || 0,
-    bonusQuantity: 0,
-    unitPrice: 0,
-    discount: 0,
-    discountType: "amount" as const,
-    taxRate: 0,
-    taxCategory: "exempt" as const,
-    subtotal: 0,
-    // carried through so the delivery-mode table can render unit
-    unit: it.unit,
-  })) as any;
+  // إظهار الأسعار على الإرسالية اختياري من الإعدادات (الافتراضي: مخفية)
+  const showPrices = (settings as any).delivery_note_show_prices === true;
+  const items = (note.items || []).map((it) => {
+    const qty = Number(it.quantity) || 0;
+    const price = showPrices ? Number(it.unitPrice) || 0 : 0;
+    return {
+      description: it.description,
+      productCode: it.productCode,
+      quantity: qty,
+      bonusQuantity: 0,
+      unitPrice: price,
+      discount: 0,
+      discountType: "amount" as const,
+      taxRate: 0,
+      taxCategory: "exempt" as const,
+      subtotal: qty * price,
+      // carried through so the delivery-mode table can render unit
+      unit: it.unit,
+    };
+  }) as any;
+  const grandTotal = showPrices
+    ? items.reduce((s: number, i: any) => s + (Number(i.subtotal) || 0), 0)
+    : 0;
 
   return (
     <InvoicePrintView
@@ -72,10 +81,10 @@ const DeliveryNotePrintView = ({ note, settings, copyLabel }: Props) => {
         notes: note.notes || "",
         status: note.status || "draft",
         paymentMethod: "credit",
-        subtotal: 0,
+        subtotal: grandTotal,
         totalDiscount: 0,
         totalTax: 0,
-        total: 0,
+        total: grandTotal,
         paidAmount: 0,
         remainingAmount: 0,
         currency: note.currency || "شيكل",
