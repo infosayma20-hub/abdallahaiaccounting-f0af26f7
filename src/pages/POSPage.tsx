@@ -56,7 +56,7 @@ import CallCenterDispatchDialog from "@/components/pos/CallCenterDispatchDialog"
 import { extractBaseNote } from "@/lib/order-note-utils";
 import PendingOrdersPanel from "@/components/pos/PendingOrdersPanel";
 import ManagerDiscountDialog, { type ManagerDiscountApproved } from "@/components/pos/ManagerDiscountDialog";
-import { CASHIER_DISCOUNT_OWNER } from "@/lib/pos/cashier-discount";
+import { CASHIER_DISCOUNT_OWNER, readCashierDiscountPermission } from "@/lib/pos/cashier-discount";
 import DispatchedOrdersLog from "@/components/pos/DispatchedOrdersLog";
 import AppOrdersInboxPanel from "@/components/pos/AppOrdersInboxPanel";
 import ScheduleOrderDialog from "@/components/pos/ScheduleOrderDialog";
@@ -444,6 +444,9 @@ const POSPage = ({ variant = "v1" }: { variant?: "v1" | "v2" } = {}) => {
   const [searchParams] = useSearchParams();
   const { user } = useAuth();
   const posFeatPerm = usePermission("pos");
+  // Cashier-level discount permission (pos_user_permissions.can_apply_discount),
+  // honored only for the opted-in workspace and re-read from the server.
+  const [cashierPosDiscount, setCashierPosDiscount] = useState(false);
   const [isDemoTenant, setIsDemoTenant] = useState(false);
   useEffect(() => {
     let cancelled = false;
@@ -704,16 +707,16 @@ const POSPage = ({ variant = "v1" }: { variant?: "v1" | "v2" } = {}) => {
     // bypassPermission=true is used when a branch manager has approved the
     // discount via ManagerDiscountDialog — the cashier doesn't need the
     // permission in that case.
-    if (d !== 0 && !opts?.bypassPermission && !posFeatPerm.can("sell", "discount")) {
+    if (d !== 0 && !opts?.bypassPermission && !posFeatPerm.can("sell", "discount") && !cashierPosDiscount) {
       toast.error(pt("لا تملك صلاحية تطبيق الخصم"));
       updateActiveOrder(o => ({ ...o, orderDiscount: 0 }));
       return;
     }
     updateActiveOrder(o => ({ ...o, orderDiscount: d }));
-  }, [updateActiveOrder, posFeatPerm]);
+  }, [updateActiveOrder, posFeatPerm, cashierPosDiscount]);
 
   const setOrderDiscountType = useCallback((t: "fixed" | "percent", opts?: { bypassPermission?: boolean }) => {
-    if (!opts?.bypassPermission && !posFeatPerm.can("sell", "discount")) {
+    if (!opts?.bypassPermission && !posFeatPerm.can("sell", "discount") && !cashierPosDiscount) {
       toast.error(pt("لا تملك صلاحية تطبيق الخصم"));
       return;
     }
@@ -981,6 +984,13 @@ const POSPage = ({ variant = "v1" }: { variant?: "v1" | "v2" } = {}) => {
   const [cashBoxBranchId, setCashBoxBranchId] = useState<string | null>(null);
   const [cashBoxBranchChecked, setCashBoxBranchChecked] = useState(false);
   const [activeBranchOwnerId, setActiveBranchOwnerId] = useState<string | null>(null);
+  useEffect(() => {
+    const owner = activeBranchOwnerId || dataOwnerId;
+    if (isAdmin || owner !== CASHIER_DISCOUNT_OWNER) { setCashierPosDiscount(false); return; }
+    let off = false;
+    readCashierDiscountPermission(owner).then((p) => { if (!off) setCashierPosDiscount(!!p); });
+    return () => { off = true; };
+  }, [activeBranchOwnerId, dataOwnerId, isAdmin]);
   // خصم بإذن مدير الفرع (Contra-Revenue). يُمسح بعد كل بيع ناجح أو إلغاء.
   const [showManagerDiscountDialog, setShowManagerDiscountDialog] = useState(false);
   const [managerDiscountMeta, setManagerDiscountMeta] = useState<ManagerDiscountApproved | null>(null);
@@ -3875,7 +3885,7 @@ const POSPage = ({ variant = "v1" }: { variant?: "v1" | "v2" } = {}) => {
     // is always honored — the manager's authority overrides the cashier's
     // missing permission. Without this bypass, a 100% manager discount would
     // silently print the full price on the customer receipt.
-    const canOrderDiscount = posFeatPerm.can("sell", "discount") || !!managerDiscountMeta;
+    const canOrderDiscount = posFeatPerm.can("sell", "discount") || cashierPosDiscount || !!managerDiscountMeta;
     const effOrderDiscount = canOrderDiscount ? safe(orderDiscount) : 0;
     let discountAmt = orderDiscountType === "percent" ? subtotal * effOrderDiscount / 100 : effOrderDiscount;
     // 🚚 Delivery fee is COMPLETELY OUTSIDE the restaurant cash flow.
@@ -3894,7 +3904,7 @@ const POSPage = ({ variant = "v1" }: { variant?: "v1" | "v2" } = {}) => {
       total: Math.round(total * 100) / 100,
       itemCount: cart.reduce((sum, item) => sum + item.qty, 0),
     };
-  }, [cart, orderDiscount, orderDiscountType, posFeatPerm, activeOrder?.callCenterDeliveryFee, managerDiscountMeta]);
+  }, [cart, orderDiscount, orderDiscountType, posFeatPerm, cashierPosDiscount, activeOrder?.callCenterDeliveryFee, managerDiscountMeta]);
 
   // Open session
   const handleOpenShift = async () => {
@@ -5071,7 +5081,7 @@ const POSPage = ({ variant = "v1" }: { variant?: "v1" | "v2" } = {}) => {
 
     // Defense-in-depth: block sale if an order-level discount is present but
     // the user lacks pos.sell.discount AND no branch-manager override exists.
-    if (orderDiscount > 0 && !posFeatPerm.can("sell", "discount") && !managerDiscountMeta) {
+    if (orderDiscount > 0 && !posFeatPerm.can("sell", "discount") && !cashierPosDiscount && !managerDiscountMeta) {
       toast.error(pt("لا تملك صلاحية تطبيق خصم"));
       return;
     }
@@ -11745,7 +11755,7 @@ const POSPage = ({ variant = "v1" }: { variant?: "v1" | "v2" } = {}) => {
 
       <ManagerDiscountDialog
         open={showManagerDiscountDialog}
-        cashierPermissionOwner={!isAdmin && (activeBranchOwnerId || dataOwnerId) === CASHIER_DISCOUNT_OWNER && posFeatPerm.can("sell", "discount") ? (activeBranchOwnerId || dataOwnerId) : null}
+        cashierPermissionOwner={!isAdmin && (activeBranchOwnerId || dataOwnerId) === CASHIER_DISCOUNT_OWNER ? (activeBranchOwnerId || dataOwnerId) : null}
         onClose={() => setShowManagerDiscountDialog(false)}
         onApproved={(data) => {
           setManagerDiscountMeta(data.authorizationKind === "cashier" ? null : data);
