@@ -16,10 +16,12 @@ import { toast } from "sonner";
 import { fmtDateDisplay } from "@/lib/utils";
 import * as XLSX from "xlsx";
 import DeliveryNotePrintView from "@/components/DeliveryNotePrintView";
-import { createRoot } from "react-dom/client";
+import { printReactDocument } from "@/lib/print/printReactDocument";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { setNextExportBranding } from "@/lib/excel-export";
 import {
   FinanceShell,
+  MobileRecordCards,
   applyFilters,
   type ActionTab,
   type FilterField,
@@ -64,6 +66,7 @@ const DeliveryNotesPage = () => {
   const ownerId = dataOwnerId || user?.id;
   const { settings: companySettings } = useCompanySettings();
   const navigate = useNavigate();
+  const isMobile = useIsMobile();
   const [notes, setNotes] = useState<DeliveryNote[]>([]);
   const [warehouses, setWarehouses] = useState<{ id: string; name: string }[]>([]);
   const [loading, setLoading] = useState(true);
@@ -190,29 +193,10 @@ const DeliveryNotesPage = () => {
       fromWarehouseName: fromWh,
       toWarehouseName: toWh,
     };
-    const win = window.open("", "_blank");
-    if (!win) return;
-    win.document.write(`<html dir="rtl"><head>
-      <title>إرسالية ${note.delivery_number}</title>
-      <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-      <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; color-adjust: exact !important; }
-        body { background: white; }
-        @media print {
-          body { padding: 0; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
-          @page { margin: 8mm; size: A4; }
-        }
-      </style>
-    </head><body><div id="print-root"></div></body></html>`);
-    win.document.close();
-    setTimeout(() => {
-      const container = win.document.getElementById("print-root");
-      if (container) {
-        const root = createRoot(container);
-        root.render(<DeliveryNotePrintView note={noteData} settings={companySettings} />);
-        setTimeout(() => win.print(), 500);
-      }
-    }, 200);
+    printReactDocument(
+      <DeliveryNotePrintView note={noteData} settings={companySettings} />,
+      { title: `إرسالية ${note.delivery_number}`, onError: () => toast.error("تعذر فتح الطباعة") },
+    );
   };
 
   const exportToExcel = () => {
@@ -231,6 +215,82 @@ const DeliveryNotesPage = () => {
     XLSX.utils.book_append_sheet(wb, ws, "إرساليات");
     setNextExportBranding({ title: "إرساليات" });
     XLSX.writeFile(wb, "delivery-notes.xlsx");
+  };
+
+  const renderNoteActions = (note: DeliveryNote) => {
+    const isInternal = note.delivery_type === "internal";
+    return (
+                      <TooltipProvider delayDuration={150}>
+                        <div className="flex items-center flex-wrap justify-start gap-1">
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => navigate(`/delivery-notes/${note.id}`)}>
+                                <Pencil className="h-4 w-4 text-primary" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>عرض / تعديل</TooltipContent>
+                          </Tooltip>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handlePrint(note)}>
+                                <Printer className="h-4 w-4 text-muted-foreground" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>طباعة</TooltipContent>
+                          </Tooltip>
+                          {note.status === "draft" && (
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleIssue(note.id)}>
+                                  <Package className="h-4 w-4 text-success" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>إصدار وخصم المخزون</TooltipContent>
+                            </Tooltip>
+                          )}
+                          {isInternal && note.status === "issued" && (
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleReceive(note.id)}>
+                                  <Factory className="h-4 w-4 text-primary" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>تأكيد الاستلام</TooltipContent>
+                            </Tooltip>
+                          )}
+                          {!isInternal && note.status === "issued" && (
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleConvertToInvoice(note)}>
+                                  <ArrowRight className="h-4 w-4 text-success" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>تحويل لفاتورة</TooltipContent>
+                            </Tooltip>
+                          )}
+                          {["issued","received"].includes(note.status) && (
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleCancel(note.id)}>
+                                  <RefreshCw className="h-4 w-4 text-warning" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>إلغاء وإعادة المخزون</TooltipContent>
+                            </Tooltip>
+                          )}
+                          {note.status !== "converted" && (
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleDelete(note.id)}>
+                                  <Trash2 className="h-4 w-4 text-destructive" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>حذف</TooltipContent>
+                            </Tooltip>
+                          )}
+                        </div>
+                      </TooltipProvider>
+    );
   };
 
   // ─── Action Pane ───
@@ -289,6 +349,24 @@ const DeliveryNotesPage = () => {
             </Button>
           </div>
         </Card>
+      ) : isMobile ? (
+        <MobileRecordCards items={filtered.map(note => ({
+          key: note.id,
+          title: note.delivery_number,
+          subtitle: note.delivery_type === "internal"
+            ? warehouses.find(w => w.id === note.to_warehouse_id)?.name || "—"
+            : note.contact_name || "—",
+          amount: note.delivery_type === "internal" ? "—" : `${note.total_amount?.toLocaleString()} ${note.currency === "شيكل" ? "₪" : note.currency}`,
+          badge: <span className="text-xs text-muted-foreground">{statusConfig[note.status]?.label}</span>,
+          fields: [
+            { label: "التاريخ", value: fmtDateDisplay(note.delivery_date) },
+            { label: "النوع", value: typeLabel(note.delivery_type) },
+            { label: "الفاتورة", value: note.invoice_number ? <Button variant="link" className="h-auto p-0 text-xs" onClick={() => navigate("/invoices?type=sales")}>{note.invoice_number}</Button> : "—" },
+          ],
+          actions: renderNoteActions(note),
+          cancelled: note.status === "cancelled",
+          onClick: () => navigate(`/delivery-notes/${note.id}`),
+        }))} />
       ) : (
         <Card>
           <Table>
@@ -337,76 +415,7 @@ const DeliveryNotesPage = () => {
                       ) : "—"}
                     </TableCell>
                     <TableCell className="text-center" onClick={e => e.stopPropagation()}>
-                      <TooltipProvider delayDuration={150}>
-                        <div className="flex items-center justify-center gap-0.5">
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => navigate(`/delivery-notes/${note.id}`)}>
-                                <Pencil className="h-4 w-4 text-blue-600" />
-                              </Button>
-                            </TooltipTrigger>
-                            <TooltipContent>عرض / تعديل</TooltipContent>
-                          </Tooltip>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handlePrint(note)}>
-                                <Printer className="h-4 w-4 text-slate-600" />
-                              </Button>
-                            </TooltipTrigger>
-                            <TooltipContent>طباعة</TooltipContent>
-                          </Tooltip>
-                          {note.status === "draft" && (
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleIssue(note.id)}>
-                                  <Package className="h-4 w-4 text-emerald-600" />
-                                </Button>
-                              </TooltipTrigger>
-                              <TooltipContent>إصدار وخصم المخزون</TooltipContent>
-                            </Tooltip>
-                          )}
-                          {isInternal && note.status === "issued" && (
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleReceive(note.id)}>
-                                  <Factory className="h-4 w-4 text-purple-600" />
-                                </Button>
-                              </TooltipTrigger>
-                              <TooltipContent>تأكيد الاستلام</TooltipContent>
-                            </Tooltip>
-                          )}
-                          {!isInternal && note.status === "issued" && (
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleConvertToInvoice(note)}>
-                                  <ArrowRight className="h-4 w-4 text-emerald-600" />
-                                </Button>
-                              </TooltipTrigger>
-                              <TooltipContent>تحويل لفاتورة</TooltipContent>
-                            </Tooltip>
-                          )}
-                          {["issued","received"].includes(note.status) && (
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleCancel(note.id)}>
-                                  <RefreshCw className="h-4 w-4 text-orange-600" />
-                                </Button>
-                              </TooltipTrigger>
-                              <TooltipContent>إلغاء وإعادة المخزون</TooltipContent>
-                            </Tooltip>
-                          )}
-                          {note.status !== "converted" && (
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleDelete(note.id)}>
-                                  <Trash2 className="h-4 w-4 text-destructive" />
-                                </Button>
-                              </TooltipTrigger>
-                              <TooltipContent>حذف</TooltipContent>
-                            </Tooltip>
-                          )}
-                        </div>
-                      </TooltipProvider>
+                      {renderNoteActions(note)}
                     </TableCell>
                   </TableRow>
                 );
