@@ -44,8 +44,10 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
       : style;
     const mobileLabel = !asChild && size === "icon" ? props.title || props["aria-label"] : undefined;
     return <Comp className={cn(buttonVariants({ variant, size, className }))} ref={ref} style={accentStyle} {...props}>
-      {children}
-      {mobileLabel && <span className="mobile-action-label hidden">{mobileLabel}</span>}
+      {asChild ? children : <>
+        {children}
+        {mobileLabel && <span className="mobile-action-label hidden">{mobileLabel}</span>}
+      </>}
     </Comp>;
   },
 );
