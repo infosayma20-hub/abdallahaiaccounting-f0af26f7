@@ -32963,6 +32963,10 @@ export type Database = {
         Args: { p_user_id: string }
         Returns: undefined
       }
+      ensure_contact_account: {
+        Args: { p_contact_id: string; p_user_id: string }
+        Returns: string
+      }
       ensure_default_journal_book: {
         Args: { _user_id: string }
         Returns: string
