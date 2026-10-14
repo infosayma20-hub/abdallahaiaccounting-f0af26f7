@@ -1886,6 +1886,8 @@ const InvoiceCreatePage = () => {
               .select("id")
               .eq("user_id", ownerId)
               .eq("reference", invoiceRef)
+              // نقيّد البحث بنوع قيد الفاتورة نفسه حتى لا يُستبدل سند قبض/صرف يحمل رقم الفاتورة كمرجع
+              .eq("transaction_type", transactionType)
               .eq("is_deleted", false)
               .order("created_at", { ascending: false })
               .limit(1)
