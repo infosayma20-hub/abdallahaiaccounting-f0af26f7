@@ -1886,6 +1886,8 @@ const InvoiceCreatePage = () => {
               .select("id")
               .eq("user_id", ownerId)
               .eq("reference", invoiceRef)
+              // نقيّد البحث بنوع قيد الفاتورة نفسه حتى لا يُستبدل سند قبض/صرف يحمل رقم الفاتورة كمرجع
+              .eq("transaction_type", transactionType)
               .eq("is_deleted", false)
               .order("created_at", { ascending: false })
               .limit(1)
@@ -1922,9 +1924,15 @@ const InvoiceCreatePage = () => {
             // نقدي مع سند تلقائي → المتبقي الحقيقي (جزئي/زائد)، آجل → كامل الإجمالي.
             const oldTotal = Number(originalInvoiceRef.current?.totalAmount);
             const oldPaid = Number(originalInvoiceRef.current?.paidAmount);
-            const oldNet = Number.isFinite(oldTotal) && Number.isFinite(oldPaid)
-              ? oldTotal - oldPaid
-              : Number(originalInvoiceRef.current?.remainingAmount || 0);
+            // المسودة (ومنها الفاتورة المحوّلة من إرسالية) لم تُضِف أي أثر سابق على رصيد الجهة،
+            // فعند اعتمادها يجب إضافة كامل الأثر لا الفرق فقط.
+            const wasDraft = (originalInvoiceRef.current?.status || "") === "draft"
+              && !originalInvoiceRef.current?.linkedTransactionId;
+            const oldNet = wasDraft
+              ? 0
+              : Number.isFinite(oldTotal) && Number.isFinite(oldPaid)
+                ? oldTotal - oldPaid
+                : Number(originalInvoiceRef.current?.remainingAmount || 0);
             const newNet = useVoucherAutoFlow
               ? summary.total - cashPaid
               : Number(summary.remainingAmount || 0);
