@@ -654,8 +654,14 @@ const DeliveryNoteCreatePage = () => {
                       ))}
                     </SelectContent>
                   </Select>
-                  <Input placeholder="أو اكتب الاسم مباشرة" value={contactName}
-                    onChange={e => setContactName(e.target.value)} className="mt-1" disabled={formDisabled} />
+                  <Input placeholder="أو اكتب اسم عميل جديد (يُضاف لجهات الاتصال تلقائياً)" value={contactName}
+                    onChange={e => {
+                      const v = e.target.value;
+                      setContactName(v);
+                      // تغيير الاسم يدوياً يفك الربط بالجهة المختارة حتى لا تُسجّل الإرسالية على جهة خاطئة
+                      const picked = contacts.find(x => x.id === contactId);
+                      if (picked && picked.contact_name.trim() !== v.trim()) setContactId("");
+                    }} className="mt-1" disabled={formDisabled} />
                 </div>
                 <div className="space-y-2">
                   <Label>تاريخ الإرسالية</Label>

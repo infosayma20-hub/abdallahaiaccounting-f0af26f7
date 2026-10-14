@@ -806,6 +806,13 @@
       "when": 1791960777100,
       "tag": "0114_fix_convert_dn_generated_col",
       "breakpoints": true
+    },
+    {
+      "idx": 115,
+      "version": "7",
+      "when": 1791961038039,
+      "tag": "0115_delivery_notes_require_contact",
+      "breakpoints": true
     }
   ]
 }
