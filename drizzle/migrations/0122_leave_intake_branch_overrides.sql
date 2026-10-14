@@ -1,0 +1,2 @@
+ALTER TABLE public.company_settings ADD COLUMN IF NOT EXISTS hr_leave_branch_overrides jsonb NOT NULL DEFAULT '{}'::jsonb;
+COMMENT ON COLUMN public.company_settings.hr_leave_branch_overrides IS 'Per-branch leave intake: {branch_id: true|false}; missing branch follows hr_allow_leave_requests.';
