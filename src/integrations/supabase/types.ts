@@ -4009,6 +4009,7 @@ export type Database = {
           hr_employee_chat_enabled: boolean
           hr_intake_auto_managed: boolean
           hr_late_grace_minutes: number | null
+          hr_leave_branch_overrides: Json
           hr_leave_intake_close_day: number | null
           hr_leave_intake_open_day: number | null
           hr_leave_intake_schedule_enabled: boolean
@@ -4221,6 +4222,7 @@ export type Database = {
           hr_employee_chat_enabled?: boolean
           hr_intake_auto_managed?: boolean
           hr_late_grace_minutes?: number | null
+          hr_leave_branch_overrides?: Json
           hr_leave_intake_close_day?: number | null
           hr_leave_intake_open_day?: number | null
           hr_leave_intake_schedule_enabled?: boolean
@@ -4433,6 +4435,7 @@ export type Database = {
           hr_employee_chat_enabled?: boolean
           hr_intake_auto_managed?: boolean
           hr_late_grace_minutes?: number | null
+          hr_leave_branch_overrides?: Json
           hr_leave_intake_close_day?: number | null
           hr_leave_intake_open_day?: number | null
           hr_leave_intake_schedule_enabled?: boolean
