@@ -8,7 +8,7 @@ afterEach(cleanup);
 
 describe("shared Button slot contract", () => {
   it("renders and activates a single navigation child without crashing", () => {
-    const onClick = vi.fn();
+    const onClick = vi.fn((event: React.MouseEvent<HTMLButtonElement>) => event.preventDefault());
     const ref = createRef<HTMLButtonElement>();
     render(<Button asChild ref={ref} onClick={onClick}><a href="/hr">الموارد البشرية</a></Button>);
     const link = screen.getByRole("link", { name: "الموارد البشرية" });
