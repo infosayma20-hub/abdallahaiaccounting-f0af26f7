@@ -524,7 +524,7 @@ export function useCompanySettings() {
     "hr_shift_start","hr_shift_end","hr_late_grace_minutes",
     "hr_departure_cap_enabled","hr_departure_cap_minutes","hr_departure_max_gap_minutes","hr_departure_paid_within_cap","hr_departure_policy_from",
     "hr_work_days_per_week","hr_daily_hours",
-    "hr_allow_advance_requests","hr_allow_leave_requests","hr_employee_chat_enabled",
+    "hr_allow_advance_requests","hr_allow_leave_requests","hr_leave_branch_overrides","hr_employee_chat_enabled",
     "hr_advance_requests_closed_message","hr_leave_requests_closed_message",
     "onboarding_completed","onboarding_step","business_type","has_employees",
     "employee_count_range","has_pos","pos_count","inventory_method",

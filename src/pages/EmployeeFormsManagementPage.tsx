@@ -1,3 +1,4 @@
+import LeaveBranchIntakeEditor from "@/components/hr/LeaveBranchIntakeEditor";
 import { useState, useEffect, useRef } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
@@ -264,6 +265,7 @@ export default function EmployeeFormsManagementPage() {
       hr_payroll_freeze_days_before: number;
       hr_advance_max_amount: number | null;
       hr_advance_limit_exempt_employees: string[];
+      hr_leave_branch_overrides: Record<string, boolean>;
     }>
   ) => {
     // Optimistic UI update
@@ -1344,7 +1346,7 @@ export default function EmployeeFormsManagementPage() {
                 <DialogTitle className="flex items-center gap-2 text-base">
                   <Settings2 className="h-4 w-4 text-muted-foreground" />
                   إعدادات استقبال الطلبات
-                  {(companySettings.hr_allow_advance_requests === false || companySettings.hr_allow_leave_requests === false) && (
+                  {(companySettings.hr_allow_advance_requests === false || companySettings.hr_allow_leave_requests === false || Object.keys((companySettings as any).hr_leave_branch_overrides ?? {}).length > 0) && (
                     <Badge variant="outline" className="h-5 text-[10px] border-warning text-warning">استقبال موقوف جزئياً</Badge>
                   )}
                   {(companySettings as any).hr_intake_auto_managed === true && (
@@ -1401,6 +1403,13 @@ export default function EmployeeFormsManagementPage() {
                       </div>
                     );
                   })()}
+
+                  <LeaveBranchIntakeEditor
+                    ownerId={dataOwnerId || user?.id}
+                    globalOpen={companySettings.hr_allow_leave_requests !== false}
+                    overrides={((companySettings as any).hr_leave_branch_overrides ?? {}) as Record<string, boolean>}
+                    onSave={(next) => persistIntake({ hr_leave_branch_overrides: next })}
+                  />
 
                   {/* أيام محظورة لطلبات الإجازات */}
                   <LeaveBlackoutDatesEditor />
