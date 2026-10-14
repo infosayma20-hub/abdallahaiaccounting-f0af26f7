@@ -10,3 +10,4 @@
 - Purchase amount entry derives unit price from an editable total without premature rounding and retains the existing purchase RPC. Why: keep supplier, cash and stock posting unchanged.
 - POS screen/print language: `pos_terminals.receipt_language` (set in the new-device wizard) wins, else `branches.receipt_language`, else ar. Why: per-station config.
 - POS expenses are cancelled only via RPC `pos_cancel_expense_v1` (admin, mandatory reason): it posts a mirror reversal with `create_reverse_entry` and flags `pos_expenses.cancelled_at`; every shift/cash sum must exclude cancelled rows. Why: never delete posted cash entries.
+- POS purchases (`pos_purchases.supplier_id`) reference `contacts` suppliers, not `pos_suppliers`; `pos_record_purchase_v1` validates and posts against the contact. Why: the supplier ledger/statement lives on contacts.
