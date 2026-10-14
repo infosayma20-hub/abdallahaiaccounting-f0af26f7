@@ -541,6 +541,8 @@
     }
     .finance-shell .mobile-action-label {
       display: inline;
+      min-width: 0;
+      overflow-wrap: anywhere;
       font-size: 12px;
       line-height: 1.4;
     }

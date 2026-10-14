@@ -3325,7 +3325,7 @@ const InvoiceCreatePage = () => {
                       variant="outline"
                       size="icon"
                       className={`h-10 w-10 rounded-xl shrink-0 ${form.costCenterId ? "border-primary/60 text-primary bg-primary/5" : ""}`}
-                      title={form.costCenterId ? tt("تم اختيار مركز تكلفة — انقر للتعديل") : tt("مركز التكلفة (اختياري — لتقارير الربحية)")}
+                      aria-label={tt("مركز التكلفة")}
                     >
                       <Tag className="h-4 w-4" />
                     </Button>

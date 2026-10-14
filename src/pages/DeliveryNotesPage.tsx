@@ -221,7 +221,7 @@ const DeliveryNotesPage = () => {
     const isInternal = note.delivery_type === "internal";
     return (
                       <TooltipProvider delayDuration={150}>
-                        <div className="flex items-center flex-wrap justify-start gap-1">
+                        <div className="flex items-center flex-wrap md:flex-nowrap justify-start md:justify-center gap-1">
                           <Tooltip>
                             <TooltipTrigger asChild>
                               <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => navigate(`/delivery-notes/${note.id}`)}>
@@ -379,7 +379,7 @@ const DeliveryNotesPage = () => {
                 <TableHead className="text-right">المبلغ</TableHead>
                 <TableHead className="text-right">الحالة</TableHead>
                 <TableHead className="text-right">الفاتورة</TableHead>
-                <TableHead className="text-center w-12"></TableHead>
+                <TableHead className="text-center w-56"></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>

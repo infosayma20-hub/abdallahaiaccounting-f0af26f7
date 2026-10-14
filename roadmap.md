@@ -1,5 +1,6 @@
 # Roadmap — Inventory costing (plan approved 2026-10-06)
-- [ ] Finance mobile: repair shared table scrolling, show action names without hover, make delivery-note print accessible, and verify authenticated mobile/desktop flows without changing financial data.
+- [x] Finance mobile: shared tables scroll, existing tooltip/title commands have visible phone labels, delivery notes use mobile cards and iframe printing, invoice commands use FinanceShell; authenticated mobile/desktop checks and four read-only end-to-end tests passed without financial writes.
+- [ ] Finance mobile physical print: confirm phone print/share dialog on the customer's actual phone/printer; sandbox verifies document rendering, not a physical printer.
 - [x] Print-note number order: reproduced with librsvg, corrected receipt/kitchen notes without changing stored data, visually checked Arabic/bilingual outputs; five regression tests passed.
 - [ ] Print-note rollout: corrected bridge source must be installed on branch printing computers; physical printer verification unavailable from the sandbox. No installer/ZIP or printer settings changed.
 - [x] Returns: invoice-like sales/purchase form and list; pilot-only atomic lifecycle tested for service sales/purchase and linked sales-stock create, replay, edit, cancel; original stock restored and financial net effect zero. No historical documents changed.
