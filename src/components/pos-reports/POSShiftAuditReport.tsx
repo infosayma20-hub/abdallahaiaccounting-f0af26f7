@@ -1863,6 +1863,7 @@ function ExpandableExpensesRow({
       </button>
       {open && (
         <div className="bg-muted/10 px-3 py-2">
+          {useShiftRpc && ownerId && <ShiftAddCashOutButtons sessionId={sessionId} ownerId={ownerId} onDone={onChanged} />}
           {loading ? <p className="text-[11px] text-muted-foreground py-2">جاري التحميل...</p> : (
             <table className="w-full text-[11.5px]">
               <thead className="text-[10px] text-muted-foreground">
