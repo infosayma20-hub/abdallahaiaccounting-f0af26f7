@@ -14348,6 +14348,7 @@ export type Database = {
           is_active: boolean | null
           last_login: string | null
           password_hash: string
+          receive_ops_alerts: boolean
           role: string | null
           user_id: string | null
           username: string
@@ -14366,6 +14367,7 @@ export type Database = {
           is_active?: boolean | null
           last_login?: string | null
           password_hash: string
+          receive_ops_alerts?: boolean
           role?: string | null
           user_id?: string | null
           username: string
@@ -14384,6 +14386,7 @@ export type Database = {
           is_active?: boolean | null
           last_login?: string | null
           password_hash?: string
+          receive_ops_alerts?: boolean
           role?: string | null
           user_id?: string | null
           username?: string
@@ -31724,6 +31727,12 @@ export type Database = {
         Returns: boolean
       }
       _norm_currency_code: { Args: { _c: string }; Returns: string }
+      _ops_fmt_time: { Args: { _v: string }; Returns: string }
+      _ops_order_ctx: {
+        Args: { _order: string }
+        Returns: Record<string, unknown>
+      }
+      _ops_user_label: { Args: { _uid: string }; Returns: string }
       _payroll_post_payment:
         | {
             Args: {
@@ -34368,6 +34377,17 @@ export type Database = {
           }
       notify_evaluation_due: { Args: never; Returns: undefined }
       notify_hr_employee_birthdays: { Args: never; Returns: number }
+      notify_ops_alert: {
+        Args: {
+          _body: string
+          _owner: string
+          _path: string
+          _source: string
+          _title: string
+          _type: string
+        }
+        Returns: undefined
+      }
       open_van_day: {
         Args: {
           p_load_transfer_id?: string

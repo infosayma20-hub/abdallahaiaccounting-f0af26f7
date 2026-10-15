@@ -883,6 +883,20 @@
       "when": 1792046720962,
       "tag": "0125_owner_sales_by_day",
       "breakpoints": true
+    },
+    {
+      "idx": 126,
+      "version": "7",
+      "when": 1792072354028,
+      "tag": "0126_ops_alerts_portal",
+      "breakpoints": true
+    },
+    {
+      "idx": 127,
+      "version": "7",
+      "when": 1792072397854,
+      "tag": "0127_ops_alert_time_fmt",
+      "breakpoints": true
     }
   ]
 }
