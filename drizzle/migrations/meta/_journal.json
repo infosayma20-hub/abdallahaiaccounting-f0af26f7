@@ -953,6 +953,13 @@
       "when": 1792081401545,
       "tag": "0135_pos_purchase_v2_fix_unlinked_item",
       "breakpoints": true
+    },
+    {
+      "idx": 136,
+      "version": "7",
+      "when": 1792082534690,
+      "tag": "0136_manual_journal_optional_shift_link",
+      "breakpoints": true
     }
   ]
 }

@@ -29041,6 +29041,7 @@ export type Database = {
           local_id: string | null
           notes: string | null
           payment_method: string | null
+          pos_session_id: string | null
           posted_at: string | null
           posted_by: string | null
           ref_number: string
@@ -29076,6 +29077,7 @@ export type Database = {
           local_id?: string | null
           notes?: string | null
           payment_method?: string | null
+          pos_session_id?: string | null
           posted_at?: string | null
           posted_by?: string | null
           ref_number: string
@@ -29111,6 +29113,7 @@ export type Database = {
           local_id?: string | null
           notes?: string | null
           payment_method?: string | null
+          pos_session_id?: string | null
           posted_at?: string | null
           posted_by?: string | null
           ref_number?: string
@@ -29197,6 +29200,20 @@ export type Database = {
             columns: ["linked_transaction_id"]
             isOneToOne: false
             referencedRelation: "v_drift_tx_zero_amount"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vouchers_pos_session_id_fkey"
+            columns: ["pos_session_id"]
+            isOneToOne: false
+            referencedRelation: "pos_session_conflicts"
+            referencedColumns: ["session_id"]
+          },
+          {
+            foreignKeyName: "vouchers_pos_session_id_fkey"
+            columns: ["pos_session_id"]
+            isOneToOne: false
+            referencedRelation: "pos_sessions"
             referencedColumns: ["id"]
           },
           {
@@ -34226,6 +34243,21 @@ export type Database = {
           auth_user_id: string
           name: string
           role: string
+        }[]
+      }
+      list_journal_shift_options: {
+        Args: { p_date?: string; p_owner: string; p_session_id?: string }
+        Returns: {
+          branch_name: string
+          business_date: string
+          cash_box_name: string
+          cashier_name: string
+          closed_at: string
+          gl_account_code: string
+          id: string
+          opened_at: string
+          shift_code: string
+          state: string
         }[]
       }
       list_orphaned_employee_account_posts: {
