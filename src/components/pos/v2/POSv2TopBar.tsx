@@ -1,5 +1,5 @@
 import { useState, type ReactNode, type RefObject } from "react";
-import { Search, Barcode, PauseCircle, FileText, MoreHorizontal, Sun, Moon, CircleStop, Pin, PinOff, Languages } from "lucide-react";
+import { Search, Barcode, PauseCircle, FileText, MoreHorizontal, Sun, Moon, CircleStop, Pin, PinOff, Languages, X } from "lucide-react";
 import type { PosV2Tokens } from "./posV2Theme";
 import BridgeStatusIndicator from "@/components/pos/BridgeStatusIndicator";
 import { usePosLang } from "@/i18n/pos-lang";
@@ -88,8 +88,20 @@ export default function POSv2TopBar(p: Props) {
             onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); p.onSearchEnter(); } }}
             placeholder={tr("ابحث عن منتج أو امسح الباركود")}
             className="w-full focus:outline-none"
-            style={{ height: 46, borderRadius: 12, background: t.input, border: `1px solid ${t.border}`, color: t.text, paddingInlineStart: 42, paddingInlineEnd: 46, fontSize: 14 }}
+            style={{ height: 46, borderRadius: 12, background: t.input, border: `1px solid ${t.border}`, color: t.text, paddingInlineStart: 42, paddingInlineEnd: p.searchQuery ? 84 : 46, fontSize: 14 }}
           />
+          {!!p.searchQuery && (
+            <button
+              type="button"
+              onClick={() => { p.onSearchChange(""); p.searchRef.current?.focus(); }}
+              className="absolute top-1/2 -translate-y-1/2 flex items-center justify-center hover:opacity-80"
+              style={{ insetInlineEnd: 46, width: 30, height: 30, borderRadius: 8, color: t.muted, background: t.dark ? "rgba(255,255,255,0.10)" : "rgba(0,0,0,0.07)" }}
+              title={tr("مسح البحث")}
+              aria-label={tr("مسح البحث")}
+            >
+              <X style={{ width: 15, height: 15 }} strokeWidth={2.4} />
+            </button>
+          )}
           <button
             type="button"
             onClick={p.onCameraScan}
