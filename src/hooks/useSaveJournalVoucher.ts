@@ -50,6 +50,7 @@ export interface JournalSaveInput {
   notes?: string | null;
   /** دفتر السندات — إن لم يُمرر يُستخدم الدفتر الافتراضي */
   book_id?: string | null;
+  pos_session_id?: string | null;
   /** جهة اتصال على مستوى السند ككل (اختياري) */
   contact_id?: string | null;
   /** مركز تكلفة عام على مستوى السند (اختياري) — يُستخدم للسطور التي لا تحدد مركزها */
@@ -381,6 +382,15 @@ export function useSaveJournalVoucher() {
   const { dataOwnerId } = useDataOwnerId();
   const [saving, setSaving] = useState(false);
 
+  const validateShift = async (input: JournalSaveInput, ownerId: string): Promise<string | null> => {
+    if (!input.pos_session_id) return null;
+    const { data, error } = await supabase.rpc('list_journal_shift_options', { p_owner: ownerId, p_session_id: input.pos_session_id });
+    if (error || !data?.[0]) return 'تعذّر التحقق من وردية هذه الشركة';
+    const code = data[0].gl_account_code;
+    if (!code || !input.lines.some(l => l.account_code === code && (l.debit > 0 || l.credit > 0))) return 'القيد يجب أن يتضمن حساب صندوق الوردية';
+    return null;
+  };
+
   const save = async (input: JournalSaveInput): Promise<JournalSaveResult> => {
     if (!user) return { success: false, error: "غير مسجل الدخول" };
     const ownerId = dataOwnerId || user.id;
@@ -388,6 +398,9 @@ export function useSaveJournalVoucher() {
     const mode = input.mode || "posted";
     const validationError = validateJournalInput({ ...input, mode });
     if (validationError) return { success: false, error: validationError };
+
+    const shiftError = await validateShift(input, ownerId);
+    if (shiftError) return { success: false, error: shiftError };
 
     // ── (0) حماية الفترة المقفلة (fiscal period lock) ──
     const lockError = await checkFiscalPeriodLock(ownerId, input.date);
@@ -508,6 +521,7 @@ export function useSaveJournalVoucher() {
           line_sort_order: input.line_sort_order || "original",
           book_id: bookId,
           book_number: bookNumber,
+          pos_session_id: input.pos_session_id || null,
         })
         .select("id, ref_number")
         .single();
@@ -603,7 +617,7 @@ export function useSaveJournalVoucher() {
                 posted_by: user.id,
                 posted_at: new Date().toISOString(),
               })
-              .eq("id", voucher.id);
+              .eq("id", voucher.id).throwOnError();
           } else {
             throw new Error("فشل إنشاء القيد المحاسبي المرتبط");
           }
@@ -626,7 +640,7 @@ export function useSaveJournalVoucher() {
                 posted_by: user.id,
                 posted_at: new Date().toISOString(),
               })
-              .eq("id", voucher.id);
+              .eq("id", voucher.id).throwOnError();
           } else {
             throw new Error("فشل إنشاء القيد المحاسبي المرتبط");
           }
@@ -675,6 +689,9 @@ export function useSaveJournalVoucher() {
     const mode = input.mode || "posted";
     const validationError = validateJournalInput({ ...input, mode });
     if (validationError) return { success: false, error: validationError };
+
+    const shiftError = await validateShift(input, ownerId);
+    if (shiftError) return { success: false, error: shiftError };
 
     // فحص الفترة المقفلة على التاريخ الجديد
     const lockError = await checkFiscalPeriodLock(ownerId, input.date);
@@ -766,6 +783,7 @@ export function useSaveJournalVoucher() {
           attachments: input.attachments && input.attachments.length > 0 ? input.attachments : [],
           line_sort_order: input.line_sort_order || "original",
           linked_transaction_id: null,
+          ...(input.pos_session_id !== undefined ? { pos_session_id: input.pos_session_id } : {}),
         })
         .eq("id", voucherId);
       if (uErr) throw uErr;
@@ -853,7 +871,7 @@ export function useSaveJournalVoucher() {
                 posted_by: user.id,
                 posted_at: new Date().toISOString(),
               })
-              .eq("id", voucherId);
+              .eq("id", voucherId).throwOnError();
           } else {
             throw new Error("فشل إنشاء القيد المحاسبي المرتبط");
           }
@@ -872,7 +890,7 @@ export function useSaveJournalVoucher() {
                 posted_by: user.id,
                 posted_at: new Date().toISOString(),
               })
-              .eq("id", voucherId);
+              .eq("id", voucherId).throwOnError();
           } else {
             throw new Error("فشل إنشاء القيد المحاسبي المرتبط");
           }

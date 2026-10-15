@@ -143,14 +143,16 @@ export function groupRowsByShift<T extends GroupableRow>(
     const sid = resolveShiftKeyForRow(row, ctx.orderToSession, ctx.txToSession, ctx.refToSession);
     if (!sid || !ctx.shifts.has(sid)) { slots.push({ idx, row }); return; }
     if (!buckets.has(sid)) { buckets.set(sid, []); firstIdx.set(sid, idx); }
-    buckets.get(sid)!.push(row);
+    buckets.get(sid)?.push(row);
   });
 
   for (const [sid, group] of buckets) {
-    const info = ctx.shifts.get(sid)!;
+    const info = ctx.shifts.get(sid);
+    if (!info) continue;
     const debit = group.reduce((s, r) => s + (Number(r.debit) || 0), 0);
     const credit = group.reduce((s, r) => s + (Number(r.credit) || 0), 0);
-    const anchorIdx = firstIdx.get(sid)!;
+    const anchorIdx = firstIdx.get(sid);
+    if (anchorIdx === undefined) continue;
     // Prefer business_date on the summary so date sorting groups intraday sessions on one line.
     const displayDate = info.business_date || group[0].date;
     const cashier = info.cashier_name || 'كاشير غير محدد';
@@ -158,9 +160,11 @@ export function groupRowsByShift<T extends GroupableRow>(
     const open = timeOnly(info.opened_at);
     const close = info.closed_at ? timeOnly(info.closed_at) : '…';
     const openStatus = info.state === 'open' ? ' (مفتوحة)' : '';
-    const cashOutCount = group.filter(r => !isPosStatementRow(r)).length;
+    const journalCount = group.filter(r => ['journal', 'manual', 'manual_entry', 'journal_entry', 'opening_balance'].includes(r.transaction_type)).length;
+    const cashOutCount = group.filter(r => !isPosStatementRow(r)).length - journalCount;
     const cashOutLabel = cashOutCount ? ` · ${cashOutCount} مصروف/مشتريات` : '';
-    const description = `📦 وردية ${cashier}${device} · ${info.order_count} طلب${cashOutLabel} · ${open}→${close}${openStatus}`;
+    const journalLabel = journalCount ? ` · ${journalCount} قيد مرتبط` : '';
+    const description = `📦 وردية ${cashier}${device} · ${info.order_count} طلب${cashOutLabel}${journalLabel} · ${open}→${close}${openStatus}`;
 
     // Human-readable shift identifier: date + sequence (e.g. "وردية-20260702-1")
     // Falls back to short hex only if business_date is missing.
