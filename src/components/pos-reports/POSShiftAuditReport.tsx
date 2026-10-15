@@ -1306,7 +1306,7 @@ function OrderDetailsDialog({
 
   return (
     <Dialog open={!!orderId} onOpenChange={(o) => !o && onClose()}>
-      <DialogContent dir="rtl" className="max-w-2xl">
+      <DialogContent dir="rtl" className="max-w-2xl max-h-[90dvh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="text-right">
             تفاصيل الفاتورة {order?.order_number || ""}
