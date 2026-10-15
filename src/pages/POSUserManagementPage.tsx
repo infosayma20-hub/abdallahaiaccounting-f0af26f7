@@ -69,6 +69,7 @@ interface Permission {
   can_edit_prices: boolean;
   can_void_sales: boolean;
   can_refund: boolean;
+  can_pos_return: boolean;
   allow_credit_sale: boolean;
   open_cash_drawer: boolean;
   can_remove_cart_items: boolean;
@@ -112,6 +113,7 @@ const DEFAULT_PERMS: Permission = {
   can_edit_prices: true,
   can_void_sales: true,
   can_refund: true,
+  can_pos_return: false,
   allow_credit_sale: true,
   open_cash_drawer: false,
   can_remove_cart_items: true,
@@ -257,6 +259,7 @@ export default function POSUserManagementPage() {
       can_edit_prices: perms.can_edit_prices,
       can_void_sales: perms.can_void_sales,
       can_refund: perms.can_refund,
+      can_pos_return: (perms as any).can_pos_return ?? false,
       allow_credit_sale: (perms as any).allow_credit_sale ?? false,
       open_cash_drawer: (perms as any).open_cash_drawer ?? false,
       can_view_invoice_history: perms.can_view_invoice_history ?? true,
@@ -576,6 +579,7 @@ export default function POSUserManagementPage() {
         { key: "can_view_invoice_history", label: "رؤية سجل الفواتير", icon: <FileText className="w-4 h-4" /> },
         { key: "can_edit_invoices", label: "تعديل الفواتير (استدعاء)", icon: <FilePen className="w-4 h-4" />, dependsOn: "can_view_invoice_history", dependsLabel: "رؤية سجل الفواتير" },
         { key: "can_cancel_invoices", label: "إلغاء الفواتير", icon: <Ban className="w-4 h-4" />, dependsOn: "can_view_invoice_history", dependsLabel: "رؤية سجل الفواتير" },
+        { key: "can_pos_return", label: "مردود مبيعات (إرجاع أصناف)", icon: <RotateCcw className="w-4 h-4" />, dependsOn: "can_view_invoice_history", dependsLabel: "رؤية سجل الفواتير" },
         { key: "require_manager_for_invoices", label: "تعديل الفواتير بموافقة مدير", icon: <UserCheck className="w-4 h-4" />, dependsOn: "can_edit_invoices", dependsLabel: "تعديل الفواتير" },
         { key: "print_invoices", label: "طباعة الفواتير", icon: <Printer className="w-4 h-4" /> },
         { key: "resend_invoice", label: "إعادة إرسال الفاتورة", icon: <Send className="w-4 h-4" /> },

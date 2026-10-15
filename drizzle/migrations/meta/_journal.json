@@ -918,6 +918,20 @@
       "when": 1792078688491,
       "tag": "0130_pos_shift_edit_purchase",
       "breakpoints": true
+    },
+    {
+      "idx": 131,
+      "version": "7",
+      "when": 1792079763870,
+      "tag": "0131_pos_return_v2_permission_damage",
+      "breakpoints": true
+    },
+    {
+      "idx": 132,
+      "version": "7",
+      "when": 1792079815824,
+      "tag": "0132_pos_return_v2_payment_sign",
+      "breakpoints": true
     }
   ]
 }

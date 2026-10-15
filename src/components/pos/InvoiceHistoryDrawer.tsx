@@ -126,6 +126,8 @@ interface InvoiceHistoryDrawerProps {
   requireManagerForRecall?: boolean;
   requireManagerForCancel?: boolean;
   requireManagerForReturn?: boolean;
+  /** POS sales return (مردود مبيعات) — separate from cancel; server re-checks can_pos_return. */
+  canReturnSales?: boolean;
   /**
    * Cashier-restricted mode: hides payment-method badges, payment-method row
    * in detail modal, and the "cancelled" status filter + cancelled rows in list.
@@ -192,7 +194,7 @@ const RECALL_REASONS = [
 ];
 
 export default function InvoiceHistoryDrawer({
-  open, onClose, dataOwnerId, sessionId, cashierName, terminalName, canEditInvoices = true, canCancelInvoices = true, requireManagerForInvoices = true, requireManagerForRecall, requireManagerForCancel, requireManagerForReturn = false, cashierMode = false, cancelWindowMinutes = 30, amountVisibleMinutes = 60, onInvoiceCancelled, allowOrderTransfer = false, printInvoices = true, resendInvoice = true, onRecallToCart, onLoadDraftToCart, experimentalLayout = false,
+  open, onClose, dataOwnerId, sessionId, cashierName, terminalName, canEditInvoices = true, canCancelInvoices = true, requireManagerForInvoices = true, requireManagerForRecall, requireManagerForCancel, requireManagerForReturn = false, canReturnSales = false, cashierMode = false, cancelWindowMinutes = 30, amountVisibleMinutes = 60, onInvoiceCancelled, allowOrderTransfer = false, printInvoices = true, resendInvoice = true, onRecallToCart, onLoadDraftToCart, experimentalLayout = false,
 }: InvoiceHistoryDrawerProps) {
   const { dir: posDir, t: tr } = usePosLang();
   // Use specific flags if provided, otherwise fall back to general flag
@@ -702,7 +704,7 @@ export default function InvoiceHistoryDrawer({
       toast.error("لا توجد وردية مفتوحة");
       return;
     }
-    try { await assertPermission("pos", "sell", "refund"); } catch { return; }
+    if (!canReturnSales) { toast.error("ليس لديك صلاحية مردود المبيعات"); return; }
     setReturningOrder(order);
     if (requireManagerForReturn) {
       setPendingManagerAction("return");
@@ -1276,7 +1278,7 @@ export default function InvoiceHistoryDrawer({
                             <RotateCcw className="h-3 w-3" /> {tr("استدعاء")}
                           </button>
                         )}
-                        {!cashierMode && canCancelInvoices && order.state === "paid" && !order.is_return && !isTransferredOut(order) && (
+                        {canReturnSales && order.state === "paid" && !order.is_return && !isTransferredOut(order) && (
                           <button
                             onClick={e => { e.stopPropagation(); initiateReturn(order); }}
                             className="flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-medium transition-colors"
@@ -1840,16 +1842,6 @@ export default function InvoiceHistoryDrawer({
                       <RotateCcw className="h-3.5 w-3.5" /> استدعاء للتعديل
                     </Button>
                     )}
-                    {((!cashierMode) || managerMode.active) && selectedOrder.state === "paid" && !selectedOrder.is_return && (
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="gap-1.5 text-xs border-destructive/40 text-destructive hover:bg-destructive/10"
-                        onClick={() => initiateReturn(selectedOrder)}
-                      >
-                        <RotateCcw className="h-3.5 w-3.5" /> ارتجاع
-                      </Button>
-                    )}
                     {(!cashierMode || isWithinCancelGrace(selectedOrder) || managerMode.active) ? (
                     <Button
                       variant="destructive"
@@ -1866,6 +1858,16 @@ export default function InvoiceHistoryDrawer({
                       </span>
                     )}
                   </>
+                )}
+                {canReturnSales && selectedOrder.state === "paid" && !selectedOrder.is_return && !isTransferredOut(selectedOrder) && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="gap-1.5 text-xs border-destructive/40 text-destructive hover:bg-destructive/10"
+                    onClick={() => initiateReturn(selectedOrder)}
+                  >
+                    <RotateCcw className="h-3.5 w-3.5" /> مردود مبيعات
+                  </Button>
                 )}
                 {allowOrderTransfer && selectedOrder.state === "paid" && (
                   <Button

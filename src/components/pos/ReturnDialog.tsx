@@ -64,6 +64,8 @@ export default function ReturnDialog({
   const [customReason, setCustomReason] = useState("");
   const [returnCurrency, setReturnCurrency] = useState<string>("ILS");
   const [paymentMethod, setPaymentMethod] = useState<string>("cash");
+  const [origMethod, setOrigMethod] = useState<string | null>(null);
+  const [damaged, setDamaged] = useState<Set<string>>(new Set());
 
   // Load original lines + previously returned qtys
   useEffect(() => {
@@ -76,6 +78,13 @@ export default function ReturnDialog({
           .from("pos_order_lines")
           .select("id, product_id, product_name, qty, unit_price, cost_price, total")
           .eq("order_id", originalOrderId);
+
+        const { data: pays } = await supabase
+          .from("pos_payments").select("payment_method").eq("order_id", originalOrderId);
+        const methods = Array.from(new Set((pays || []).map((p: any) => p.payment_method)));
+        const single = methods.length === 1 ? (methods[0] as string) : null;
+        setOrigMethod(single);
+        setPaymentMethod(single || "cash");
 
         // Fetch previous return orders linked to this original
         const { data: returnOrders } = await supabase
@@ -100,7 +109,11 @@ export default function ReturnDialog({
           });
         }
 
-        setLines((linesData || []) as OrderLine[]);
+        const raw = (linesData || []) as OrderLine[];
+        const sum = raw.reduce((a, l) => a + Number(l.total || 0), 0);
+        const ratio = sum > 0 && originalTotal < sum ? originalTotal / sum : 1;
+        setLines(raw.map(l => ({ ...l, unit_price: Number(l.qty) > 0 ? Math.round((Number(l.total) / Number(l.qty)) * ratio * 10000) / 10000 : 0 })));
+        setDamaged(new Set());
         setPreviousReturns(prevReturns);
 
         // Pre-select nothing, user must opt-in
@@ -123,8 +136,7 @@ export default function ReturnDialog({
     setReason("");
     setCustomReason("");
     setReturnCurrency(originalCurrency && ["ILS", "USD", "JOD"].includes(originalCurrency) ? originalCurrency : "ILS");
-    setPaymentMethod("cash");
-  }, [open, originalOrderId, originalCurrency]);
+  }, [open, originalOrderId, originalCurrency, originalTotal]);
 
   const toggleLine = (lineId: string) => {
     setSelectedLines(prev => {
@@ -204,6 +216,7 @@ export default function ReturnDialog({
           const qty = returnedQtys[l.id] || 0;
           return {
             line_id: l.id,
+            disposition: damaged.has(l.id) ? "damaged" : "restock",
             product_id: l.product_id,
             product_name: l.product_name,
             qty,
@@ -215,15 +228,14 @@ export default function ReturnDialog({
 
       const rate = returnCurrency === "ILS" ? 1 : (exchangeRates[returnCurrency] || 1);
 
-      const { data, error } = await supabase.rpc("process_pos_return", {
+      const { data, error } = await (supabase.rpc as any)("pos_return_v2", {
         p_original_order_id: originalOrderId,
-        p_user_id: dataOwnerId,
         p_session_id: sessionId,
         p_items: items,
-        p_return_currency: returnCurrency,
-        p_return_exchange_rate: rate,
         p_reason: finalReason,
         p_payment_method: paymentMethod,
+        p_return_currency: paymentMethod === "cash" ? returnCurrency : "ILS",
+        p_return_exchange_rate: paymentMethod === "cash" ? rate : 1,
       });
 
       if (error) throw error;
@@ -233,7 +245,13 @@ export default function ReturnDialog({
         throw new Error(result?.error || "فشل تنفيذ الارتجاع");
       }
 
-      toast.success(`تم إنشاء مرتجع #${result.return_order_number} بقيمة ₪${result.total_returned}`);
+      const amt = Number(result.total_returned || 0).toFixed(2);
+      const msg = paymentMethod === "cash"
+        ? `أعطِ الزبون ₪${amt} نقدًا من الصندوق`
+        : paymentMethod === "card"
+          ? `رجعت ₪${amt} على البطاقة/البنك نفسه`
+          : `أُضيف ₪${amt} رصيدًا على حساب الزبون`;
+      toast.success(`تم مرتجع #${result.return_order_number} — ${msg}`, { duration: 8000 });
       onSuccess();
       onClose();
     } catch (err: any) {
@@ -344,7 +362,18 @@ export default function ReturnDialog({
                               </div>
                               <div className="text-[10px] text-muted-foreground text-center mt-0.5">من {maxAvail}</div>
                             </td>
-                            <td className="px-2 py-2 text-left font-mono text-xs text-muted-foreground">₪{l.unit_price.toFixed(2)}</td>
+                            <td className="px-2 py-2 text-left font-mono text-xs text-muted-foreground">
+                              ₪{l.unit_price.toFixed(2)}
+                              {isSelected && l.product_id && (
+                                <button
+                                  type="button"
+                                  onClick={() => setDamaged(prev => { const n = new Set(prev); n.has(l.id) ? n.delete(l.id) : n.add(l.id); return n; })}
+                                  className={`block mt-1 text-[10px] font-sans rounded px-1.5 py-0.5 border ${damaged.has(l.id) ? "border-destructive text-destructive bg-destructive/10" : "border-border text-muted-foreground"}`}
+                                >
+                                  {damaged.has(l.id) ? "تالف" : "يرجع للمخزون"}
+                                </button>
+                              )}
+                            </td>
                             <td className="px-2 py-2 text-left font-mono font-semibold">
                               {isSelected ? `₪${(qty * l.unit_price).toFixed(2)}` : "—"}
                             </td>
@@ -364,8 +393,10 @@ export default function ReturnDialog({
                     <SelectTrigger className="h-9 mt-1"><SelectValue /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="cash">نقدي (من الصندوق)</SelectItem>
-                      <SelectItem value="card">بطاقة (للبنك)</SelectItem>
-                      <SelectItem value="credit">آجل (ذمم العميل)</SelectItem>
+                      {origMethod === "card" && <SelectItem value="card">نفس البطاقة (نفس البنك)</SelectItem>}
+                      {origMethod && !["cash", "card"].includes(origMethod) && (
+                        <SelectItem value={origMethod}>رصيد على حساب الزبون</SelectItem>
+                      )}
                     </SelectContent>
                   </Select>
                 </div>
@@ -379,6 +410,10 @@ export default function ReturnDialog({
                   </Select>
                 </div>
               </div>
+
+              <p className="text-[11px] text-muted-foreground -mt-1">
+                اسأل الزبون عن حالة كل صنف: «يرجع للمخزون» إذا سليم، أو «تالف» فيُسجّل إتلافًا بقيمة تكلفته.
+              </p>
 
               {/* Reason */}
               <div>

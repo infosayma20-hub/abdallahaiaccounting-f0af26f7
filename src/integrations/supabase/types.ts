@@ -16997,6 +16997,7 @@ export type Database = {
           product_id: string | null
           product_name: string
           qty: number
+          return_disposition: string | null
           sku: string | null
           subtotal: number
           tax_amount: number
@@ -17017,6 +17018,7 @@ export type Database = {
           product_id?: string | null
           product_name: string
           qty?: number
+          return_disposition?: string | null
           sku?: string | null
           subtotal?: number
           tax_amount?: number
@@ -17037,6 +17039,7 @@ export type Database = {
           product_id?: string | null
           product_name?: string
           qty?: number
+          return_disposition?: string | null
           sku?: string | null
           subtotal?: number
           tax_amount?: number
@@ -18918,6 +18921,7 @@ export type Database = {
           can_edit_prices: boolean
           can_open_register: boolean
           can_pay_purchases_cash: boolean
+          can_pos_return: boolean
           can_record_expenses: boolean
           can_record_purchases: boolean
           can_refund: boolean
@@ -18967,6 +18971,7 @@ export type Database = {
           can_edit_prices?: boolean
           can_open_register?: boolean
           can_pay_purchases_cash?: boolean
+          can_pos_return?: boolean
           can_record_expenses?: boolean
           can_record_purchases?: boolean
           can_refund?: boolean
@@ -19016,6 +19021,7 @@ export type Database = {
           can_edit_prices?: boolean
           can_open_register?: boolean
           can_pay_purchases_cash?: boolean
+          can_pos_return?: boolean
           can_record_expenses?: boolean
           can_record_purchases?: boolean
           can_refund?: boolean
@@ -34607,6 +34613,18 @@ export type Database = {
       pos_resolve_target_minutes: {
         Args: { _owner: string; _product_id: string }
         Returns: number
+      }
+      pos_return_v2: {
+        Args: {
+          p_items: Json
+          p_original_order_id: string
+          p_payment_method?: string
+          p_reason: string
+          p_return_currency?: string
+          p_return_exchange_rate?: number
+          p_session_id: string
+        }
+        Returns: Json
       }
       pos_scan_customer_card: { Args: { _code: string }; Returns: Json }
       pos_search_loyalty_customers: { Args: { _q: string }; Returns: Json }
