@@ -1872,7 +1872,10 @@ function ExpandableExpensesRow({
                   return (
                     <tr key={p.id} className={isCancelled ? "opacity-60" : undefined}>
                       <td className="py-1 font-mono text-muted-foreground">{format(new Date(p.created_at), "HH:mm")}</td>
-                      <td className="py-1">مشتريات {p.payment_type === "credit" ? "آجلة" : "نقدية"}</td>
+                      <td className="py-1">
+                        مشتريات {p.payment_type === "credit" ? "آجلة" : "نقدية"}
+                        {p.invoice_number && <div className="font-mono text-[10.5px] text-muted-foreground">فاتورة {p.invoice_number}{p.voucher_number ? ` · سند ${p.voucher_number}` : ""}</div>}
+                      </td>
                       <td className="py-1">
                         <span className={isCancelled ? "line-through" : undefined}>{[p.supplier_name, p.product_name, p.notes].filter(Boolean).join(" — ") || "—"}</span>
                         {p.quantity != null && <span className="text-muted-foreground font-mono text-[10.5px]"> ({Number(p.quantity)} × {Number(p.unit_price)})</span>}
@@ -1888,7 +1891,10 @@ function ExpandableExpensesRow({
                       {(canEdit || canCancel) && (
                         <td className="py-1 text-left whitespace-nowrap">
                           {useShiftRpc && !isCancelled && (
-                            <button onClick={() => { setCancelPurchId(null); setEditId(null); setEditPurchId(p.id); setPf({ supplier_id: p.supplier_id || "", quantity: String(p.quantity ?? ""), unit_price: String(p.unit_price ?? ""), account_code: p.debit || "", account_name: p.debit_name || "", reason: "" }); }} className="p-1 text-muted-foreground hover:text-foreground" title="تعديل المشتريات">
+                            <button onClick={() => {
+                              // مشتريات مسجلة كفاتورة: التعديل من فاتورة المشتريات نفسها (تعدّل القيد والسند والمخزون معاً)
+                              if (p.invoice_id) { window.open(`/invoices/new?edit=${p.invoice_id}`, "_blank"); return; }
+                              setCancelPurchId(null); setEditId(null); setEditPurchId(p.id); setPf({ supplier_id: p.supplier_id || "", quantity: String(p.quantity ?? ""), unit_price: String(p.unit_price ?? ""), account_code: p.debit || "", account_name: p.debit_name || "", reason: "" }); }} className="p-1 text-muted-foreground hover:text-foreground" title={p.invoice_id ? "فتح فاتورة المشتريات للتعديل" : "تعديل المشتريات"}>
                               <Pencil className="w-3.5 h-3.5" />
                             </button>
                           )}
