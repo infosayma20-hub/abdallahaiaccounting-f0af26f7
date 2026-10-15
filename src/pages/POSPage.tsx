@@ -721,7 +721,7 @@ const POSPage = ({ variant = "v1" }: { variant?: "v1" | "v2" } = {}) => {
       return;
     }
     updateActiveOrder(o => ({ ...o, orderDiscountType: t }));
-  }, [updateActiveOrder, posFeatPerm]);
+  }, [updateActiveOrder, posFeatPerm, cashierPosDiscount]);
 
   const setOrderNote = useCallback((n: string) => {
     updateActiveOrder(o => ({ ...o, orderNote: n }));
