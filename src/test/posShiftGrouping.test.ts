@@ -5,6 +5,14 @@ const info = { session_id: "S1", business_date: "2026-10-15", opened_at: "", clo
 const row = (o: any) => ({ date: "2026-10-15", description: "", currency: "شيكل", balance: 0, debit: 0, credit: 0, ...o });
 
 describe("shift grouping includes cash-out documents", () => {
+  it("groups a cash transfer posted from the shift study by its session reference", () => {
+    const sid = "847e909b-5578-472a-911b-0f09e54840d9";
+    const rows = [row({ transaction_id: "trf", transaction_type: "cash_transfer", reference: `TRF-SH-${sid}-1`, credit: 100, balance: -100 })];
+    const result = groupRowsByShift(rows as any, { shifts: new Map([[sid, { ...info, session_id: sid }]]), orderToSession: new Map(), expandedSessions: new Set(), enabled: true });
+    expect(result).toHaveLength(1);
+    expect(result[0].shiftSessionId).toBe(sid);
+    expect(result[0].credit).toBe(100);
+  });
   it("groups an explicitly linked manual journal without changing debit, credit or closing balance", () => {
     const rows = [row({ transaction_id: 'sale', transaction_type: 'pos_sale', reference: 'POS-1', debit: 100, balance: 100 }), row({ transaction_id: 'journal', transaction_type: 'journal', reference: 'QV-2026-1', credit: 15, balance: 85 })];
     const result = groupRowsByShift(rows, { shifts: new Map([['S1', info]]), orderToSession: new Map([['POS-1', 'S1']]), refToSession: new Map([['QV-2026-1', 'S1']]), expandedSessions: new Set(), enabled: true });
