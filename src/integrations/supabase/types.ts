@@ -603,6 +603,10 @@ export type Database = {
           can_manage_suppliers: boolean | null
           can_manage_vat: boolean | null
           can_manage_warehouses: boolean | null
+          can_pos_shift_cancel_cash_out: boolean
+          can_pos_shift_change_payment: boolean
+          can_pos_shift_split_payment: boolean
+          can_pos_shift_void_order: boolean
           can_process_returns: boolean | null
           can_submit_vat: boolean | null
           can_transfer_cash: boolean | null
@@ -666,6 +670,10 @@ export type Database = {
           can_manage_suppliers?: boolean | null
           can_manage_vat?: boolean | null
           can_manage_warehouses?: boolean | null
+          can_pos_shift_cancel_cash_out?: boolean
+          can_pos_shift_change_payment?: boolean
+          can_pos_shift_split_payment?: boolean
+          can_pos_shift_void_order?: boolean
           can_process_returns?: boolean | null
           can_submit_vat?: boolean | null
           can_transfer_cash?: boolean | null
@@ -729,6 +737,10 @@ export type Database = {
           can_manage_suppliers?: boolean | null
           can_manage_vat?: boolean | null
           can_manage_warehouses?: boolean | null
+          can_pos_shift_cancel_cash_out?: boolean
+          can_pos_shift_change_payment?: boolean
+          can_pos_shift_split_payment?: boolean
+          can_pos_shift_void_order?: boolean
           can_process_returns?: boolean | null
           can_submit_vat?: boolean | null
           can_transfer_cash?: boolean | null
@@ -4116,6 +4128,7 @@ export type Database = {
           pos_require_device_fingerprint: boolean | null
           pos_require_shift: boolean | null
           pos_return_policy_days: number | null
+          pos_shift_corrections_enabled: boolean
           pos_show_return_policy: boolean | null
           pos_show_tax: boolean | null
           pos_tables_enabled: boolean | null
@@ -4329,6 +4342,7 @@ export type Database = {
           pos_require_device_fingerprint?: boolean | null
           pos_require_shift?: boolean | null
           pos_return_policy_days?: number | null
+          pos_shift_corrections_enabled?: boolean
           pos_show_return_policy?: boolean | null
           pos_show_tax?: boolean | null
           pos_tables_enabled?: boolean | null
@@ -4542,6 +4556,7 @@ export type Database = {
           pos_require_device_fingerprint?: boolean | null
           pos_require_shift?: boolean | null
           pos_return_policy_days?: number | null
+          pos_shift_corrections_enabled?: boolean
           pos_show_return_policy?: boolean | null
           pos_show_tax?: boolean | null
           pos_tables_enabled?: boolean | null
@@ -17943,6 +17958,9 @@ export type Database = {
       }
       pos_purchases: {
         Row: {
+          cancel_reason: string | null
+          cancelled_at: string | null
+          cancelled_by: string | null
           created_at: string
           created_by: string | null
           id: string
@@ -17950,6 +17968,7 @@ export type Database = {
           payment_type: string
           product_id: string | null
           quantity: number
+          reversal_transaction_id: string | null
           shift_id: string | null
           supplier_id: string | null
           total_amount: number
@@ -17957,6 +17976,9 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          cancel_reason?: string | null
+          cancelled_at?: string | null
+          cancelled_by?: string | null
           created_at?: string
           created_by?: string | null
           id?: string
@@ -17964,6 +17986,7 @@ export type Database = {
           payment_type?: string
           product_id?: string | null
           quantity?: number
+          reversal_transaction_id?: string | null
           shift_id?: string | null
           supplier_id?: string | null
           total_amount?: number
@@ -17971,6 +17994,9 @@ export type Database = {
           user_id: string
         }
         Update: {
+          cancel_reason?: string | null
+          cancelled_at?: string | null
+          cancelled_by?: string | null
           created_at?: string
           created_by?: string | null
           id?: string
@@ -17978,6 +18004,7 @@ export type Database = {
           payment_type?: string
           product_id?: string | null
           quantity?: number
+          reversal_transaction_id?: string | null
           shift_id?: string | null
           supplier_id?: string | null
           total_amount?: number
@@ -31776,6 +31803,10 @@ export type Database = {
         Args: { p_terminal_discount: string; p_user_id: string }
         Returns: string
       }
+      _pos_shift_correction_gate: {
+        Args: { p_perm: string; p_reason: string; p_session_id: string }
+        Returns: undefined
+      }
       _pos_sync_stock_movements: {
         Args: { p_is_return: boolean; p_order_id: string; p_user_id: string }
         Returns: undefined
@@ -34576,6 +34607,32 @@ export type Database = {
       }
       pos_scan_customer_card: { Args: { _code: string }; Returns: Json }
       pos_search_loyalty_customers: { Args: { _q: string }; Returns: Json }
+      pos_shift_cancel_expense_v1: {
+        Args: { p_expense_id: string; p_reason: string }
+        Returns: Json
+      }
+      pos_shift_cancel_purchase_v1: {
+        Args: { p_purchase_id: string; p_reason: string }
+        Returns: Json
+      }
+      pos_shift_correct_payment_v1: {
+        Args: {
+          p_new_method: string
+          p_order_id: string
+          p_reason: string
+          p_split_payments: Json
+          p_visa_gl_account_code: string
+        }
+        Returns: Json
+      }
+      pos_shift_correction_access: {
+        Args: { p_session_id: string }
+        Returns: Json
+      }
+      pos_shift_void_order_v1: {
+        Args: { p_order_id: string; p_reason: string }
+        Returns: Json
+      }
       pos_sync_order_tracking: {
         Args: { _order_id: string }
         Returns: undefined
