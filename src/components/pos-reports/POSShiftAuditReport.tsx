@@ -20,7 +20,7 @@ import {
 } from "@/components/ui/select";
 import JournalAccountPicker, { type PickerAccount } from "@/components/journal/JournalAccountPicker";
 import QuickCreateAccountDialog from "@/components/pos-reports/QuickCreateAccountDialog";
-import { useShiftCorrectionAccess, OrderCorrectionPanel, ShiftCorrectionsLog, canAct, type ShiftCorrectionAccess } from "@/components/pos-reports/ShiftCorrections";
+import { useShiftCorrectionAccess, OrderCorrectionPanel, ShiftCorrectionsLog, ShiftCashTransferButton, canAct, type ShiftCorrectionAccess } from "@/components/pos-reports/ShiftCorrections";
 import { formatOrderTypeLabel } from "@/lib/pos/order-type-label";
 
 interface ForeignAdjustmentRow {

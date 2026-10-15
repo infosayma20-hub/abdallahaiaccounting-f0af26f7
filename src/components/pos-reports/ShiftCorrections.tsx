@@ -15,6 +15,9 @@ export type ShiftCorrectionAccess = {
   split_payment?: boolean;
   void_order?: boolean;
   cancel_cash_out?: boolean;
+  discount_order?: boolean;
+  return_order?: boolean;
+  transfer_cash?: boolean;
 };
 
 /** Server-side access summary for accountant shift corrections (gate is enforced again in every RPC). */
