@@ -1,5 +1,6 @@
 import LeaveBranchIntakeEditor from "@/components/hr/LeaveBranchIntakeEditor";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
+import { loadAttendanceSalaries } from "@/lib/hr/attendanceSalary";
 import { useSearchParams } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useDataOwnerId } from "@/hooks/useDataOwnerId";
@@ -1151,6 +1152,42 @@ export default function EmployeeFormsManagementPage() {
     return 0;
   });
   const paginated = sorted.slice((page - 1) * perPage, page * perPage);
+
+  /**
+   * راتب البصمة لكل طلب سلفة: من أول شهر الطلب حتى نهاية الشهر أو تاريخ
+   * «إلى» المختار أو اليوم (الأقرب) — بنفس معادلة «العرض الشهري» للحضور.
+   * Key: `${employee_id}|${YYYY}-${MM}`
+   */
+  const [attSalary, setAttSalary] = useState<Record<string, { amount: number; to: string }>>({});
+  const attSalaryNeed = useMemo(() => {
+    if (filterCategory !== "advances") return "";
+    const keys = new Set<string>();
+    paginated.forEach((f: any) => { if (f.employee_id && f.created_at) keys.add(monthKey(f.employee_id, f.created_at)); });
+    return Array.from(keys).sort().join(",");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filterCategory, paginated]);
+  useEffect(() => {
+    if (!attSalaryNeed) return;
+    let cancelled = false;
+    (async () => {
+      const byMonth: Record<string, string[]> = {};
+      attSalaryNeed.split(",").forEach((k) => { const [emp, ym] = k.split("|"); (byMonth[ym] ||= []).push(emp); });
+      const todayIso = format(new Date(), "yyyy-MM-dd");
+      const out: Record<string, { amount: number; to: string }> = {};
+      for (const [ym, emps] of Object.entries(byMonth)) {
+        const [y, m] = ym.split("-").map(Number);
+        const from = `${ym}-01`;
+        const monthEnd = format(new Date(y, m, 0), "yyyy-MM-dd");
+        const to = [monthEnd, dateTo || monthEnd, todayIso].sort()[0];
+        try {
+          const res = await loadAttendanceSalaries(emps, from, to);
+          Object.entries(res).forEach(([id, v]) => { out[`${id}|${ym}`] = { amount: v.amount, to }; });
+        } catch (e) { console.error("attendance salary", e); }
+      }
+      if (!cancelled) setAttSalary((prev) => ({ ...prev, ...out }));
+    })();
+    return () => { cancelled = true; };
+  }, [attSalaryNeed, dateTo]);
   const totalPages = Math.ceil(sorted.length / perPage);
 
   const toggleSort = (key: SortKey, additive: boolean) => {
@@ -1836,6 +1873,9 @@ export default function EmployeeFormsManagementPage() {
                             <TableHead className="text-right text-white font-semibold" title="الرصيد الابتدائي + كل خصومات الموظف لنفس شهر الراتب (سلف، أكل، عجز، مشتريات، أخرى…) من نفس مصدر شاشة الخصومات">
                               خصومات الشهر
                             </TableHead>
+                            <TableHead className="text-right text-white font-semibold" title="راتب البصمة (المبلغ) من أول شهر الطلب لغاية التاريخ المحدد — نفس حساب العرض الشهري في شاشة الحضور">
+                              راتب البصمة (المبلغ)
+                            </TableHead>
                           </>
                         )}
                         <TableHead className="text-right text-white font-semibold cursor-pointer select-none" onMouseDown={(e) => e.preventDefault()} onClick={(e) => toggleSort("date", e.shiftKey)}>التاريخ{sortIndicator("date")}</TableHead>
@@ -1847,7 +1887,7 @@ export default function EmployeeFormsManagementPage() {
                     <TableBody>
                       {paginated.length === 0 ? (
                         <TableRow>
-                          <TableCell colSpan={9 + (filterCategory === "leaves" ? 1 : 0) + ((filterCategory === "all" || filterCategory === "advances") ? 1 : 0) + ((filterCategory === "all" || filterCategory === "advances" || filterCategory === "loans") ? 1 : 0) + (filterCategory === "advances" ? 2 : 0)} className="text-center py-8 text-muted-foreground">لا يوجد نماذج</TableCell>
+                          <TableCell colSpan={9 + (filterCategory === "leaves" ? 1 : 0) + ((filterCategory === "all" || filterCategory === "advances") ? 1 : 0) + ((filterCategory === "all" || filterCategory === "advances" || filterCategory === "loans") ? 1 : 0) + (filterCategory === "advances" ? 3 : 0)} className="text-center py-8 text-muted-foreground">لا يوجد نماذج</TableCell>
                         </TableRow>
                       ) : (
                         paginated.map(f => {
@@ -2018,6 +2058,24 @@ export default function EmployeeFormsManagementPage() {
                                         <span className="text-muted-foreground">—</span>
                                       )}
                                     </TableCell>
+                                    {(() => {
+                                      const sal = attSalary[monthKey(f.employee_id, f.created_at)];
+                                      const exceeds = sal && amount ? total + Number(amount) > sal.amount : false;
+                                      return (
+                                        <TableCell data-label="راتب البصمة (المبلغ)" data-mc="half" className="text-xs whitespace-nowrap text-right">
+                                          {sal ? (
+                                            <div className="flex flex-col leading-tight">
+                                              <span className={`font-semibold ${exceeds ? "text-destructive" : "text-foreground"}`}>
+                                                {sal.amount.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ₪
+                                              </span>
+                                              <span className="text-[10px] text-muted-foreground">لغاية <span dir="ltr">{format(new Date(sal.to), "dd/MM/yyyy")}</span>{exceeds ? " · الخصومات مع السلفة أعلى" : ""}</span>
+                                            </div>
+                                          ) : (
+                                            <span className="text-muted-foreground">…</span>
+                                          )}
+                                        </TableCell>
+                                      );
+                                    })()}
                                   </>
                                 );
                               })()}
@@ -2231,7 +2289,7 @@ export default function EmployeeFormsManagementPage() {
                                   {sorted.reduce((sum, f) => sum + (Number(getFormAmount(f)) || 0), 0).toLocaleString()} ₪
                                 </TableCell>
                               )}
-                              <TableCell colSpan={4 + (filterCategory === "advances" ? 2 : 0)}></TableCell>
+                              <TableCell colSpan={4 + (filterCategory === "advances" ? 3 : 0)}></TableCell>
                             </>
                           );
                         })()}
