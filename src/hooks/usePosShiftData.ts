@@ -5,6 +5,8 @@ import type { PosShiftInfo } from "@/lib/pos-shift-grouping";
 export interface PosShiftDataResult {
   shifts: Map<string, PosShiftInfo>;
   orderToSession: Map<string, string>;
+  txToSession: Map<string, string>;
+  refToSession: Map<string, string>;
   isPosBox: boolean;
   loading: boolean;
 }
@@ -26,6 +28,8 @@ export function usePosShiftData(
 ): PosShiftDataResult {
   const [shifts, setShifts] = useState<Map<string, PosShiftInfo>>(new Map());
   const [orderToSession, setOrderToSession] = useState<Map<string, string>>(new Map());
+  const [txToSession, setTxToSession] = useState<Map<string, string>>(new Map());
+  const [refToSession, setRefToSession] = useState<Map<string, string>>(new Map());
   const [isPosBox, setIsPosBox] = useState(false);
   const [loading, setLoading] = useState(false);
   const reqId = useRef(0);
@@ -114,7 +118,29 @@ export function usePosShiftData(
           }
         }
 
+        // 4) Cash-out documents of the same shifts (expenses / purchases + reversals).
+        const txMap = new Map<string, string>();
+        const refMap = new Map<string, string>();
+        for (let i = 0; i < sessionIds.length; i += 500) {
+          const slice = sessionIds.slice(i, i + 500);
+          const [{ data: exps }, { data: purs }] = await Promise.all([
+            supabase.from('pos_expenses').select('shift_id, transaction_id, reversal_transaction_id').eq('user_id', userId).in('shift_id', slice),
+            supabase.from('pos_purchases').select('id, shift_id, reversal_transaction_id').eq('user_id', userId).in('shift_id', slice),
+          ]);
+          if (cancelled || myReq !== reqId.current) return;
+          for (const e of (exps || []) as any[]) {
+            if (e.transaction_id) txMap.set(String(e.transaction_id), String(e.shift_id));
+            if (e.reversal_transaction_id) txMap.set(String(e.reversal_transaction_id), String(e.shift_id));
+          }
+          for (const p of (purs || []) as any[]) {
+            refMap.set('PUR-POS-' + String(p.id).slice(0, 8), String(p.shift_id));
+            if (p.reversal_transaction_id) txMap.set(String(p.reversal_transaction_id), String(p.shift_id));
+          }
+        }
+
         if (cancelled || myReq !== reqId.current) return;
+        setTxToSession(txMap);
+        setRefToSession(refMap);
         setIsPosBox(true);
         setShifts(shiftMap);
         setOrderToSession(mapping);
@@ -130,5 +156,5 @@ export function usePosShiftData(
     return () => { cancelled = true; };
   }, [userId, accountCode, fromDate, toDate, enabled]);
 
-  return { shifts, orderToSession, isPosBox, loading };
+  return { shifts, orderToSession, txToSession, refToSession, isPosBox, loading };
 }

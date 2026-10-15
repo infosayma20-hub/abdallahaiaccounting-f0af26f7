@@ -1087,6 +1087,8 @@ const AccountStatementV2Page = () => {
   const {
     shifts: posShifts,
     orderToSession: posOrderToSession,
+    txToSession: posTxToSession,
+    refToSession: posRefToSession,
     isPosBox,
     loading: posShiftLoading,
   } = usePosShiftData(
@@ -1106,10 +1108,12 @@ const AccountStatementV2Page = () => {
     return groupRowsByShift(rows as any, {
       shifts: posShifts,
       orderToSession: posOrderToSession,
+      txToSession: posTxToSession,
+      refToSession: posRefToSession,
       expandedSessions: expandedShifts,
       enabled: true,
     }) as StatementRow[];
-  }, [rows, isPosBox, posGroupMode, posShifts, posOrderToSession, expandedShifts]);
+  }, [rows, isPosBox, posGroupMode, posShifts, posOrderToSession, posTxToSession, posRefToSession, expandedShifts]);
 
   // ─── تعليقات أسطر السندات (ملاحظة المحاسب على السطر) ───
   // بيان الحركة في قاعدة البيانات هو بيان رأس السند، أما ملاحظة المحاسب

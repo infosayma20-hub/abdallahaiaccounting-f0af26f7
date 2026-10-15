@@ -42,6 +42,10 @@ export interface ShiftGroupingContext {
   shifts: Map<string, PosShiftInfo>;              // session_id → info
   orderToSession: Map<string, string>;            // pos order_number → session_id
   expandedSessions: Set<string>;                  // sessions currently shown expanded
+  /** Cash-out postings made during a shift (POS expenses / purchases and their reversals): transaction id → session_id. */
+  txToSession?: Map<string, string>;
+  /** Cash-out references (e.g. PUR-POS-xxxxxxxx, incl. edit re-posts) → session_id. */
+  refToSession?: Map<string, string>;
   enabled: boolean;                               // master switch (user toggle)
 }
 
@@ -82,8 +86,16 @@ const POS_REVERSAL_TYPES = new Set(['reversal']);
 function resolveShiftKeyForRow(
   row: GroupableRow,
   orderToSession: Map<string, string>,
+  txToSession?: Map<string, string>,
+  refToSession?: Map<string, string>,
 ): string | null {
   const ref = row.reference ? String(row.reference) : '';
+  const byTx = row.transaction_id ? txToSession?.get(String(row.transaction_id)) : undefined;
+  if (byTx) return byTx;
+  if (ref && refToSession) {
+    const byRef = refToSession.get(ref) || refToSession.get(ref.replace(/^REV-/, ''));
+    if (byRef) return byRef;
+  }
   if (!ref) return null;
   if (POS_TX_TYPES.has(row.transaction_type)) {
     return orderToSession.get(ref) || null;
@@ -128,8 +140,7 @@ export function groupRowsByShift<T extends GroupableRow>(
   const firstIdx = new Map<string, number>();
 
   rows.forEach((row, idx) => {
-    if (!isPosStatementRow(row)) { slots.push({ idx, row }); return; }
-    const sid = resolveShiftKeyForRow(row, ctx.orderToSession);
+    const sid = resolveShiftKeyForRow(row, ctx.orderToSession, ctx.txToSession, ctx.refToSession);
     if (!sid || !ctx.shifts.has(sid)) { slots.push({ idx, row }); return; }
     if (!buckets.has(sid)) { buckets.set(sid, []); firstIdx.set(sid, idx); }
     buckets.get(sid)!.push(row);
@@ -147,7 +158,9 @@ export function groupRowsByShift<T extends GroupableRow>(
     const open = timeOnly(info.opened_at);
     const close = info.closed_at ? timeOnly(info.closed_at) : '…';
     const openStatus = info.state === 'open' ? ' (مفتوحة)' : '';
-    const description = `📦 وردية ${cashier}${device} · ${info.order_count} طلب · ${open}→${close}${openStatus}`;
+    const cashOutCount = group.filter(r => !isPosStatementRow(r)).length;
+    const cashOutLabel = cashOutCount ? ` · ${cashOutCount} مصروف/مشتريات` : '';
+    const description = `📦 وردية ${cashier}${device} · ${info.order_count} طلب${cashOutLabel} · ${open}→${close}${openStatus}`;
 
     // Human-readable shift identifier: date + sequence (e.g. "وردية-20260702-1")
     // Falls back to short hex only if business_date is missing.
