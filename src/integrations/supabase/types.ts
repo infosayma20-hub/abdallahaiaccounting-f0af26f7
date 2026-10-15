@@ -18271,6 +18271,8 @@ export type Database = {
           shift_code: string | null
           shift_seq: number | null
           state: string
+          study_done_at: string | null
+          study_done_by: string | null
           supervisor_approved: boolean | null
           supervisor_note: string | null
           terminal_id: string
@@ -18307,6 +18309,8 @@ export type Database = {
           shift_code?: string | null
           shift_seq?: number | null
           state?: string
+          study_done_at?: string | null
+          study_done_by?: string | null
           supervisor_approved?: boolean | null
           supervisor_note?: string | null
           terminal_id: string
@@ -18343,6 +18347,8 @@ export type Database = {
           shift_code?: string | null
           shift_seq?: number | null
           state?: string
+          study_done_at?: string | null
+          study_done_by?: string | null
           supervisor_approved?: boolean | null
           supervisor_note?: string | null
           terminal_id?: string
@@ -34744,6 +34750,10 @@ export type Database = {
           p_return_currency?: string
           p_return_exchange_rate?: number
         }
+        Returns: Json
+      }
+      pos_shift_set_study_done_v1: {
+        Args: { p_done: boolean; p_reason?: string; p_session_id: string }
         Returns: Json
       }
       pos_shift_transfer_cash_v1: {
