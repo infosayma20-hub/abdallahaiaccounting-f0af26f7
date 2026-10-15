@@ -31732,6 +31732,7 @@ export type Database = {
         Args: { _order: string }
         Returns: Record<string, unknown>
       }
+      _ops_pay_label: { Args: { _m: string }; Returns: string }
       _ops_user_label: { Args: { _uid: string }; Returns: string }
       _payroll_post_payment:
         | {
