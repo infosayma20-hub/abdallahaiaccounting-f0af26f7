@@ -377,11 +377,17 @@ function ShiftDetail({ session, studyDone, onStudyDone }: { session: POSSession;
               .in("pos_order_id", orderIdsForPayments).eq("transaction_type", "pos_sale").eq("is_deleted", false).eq("payment_method", "card")
           : Promise.resolve({ data: [] as any[] }),
         supabase.from("delivery_apps" as any).select("name, visa_gl_account_code").eq("user_id", (session as any).user_id),
-        supabase.from("bank_accounts").select("account_name, gl_account_code").eq("user_id", (session as any).user_id),
+        supabase.from("bank_accounts").select("name, bank_name, gl_account_code").eq("user_id", (session as any).user_id),
       ]);
       const glName = new Map<string, string>();
-      ((bankRes.data as any[]) || []).forEach(b => b.gl_account_code && glName.set(String(b.gl_account_code), b.account_name || String(b.gl_account_code)));
+      ((bankRes.data as any[]) || []).forEach(b => b.gl_account_code && glName.set(String(b.gl_account_code), `فيزا عادي — ${b.name || b.bank_name || "البنك"}`));
       ((appsRes.data as any[]) || []).forEach(a => a.visa_gl_account_code && glName.set(String(a.visa_gl_account_code), `فيزا ${a.name}`));
+      // Any card GL not configured as a bank/visa app: name it from the chart of accounts.
+      const unknownGl = Array.from(new Set(((saleTxRes.data as any[]) || []).map(t => String(t.debit_account_code || "")).filter(g => g && !glName.has(g))));
+      if (unknownGl.length) {
+        const { data: accs } = await (supabase as any).from("accounts").select("account_code, account_name").eq("user_id", (session as any).user_id).in("account_code", unknownGl);
+        ((accs as any[]) || []).forEach(a => glName.set(String(a.account_code), a.account_name || String(a.account_code)));
+      }
       const cardDest = new Map<string, string>();
       ((saleTxRes.data as any[]) || []).forEach(t => {
         if (!t.pos_order_id || !t.debit_account_code || cardDest.has(t.pos_order_id)) return;
