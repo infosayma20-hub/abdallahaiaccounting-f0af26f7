@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
 import { ar } from "date-fns/locale";
@@ -262,6 +262,16 @@ function ShiftDetail({ session, studyDone, onStudyDone }: { session: POSSession;
   const [audit, setAudit] = useState<ShiftAuditRow | null>(null);
   const [foreignAdjustments, setForeignAdjustments] = useState<ForeignAdjustmentRow[]>([]);
   const [reloadKey, setReloadKey] = useState(0);
+  const loadedSessionRef = useRef<string | null>(null);
+  const [orderQuery, setOrderQuery] = useState("");
+  const filteredOrders = useMemo(() => {
+    const q = orderQuery.trim().toLowerCase();
+    if (!q) return orders;
+    return orders.filter((o: any) =>
+      [o.order_number, o.id, o.total, o.customer_name, o.order_note, o.employee_name, o.notes]
+        .some(v => v != null && String(v).toLowerCase().includes(q)),
+    );
+  }, [orders, orderQuery]);
   const correctionAccess = useShiftCorrectionAccess(session.id, reloadKey);
   const { roles } = useUserRoles();
   const { user } = useAuth();
@@ -280,9 +290,13 @@ function ShiftDetail({ session, studyDone, onStudyDone }: { session: POSSession;
 
   useEffect(() => {
     let cancelled = false;
+    const isSilentReload = loadedSessionRef.current === session.id;
+    loadedSessionRef.current = session.id;
     const load = async () => {
       // Reset previous session's data immediately so we never render a stale
       // mix of old orders/payments with the new session's audit row.
+      // On a same-session reload (after a correction) keep the screen as-is.
+      if (!isSilentReload) {
       setOrders([]);
       setPayments([]);
       setVoidedPayments([]);
@@ -290,6 +304,7 @@ function ShiftDetail({ session, studyDone, onStudyDone }: { session: POSSession;
       setAudit(null);
       setForeignAdjustments([]);
       setLoading(true);
+      }
       // Parallel: audit row + orders list + cash-out documents (independent).
       const [auditRes, ordersRes, expensesRes, purchasesRes, fadjRes, prepayRes] = await Promise.all([
         supabase
