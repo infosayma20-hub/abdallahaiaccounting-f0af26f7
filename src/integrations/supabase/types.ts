@@ -605,7 +605,10 @@ export type Database = {
           can_manage_warehouses: boolean | null
           can_pos_shift_cancel_cash_out: boolean
           can_pos_shift_change_payment: boolean
+          can_pos_shift_discount: boolean
+          can_pos_shift_return: boolean
           can_pos_shift_split_payment: boolean
+          can_pos_shift_transfer: boolean
           can_pos_shift_void_order: boolean
           can_process_returns: boolean | null
           can_submit_vat: boolean | null
@@ -672,7 +675,10 @@ export type Database = {
           can_manage_warehouses?: boolean | null
           can_pos_shift_cancel_cash_out?: boolean
           can_pos_shift_change_payment?: boolean
+          can_pos_shift_discount?: boolean
+          can_pos_shift_return?: boolean
           can_pos_shift_split_payment?: boolean
+          can_pos_shift_transfer?: boolean
           can_pos_shift_void_order?: boolean
           can_process_returns?: boolean | null
           can_submit_vat?: boolean | null
@@ -739,7 +745,10 @@ export type Database = {
           can_manage_warehouses?: boolean | null
           can_pos_shift_cancel_cash_out?: boolean
           can_pos_shift_change_payment?: boolean
+          can_pos_shift_discount?: boolean
+          can_pos_shift_return?: boolean
           can_pos_shift_split_payment?: boolean
+          can_pos_shift_transfer?: boolean
           can_pos_shift_void_order?: boolean
           can_process_returns?: boolean | null
           can_submit_vat?: boolean | null
@@ -34711,6 +34720,10 @@ export type Database = {
         Args: { p_session_id: string }
         Returns: Json
       }
+      pos_shift_discount_order_v1: {
+        Args: { p_discount: number; p_order_id: string; p_reason: string }
+        Returns: Json
+      }
       pos_shift_edit_purchase_v1: {
         Args: {
           p_debit_account_code: string
@@ -34719,6 +34732,26 @@ export type Database = {
           p_reason: string
           p_supplier_id: string
           p_unit_price: number
+        }
+        Returns: Json
+      }
+      pos_shift_return_v1: {
+        Args: {
+          p_items: Json
+          p_original_order_id: string
+          p_payment_method?: string
+          p_reason: string
+          p_return_currency?: string
+          p_return_exchange_rate?: number
+        }
+        Returns: Json
+      }
+      pos_shift_transfer_cash_v1: {
+        Args: {
+          p_amount: number
+          p_reason: string
+          p_session_id: string
+          p_to_box_id: string
         }
         Returns: Json
       }

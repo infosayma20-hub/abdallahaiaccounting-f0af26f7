@@ -960,6 +960,13 @@
       "when": 1792082534690,
       "tag": "0136_manual_journal_optional_shift_link",
       "breakpoints": true
+    },
+    {
+      "idx": 137,
+      "version": "7",
+      "when": 1792083614417,
+      "tag": "0137_pos_shift_study_discount_return_transfer",
+      "breakpoints": true
     }
   ]
 }
