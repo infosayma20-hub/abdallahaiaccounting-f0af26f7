@@ -20,7 +20,7 @@ import {
 } from "@/components/ui/select";
 import JournalAccountPicker, { type PickerAccount } from "@/components/journal/JournalAccountPicker";
 import QuickCreateAccountDialog from "@/components/pos-reports/QuickCreateAccountDialog";
-import { useShiftCorrectionAccess, OrderCorrectionPanel, ShiftCorrectionsLog, ShiftCashTransferButton, canAct, type ShiftCorrectionAccess } from "@/components/pos-reports/ShiftCorrections";
+import { useShiftCorrectionAccess, OrderCorrectionPanel, ShiftCorrectionsLog, ShiftCashTransferButton, ShiftAddCashOutButtons, canAct, type ShiftCorrectionAccess } from "@/components/pos-reports/ShiftCorrections";
 import { formatOrderTypeLabel } from "@/lib/pos/order-type-label";
 
 interface ForeignAdjustmentRow {
@@ -1863,6 +1863,7 @@ function ExpandableExpensesRow({
       </button>
       {open && (
         <div className="bg-muted/10 px-3 py-2">
+          {useShiftRpc && ownerId && <ShiftAddCashOutButtons sessionId={sessionId} ownerId={ownerId} onDone={onChanged} />}
           {loading ? <p className="text-[11px] text-muted-foreground py-2">جاري التحميل...</p> : (
             <table className="w-full text-[11.5px]">
               <thead className="text-[10px] text-muted-foreground">

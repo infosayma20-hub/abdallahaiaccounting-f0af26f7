@@ -332,6 +332,8 @@ const ACTION_LABEL: Record<string, string> = {
   order_return: "إرجاع",
   cash_transfer: "ترحيل كاش لصندوق",
   cash_close: "ترحيل مع تسوية الفرق",
+  expense_add: "إضافة مصروف",
+  purchase_add: "إضافة فاتورة مشتريات",
   purchase_cancel: "إلغاء مشتريات",
   purchase_edit: "تعديل مشتريات",
   expense_cancel: "إلغاء مصروف",
@@ -379,6 +381,128 @@ export function ShiftCorrectionsLog({ sessionId, reloadKey }: { sessionId: strin
           </div>
         ))}
       </div>
+    </div>
+  );
+}
+
+/** Accountant adds a forgotten expense or purchase invoice to a closed shift (same posting paths as the cashier). */
+export function ShiftAddCashOutButtons({ sessionId, ownerId, onDone }: { sessionId: string; ownerId: string; onDone: () => void }) {
+  const [mode, setMode] = useState<null | "expense" | "purchase">(null);
+  const [accounts, setAccounts] = useState<{ code: string; name: string }[]>([]);
+  const [suppliers, setSuppliers] = useState<{ id: string; contact_name: string }[]>([]);
+  const [products, setProducts] = useState<{ id: string; name: string; buy_price: number | null }[]>([]);
+  const [accQ, setAccQ] = useState(""); const [acc, setAcc] = useState("");
+  const [supQ, setSupQ] = useState(""); const [sup, setSup] = useState("");
+  const [prodQ, setProdQ] = useState(""); const [prod, setProd] = useState("");
+  const [amount, setAmount] = useState(""); const [qty, setQty] = useState("1"); const [price, setPrice] = useState("");
+  const [pay, setPay] = useState<"cash" | "credit">("cash"); const [stock, setStock] = useState(false);
+  const [desc, setDesc] = useState(""); const [reason, setReason] = useState(""); const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    if (mode === "expense" && !accounts.length) {
+      (supabase as any).from("accounts").select("account_code, account_name, parent_code, is_active").eq("user_id", ownerId).order("account_code").limit(5000)
+        .then(({ data }: any) => {
+          const all = (data as any[]) || [];
+          const parents = new Set(all.map(a => a.parent_code).filter(Boolean));
+          setAccounts(all.filter(a => a.is_active !== false && !parents.has(a.account_code) && /^[5]/.test(a.account_code))
+            .map(a => ({ code: a.account_code, name: a.account_name })));
+        });
+    }
+    if (mode === "purchase" && !suppliers.length) {
+      (supabase as any).from("contacts").select("id, contact_name").eq("user_id", ownerId).eq("contact_type", "مورد").neq("is_archived", true).order("contact_name").limit(2000)
+        .then(({ data }: any) => setSuppliers((data as any[]) || []));
+      (supabase as any).from("products").select("id, name, buy_price").eq("user_id", ownerId).order("name").limit(5000)
+        .then(({ data }: any) => setProducts((data as any[]) || []));
+    }
+  }, [mode, ownerId, accounts.length, suppliers.length]);
+
+  const openMode = (m: "expense" | "purchase") => {
+    setAcc(""); setAccQ(""); setSup(""); setSupQ(""); setProd(""); setProdQ(""); setAmount(""); setQty("1"); setPrice("");
+    setPay("cash"); setStock(false); setDesc(""); setReason(""); setMode(m);
+  };
+  const filt = <T,>(list: T[], q: string, get: (x: T) => string) => (q.trim() ? list.filter(x => get(x).includes(q.trim())) : list).slice(0, 200);
+  const total = Math.round((Number(qty) || 0) * (Number(price) || 0) * 100) / 100;
+
+  const submit = async () => {
+    if (reason.trim().length < 3) { toast.error("اكتب السبب (3 أحرف على الأقل)"); return; }
+    setBusy(true);
+    let error: any;
+    if (mode === "expense") {
+      if (!acc) { setBusy(false); toast.error("اختر حساب المصروف"); return; }
+      if (!(Number(amount) > 0)) { setBusy(false); toast.error("المبلغ غير صحيح"); return; }
+      ({ error } = await supabase.rpc("pos_shift_add_expense_v1" as any, { p_session_id: sessionId, p_debit_account: acc, p_amount: Number(amount), p_description: desc.trim() || null, p_reason: reason.trim() }));
+    } else {
+      if (!sup) { setBusy(false); toast.error("اختر المورد"); return; }
+      if (!prod && !prodQ.trim()) { setBusy(false); toast.error("اختر الصنف أو اكتب اسمه"); return; }
+      if (!(Number(qty) > 0) || !(Number(price) > 0)) { setBusy(false); toast.error("الكمية والسعر لازم يكونوا أكبر من صفر"); return; }
+      ({ error } = await supabase.rpc("pos_shift_add_purchase_v1" as any, {
+        p_session_id: sessionId, p_supplier_id: sup, p_product_id: prod || null, p_product_name: prod ? null : prodQ.trim(),
+        p_quantity: Number(qty), p_unit_price: Number(price), p_payment_type: pay, p_affect_inventory: !!prod && stock,
+        p_notes: desc.trim() || null, p_reason: reason.trim(),
+      }));
+    }
+    setBusy(false);
+    if (error) { toast.error(error.message); return; }
+    toast.success(mode === "expense" ? "تمت إضافة المصروف وقيده على صندوق الوردية" : pay === "cash" ? "تمت إضافة فاتورة المشتريات مع سند صرف تلقائي" : "تمت إضافة فاتورة المشتريات على حساب المورد");
+    setMode(null); onDone();
+  };
+
+  const sel = "w-full h-9 rounded border border-input bg-background px-2";
+  return (
+    <div className="flex gap-2 pb-2">
+      <button type="button" onClick={() => openMode("expense")} className="inline-flex items-center gap-1 rounded border border-border px-2 py-1 text-[11px] hover:bg-muted"><Plus className="w-3.5 h-3.5" /> إضافة مصروف</button>
+      <button type="button" onClick={() => openMode("purchase")} className="inline-flex items-center gap-1 rounded border border-border px-2 py-1 text-[11px] hover:bg-muted"><Plus className="w-3.5 h-3.5" /> إضافة فاتورة مشتريات</button>
+      <Dialog open={mode !== null} onOpenChange={(o) => !o && setMode(null)}>
+        <DialogContent dir="rtl" className="max-w-md max-h-[90dvh] overflow-y-auto">
+          <DialogHeader><DialogTitle>{mode === "expense" ? "إضافة مصروف على الوردية" : "إضافة فاتورة مشتريات على الوردية"}</DialogTitle></DialogHeader>
+          <div className="space-y-2 text-[12px]">
+            {mode === "expense" ? (
+              <>
+                <Input dir="rtl" placeholder="ابحث عن حساب المصروف (رقم أو اسم)" value={accQ} onChange={e => setAccQ(e.target.value)} />
+                <select dir="rtl" className={sel} value={acc} onChange={e => setAcc(e.target.value)}>
+                  <option value="">— اختر الحساب —</option>
+                  {filt(accounts, accQ, a => `${a.code} ${a.name}`).map(a => <option key={a.code} value={a.code}>{a.code} · {a.name}</option>)}
+                </select>
+                <Input dir="ltr" inputMode="decimal" className="font-mono" placeholder="المبلغ" value={amount} onChange={e => setAmount(e.target.value)} />
+                <Input dir="rtl" placeholder="البيان (اختياري)" value={desc} onChange={e => setDesc(e.target.value)} />
+                <p className="text-muted-foreground">القيد: مدين حساب المصروف / دائن صندوق الوردية، بتاريخ الوردية.</p>
+              </>
+            ) : (
+              <>
+                <Input dir="rtl" placeholder="ابحث عن المورد" value={supQ} onChange={e => setSupQ(e.target.value)} />
+                <select dir="rtl" className={sel} value={sup} onChange={e => setSup(e.target.value)}>
+                  <option value="">— اختر المورد —</option>
+                  {filt(suppliers, supQ, s => s.contact_name).map(s => <option key={s.id} value={s.id}>{s.contact_name}</option>)}
+                </select>
+                <Input dir="rtl" placeholder="ابحث عن الصنف أو اكتب اسمه" value={prodQ} onChange={e => { setProdQ(e.target.value); setProd(""); }} />
+                <select dir="rtl" className={sel} value={prod} onChange={e => { setProd(e.target.value); const p = products.find(x => x.id === e.target.value); if (p?.buy_price) setPrice(String(p.buy_price)); }}>
+                  <option value="">— صنف غير معرّف (بالاسم المكتوب) —</option>
+                  {filt(products, prodQ, p => p.name).map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                </select>
+                <div className="flex gap-2">
+                  <Input dir="ltr" inputMode="decimal" className="font-mono" placeholder="الكمية" value={qty} onChange={e => setQty(e.target.value)} />
+                  <Input dir="ltr" inputMode="decimal" className="font-mono" placeholder="سعر الوحدة" value={price} onChange={e => setPrice(e.target.value)} />
+                </div>
+                <div className="flex justify-between font-semibold"><span>الإجمالي</span><span className="font-mono">₪{total.toLocaleString(undefined, { maximumFractionDigits: 2 })}</span></div>
+                <select dir="rtl" className={sel} value={pay} onChange={e => setPay(e.target.value as any)}>
+                  <option value="cash">نقدي من صندوق الوردية (سند صرف تلقائي)</option>
+                  <option value="credit">آجل على حساب المورد</option>
+                </select>
+                {prod && (
+                  <label className="flex items-center gap-2"><input type="checkbox" checked={stock} onChange={e => setStock(e.target.checked)} /> إضافة الكمية للمخزون</label>
+                )}
+                <Input dir="rtl" placeholder="ملاحظة (اختياري)" value={desc} onChange={e => setDesc(e.target.value)} />
+                <p className="text-muted-foreground">تنعمل فاتورة مشتريات عادية بتاريخ الوردية وتظهر بكشف المورد، وبيتحدث سعر الشراء للصنف.</p>
+              </>
+            )}
+            <Textarea dir="rtl" rows={2} placeholder="السبب (إلزامي) — مثلاً: نسي الكاشير إدخاله" value={reason} onChange={e => setReason(e.target.value)} />
+            <div className="flex gap-2">
+              <Button size="sm" disabled={busy} onClick={submit}>{busy ? "جاري الحفظ..." : "حفظ وترحيل"}</Button>
+              <Button size="sm" variant="ghost" onClick={() => setMode(null)}>إلغاء</Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
