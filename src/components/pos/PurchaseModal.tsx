@@ -82,17 +82,31 @@ export default function PurchaseModal({ open, onOpenChange, dataOwnerId, userId,
     if (!sessionId) { toast.error("افتح وردية أولاً"); return; }
     setSaving(true);
     try {
-      // كل شيء ذري على الخادم: الصلاحيات، حساب صندوق الوردية/ذمة المورد، المخزون والقيد
-      const { data, error } = await supabase.rpc("pos_record_purchase_v1" as any, {
+      // كل شيء ذري على الخادم: الصلاحيات، حساب صندوق الوردية/ذمة المورد، المخزون والقيد.
+      // الشركات المفعّل لها «المشتريات كفاتورة»: فاتورة مشتريات عادية + سند صرف تلقائي للنقدي.
+      const { data: asInvoice } = await supabase.rpc("pos_purchase_as_invoice_enabled" as any, { p_data_owner: dataOwnerId });
+      const baseArgs: Record<string, any> = {
         p_data_owner: dataOwnerId, p_session_id: sessionId, p_supplier_id: selectedSupplier.id,
         p_product_id: noProduct ? null : selectedProduct?.id || null,
         p_quantity: qty, p_unit_price: price, p_payment_type: paymentType,
         p_affect_inventory: !!(selectedProduct && !noProduct && affectInventory && canAffectInventory),
         p_notes: notes, p_idempotency_key: idemKey,
-      });
+      };
+      if (asInvoice === true) {
+        baseArgs.p_product_name = (noProduct ? (productSearch.trim() || notes.trim()) : selectedProduct?.name) || null;
+      }
+      const { data, error } = await supabase.rpc(
+        (asInvoice === true ? "pos_record_purchase_v2" : "pos_record_purchase_v1") as any,
+        baseArgs as any,
+      );
       if (error) throw error;
       const total = Number((data as any)?.total ?? totalAmount);
-      toast.success(`تم تسجيل مشتريات بقيمة ₪${total.toFixed(2)} من ${selectedSupplier.contact_name}`);
+      const invNo = (data as any)?.invoice_number;
+      const vNo = (data as any)?.voucher_number;
+      toast.success(
+        `تم تسجيل مشتريات بقيمة ₪${total.toFixed(2)} من ${selectedSupplier.contact_name}` +
+        (invNo ? ` — فاتورة ${invNo}` : "") + (vNo ? ` وسند صرف ${vNo}` : ""),
+      );
       onSuccess?.();
       resetForm();
       onOpenChange(false);
