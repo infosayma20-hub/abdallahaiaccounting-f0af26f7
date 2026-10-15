@@ -64,6 +64,9 @@ export interface POSPayment {
 
 export interface POSSession {
   id: string;
+  study_done_at?: string | null;
+  user_id?: string;
+  cash_box_id?: string | null;
   cashier_name: string | null;
   cashier_pos_user_id: string | null;
   opened_at: string;
@@ -362,7 +365,7 @@ export function usePOSReportsData(
         fetchAllRows<any>((f, t) =>
           supabase
             .from("pos_sessions")
-            .select("id, cashier_name, cashier_pos_user_id, opened_at, closed_at, opening_cash, closing_cash, expected_cash, cash_variance, total_sales, total_orders, total_returns, terminal_id, state, branch_id")
+            .select("id, cashier_name, cashier_pos_user_id, opened_at, closed_at, opening_cash, closing_cash, expected_cash, cash_variance, total_sales, total_orders, total_returns, terminal_id, state, branch_id, user_id, cash_box_id, study_done_at")
             .eq("user_id", dataOwnerId)
             .eq("is_deleted", false)
             .gte("opened_at", from)

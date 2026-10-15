@@ -173,6 +173,8 @@ export default function POSShiftAuditReport({ sessions }: Props) {
   }, [filtered, selectedId]);
 
   const selected = filtered.find(s => s.id === selectedId) || null;
+  // Local override so the badge updates instantly after marking the study done.
+  const [doneMap, setDoneMap] = useState<Record<string, string | null>>({});
 
   return (
     <section className="border-t border-border pt-4">
@@ -227,10 +229,11 @@ export default function POSShiftAuditReport({ sessions }: Props) {
                           "px-1.5 py-px rounded text-[10px]",
                           s.state === "open"
                             ? "bg-emerald-500/10 text-emerald-600"
+                            : (doneMap[s.id] ?? s.study_done_at) ? "bg-primary/10 text-primary font-semibold"
                             : "bg-muted text-muted-foreground",
                         )}
                       >
-                        {s.state === "open" ? "مفتوحة" : "مغلقة"}
+                        {s.state === "open" ? "مفتوحة" : (doneMap[s.id] ?? s.study_done_at) ? "جاهزة ✓" : "مغلقة"}
                       </span>
                     </div>
                   </button>
