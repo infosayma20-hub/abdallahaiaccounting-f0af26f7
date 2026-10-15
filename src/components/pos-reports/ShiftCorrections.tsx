@@ -80,10 +80,10 @@ export function OrderCorrectionPanel({
   onDone: () => void;
 }) {
   const [owner, setOwner] = useState<string | null>(ownerId);
+  const [sessionOf, setSessionOf] = useState<string | null>(order.session_id ?? null);
   useEffect(() => {
-    if (ownerId) { setOwner(ownerId); return; }
-    supabase.from("pos_orders").select("user_id").eq("id", order.id).maybeSingle()
-      .then(({ data }) => setOwner((data as any)?.user_id ?? null));
+    supabase.from("pos_orders").select("user_id, session_id").eq("id", order.id).maybeSingle()
+      .then(({ data }) => { setOwner(ownerId || (data as any)?.user_id || null); setSessionOf((data as any)?.session_id ?? null); });
   }, [ownerId, order.id]);
   const opts = usePayOptions(owner);
   const [payments, setPayments] = useState<any[]>([]);
@@ -215,7 +215,7 @@ export function OrderCorrectionPanel({
           </div>
         </div>
       )}
-      {returnOpen && owner && order.session_id && (
+      {returnOpen && owner && sessionOf && (
         <ReturnDialog
           open={returnOpen}
           onClose={() => setReturnOpen(false)}
@@ -223,7 +223,7 @@ export function OrderCorrectionPanel({
           originalOrderNumber={order.order_number ?? null}
           originalTotal={Number(order.total)}
           originalCurrency="ILS"
-          sessionId={order.session_id}
+          sessionId={sessionOf}
           dataOwnerId={owner}
           exchangeRates={{}}
           shiftCorrection
