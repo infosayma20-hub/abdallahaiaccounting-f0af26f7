@@ -981,6 +981,13 @@
       "when": 1792084120565,
       "tag": "0139_pos_shift_study_done_flag",
       "breakpoints": true
+    },
+    {
+      "idx": 140,
+      "version": "7",
+      "when": 1792084964293,
+      "tag": "0140_pos_shift_close_cash_v1",
+      "breakpoints": true
     }
   ]
 }

@@ -34712,6 +34712,17 @@ export type Database = {
         Args: { p_purchase_id: string; p_reason: string }
         Returns: Json
       }
+      pos_shift_close_cash_v1: {
+        Args: {
+          p_actual_net: number
+          p_employee_amount?: number
+          p_expected_net: number
+          p_reason?: string
+          p_session_id: string
+          p_to_box_id: string
+        }
+        Returns: Json
+      }
       pos_shift_correct_payment_v1: {
         Args: {
           p_new_method: string
