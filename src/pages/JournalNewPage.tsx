@@ -1305,6 +1305,7 @@ const JournalNewPage = () => {
         // Auto-reset for fast entry — keep date + subtype as last-used context.
         setFormDescription("");
         setFormNotes("");
+        setFormPosSessionId(null);
         setFormContactId("");
         setContactSearch("");
         setAttachments([]);
@@ -1329,6 +1330,7 @@ const JournalNewPage = () => {
         // Reset form for a new entry while keeping the user in place.
         setFormDescription("");
         setFormNotes("");
+        setFormPosSessionId(null);
         setFormContactId("");
         setContactSearch("");
         setAttachments([]);
@@ -1588,6 +1590,7 @@ const JournalNewPage = () => {
       const result = await removeJournalVoucher(editingVoucherId);
       if (!result.success) throw new Error(result.error || tt("فشل الحذف"));
       toast.success(`تم حذف السند ${formRefNumber}`);
+      setFormPosSessionId(null);
       navigate("/finance/journal/new", { replace: true });
     } catch (err: any) {
       toast.error(err.message || tt("تعذر الحذف"));
