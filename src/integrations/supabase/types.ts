@@ -4121,6 +4121,7 @@ export type Database = {
           pos_name: string | null
           pos_payment_methods: Json | null
           pos_prevent_zero_stock: boolean | null
+          pos_purchase_as_invoice: boolean
           pos_ready_auto_hide_seconds: number
           pos_receipt_copies: number | null
           pos_receipt_size: string | null
@@ -4335,6 +4336,7 @@ export type Database = {
           pos_name?: string | null
           pos_payment_methods?: Json | null
           pos_prevent_zero_stock?: boolean | null
+          pos_purchase_as_invoice?: boolean
           pos_ready_auto_hide_seconds?: number
           pos_receipt_copies?: number | null
           pos_receipt_size?: string | null
@@ -4549,6 +4551,7 @@ export type Database = {
           pos_name?: string | null
           pos_payment_methods?: Json | null
           pos_prevent_zero_stock?: boolean | null
+          pos_purchase_as_invoice?: boolean
           pos_ready_auto_hide_seconds?: number
           pos_receipt_copies?: number | null
           pos_receipt_size?: string | null
@@ -17968,6 +17971,7 @@ export type Database = {
           created_by: string | null
           debit_account_code: string | null
           id: string
+          invoice_id: string | null
           notes: string | null
           payment_type: string
           product_id: string | null
@@ -17978,6 +17982,7 @@ export type Database = {
           total_amount: number
           unit_price: number
           user_id: string
+          voucher_number: string | null
         }
         Insert: {
           cancel_reason?: string | null
@@ -17987,6 +17992,7 @@ export type Database = {
           created_by?: string | null
           debit_account_code?: string | null
           id?: string
+          invoice_id?: string | null
           notes?: string | null
           payment_type?: string
           product_id?: string | null
@@ -17997,6 +18003,7 @@ export type Database = {
           total_amount?: number
           unit_price?: number
           user_id: string
+          voucher_number?: string | null
         }
         Update: {
           cancel_reason?: string | null
@@ -18006,6 +18013,7 @@ export type Database = {
           created_by?: string | null
           debit_account_code?: string | null
           id?: string
+          invoice_id?: string | null
           notes?: string | null
           payment_type?: string
           product_id?: string | null
@@ -18016,6 +18024,7 @@ export type Database = {
           total_amount?: number
           unit_price?: number
           user_id?: string
+          voucher_number?: string | null
         }
         Relationships: [
           {
@@ -34571,6 +34580,10 @@ export type Database = {
       }
       pos_normalize_delivery_app: { Args: { p_text: string }; Returns: string }
       pos_order_branch_id: { Args: { _order_id: string }; Returns: string }
+      pos_purchase_as_invoice_enabled: {
+        Args: { p_data_owner: string }
+        Returns: boolean
+      }
       pos_record_expense_v1: {
         Args: {
           p_amount: number
@@ -34599,6 +34612,22 @@ export type Database = {
           p_notes: string
           p_payment_type: string
           p_product_id: string
+          p_quantity: number
+          p_session_id: string
+          p_supplier_id: string
+          p_unit_price: number
+        }
+        Returns: Json
+      }
+      pos_record_purchase_v2: {
+        Args: {
+          p_affect_inventory: boolean
+          p_data_owner: string
+          p_idempotency_key: string
+          p_notes: string
+          p_payment_type: string
+          p_product_id: string
+          p_product_name?: string
           p_quantity: number
           p_session_id: string
           p_supplier_id: string

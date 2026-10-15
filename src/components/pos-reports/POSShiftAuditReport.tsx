@@ -1590,7 +1590,7 @@ function ExpandableExpensesRow({
       setLoading(true);
       const [e, p] = await Promise.all([
         supabase.from("pos_expenses").select("id, amount, description, account_code, expense_kind, created_at, cancelled_at, cancel_reason").eq("shift_id", sessionId).order("created_at"),
-        supabase.from("pos_purchases").select("id, total_amount, payment_type, notes, created_at, supplier_id, cancelled_at, cancel_reason, product_id, quantity, unit_price").eq("shift_id", sessionId).order("created_at"),
+        supabase.from("pos_purchases").select("id, total_amount, payment_type, notes, created_at, supplier_id, cancelled_at, cancel_reason, product_id, quantity, unit_price, invoice_id, voucher_number").eq("shift_id", sessionId).order("created_at"),
       ]);
       const supIds = Array.from(new Set(((p.data as any[]) || []).map((x: any) => x.supplier_id).filter(Boolean)));
       const supNames: Record<string, string> = {};
@@ -1606,7 +1606,15 @@ function ExpandableExpensesRow({
         const { data: ps } = await supabase.from("products").select("id, name").in("id", prodIds);
         ((ps as any[]) || []).forEach((x: any) => { prodNames[x.id] = x.name; });
       }
-      const refs = purchRows.map((x: any) => "PUR-POS-" + String(x.id).slice(0, 8));
+      // المشتريات المسجلة كفاتورة مشتريات عادية: قيدها مرجعه رقم الفاتورة
+      const invIds = purchRows.map((x: any) => x.invoice_id).filter(Boolean);
+      const invNo: Record<string, string> = {};
+      if (invIds.length) {
+        const { data: invs } = await supabase.from("invoices").select("id, invoice_number").in("id", invIds);
+        ((invs as any[]) || []).forEach((i: any) => { invNo[i.id] = i.invoice_number; });
+      }
+      const refOf = (x: any) => (x.invoice_id ? invNo[x.invoice_id] : "PUR-POS-" + String(x.id).slice(0, 8));
+      const refs = purchRows.map(refOf).filter(Boolean);
       const purchTx: Record<string, { debit: string; credit: string }> = {};
       if (refs.length) {
         const { data: txs } = await supabase.from("transactions").select("reference, debit_account_code, credit_account_code, transaction_type, is_deleted, created_at")
@@ -1628,8 +1636,8 @@ function ExpandableExpensesRow({
       if (!c) {
         setExps(list.map(r => ({ ...r, account_name: names[r.account_code] })));
         setPurch(purchRows.map((x: any) => {
-          const t = purchTx["PUR-POS-" + String(x.id).slice(0, 8)];
-          return { ...x, supplier_name: supNames[x.supplier_id], product_name: prodNames[x.product_id],
+          const t = purchTx[refOf(x)];
+          return { ...x, invoice_number: x.invoice_id ? invNo[x.invoice_id] : undefined, supplier_name: supNames[x.supplier_id], product_name: prodNames[x.product_id],
             debit: t?.debit, debit_name: t ? names[t.debit] : undefined, credit: t?.credit, credit_name: t ? names[t.credit] : undefined };
         }));
         setLoading(false);
@@ -1864,7 +1872,10 @@ function ExpandableExpensesRow({
                   return (
                     <tr key={p.id} className={isCancelled ? "opacity-60" : undefined}>
                       <td className="py-1 font-mono text-muted-foreground">{format(new Date(p.created_at), "HH:mm")}</td>
-                      <td className="py-1">مشتريات {p.payment_type === "credit" ? "آجلة" : "نقدية"}</td>
+                      <td className="py-1">
+                        مشتريات {p.payment_type === "credit" ? "آجلة" : "نقدية"}
+                        {p.invoice_number && <div className="font-mono text-[10.5px] text-muted-foreground">فاتورة {p.invoice_number}{p.voucher_number ? ` · سند ${p.voucher_number}` : ""}</div>}
+                      </td>
                       <td className="py-1">
                         <span className={isCancelled ? "line-through" : undefined}>{[p.supplier_name, p.product_name, p.notes].filter(Boolean).join(" — ") || "—"}</span>
                         {p.quantity != null && <span className="text-muted-foreground font-mono text-[10.5px]"> ({Number(p.quantity)} × {Number(p.unit_price)})</span>}
@@ -1880,7 +1891,10 @@ function ExpandableExpensesRow({
                       {(canEdit || canCancel) && (
                         <td className="py-1 text-left whitespace-nowrap">
                           {useShiftRpc && !isCancelled && (
-                            <button onClick={() => { setCancelPurchId(null); setEditId(null); setEditPurchId(p.id); setPf({ supplier_id: p.supplier_id || "", quantity: String(p.quantity ?? ""), unit_price: String(p.unit_price ?? ""), account_code: p.debit || "", account_name: p.debit_name || "", reason: "" }); }} className="p-1 text-muted-foreground hover:text-foreground" title="تعديل المشتريات">
+                            <button onClick={() => {
+                              // مشتريات مسجلة كفاتورة: التعديل من فاتورة المشتريات نفسها (تعدّل القيد والسند والمخزون معاً)
+                              if (p.invoice_id) { window.open(`/invoices/new?edit=${p.invoice_id}`, "_blank"); return; }
+                              setCancelPurchId(null); setEditId(null); setEditPurchId(p.id); setPf({ supplier_id: p.supplier_id || "", quantity: String(p.quantity ?? ""), unit_price: String(p.unit_price ?? ""), account_code: p.debit || "", account_name: p.debit_name || "", reason: "" }); }} className="p-1 text-muted-foreground hover:text-foreground" title={p.invoice_id ? "فتح فاتورة المشتريات للتعديل" : "تعديل المشتريات"}>
                               <Pencil className="w-3.5 h-3.5" />
                             </button>
                           )}
