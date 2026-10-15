@@ -1,0 +1,2 @@
+ALTER TABLE public.pos_shift_audits DROP CONSTRAINT pos_shift_audits_resolution_type_check;
+ALTER TABLE public.pos_shift_audits ADD CONSTRAINT pos_shift_audits_resolution_type_check CHECK (resolution_type = ANY (ARRAY['employee_wallet','company_expense','company_revenue','employee_fine','split','deferred','variance_settlement']));

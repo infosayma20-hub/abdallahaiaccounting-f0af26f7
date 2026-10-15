@@ -988,6 +988,13 @@
       "when": 1792084964293,
       "tag": "0140_pos_shift_close_cash_v1",
       "breakpoints": true
+    },
+    {
+      "idx": 141,
+      "version": "7",
+      "when": 1792085068869,
+      "tag": "0141_allow_variance_settlement_resolution",
+      "breakpoints": true
     }
   ]
 }
