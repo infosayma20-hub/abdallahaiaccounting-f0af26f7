@@ -1520,6 +1520,18 @@ function ExpandableExpensesRow({
   const [open, setOpen] = useState(false);
   const [exps, setExps] = useState<any[]>([]);
   const [purch, setPurch] = useState<any[]>([]);
+  const [purchSummary, setPurchSummary] = useState<{ count: number; total: number }>({ count: 0, total: 0 });
+  useEffect(() => {
+    let c = false;
+    (async () => {
+      const { data } = await supabase.from("pos_purchases").select("total_amount, payment_type").eq("shift_id", sessionId);
+      const cash = ((data as any[]) || []).filter((x: any) => x.payment_type === "نقدي" || x.payment_type === "cash" || !x.payment_type);
+      if (!c) setPurchSummary({ count: cash.length, total: cash.reduce((s: number, x: any) => s + (Number(x.total_amount) || 0), 0) });
+    })();
+    return () => { c = true; };
+  }, [sessionId, reloadKey]);
+  const purchCount = purchSummary.count;
+  const purchTotal = purchSummary.total;
   const [loading, setLoading] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
   const [f, setF] = useState({ amount: "", description: "", account_code: "", account_name: "" });
