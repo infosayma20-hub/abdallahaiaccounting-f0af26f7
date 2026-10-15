@@ -995,6 +995,13 @@
       "when": 1792085068869,
       "tag": "0141_allow_variance_settlement_resolution",
       "breakpoints": true
+    },
+    {
+      "idx": 142,
+      "version": "7",
+      "when": 1792085197516,
+      "tag": "0142_pos_shift_add_expense_purchase",
+      "breakpoints": true
     }
   ]
 }

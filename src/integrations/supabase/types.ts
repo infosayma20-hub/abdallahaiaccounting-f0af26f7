@@ -34704,6 +34704,31 @@ export type Database = {
       }
       pos_scan_customer_card: { Args: { _code: string }; Returns: Json }
       pos_search_loyalty_customers: { Args: { _q: string }; Returns: Json }
+      pos_shift_add_expense_v1: {
+        Args: {
+          p_amount: number
+          p_debit_account: string
+          p_description: string
+          p_reason: string
+          p_session_id: string
+        }
+        Returns: Json
+      }
+      pos_shift_add_purchase_v1: {
+        Args: {
+          p_affect_inventory: boolean
+          p_notes: string
+          p_payment_type: string
+          p_product_id: string
+          p_product_name: string
+          p_quantity: number
+          p_reason: string
+          p_session_id: string
+          p_supplier_id: string
+          p_unit_price: number
+        }
+        Returns: Json
+      }
       pos_shift_cancel_expense_v1: {
         Args: { p_expense_id: string; p_reason: string }
         Returns: Json
