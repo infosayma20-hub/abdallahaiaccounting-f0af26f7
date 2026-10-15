@@ -1873,6 +1873,9 @@ export default function EmployeeFormsManagementPage() {
                             <TableHead className="text-right text-white font-semibold" title="الرصيد الابتدائي + كل خصومات الموظف لنفس شهر الراتب (سلف، أكل، عجز، مشتريات، أخرى…) من نفس مصدر شاشة الخصومات">
                               خصومات الشهر
                             </TableHead>
+                            <TableHead className="text-right text-white font-semibold" title="راتب البصمة (المبلغ) من أول شهر الطلب لغاية التاريخ المحدد — نفس حساب العرض الشهري في شاشة الحضور">
+                              راتب البصمة (المبلغ)
+                            </TableHead>
                           </>
                         )}
                         <TableHead className="text-right text-white font-semibold cursor-pointer select-none" onMouseDown={(e) => e.preventDefault()} onClick={(e) => toggleSort("date", e.shiftKey)}>التاريخ{sortIndicator("date")}</TableHead>
@@ -1884,7 +1887,7 @@ export default function EmployeeFormsManagementPage() {
                     <TableBody>
                       {paginated.length === 0 ? (
                         <TableRow>
-                          <TableCell colSpan={9 + (filterCategory === "leaves" ? 1 : 0) + ((filterCategory === "all" || filterCategory === "advances") ? 1 : 0) + ((filterCategory === "all" || filterCategory === "advances" || filterCategory === "loans") ? 1 : 0) + (filterCategory === "advances" ? 2 : 0)} className="text-center py-8 text-muted-foreground">لا يوجد نماذج</TableCell>
+                          <TableCell colSpan={9 + (filterCategory === "leaves" ? 1 : 0) + ((filterCategory === "all" || filterCategory === "advances") ? 1 : 0) + ((filterCategory === "all" || filterCategory === "advances" || filterCategory === "loans") ? 1 : 0) + (filterCategory === "advances" ? 3 : 0)} className="text-center py-8 text-muted-foreground">لا يوجد نماذج</TableCell>
                         </TableRow>
                       ) : (
                         paginated.map(f => {
@@ -2055,6 +2058,24 @@ export default function EmployeeFormsManagementPage() {
                                         <span className="text-muted-foreground">—</span>
                                       )}
                                     </TableCell>
+                                    {(() => {
+                                      const sal = attSalary[monthKey(f.employee_id, f.created_at)];
+                                      const exceeds = sal && amount ? total + Number(amount) > sal.amount : false;
+                                      return (
+                                        <TableCell data-label="راتب البصمة (المبلغ)" data-mc="half" className="text-xs whitespace-nowrap text-right">
+                                          {sal ? (
+                                            <div className="flex flex-col leading-tight">
+                                              <span className={`font-semibold ${exceeds ? "text-destructive" : "text-foreground"}`}>
+                                                {sal.amount.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ₪
+                                              </span>
+                                              <span className="text-[10px] text-muted-foreground">لغاية <span dir="ltr">{format(new Date(sal.to), "dd/MM/yyyy")}</span>{exceeds ? " · الخصومات مع السلفة أعلى" : ""}</span>
+                                            </div>
+                                          ) : (
+                                            <span className="text-muted-foreground">…</span>
+                                          )}
+                                        </TableCell>
+                                      );
+                                    })()}
                                   </>
                                 );
                               })()}
@@ -2268,7 +2289,7 @@ export default function EmployeeFormsManagementPage() {
                                   {sorted.reduce((sum, f) => sum + (Number(getFormAmount(f)) || 0), 0).toLocaleString()} ₪
                                 </TableCell>
                               )}
-                              <TableCell colSpan={4 + (filterCategory === "advances" ? 2 : 0)}></TableCell>
+                              <TableCell colSpan={4 + (filterCategory === "advances" ? 3 : 0)}></TableCell>
                             </>
                           );
                         })()}
