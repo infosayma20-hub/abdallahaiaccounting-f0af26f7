@@ -199,6 +199,7 @@ const ACTION_LABEL: Record<string, string> = {
   payment_method_change: "تغيير/تقسيم الدفع",
   order_void: "إلغاء فاتورة",
   purchase_cancel: "إلغاء مشتريات",
+  purchase_edit: "تعديل مشتريات",
   expense_cancel: "إلغاء مصروف",
 };
 
@@ -227,6 +228,7 @@ export function ShiftCorrectionsLog({ sessionId, reloadKey }: { sessionId: strin
     const b = r.before_data || {}, a = r.after_data || {};
     if (r.action === "payment_method_change") return `${b.methods || "—"} ₪${b.amount ?? ""} ← ${a.method === "mixed" ? "مقسّم" : a.method}`;
     if (r.action === "order_void") return `₪${b.total ?? ""} — ملغاة`;
+    if (r.action === "purchase_edit") return `₪${b.total_amount ?? ""} ← ₪${a.total_amount ?? ""}${a.debit_account_code && a.debit_account_code !== b.debit_account_code ? ` (حساب ${b.debit_account_code} ← ${a.debit_account_code})` : ""}`;
     return `₪${b.total_amount ?? b.amount ?? ""}`;
   };
   return (

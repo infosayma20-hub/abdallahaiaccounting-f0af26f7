@@ -17963,6 +17963,7 @@ export type Database = {
           cancelled_by: string | null
           created_at: string
           created_by: string | null
+          debit_account_code: string | null
           id: string
           notes: string | null
           payment_type: string
@@ -17981,6 +17982,7 @@ export type Database = {
           cancelled_by?: string | null
           created_at?: string
           created_by?: string | null
+          debit_account_code?: string | null
           id?: string
           notes?: string | null
           payment_type?: string
@@ -17999,6 +18001,7 @@ export type Database = {
           cancelled_by?: string | null
           created_at?: string
           created_by?: string | null
+          debit_account_code?: string | null
           id?: string
           notes?: string | null
           payment_type?: string
@@ -34627,6 +34630,17 @@ export type Database = {
       }
       pos_shift_correction_access: {
         Args: { p_session_id: string }
+        Returns: Json
+      }
+      pos_shift_edit_purchase_v1: {
+        Args: {
+          p_debit_account_code: string
+          p_purchase_id: string
+          p_quantity: number
+          p_reason: string
+          p_supplier_id: string
+          p_unit_price: number
+        }
         Returns: Json
       }
       pos_shift_void_order_v1: {

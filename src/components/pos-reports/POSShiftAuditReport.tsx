@@ -1534,6 +1534,9 @@ function ExpandableExpensesRow({
   const useShiftRpc = !!access && canAct(access, "cancel_cash_out");
   const canCancel = canCancelLegacy || useShiftRpc;
   const [cancelPurchId, setCancelPurchId] = useState<string | null>(null);
+  const [editPurchId, setEditPurchId] = useState<string | null>(null);
+  const [pf, setPf] = useState({ supplier_id: "", quantity: "", unit_price: "", account_code: "", account_name: "", reason: "" });
+  const [suppliers, setSuppliers] = useState<{ id: string; contact_name: string }[]>([]);
   const [cancelId, setCancelId] = useState<string | null>(null);
   const [cancelReason, setCancelReason] = useState("");
   const [open, setOpen] = useState(false);
@@ -1561,7 +1564,7 @@ function ExpandableExpensesRow({
 
   // شجرة الحسابات: حسابات فرعية فعّالة فقط (يمنع الترحيل على حساب رئيسي)
   useEffect(() => {
-    if (!editId || !ownerId || leafAccounts.length) return;
+    if (!(editId || editPurchId) || !ownerId || leafAccounts.length) return;
     (async () => {
       const { data } = await (supabase as any).from("accounts")
         .select("account_code, account_name, account_type, parent_code, is_active")
@@ -1571,7 +1574,14 @@ function ExpandableExpensesRow({
       setLeafAccounts(all.filter(a => a.is_active !== false && !parents.has(a.account_code))
         .map(a => ({ account_code: a.account_code, account_name: a.account_name, account_type: a.account_type })));
     })();
-  }, [editId, ownerId, leafAccounts.length]);
+  }, [editId, editPurchId, ownerId, leafAccounts.length]);
+
+  useEffect(() => {
+    if (!editPurchId || !ownerId || suppliers.length) return;
+    (supabase as any).from("contacts").select("id, contact_name, contact_type").eq("user_id", ownerId)
+      .eq("contact_type", "مورد").order("contact_name").limit(2000)
+      .then(({ data }: any) => setSuppliers((data as any[]) || []));
+  }, [editPurchId, ownerId, suppliers.length]);
 
   useEffect(() => {
     if (!open) return;
@@ -1580,7 +1590,7 @@ function ExpandableExpensesRow({
       setLoading(true);
       const [e, p] = await Promise.all([
         supabase.from("pos_expenses").select("id, amount, description, account_code, expense_kind, created_at, cancelled_at, cancel_reason").eq("shift_id", sessionId).order("created_at"),
-        supabase.from("pos_purchases").select("id, total_amount, payment_type, notes, created_at, supplier_id, cancelled_at, cancel_reason").eq("shift_id", sessionId).order("created_at"),
+        supabase.from("pos_purchases").select("id, total_amount, payment_type, notes, created_at, supplier_id, cancelled_at, cancel_reason, product_id, quantity, unit_price").eq("shift_id", sessionId).order("created_at"),
       ]);
       const supIds = Array.from(new Set(((p.data as any[]) || []).map((x: any) => x.supplier_id).filter(Boolean)));
       const supNames: Record<string, string> = {};
@@ -1589,7 +1599,25 @@ function ExpandableExpensesRow({
         ((cs as any[]) || []).forEach((c: any) => { supNames[c.id] = c.contact_name; });
       }
       const list = ((e.data as any[]) || []);
-      const codes = Array.from(new Set(list.map(r => r.account_code).filter(Boolean)));
+      const purchRows = ((p.data as any[]) || []);
+      const prodIds = Array.from(new Set(purchRows.map((x: any) => x.product_id).filter(Boolean)));
+      const prodNames: Record<string, string> = {};
+      if (prodIds.length) {
+        const { data: ps } = await supabase.from("products").select("id, name").in("id", prodIds);
+        ((ps as any[]) || []).forEach((x: any) => { prodNames[x.id] = x.name; });
+      }
+      const refs = purchRows.map((x: any) => "PUR-POS-" + String(x.id).slice(0, 8));
+      const purchTx: Record<string, { debit: string; credit: string }> = {};
+      if (refs.length) {
+        const { data: txs } = await supabase.from("transactions").select("reference, debit_account_code, credit_account_code, transaction_type, is_deleted, created_at")
+          .in("reference", refs).in("transaction_type", ["purchase_cash", "purchase_credit"]).eq("is_deleted", false).order("created_at");
+        // latest active posting per purchase (edits repost under the same reference)
+        ((txs as any[]) || []).forEach((t: any) => { purchTx[t.reference] = { debit: t.debit_account_code, credit: t.credit_account_code }; });
+      }
+      const codes = Array.from(new Set([
+        ...list.map(r => r.account_code),
+        ...Object.values(purchTx).flatMap(t => [t.debit, t.credit]),
+      ].filter(Boolean)));
       let names: Record<string, string> = {};
       const { data: ss } = await supabase.from("pos_sessions").select("user_id").eq("id", sessionId).maybeSingle();
       if (!c) setOwnerId((ss as any)?.user_id ?? null);
@@ -1599,7 +1627,11 @@ function ExpandableExpensesRow({
       }
       if (!c) {
         setExps(list.map(r => ({ ...r, account_name: names[r.account_code] })));
-        setPurch(((p.data as any[]) || []).filter(x => x.payment_type === "نقدي" || x.payment_type === "cash" || !x.payment_type).map((x: any) => ({ ...x, supplier_name: supNames[x.supplier_id] })));
+        setPurch(purchRows.map((x: any) => {
+          const t = purchTx["PUR-POS-" + String(x.id).slice(0, 8)];
+          return { ...x, supplier_name: supNames[x.supplier_id], product_name: prodNames[x.product_id],
+            debit: t?.debit, debit_name: t ? names[t.debit] : undefined, credit: t?.credit, credit_name: t ? names[t.credit] : undefined };
+        }));
         setLoading(false);
       }
     })();
@@ -1628,6 +1660,21 @@ function ExpandableExpensesRow({
     if (error) { toast.error(error.message); return; }
     toast.success("تم إلغاء المصروف وتسجيل قيد عكسي على الصندوق");
     setCancelId(null); setCancelReason(""); onChanged();
+  };
+
+  const savePurchase = async (id: string) => {
+    const reason = pf.reason.trim();
+    if (reason.length < 3) { toast.error("اكتب سبب التعديل"); return; }
+    if (!(Number(pf.quantity) > 0) || !(Number(pf.unit_price) > 0)) { toast.error("الكمية والسعر لازم يكونوا أكبر من صفر"); return; }
+    setSaving(true);
+    const { error } = await supabase.rpc("pos_shift_edit_purchase_v1" as any, {
+      p_purchase_id: id, p_supplier_id: pf.supplier_id || null, p_quantity: Number(pf.quantity),
+      p_unit_price: Number(pf.unit_price), p_debit_account_code: pf.account_code || null, p_reason: reason,
+    });
+    setSaving(false);
+    if (error) { toast.error(error.message); return; }
+    toast.success("تم تعديل المشتريات: عكس القيد القديم وترحيل قيد جديد");
+    setEditPurchId(null); onChanged();
   };
 
   const cancelPurchase = async (id: string) => {
@@ -1779,18 +1826,64 @@ function ExpandableExpensesRow({
                       </td>
                     </tr>
                   );
+                  if (editPurchId === p.id) return (
+                    <tr key={p.id} className="bg-primary/5">
+                      <td className="py-1 font-mono text-muted-foreground align-top">{format(new Date(p.created_at), "HH:mm")}</td>
+                      <td className="py-1 align-top">مشتريات</td>
+                      <td className="py-1 pl-1 space-y-1" colSpan={3}>
+                        <div className="text-[11px] text-muted-foreground">{p.product_name || "—"} · {p.payment_type === "credit" ? "آجل على المورد" : "نقدي من الصندوق"}</div>
+                        <div className="flex flex-wrap gap-1.5 items-center">
+                          <select dir="rtl" className="h-7 rounded border border-input bg-background px-1 text-xs min-w-[140px]" value={pf.supplier_id} onChange={e => setPf({ ...pf, supplier_id: e.target.value })}>
+                            {!suppliers.some(s => s.id === pf.supplier_id) && <option value={pf.supplier_id}>{p.supplier_name || "المورد الحالي"}</option>}
+                            {suppliers.map(s => <option key={s.id} value={s.id}>{s.contact_name}</option>)}
+                          </select>
+                          <span className="text-[10px] text-muted-foreground">الكمية</span>
+                          <Input className="h-7 w-16 text-xs font-mono" dir="ltr" inputMode="decimal" value={pf.quantity} onChange={e => setPf({ ...pf, quantity: e.target.value })} />
+                          <span className="text-[10px] text-muted-foreground">السعر</span>
+                          <Input className="h-7 w-20 text-xs font-mono" dir="ltr" inputMode="decimal" value={pf.unit_price} onChange={e => setPf({ ...pf, unit_price: e.target.value })} />
+                          <span className="font-mono text-[11px]">= {fmt((Number(pf.quantity) || 0) * (Number(pf.unit_price) || 0))}</span>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <span className="text-[10px] text-muted-foreground shrink-0">حساب المدين</span>
+                          <div className="flex-1 min-w-0">
+                            <JournalAccountPicker lineId={`pur-${p.id}`} value={pf.account_code} accountName={pf.account_name} accounts={leafAccounts}
+                              onSelect={(a) => setPf({ ...pf, account_code: a.account_code, account_name: a.account_name })} />
+                          </div>
+                          <span className="text-[10px] text-muted-foreground shrink-0">الدائن: {p.credit || "—"}{p.credit_name ? ` · ${p.credit_name}` : ""}</span>
+                        </div>
+                        <Input className="h-7 text-xs" placeholder="سبب التعديل (إلزامي)" value={pf.reason} onChange={e => setPf({ ...pf, reason: e.target.value })} />
+                      </td>
+                      <td className="py-1 align-top">
+                        <div className="flex gap-1 justify-end">
+                          <button disabled={saving} onClick={() => savePurchase(p.id)} className="p-1 text-primary" title="حفظ"><Check className="w-3.5 h-3.5" /></button>
+                          <button onClick={() => setEditPurchId(null)} className="p-1 text-muted-foreground" title="تراجع"><X className="w-3.5 h-3.5" /></button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
                   return (
                     <tr key={p.id} className={isCancelled ? "opacity-60" : undefined}>
                       <td className="py-1 font-mono text-muted-foreground">{format(new Date(p.created_at), "HH:mm")}</td>
-                      <td className="py-1">مشتريات</td>
+                      <td className="py-1">مشتريات {p.payment_type === "credit" ? "آجلة" : "نقدية"}</td>
                       <td className="py-1">
-                        <span className={isCancelled ? "line-through" : undefined}>{[p.supplier_name, p.notes].filter(Boolean).join(" — ") || "—"}</span>
+                        <span className={isCancelled ? "line-through" : undefined}>{[p.supplier_name, p.product_name, p.notes].filter(Boolean).join(" — ") || "—"}</span>
+                        {p.quantity != null && <span className="text-muted-foreground font-mono text-[10.5px]"> ({Number(p.quantity)} × {Number(p.unit_price)})</span>}
                         {isCancelled && <Badge variant="destructive" className="mr-1 text-[9px] px-1 py-0">ملغاة{p.cancel_reason ? ` — ${p.cancel_reason}` : ""}</Badge>}
                       </td>
-                      <td className="py-1">—</td>
+                      <td className="py-1 text-[11px]">
+                        {p.debit ? (<>
+                          <div><span className="text-muted-foreground">مدين </span><span className="font-mono">{p.debit}</span>{p.debit_name && <span className="text-muted-foreground"> · {p.debit_name}</span>}</div>
+                          <div><span className="text-muted-foreground">دائن </span><span className="font-mono">{p.credit}</span>{p.credit_name && <span className="text-muted-foreground"> · {p.credit_name}</span>}</div>
+                        </>) : <span className="text-destructive">بدون قيد</span>}
+                      </td>
                       <td className={cn("py-1 text-left font-mono", isCancelled && "line-through")}>{fmt(p.total_amount)}</td>
                       {(canEdit || canCancel) && (
                         <td className="py-1 text-left whitespace-nowrap">
+                          {useShiftRpc && !isCancelled && (
+                            <button onClick={() => { setCancelPurchId(null); setEditId(null); setEditPurchId(p.id); setPf({ supplier_id: p.supplier_id || "", quantity: String(p.quantity ?? ""), unit_price: String(p.unit_price ?? ""), account_code: p.debit || "", account_name: p.debit_name || "", reason: "" }); }} className="p-1 text-muted-foreground hover:text-foreground" title="تعديل المشتريات">
+                              <Pencil className="w-3.5 h-3.5" />
+                            </button>
+                          )}
                           {useShiftRpc && !isCancelled && (
                             <button onClick={() => { setCancelId(null); setCancelPurchId(p.id); setCancelReason(""); }} className="p-1 text-muted-foreground hover:text-destructive" title="إلغاء المشتريات بقيد عكسي">
                               <Trash2 className="w-3.5 h-3.5" />
