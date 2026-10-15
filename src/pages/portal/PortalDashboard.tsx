@@ -708,6 +708,7 @@ export default function PortalDashboard() {
         onOpenAttendance={() => switchTab('attendance')}
         onOpenTasks={() => { setShowTasksPage(true); }}
         onOpenRoster={() => { setShowRosterPage(true); }}
+        onOpenEmployeeRequests={() => { closeAllPages(); setShowEmployeeRequests(true); }}
         onOpenOrders={hasOrders || portalProfile === 'retail'
           ? () => {
               setShowTasksPage(false); setShowEmployeeRequests(false); setShowRosterPage(false);
