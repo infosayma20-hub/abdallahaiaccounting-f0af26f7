@@ -33,6 +33,8 @@ interface ReturnDialogProps {
   dataOwnerId: string;
   exchangeRates: Record<string, number>;
   onSuccess: () => void;
+  /** From the shift study (closed shift): goes through the audited correction RPC. */
+  shiftCorrection?: boolean;
 }
 
 const RETURN_REASONS = [
@@ -52,7 +54,7 @@ const CURRENCIES = [
 
 export default function ReturnDialog({
   open, onClose, originalOrderId, originalOrderNumber, originalTotal,
-  originalCurrency, sessionId, dataOwnerId, exchangeRates, onSuccess,
+  originalCurrency, sessionId, dataOwnerId, exchangeRates, onSuccess, shiftCorrection = false,
 }: ReturnDialogProps) {
   const [lines, setLines] = useState<OrderLine[]>([]);
   const [returnedQtys, setReturnedQtys] = useState<Record<string, number>>({});
@@ -228,9 +230,9 @@ export default function ReturnDialog({
 
       const rate = returnCurrency === "ILS" ? 1 : (exchangeRates[returnCurrency] || 1);
 
-      const { data, error } = await (supabase.rpc as any)("pos_return_v2", {
+      const { data, error } = await (supabase.rpc as any)(shiftCorrection ? "pos_shift_return_v1" : "pos_return_v2", {
         p_original_order_id: originalOrderId,
-        p_session_id: sessionId,
+        ...(shiftCorrection ? {} : { p_session_id: sessionId }),
         p_items: items,
         p_reason: finalReason,
         p_payment_method: paymentMethod,
