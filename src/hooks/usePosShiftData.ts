@@ -97,6 +97,37 @@ export function usePosShiftData(
           });
         }
 
+        // Linked manual journals may be dated differently from their shift,
+        // or be the only ledger activity of a shift in the selected range.
+        const linkedJournals: { ref_number: string; pos_session_id: string | null }[] = [];
+        for (let offset = 0; ; offset += 1000) {
+          const { data: journals, error: journalError } = await supabase.from('vouchers')
+            .select('ref_number, pos_session_id').eq('user_id', userId).eq('type', 'journal')
+            .eq('status', 'posted').not('pos_session_id', 'is', null)
+            .gte('date', fromDate).lte('date', toDate).order('id').range(offset, offset + 999);
+          if (cancelled || myReq !== reqId.current) return;
+          if (journalError) throw journalError;
+          linkedJournals.push(...(journals || []));
+          if ((journals?.length || 0) < 1000) break;
+        }
+        const linkedIds = Array.from(new Set(linkedJournals.map(v => v.pos_session_id).filter((id): id is string => !!id)));
+        const boxIds = new Set(boxes.map(b => b.id));
+        for (let i = 0; i < linkedIds.length; i += 500) {
+          const { data: sessions, error: sessionError } = await supabase.from('pos_sessions')
+            .select('id,business_date,opened_at,closed_at,state,cashier_name,cash_box_id,shift_seq,expected_cash,closing_cash,cash_variance')
+            .eq('user_id', userId).in('id', linkedIds.slice(i, i + 500));
+          if (cancelled || myReq !== reqId.current) return;
+          if (sessionError) throw sessionError;
+          for (const s of sessions || []) {
+            if (!boxIds.has(s.cash_box_id) || shiftMap.has(s.id)) continue;
+            shiftMap.set(s.id, { session_id: s.id, business_date: s.business_date || s.opened_at.slice(0, 10),
+              opened_at: s.opened_at, closed_at: s.closed_at, state: s.state, cashier_name: s.cashier_name,
+              device_name: null, cash_box_id: s.cash_box_id, cash_box_name: null, session_seq: s.shift_seq,
+              order_count: 0, total_debit: 0, total_credit: 0, total_vat: 0,
+              expected_cash: s.expected_cash, closing_cash: s.closing_cash, cash_variance: s.cash_variance, currency: 'ILS' });
+          }
+        }
+
         // 3) Build order_number → session_id mapping via pos_orders.
         const sessionIds = Array.from(shiftMap.keys());
         const mapping = new Map<string, string>();
@@ -121,6 +152,9 @@ export function usePosShiftData(
         // 4) Cash-out documents of the same shifts (expenses / purchases + reversals).
         const txMap = new Map<string, string>();
         const refMap = new Map<string, string>();
+        for (const v of linkedJournals) {
+          if (v.pos_session_id && shiftMap.has(v.pos_session_id)) refMap.set(v.ref_number, v.pos_session_id);
+        }
         for (let i = 0; i < sessionIds.length; i += 500) {
           const slice = sessionIds.slice(i, i + 500);
           const [{ data: exps }, { data: purs }] = await Promise.all([
