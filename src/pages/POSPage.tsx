@@ -8272,7 +8272,7 @@ const POSPage = ({ variant = "v1" }: { variant?: "v1" | "v2" } = {}) => {
                 }
               }}
               placeholder={pt("بحث أو مسح باركود...")}
-              className="w-full h-9 rounded-lg px-3 pr-9 text-[13px] focus:outline-none transition-all"
+              className={`w-full h-9 rounded-lg px-3 pr-9 text-[13px] focus:outline-none transition-all ${searchQuery ? "pl-8" : ""}`}
               style={{
                 background: "rgba(255,255,255,0.08)",
                 border: "1px solid rgba(255,255,255,0.12)",
@@ -8281,6 +8281,18 @@ const POSPage = ({ variant = "v1" }: { variant?: "v1" | "v2" } = {}) => {
               onFocus={(e) => { e.currentTarget.style.borderColor = "rgba(255,255,255,0.3)"; e.currentTarget.style.background = "rgba(255,255,255,0.12)"; }}
               onBlur={(e) => { e.currentTarget.style.borderColor = "rgba(255,255,255,0.12)"; e.currentTarget.style.background = "rgba(255,255,255,0.08)"; }}
             />
+            {!!searchQuery && (
+              <button
+                type="button"
+                onClick={() => { setSearchQuery(""); setDebouncedSearch(""); searchRef.current?.focus(); }}
+                className="absolute left-2 top-1/2 -translate-y-1/2 flex items-center justify-center hover:text-white transition-colors"
+                style={{ color: "rgba(255,255,255,0.5)" }}
+                title={pt("مسح البحث")}
+                aria-label={pt("مسح البحث")}
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
+            )}
           </div>
           <button
             type="button"
