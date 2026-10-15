@@ -1000,6 +1000,26 @@ function ShiftDetail({ session, studyDone, onStudyDone }: { session: POSSession;
               </div>
             </div>
 
+            <div className="px-3 py-2 border-b border-border">
+              <div className="relative">
+                <input
+                  value={orderQuery}
+                  onChange={(e) => setOrderQuery(e.target.value)}
+                  placeholder="بحث: رقم الفاتورة، المبلغ، اسم الزبون، ملاحظة..."
+                  className="w-full h-8 rounded border border-input bg-background px-2 pe-8 text-[12px] text-right focus:outline-none focus:ring-1 focus:ring-ring"
+                  dir="rtl"
+                />
+                {orderQuery && (
+                  <button type="button" onClick={() => setOrderQuery("")} title="مسح"
+                    className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                )}
+              </div>
+              {orderQuery && (
+                <div className="text-[11px] text-muted-foreground mt-1">{filteredOrders.length} نتيجة</div>
+              )}
+            </div>
             <div className="max-h-[280px] overflow-y-auto">
               <table className="w-full text-[12px]">
                 <thead className="text-[10px] uppercase tracking-wider text-muted-foreground bg-muted/20">
@@ -1013,7 +1033,7 @@ function ShiftDetail({ session, studyDone, onStudyDone }: { session: POSSession;
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border">
-                  {orders.map(o => (
+                  {filteredOrders.map(o => (
                     <tr key={o.id} className="hover:bg-muted/30">
                       <td className="px-3 py-1.5 font-mono">{o.order_number || shortId(o.id)}</td>
                       <td className="px-3 py-1.5 text-muted-foreground">
@@ -1066,7 +1086,8 @@ function ShiftDetail({ session, studyDone, onStudyDone }: { session: POSSession;
       <OrderDetailsDialog
         access={correctionAccess}
         ownerId={(session as any).user_id ?? null}
-        onChanged={() => { setOpenOrderId(null); setReloadKey(k => k + 1); }}
+        refreshKey={reloadKey}
+        onChanged={() => { setReloadKey(k => k + 1); }}
         orderId={openOrderId}
         onClose={() => setOpenOrderId(null)}
         order={openOrderId ? orders.find(o => o.id === openOrderId) || null : null}
@@ -1277,7 +1298,7 @@ function OrderDetailsDialog({
         setLines(data || []);
         setLoading(false);
       });
-  }, [orderId]);
+  }, [orderId, refreshKey]);
 
   if (!orderId) return null;
   const linesTotal = lines.reduce((s, l) => s + Number(l.total || 0), 0);
