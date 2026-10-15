@@ -1549,8 +1549,14 @@ function ExpandableExpensesRow({
       setLoading(true);
       const [e, p] = await Promise.all([
         supabase.from("pos_expenses").select("id, amount, description, account_code, expense_kind, created_at, cancelled_at, cancel_reason").eq("shift_id", sessionId).order("created_at"),
-        supabase.from("pos_purchases").select("id, total_amount, payment_type, notes, created_at").eq("shift_id", sessionId).order("created_at"),
+        supabase.from("pos_purchases").select("id, total_amount, payment_type, notes, created_at, supplier_id").eq("shift_id", sessionId).order("created_at"),
       ]);
+      const supIds = Array.from(new Set(((p.data as any[]) || []).map((x: any) => x.supplier_id).filter(Boolean)));
+      const supNames: Record<string, string> = {};
+      if (supIds.length) {
+        const { data: cs } = await supabase.from("contacts").select("id, name").in("id", supIds);
+        ((cs as any[]) || []).forEach((c: any) => { supNames[c.id] = c.name; });
+      }
       const list = ((e.data as any[]) || []);
       const codes = Array.from(new Set(list.map(r => r.account_code).filter(Boolean)));
       let names: Record<string, string> = {};
@@ -1562,7 +1568,7 @@ function ExpandableExpensesRow({
       }
       if (!c) {
         setExps(list.map(r => ({ ...r, account_name: names[r.account_code] })));
-        setPurch(((p.data as any[]) || []).filter(x => x.payment_type === "نقدي" || x.payment_type === "cash" || !x.payment_type));
+        setPurch(((p.data as any[]) || []).filter(x => x.payment_type === "نقدي" || x.payment_type === "cash" || !x.payment_type).map((x: any) => ({ ...x, supplier_name: supNames[x.supplier_id] })));
         setLoading(false);
       }
     })();
@@ -1611,6 +1617,7 @@ function ExpandableExpensesRow({
         <span className="text-muted-foreground text-[12px] flex items-center gap-1.5">
           {open ? <ChevronDown className="w-3 h-3" /> : <ChevronLeft className="w-3 h-3" />}
           مصروفات/مشتريات نقدية
+          {purchCount > 0 && <span className="text-[10.5px]">({purchCount} مشتريات بقيمة {fmt(purchTotal)})</span>}
         </span>
         <span className="font-mono text-muted-foreground">{fmt(total)}</span>
       </button>
@@ -1716,7 +1723,7 @@ function ExpandableExpensesRow({
                   <tr key={p.id}>
                     <td className="py-1 font-mono text-muted-foreground">{format(new Date(p.created_at), "HH:mm")}</td>
                     <td className="py-1">مشتريات</td>
-                    <td className="py-1">{p.notes || "—"}</td>
+                    <td className="py-1">{[p.supplier_name, p.notes].filter(Boolean).join(" — ") || "—"}</td>
                     <td className="py-1">—</td>
                     <td className="py-1 text-left font-mono">{fmt(p.total_amount)}</td>
                     {(canEdit || canCancel) && <td />}
