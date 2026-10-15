@@ -1,6 +1,7 @@
 import LeaveBranchIntakeEditor from "@/components/hr/LeaveBranchIntakeEditor";
 import { useState, useEffect, useRef, useMemo } from "react";
 import { loadAttendanceSalaries } from "@/lib/hr/attendanceSalary";
+import { loadAttendanceSalaries } from "@/lib/hr/attendanceSalary";
 import { useSearchParams } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useDataOwnerId } from "@/hooks/useDataOwnerId";
