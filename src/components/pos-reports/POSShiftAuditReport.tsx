@@ -737,14 +737,17 @@ function ShiftDetail({ session }: { session: POSSession }) {
               </span>
             </Row>
           )}
-          <Row label="كاش متوقع عند الإغلاق (شيكل)">
+          <Row label="فتحة الصندوق (شيكل)">
+            <span className="font-mono">₪{(session.opening_cash ?? 0).toLocaleString(undefined, { maximumFractionDigits: 2 })}</span>
+          </Row>
+          <Row label="كاش متوقع عند الإغلاق بدون الفتحة (شيكل)">
             <span className="font-mono font-semibold text-foreground">
-              {expectedILSAtClose != null ? `₪${expectedILSAtClose.toLocaleString(undefined, { maximumFractionDigits: 2 })}` : "—"}
+              {expectedILSAtClose != null ? `₪${(expectedILSAtClose - (session.opening_cash ?? 0)).toLocaleString(undefined, { maximumFractionDigits: 2 })}` : "—"}
             </span>
           </Row>
-          <Row label="كاش فعلي عند الإغلاق (شيكل)">
+          <Row label="كاش فعلي عند الإغلاق بدون الفتحة (شيكل)">
             <span className="font-mono">
-              {actualILSAtClose != null ? `₪${actualILSAtClose.toLocaleString(undefined, { maximumFractionDigits: 2 })}` : "لم تُغلق"}
+              {actualILSAtClose != null ? `₪${(actualILSAtClose - (session.opening_cash ?? 0)).toLocaleString(undefined, { maximumFractionDigits: 2 })}` : "لم تُغلق"}
             </span>
           </Row>
           <Row label="فرق الكاش (شيكل)">
