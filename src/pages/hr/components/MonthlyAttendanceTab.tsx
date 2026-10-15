@@ -19,6 +19,7 @@ import { fmtDateDisplay, cn } from "@/lib/utils";
 import { hebronLocalToDate, addDaysIso, hebronHHmm } from "@/lib/hebronTime";
 import { fetchAllRows } from "@/lib/fetch-all-rows";
 import { splitSickPayDays, SICK_FULL_PAY_DAYS, SICK_PAID_DAYS_CAP } from "@/lib/hr-utils";
+import { computeAttendanceSalary } from "@/lib/hr/attendanceSalary";
 import {
   deriveGapsFromPunches,
   gapOverlapsStored,
@@ -877,26 +878,27 @@ export default function MonthlyAttendanceTab({
       // (لا نُخفي شيئاً قبل تحميل بيانات الموظفين تفادياً لجدول فارغ)
       .filter((r) => empMeta[r.employee_id] ? empMeta[r.employee_id].active : true)
       .map((r) => {
-      // total_hours في قاعدة البيانات يشمل الإضافي → الساعات العادية = الإجمالي − الإضافي
-      const regular = Math.max(0, (r.hours || 0) - (r.overtime || 0));
-      const overtimeWeighted = (r.overtime || 0) * OVERTIME_MULTIPLIER;
-      const annualHours = (r.annualLeave || 0) * STANDARD_DAY_HOURS;
-      // ⚖️ قانون العمل: أول 14 يوم مرضي بالسنة بأجر كامل، من 15–28 بنصف أجر، وما زاد عن 28 بدون أجر.
-      const sickSplit = splitSickPayDays(priorSickByEmp[r.employee_id] || 0, r.sickLeave || 0);
-      const sickHours = sickSplit.paidEquivalentDays * STANDARD_DAY_HOURS;
-      const totalHours = regular + overtimeWeighted + annualHours + sickHours;
+      // المعادلة الموحّدة لراتب البصمة (نفسها في عمود طلبات السلف).
+      // ⚖️ أول 14 يوم مرضي بالسنة بأجر كامل، 15–28 بنصف أجر، وما زاد بدون أجر.
+      const rate = Number(empMeta[r.employee_id]?.rate ?? r.hourlyRate) || 0;
+      const c = computeAttendanceSalary({
+        hours: r.hours || 0, overtime: r.overtime || 0,
+        annualDays: r.annualLeave || 0, sickDays: r.sickLeave || 0,
+        priorSickDays: priorSickByEmp[r.employee_id] || 0, hourlyRate: rate,
+      });
       return {
         ...r,
         employeeNumber: empMeta[r.employee_id]?.number || r.employeeNumber || "—",
-        hourlyRate: Number(empMeta[r.employee_id]?.rate ?? r.hourlyRate) || 0,
+        hourlyRate: rate,
         branchName: empMeta[r.employee_id]?.branchName || "—",
         departmentName: empMeta[r.employee_id]?.departmentName || "—",
-        regular, overtimeWeighted, annualHours, sickHours,
-        sickFullDays: sickSplit.fullDays,
-        sickHalfDays: sickSplit.halfDays,
-        sickUnpaidDays: sickSplit.unpaidDays,
-        totalHours,
-        amount: totalHours * (Number(empMeta[r.employee_id]?.rate ?? r.hourlyRate) || 0),
+        regular: c.regular, overtimeWeighted: c.overtimeWeighted,
+        annualHours: c.annualHours, sickHours: c.sickHours,
+        sickFullDays: c.sickSplit.fullDays,
+        sickHalfDays: c.sickSplit.halfDays,
+        sickUnpaidDays: c.sickSplit.unpaidDays,
+        totalHours: c.totalHours,
+        amount: c.amount,
       };
     }), [summary, empMeta, priorSickByEmp]);
 
