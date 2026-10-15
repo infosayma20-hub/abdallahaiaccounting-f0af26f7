@@ -1275,8 +1275,9 @@ function ExpandableOrdersRow({
 
 // ── Order details dialog (items + notes) ──
 function OrderDetailsDialog({
-  orderId, order, onClose, access, ownerId, onChanged,
+  orderId, order, onClose, access, ownerId, onChanged, refreshKey = 0,
 }: {
+  refreshKey?: number;
   access: ShiftCorrectionAccess;
   ownerId: string | null;
   onChanged: () => void;
