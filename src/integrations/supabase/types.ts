@@ -31727,6 +31727,7 @@ export type Database = {
         Returns: boolean
       }
       _norm_currency_code: { Args: { _c: string }; Returns: string }
+      _ops_fmt_time: { Args: { _v: string }; Returns: string }
       _ops_order_ctx: {
         Args: { _order: string }
         Returns: Record<string, unknown>
