@@ -50,6 +50,7 @@ export interface JournalSaveInput {
   notes?: string | null;
   /** دفتر السندات — إن لم يُمرر يُستخدم الدفتر الافتراضي */
   book_id?: string | null;
+  pos_session_id?: string | null;
   /** جهة اتصال على مستوى السند ككل (اختياري) */
   contact_id?: string | null;
   /** مركز تكلفة عام على مستوى السند (اختياري) — يُستخدم للسطور التي لا تحدد مركزها */
@@ -508,6 +509,7 @@ export function useSaveJournalVoucher() {
           line_sort_order: input.line_sort_order || "original",
           book_id: bookId,
           book_number: bookNumber,
+          pos_session_id: input.pos_session_id || null,
         })
         .select("id, ref_number")
         .single();
@@ -766,6 +768,7 @@ export function useSaveJournalVoucher() {
           attachments: input.attachments && input.attachments.length > 0 ? input.attachments : [],
           line_sort_order: input.line_sort_order || "original",
           linked_transaction_id: null,
+          ...(input.pos_session_id !== undefined ? { pos_session_id: input.pos_session_id } : {}),
         })
         .eq("id", voucherId);
       if (uErr) throw uErr;

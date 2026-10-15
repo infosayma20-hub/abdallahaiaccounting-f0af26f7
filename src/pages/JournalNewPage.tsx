@@ -50,6 +50,7 @@ import {
 import SmartSearchableDropdown from "@/components/forms/SmartSearchableDropdown";
 import JournalAccountPicker from "@/components/journal/JournalAccountPicker";
 import JournalEntityCombobox from "@/components/journal/JournalEntityCombobox";
+import JournalShiftPicker from "@/components/journal/JournalShiftPicker";
 import { openOfficialVoucherWindow } from "@/lib/print/buildOfficialVoucher";
 import { useJournalBooks } from "@/hooks/useJournalBooks";
 import { Settings2, BookOpen as BookOpenIcon } from "lucide-react";
@@ -127,6 +128,7 @@ const JournalNewPage = () => {
   const [formDescription, setFormDescription] = useState("");
   const [formNotes, setFormNotes] = useState("");
   const [formBookId, setFormBookId] = useState<string | null>(null);
+  const [formPosSessionId, setFormPosSessionId] = useState<string | null>(null);
   const { books: journalBooks, defaultBook } = useJournalBooks();
   // اضبط الدفتر الافتراضي تلقائياً عند التحميل الأول
   useEffect(() => {
@@ -296,8 +298,8 @@ const JournalNewPage = () => {
   // ─── Auto-Draft (سند القيد) ───
   const journalDraftSnapshot = useMemo(() => ({
     formDate, formRefNumber, formSubtype, formDescription, formNotes,
-    formContactId, lines, attachments, lineSortOrder, formCurrency, formExchangeRate,
-  }), [formDate, formRefNumber, formSubtype, formDescription, formNotes, formContactId, lines, attachments, lineSortOrder, formCurrency, formExchangeRate]);
+    formContactId, formPosSessionId, lines, attachments, lineSortOrder, formCurrency, formExchangeRate,
+  }), [formDate, formRefNumber, formSubtype, formDescription, formNotes, formContactId, formPosSessionId, lines, attachments, lineSortOrder, formCurrency, formExchangeRate]);
 
   const applyJournalDraft = useCallback((d: any) => {
     if (d.formDate) setFormDate(d.formDate);
@@ -306,6 +308,7 @@ const JournalNewPage = () => {
     if (d.formDescription !== undefined) setFormDescription(d.formDescription);
     if (d.formNotes !== undefined) setFormNotes(d.formNotes);
     if (d.formContactId !== undefined) setFormContactId(d.formContactId);
+    setFormPosSessionId(d.formPosSessionId || null);
     if (Array.isArray(d.lines) && d.lines.length >= 2) setLines(d.lines);
     if (Array.isArray(d.attachments)) setAttachments(d.attachments);
     if (d.lineSortOrder) setLineSortOrder(d.lineSortOrder);
@@ -499,7 +502,7 @@ const JournalNewPage = () => {
       try {
         const { data: v, error: vErr } = await supabase
           .from("vouchers")
-          .select("id, ref_number, date, subtype, contact_id, cost_center_id, description, notes, attachments, line_sort_order, created_at, type, currency, exchange_rate, book_id")
+          .select("id, ref_number, date, subtype, contact_id, cost_center_id, description, notes, attachments, line_sort_order, created_at, type, currency, exchange_rate, book_id, pos_session_id")
           .eq("id", editingVoucherId)
           .eq("user_id", dataOwnerId)
           .maybeSingle();
@@ -530,6 +533,7 @@ const JournalNewPage = () => {
         setFormCostCenterId(v.cost_center_id || null);
         setFormDescription(v.description || "");
         setFormNotes(v.notes || "");
+        setFormPosSessionId(v.pos_session_id || null);
         if ((v as any).book_id) setFormBookId((v as any).book_id);
         setAttachments(Array.isArray(v.attachments) ? (v.attachments as any) : []);
         setLineSortOrder((v.line_sort_order as any) || "original");
@@ -909,6 +913,7 @@ const JournalNewPage = () => {
     // creates the SAME voucher the online save creates (book + number + QV ref +
     // lines + transactions) in one transaction, idempotent on the local id.
     if (!navigator.onLine && mode === "posted" && !editingVoucherId) {
+      if (formPosSessionId) { toast.error("ربط القيد بوردية يتطلب اتصالاً بالإنترنت"); return; }
       const isIls = formCurrency === "ILS" || formCurrency === "شيكل";
       if (!isIls || attachments.length > 0) {
         toast.error(
@@ -984,6 +989,7 @@ const JournalNewPage = () => {
         notes: formNotes || null,
         book_id: formBookId,
         contact_id: formContactId || null,
+        pos_session_id: formPosSessionId,
         cost_center_id: formCostCenterId || null,
         currency_code: formCurrency,
         currency_label: CURRENCIES.find(c => c.value === formCurrency)?.label || "شيكل",
@@ -1458,6 +1464,7 @@ const JournalNewPage = () => {
     setFormExchangeRate(1);
     setFormDescription("");
     setFormNotes("");
+    setFormPosSessionId(null);
     setFormContactId("");
     setFormCostCenterId(null);
     setAttachments([]);
@@ -1543,6 +1550,7 @@ const JournalNewPage = () => {
       notes: formNotes || null,
       book_id: formBookId,
       contact_id: formContactId || null,
+      pos_session_id: formPosSessionId,
       cost_center_id: formCostCenterId || null,
       currency_code: formCurrency,
       currency_label: CURRENCIES.find(c => c.value === formCurrency)?.label || "شيكل",
@@ -1848,6 +1856,7 @@ const JournalNewPage = () => {
             </div>
           </div>
 
+          <JournalShiftPicker ownerId={ownerId} date={formDate} value={formPosSessionId} onChange={setFormPosSessionId} disabled={isReadOnly || saving} />
           {detailsOpen && (
           <div className="space-y-4 pt-3 border-t border-border">
           {/* Subtype Tabs — chip strip, single row */}
