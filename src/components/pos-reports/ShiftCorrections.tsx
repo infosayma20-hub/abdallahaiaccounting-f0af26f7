@@ -331,6 +331,7 @@ const ACTION_LABEL: Record<string, string> = {
   order_discount: "خصم على فاتورة",
   order_return: "إرجاع",
   cash_transfer: "ترحيل كاش لصندوق",
+  cash_close: "ترحيل مع تسوية الفرق",
   purchase_cancel: "إلغاء مشتريات",
   purchase_edit: "تعديل مشتريات",
   expense_cancel: "إلغاء مصروف",
