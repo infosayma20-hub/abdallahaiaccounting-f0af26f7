@@ -342,7 +342,7 @@ function ShiftDetail({ session }: { session: POSSession }) {
       const txIds = rawOrders.flatMap(o => [o.transaction_id, o.linked_transaction_id]).filter(Boolean) as string[];
       const orderIdsForPayments = rawOrders.map(o => o.id);
       // Parallel: voided-tx lookup + payments fetch (both depend only on ids we have now).
-      const [voidedRes, payRes] = await Promise.all([
+      const [voidedRes, payRes, saleTxRes, appsRes, bankRes] = await Promise.all([
         txIds.length
           ? supabase.from("transactions").select("id, notes").in("id", txIds).eq("is_deleted", true)
           : Promise.resolve({ data: [] as any[] }),
@@ -352,7 +352,23 @@ function ShiftDetail({ session }: { session: POSSession }) {
               .select("id, payment_method, amount, order_id, currency, tendered, change_amount, change_currency, exchange_rate, is_refund")
               .in("order_id", orderIdsForPayments)
           : Promise.resolve({ data: [] as any[] }),
+        // Card destination (which visa / delivery-app account received the money).
+        orderIdsForPayments.length
+          ? supabase.from("transactions").select("pos_order_id, debit_account_code, payment_method")
+              .in("pos_order_id", orderIdsForPayments).eq("transaction_type", "pos_sale").eq("is_deleted", false).eq("payment_method", "card")
+          : Promise.resolve({ data: [] as any[] }),
+        supabase.from("delivery_apps" as any).select("name, visa_gl_account_code").eq("user_id", (session as any).user_id),
+        supabase.from("bank_accounts").select("account_name, gl_account_code").eq("user_id", (session as any).user_id),
       ]);
+      const glName = new Map<string, string>();
+      ((bankRes.data as any[]) || []).forEach(b => b.gl_account_code && glName.set(String(b.gl_account_code), b.account_name || String(b.gl_account_code)));
+      ((appsRes.data as any[]) || []).forEach(a => a.visa_gl_account_code && glName.set(String(a.visa_gl_account_code), `فيزا ${a.name}`));
+      const cardDest = new Map<string, string>();
+      ((saleTxRes.data as any[]) || []).forEach(t => {
+        if (!t.pos_order_id || !t.debit_account_code || cardDest.has(t.pos_order_id)) return;
+        const gl = String(t.debit_account_code);
+        cardDest.set(t.pos_order_id, `${glName.get(gl) || "حساب"} (${gl})`);
+      });
       if (cancelled) return;
       // Exclude soft-deletes that are just automated GL re-posts (e.g. mixed-split
       // re-post): the invoice is still valid and has replacement journal entries,
@@ -390,6 +406,7 @@ function ShiftDetail({ session }: { session: POSSession }) {
             change_currency: p.change_currency || "ILS",
             exchange_rate: Number(p.exchange_rate) || 1,
             is_refund: !!p.is_refund,
+            card_dest: p.payment_method === "card" ? (cardDest.get(p.order_id) || null) : null,
           }));
         voidPays = payData
           .filter((p: any) => voidedOrderIds.has(p.order_id))
@@ -497,7 +514,8 @@ function ShiftDetail({ session }: { session: POSSession }) {
       (a, b) => orderTime(a.order_id) - orderTime(b.order_id),
     );
     sortedPayments.forEach(p => {
-      const k = p.payment_method || "نقدي";
+      const dest = (p as any).card_dest as string | null | undefined;
+      const k = dest ? `card|${dest}` : (p.payment_method || "نقدي");
       if (!byMethod[k]) byMethod[k] = { count: 0, amount: 0, rows: [] };
       byMethod[k].count++;
       byMethod[k].amount += p.amount;
@@ -1085,7 +1103,7 @@ function ExpandableMethodRow({
       >
         <span className="text-muted-foreground text-[12px] flex items-center gap-1.5">
           {open ? <ChevronDown className="w-3 h-3" /> : <ChevronLeft className="w-3 h-3" />}
-          {trMethod(method)} ({count} دفعة)
+          {method.startsWith("card|") ? `${trMethod("card")} — ${method.slice(5)}` : trMethod(method)} ({count} دفعة)
         </span>
         <span className="font-mono text-foreground">
           ₪{amount.toLocaleString(undefined, { maximumFractionDigits: 2 })}
