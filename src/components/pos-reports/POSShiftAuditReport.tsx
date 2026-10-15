@@ -264,6 +264,7 @@ function ShiftDetail({ session, studyDone, onStudyDone }: { session: POSSession;
   const [reloadKey, setReloadKey] = useState(0);
   const loadedSessionRef = useRef<string | null>(null);
   const [orderQuery, setOrderQuery] = useState("");
+  const [rowQuery, setRowQuery] = useState("");
   const filteredOrders = useMemo(() => {
     const q = orderQuery.trim().toLowerCase();
     if (!q) return orders;
@@ -633,6 +634,36 @@ function ShiftDetail({ session, studyDone, onStudyDone }: { session: POSSession;
     };
   }, [orders, payments, voidedPayments, session.opening_cash, cashAdjustments]);
 
+  // ── Search inside "الأرقام الفعلية" ──
+  // One box at the top of the card filters the payment-method rows and the
+  // cancelled/voided rows by invoice number, amount, customer name or note.
+  const actualsSearch = useMemo(() => {
+    const q = rowQuery.trim().toLowerCase();
+    const rowMatch = (r: { orderNumber: string | null; orderId: string; amount: number; note: string | null }) =>
+      !q || [r.orderNumber, r.orderId, r.amount, r.note]
+        .some(v => v != null && String(v).toLowerCase().includes(q));
+    const orderMatch = (o: SessionOrder) =>
+      !q || [o.order_number, o.id, o.total, (o as any).customer_name, (o as any).order_note, (o as any).employee_name, (o as any).notes]
+        .some(v => v != null && String(v).toLowerCase().includes(q));
+    const methods = Object.entries(totals.byMethod)
+      .map(([method, v]) => {
+        const rows = v.rows.filter(rowMatch);
+        return {
+          method,
+          rows,
+          totalCount: v.count,
+          amount: q ? rows.reduce((sum, r) => sum + r.amount, 0) : v.amount,
+        };
+      })
+      .filter(m => !q || m.rows.length > 0);
+    const cancelled = totals.cancelled.filter(orderMatch);
+    const voided = totals.voided.filter(orderMatch);
+    const count = q
+      ? methods.reduce((sum, m) => sum + m.rows.length, 0) + cancelled.length + voided.length
+      : 0;
+    return { q, methods, cancelled, voided, count };
+  }, [totals, rowQuery]);
+
   const kind = classifyShift(session.opened_at);
   const durationMin = session.closed_at
     ? Math.round((new Date(session.closed_at).getTime() - new Date(session.opened_at).getTime()) / 60000)
@@ -722,30 +753,57 @@ function ShiftDetail({ session, studyDone, onStudyDone }: { session: POSSession;
         <div className="px-3 py-2 text-[10px] uppercase tracking-wider text-primary bg-primary/5 border-b border-border">
           الأرقام الفعلية (بعد استبعاد المحذوفات)
         </div>
+        <div className="px-3 py-2 border-b border-border">
+          <div className="relative">
+            <input
+              value={rowQuery}
+              onChange={(e) => setRowQuery(e.target.value)}
+              placeholder="بحث: رقم الفاتورة، المبلغ، اسم الزبون، ملاحظة..."
+              className="w-full h-8 rounded border border-input bg-background px-2 pe-8 text-[12px] text-right focus:outline-none focus:ring-1 focus:ring-ring"
+              dir="rtl"
+            />
+            {rowQuery && (
+              <button type="button" onClick={() => setRowQuery("")} title="مسح"
+                className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
+                <X className="w-3.5 h-3.5" />
+              </button>
+            )}
+          </div>
+          {rowQuery && (
+            <div className="text-[11px] text-muted-foreground mt-1">{actualsSearch.count} نتيجة</div>
+          )}
+        </div>
         <div className="divide-y divide-border text-[13px]">
           <Row label="إجمالي المبيعات">
             <span className="font-mono font-semibold text-foreground">
               ₪{totals.netSales.toLocaleString(undefined, { maximumFractionDigits: 2 })}
             </span>
           </Row>
-          {Object.entries(totals.byMethod).map(([m, v]) => (
+          {actualsSearch.methods.map((m) => (
             <ExpandableMethodRow
-              key={m}
-              method={m}
-              count={v.count}
-              amount={v.amount}
-              rows={v.rows}
+              key={m.method}
+              method={m.method}
+              count={m.rows.length}
+              totalCount={m.totalCount}
+              amount={m.amount}
+              rows={m.rows}
+              autoOpen={!!actualsSearch.q}
               onOpenOrder={(id) => setOpenOrderId(id)}
             />
           ))}
+          {rowQuery && actualsSearch.count === 0 && (
+            <div className="px-3 py-3 text-[12px] text-muted-foreground">لا نتائج مطابقة</div>
+          )}
           <ExpandableOrdersRow
-            label={`ملغي (${totals.cancelled.length} فاتورة)`}
-            orders={totals.cancelled}
+            label={`ملغي (${actualsSearch.cancelled.length} فاتورة)`}
+            orders={actualsSearch.cancelled}
+            autoOpen={!!actualsSearch.q}
             onOpenOrder={(id) => setOpenOrderId(id)}
           />
           <ExpandableOrdersRow
-            label={`محذوف محاسبياً (${totals.voided.length} فاتورة)`}
-            orders={totals.voided}
+            label={`محذوف محاسبياً (${actualsSearch.voided.length} فاتورة)`}
+            orders={actualsSearch.voided}
+            autoOpen={!!actualsSearch.q}
             onOpenOrder={(id) => setOpenOrderId(id)}
           />
 
@@ -1128,16 +1186,21 @@ function CollapsibleSection({
 
 // ── Expandable row for payment methods (shows employees / invoices) ──
 function ExpandableMethodRow({
-  method, count, amount, rows, onOpenOrder,
+  method, count, amount, rows, onOpenOrder, totalCount, autoOpen,
 }: {
   method: string;
   count: number;
   amount: number;
   rows: { orderId: string; orderNumber: string | null; amount: number; note: string | null; createdAt?: string | null }[];
   onOpenOrder: (id: string) => void;
+  totalCount?: number;
+  autoOpen?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const isEmployee = method === "employee_account" || method === "employee";
+  useEffect(() => {
+    if (autoOpen && rows.length > 0) setOpen(true);
+  }, [autoOpen, rows.length]);
   return (
     <div className="divide-y divide-border">
       <button
@@ -1146,14 +1209,14 @@ function ExpandableMethodRow({
       >
         <span className="text-muted-foreground text-[12px] flex items-center gap-1.5">
           {open ? <ChevronDown className="w-3 h-3" /> : <ChevronLeft className="w-3 h-3" />}
-          {method.startsWith("card|") ? `${trMethod("card")} — ${method.slice(5)}` : trMethod(method)} ({count} دفعة)
+          {method.startsWith("card|") ? `${trMethod("card")} — ${method.slice(5)}` : trMethod(method)} ({count} دفعة{totalCount != null && totalCount !== count ? ` من ${totalCount}` : ""})
         </span>
         <span className="font-mono text-foreground">
           ₪{amount.toLocaleString(undefined, { maximumFractionDigits: 2 })}
         </span>
       </button>
       {open && (
-        <div className="bg-muted/10 px-3 py-2">
+        <div className="bg-muted/10 px-3 py-2 max-h-[240px] overflow-y-auto">
           <table className="w-full text-[11.5px]">
             <thead className="text-[10px] uppercase tracking-wider text-muted-foreground">
               <tr>
@@ -1198,15 +1261,19 @@ function ExpandableMethodRow({
 
 // ── Expandable row for a list of orders (cancelled / voided) ──
 function ExpandableOrdersRow({
-  label, orders, onOpenOrder,
+  label, orders, onOpenOrder, autoOpen,
 }: {
   label: string;
   orders: SessionOrder[];
   onOpenOrder: (id: string) => void;
+  autoOpen?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const total = orders.reduce((s, o) => s + Number(o.total || 0), 0);
   const disabled = orders.length === 0;
+  useEffect(() => {
+    if (autoOpen && orders.length > 0) setOpen(true);
+  }, [autoOpen, orders.length]);
   return (
     <div className="divide-y divide-border">
       <button
