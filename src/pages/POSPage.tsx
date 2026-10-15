@@ -1342,6 +1342,7 @@ const POSPage = ({ variant = "v1" }: { variant?: "v1" | "v2" } = {}) => {
      can_edit_prices: boolean;
      can_void_sales: boolean;
      can_refund: boolean;
+     can_pos_return: boolean;
      allow_credit_sale: boolean;
      open_cash_drawer: boolean;
      can_remove_cart_items: boolean;
@@ -1376,7 +1377,7 @@ const POSPage = ({ variant = "v1" }: { variant?: "v1" | "v2" } = {}) => {
    }>({
      can_open_register: true, can_close_register: true, can_view_shift_details: true, can_view_profits: false,
       can_apply_discount: true, max_discount_percent: 100, can_edit_prices: true, can_void_sales: true,
-      can_refund: true, allow_credit_sale: true, open_cash_drawer: false, can_remove_cart_items: true,
+      can_refund: true, can_pos_return: false, allow_credit_sale: true, open_cash_drawer: false, can_remove_cart_items: true,
       can_view_invoice_history: true, can_edit_invoices: true, can_cancel_invoices: true, require_manager_for_invoices: true,
       print_invoices: true, resend_invoice: false,
       manage_products_categories: false, edit_products: false, delete_products: false, view_inventory: false,
@@ -1744,6 +1745,7 @@ const POSPage = ({ variant = "v1" }: { variant?: "v1" | "v2" } = {}) => {
           can_edit_prices: p.can_edit_prices ?? true,
           can_void_sales: p.can_void_sales ?? false,
           can_refund: p.can_refund ?? false,
+          can_pos_return: p.can_pos_return ?? false,
           allow_credit_sale: p.allow_credit_sale ?? false,
           open_cash_drawer: p.open_cash_drawer ?? false,
           can_remove_cart_items: p.can_remove_cart_items ?? true,
@@ -11436,6 +11438,7 @@ const POSPage = ({ variant = "v1" }: { variant?: "v1" | "v2" } = {}) => {
             requireManagerForRecall={!isAdmin && !(posPerms.can_edit_invoices) && posPerms.require_manager_for_invoices}
             requireManagerForCancel={!isAdmin && posPerms.require_manager_for_invoices}
             requireManagerForReturn={!isAdmin && posPerms.require_manager_for_returns}
+            canReturnSales={isAdmin || posPerms.can_pos_return}
             cashierMode={!isAdmin && !posPerms.view_payment_details}
             cancelWindowMinutes={cashierCancelWindowMin}
             amountVisibleMinutes={cashierAmountVisibleMin}
