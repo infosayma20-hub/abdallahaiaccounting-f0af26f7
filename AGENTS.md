@@ -21,5 +21,5 @@ Subdirectories may have their own `AGENTS.md` (e.g. `src/components/pos/`); read
 <!-- LOVABLE:BEGIN -->
 - POS v2 stockout creation reuses `StockoutAlertButton` beside pending-order alerts, gated by Malaky data owner ID and cashier mode; kitchen navigation lives in More. Why: keep one alert workflow and tenant-specific presentation.
 <!-- LOVABLE:END -->
-- Delivery note → invoice goes only through RPC `convert_delivery_note_to_invoice` (draft sale invoice, number from the invoice trigger, `source_delivery_note_id` set so stock is never deducted twice); cancelling/deleting that invoice returns the note to `issued` via `release_delivery_note_from_invoice`. Why: the note already moved the stock; the invoice only carries pricing and GL.
-- Owner-portal operational alerts (POS cancel, discount, payment-method change, attendance edit) come only from DB triggers calling `notify_ops_alert`, delivered to `malaki_portal_users` rows with `receive_ops_alerts=true`; triggers swallow errors. Why: alerts never block the source operation and recipients are opt-in per portal user.
+- Delivery note → invoice only via RPC `convert_delivery_note_to_invoice` (draft invoice with `source_delivery_note_id`, no second stock deduction); cancelling it calls `release_delivery_note_from_invoice`. Why: the note already moved stock.
+- Portal ops alerts (cancel, discount, payment change, attendance edit) come only from triggers calling `notify_ops_alert` to `malaki_portal_users.receive_ops_alerts`; errors swallowed. Why: never block the source operation.
