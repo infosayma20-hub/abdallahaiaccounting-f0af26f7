@@ -1590,7 +1590,7 @@ function ExpandableExpensesRow({
       setLoading(true);
       const [e, p] = await Promise.all([
         supabase.from("pos_expenses").select("id, amount, description, account_code, expense_kind, created_at, cancelled_at, cancel_reason").eq("shift_id", sessionId).order("created_at"),
-        supabase.from("pos_purchases").select("id, total_amount, payment_type, notes, created_at, supplier_id, cancelled_at, cancel_reason, product_id, quantity, unit_price").eq("shift_id", sessionId).order("created_at"),
+        supabase.from("pos_purchases").select("id, total_amount, payment_type, notes, created_at, supplier_id, cancelled_at, cancel_reason, product_id, quantity, unit_price, invoice_id, voucher_number").eq("shift_id", sessionId).order("created_at"),
       ]);
       const supIds = Array.from(new Set(((p.data as any[]) || []).map((x: any) => x.supplier_id).filter(Boolean)));
       const supNames: Record<string, string> = {};
@@ -1606,7 +1606,15 @@ function ExpandableExpensesRow({
         const { data: ps } = await supabase.from("products").select("id, name").in("id", prodIds);
         ((ps as any[]) || []).forEach((x: any) => { prodNames[x.id] = x.name; });
       }
-      const refs = purchRows.map((x: any) => "PUR-POS-" + String(x.id).slice(0, 8));
+      // المشتريات المسجلة كفاتورة مشتريات عادية: قيدها مرجعه رقم الفاتورة
+      const invIds = purchRows.map((x: any) => x.invoice_id).filter(Boolean);
+      const invNo: Record<string, string> = {};
+      if (invIds.length) {
+        const { data: invs } = await supabase.from("invoices").select("id, invoice_number").in("id", invIds);
+        ((invs as any[]) || []).forEach((i: any) => { invNo[i.id] = i.invoice_number; });
+      }
+      const refOf = (x: any) => (x.invoice_id ? invNo[x.invoice_id] : "PUR-POS-" + String(x.id).slice(0, 8));
+      const refs = purchRows.map(refOf).filter(Boolean);
       const purchTx: Record<string, { debit: string; credit: string }> = {};
       if (refs.length) {
         const { data: txs } = await supabase.from("transactions").select("reference, debit_account_code, credit_account_code, transaction_type, is_deleted, created_at")
@@ -1628,8 +1636,8 @@ function ExpandableExpensesRow({
       if (!c) {
         setExps(list.map(r => ({ ...r, account_name: names[r.account_code] })));
         setPurch(purchRows.map((x: any) => {
-          const t = purchTx["PUR-POS-" + String(x.id).slice(0, 8)];
-          return { ...x, supplier_name: supNames[x.supplier_id], product_name: prodNames[x.product_id],
+          const t = purchTx[refOf(x)];
+          return { ...x, invoice_number: x.invoice_id ? invNo[x.invoice_id] : undefined, supplier_name: supNames[x.supplier_id], product_name: prodNames[x.product_id],
             debit: t?.debit, debit_name: t ? names[t.debit] : undefined, credit: t?.credit, credit_name: t ? names[t.credit] : undefined };
         }));
         setLoading(false);
