@@ -853,6 +853,8 @@ function ShiftDetail({ session, studyDone, onStudyDone }: { session: POSSession;
                 ownerId={(session as any).user_id}
                 fromBoxId={(session as any).cash_box_id}
                 defaultAmount={actualILSAtClose != null ? Math.max(actualILSAtClose - (session.opening_cash ?? 0), 0) : 0}
+                expectedNet={expectedILSAtClose != null ? Math.round((expectedILSAtClose - (session.opening_cash ?? 0)) * 100) / 100 : null}
+                canSettle={canEditAdjustments && audit?.status !== "approved"}
                 onDone={() => setReloadKey(k => k + 1)}
               />
             )}

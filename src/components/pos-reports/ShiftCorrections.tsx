@@ -1,3 +1,4 @@
+import { cn } from "@/lib/utils";
 import { useEffect, useState } from "react";
 import { format } from "date-fns";
 import { toast } from "sonner";
@@ -235,9 +236,12 @@ export function OrderCorrectionPanel({
 }
 
 /** Move shift cash to another cash box (audited, linked to the shift). */
-export function ShiftCashTransferButton({ sessionId, ownerId, fromBoxId, defaultAmount, onDone }: {
-  sessionId: string; ownerId: string; fromBoxId: string; defaultAmount: number; onDone: () => void;
+export function ShiftCashTransferButton({ sessionId, ownerId, fromBoxId, defaultAmount, expectedNet, canSettle, onDone }: {
+  sessionId: string; ownerId: string; fromBoxId: string; defaultAmount: number;
+  /** Expected cash without the opening float, after all corrections. When given, the variance is settled in the same step. */
+  expectedNet?: number | null; canSettle?: boolean; onDone: () => void;
 }) {
+  const [empStr, setEmpStr] = useState("");
   const [open, setOpen] = useState(false);
   const [boxes, setBoxes] = useState<{ id: string; name: string }[]>([]);
   const [box, setBox] = useState("");
@@ -249,11 +253,28 @@ export function ShiftCashTransferButton({ sessionId, ownerId, fromBoxId, default
     supabase.from("cash_boxes" as any).select("id, name").eq("user_id", ownerId).neq("id", fromBoxId).order("name")
       .then(({ data }) => setBoxes(((data as any[]) || [])));
   }, [open, ownerId, fromBoxId]);
+  const settleMode = !!canSettle && expectedNet != null;
+  const variance = settleMode ? Math.round(((Number(amount) || 0) - (expectedNet as number)) * 100) / 100 : 0;
+  const absVar = Math.abs(variance);
+  const isShortage = variance < 0;
+  const emp = Number(empStr) || 0;
   const submit = async () => {
     const a = Number(amount);
     if (!box) { toast.error("اختر الصندوق"); return; }
     if (!(a > 0)) { toast.error("المبلغ غير صحيح"); return; }
     setBusy(true);
+    if (settleMode) {
+      if (isShortage && (emp < 0 || emp > absVar)) { setBusy(false); toast.error(`المبلغ على الموظف بين 0 و ${absVar}`); return; }
+      const { error } = await supabase.rpc("pos_shift_close_cash_v1" as any, {
+        p_session_id: sessionId, p_to_box_id: box, p_actual_net: a, p_expected_net: expectedNet,
+        p_employee_amount: isShortage ? emp : 0, p_reason: reason.trim() || null,
+      });
+      setBusy(false);
+      if (error) { toast.error(error.message); return; }
+      toast.success(absVar >= 0.01 ? `تم الترحيل وتسجيل ${isShortage ? "العجز" : "الفائض"} ${absVar}₪` : "تم الترحيل — لا يوجد فرق");
+      setOpen(false); onDone();
+      return;
+    }
     const { error } = await supabase.rpc("pos_shift_transfer_cash_v1" as any, { p_session_id: sessionId, p_to_box_id: box, p_amount: a, p_reason: reason.trim() || null });
     setBusy(false);
     if (error) { toast.error(error.message); return; }
@@ -263,7 +284,7 @@ export function ShiftCashTransferButton({ sessionId, ownerId, fromBoxId, default
   return (
     <>
       <button type="button" title="ترحيل الكاش إلى صندوق"
-        onClick={(e) => { e.stopPropagation(); setAmount(String(Math.round(defaultAmount * 100) / 100)); setReason(""); setBox(""); setOpen(true); }}
+        onClick={(e) => { e.stopPropagation(); setAmount(String(Math.round(defaultAmount * 100) / 100)); setReason(""); setBox(""); setEmpStr(""); setOpen(true); }}
         className="mr-2 inline-flex items-center gap-1 rounded border border-border px-1.5 py-0.5 text-[11px] text-foreground hover:bg-muted">
         <ArrowLeftRight className="w-3.5 h-3.5" /> ترحيل لصندوق
       </button>
@@ -275,7 +296,23 @@ export function ShiftCashTransferButton({ sessionId, ownerId, fromBoxId, default
               <option value="">— اختر الصندوق —</option>
               {boxes.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
             </select>
-            <Input dir="ltr" inputMode="decimal" className="font-mono" value={amount} onChange={e => setAmount(e.target.value)} />
+            {settleMode && <div className="text-muted-foreground">الكاش الفعلي المعدود (بدون الفتحة)</div>}
+            <Input dir="ltr" inputMode="decimal" className="font-mono" value={amount} onChange={e => { setAmount(e.target.value); setEmpStr(""); }} />
+            {settleMode && (
+              <div className="rounded border border-border p-2 space-y-1">
+                <div className="flex justify-between"><span>المتوقع بعد التعديلات</span><span className="font-mono">₪{(expectedNet as number).toLocaleString(undefined, { maximumFractionDigits: 2 })}</span></div>
+                <div className="flex justify-between font-semibold">
+                  <span>{absVar < 0.01 ? "لا يوجد فرق" : isShortage ? "عجز يُسجَّل تلقائيًا" : "فائض يُسجَّل تلقائيًا"}</span>
+                  <span className={cn("font-mono", absVar < 0.01 ? "" : isShortage ? "text-destructive" : "text-emerald-600")}>₪{absVar.toLocaleString(undefined, { maximumFractionDigits: 2 })}</span>
+                </div>
+                {isShortage && absVar >= 0.01 && (
+                  <label className="block pt-1">
+                    <span className="text-muted-foreground">منه على الموظف (خصم راتب) — الباقي مصروف فروقات</span>
+                    <Input dir="ltr" inputMode="decimal" className="mt-1 font-mono h-8" placeholder="0" value={empStr} onChange={e => setEmpStr(e.target.value)} />
+                  </label>
+                )}
+              </div>
+            )}
             <Textarea dir="rtl" rows={2} placeholder="ملاحظة (اختياري)" value={reason} onChange={e => setReason(e.target.value)} />
             <div className="flex gap-2">
               <Button size="sm" disabled={busy} onClick={submit}>{busy ? "جاري الترحيل..." : "ترحيل"}</Button>
@@ -294,6 +331,7 @@ const ACTION_LABEL: Record<string, string> = {
   order_discount: "خصم على فاتورة",
   order_return: "إرجاع",
   cash_transfer: "ترحيل كاش لصندوق",
+  cash_close: "ترحيل مع تسوية الفرق",
   purchase_cancel: "إلغاء مشتريات",
   purchase_edit: "تعديل مشتريات",
   expense_cancel: "إلغاء مصروف",
