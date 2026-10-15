@@ -399,7 +399,7 @@ export default function PortalOwnerSalesHome({ theme, initialPreset }: Props) {
         </div>
       ) : (
         <>
-          {activeView === 'overview' && <OverviewView c={c} t={t} />}
+          {(activeView === 'overview' || (activeView === 'days' && range.from === range.to)) && <OverviewView c={c} t={t} />}
           {activeView === 'days' && range.from !== range.to && <DaysView days={c.byDay || []} t={t} loading={loading} />}
           {activeView === 'branches' && <BranchesView branches={c.byBranch} t={t} range={range} />}
           {activeView === 'cashiers' && <CashiersView cashiers={c.byCashier} t={t} />}
