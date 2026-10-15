@@ -5,7 +5,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Plus, Trash2 } from "lucide-react";
+import { Plus, Trash2, ArrowLeftRight } from "lucide-react";
+import ReturnDialog from "@/components/pos/ReturnDialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { validateSplit, type SplitLine } from "@/lib/pos/shiftCorrections";
 
 export type ShiftCorrectionAccess = {
@@ -15,6 +17,9 @@ export type ShiftCorrectionAccess = {
   split_payment?: boolean;
   void_order?: boolean;
   cancel_cash_out?: boolean;
+  discount_order?: boolean;
+  return_order?: boolean;
+  transfer_cash?: boolean;
 };
 
 /** Server-side access summary for accountant shift corrections (gate is enforced again in every RPC). */
@@ -69,20 +74,23 @@ function usePayOptions(ownerId: string | null) {
 export function OrderCorrectionPanel({
   order, access, ownerId, onDone,
 }: {
-  order: { id: string; total: number; state: string; is_return?: boolean; voided?: boolean };
+  order: { id: string; total: number; state: string; is_return?: boolean; voided?: boolean; order_number?: string | null; session_id?: string };
   access: ShiftCorrectionAccess;
   ownerId: string | null;
   onDone: () => void;
 }) {
   const [owner, setOwner] = useState<string | null>(ownerId);
+  const [sessionOf, setSessionOf] = useState<string | null>(order.session_id ?? null);
   useEffect(() => {
-    if (ownerId) { setOwner(ownerId); return; }
-    supabase.from("pos_orders").select("user_id").eq("id", order.id).maybeSingle()
-      .then(({ data }) => setOwner((data as any)?.user_id ?? null));
+    supabase.from("pos_orders").select("user_id, session_id").eq("id", order.id).maybeSingle()
+      .then(({ data }) => { setOwner(ownerId || (data as any)?.user_id || null); setSessionOf((data as any)?.session_id ?? null); });
   }, [ownerId, order.id]);
   const opts = usePayOptions(owner);
   const [payments, setPayments] = useState<any[]>([]);
-  const [mode, setMode] = useState<"none" | "change" | "split" | "void">("none");
+  const [mode, setMode] = useState<"none" | "change" | "split" | "void" | "discount">("none");
+  const [discStr, setDiscStr] = useState("");
+  const [discPct, setDiscPct] = useState(false);
+  const [returnOpen, setReturnOpen] = useState(false);
   const [target, setTarget] = useState("");
   const [lines, setLines] = useState<SplitLine[]>([]);
   const [reason, setReason] = useState("");
@@ -102,7 +110,8 @@ export function OrderCorrectionPanel({
   };
 
   const optOf = (v: string) => opts.find(o => o.value === v);
-  const reset = () => { setMode("none"); setReason(""); setTarget(""); setLines([]); };
+  const reset = () => { setMode("none"); setReason(""); setTarget(""); setLines([]); setDiscStr(""); setDiscPct(false); };
+  const discAmount = (() => { const n = Number(discStr) || 0; return Math.round((discPct ? Number(order.total) * n / 100 : n) * 100) / 100; })();
 
   const run = async () => {
     const r = reason.trim();
@@ -125,12 +134,15 @@ export function OrderCorrectionPanel({
       ({ error } = await supabase.rpc("pos_shift_correct_payment_v1" as any, {
         p_order_id: order.id, p_new_method: "mixed", p_visa_gl_account_code: null, p_split_payments: split, p_reason: r,
       }));
+    } else if (mode === "discount") {
+      if (discAmount <= 0 || discAmount >= Number(order.total)) { setBusy(false); toast.error("قيمة الخصم غير صحيحة"); return; }
+      ({ error } = await supabase.rpc("pos_shift_discount_order_v1" as any, { p_order_id: order.id, p_discount: discAmount, p_reason: r }));
     } else if (mode === "void") {
       ({ error } = await supabase.rpc("pos_shift_void_order_v1" as any, { p_order_id: order.id, p_reason: r }));
     }
     setBusy(false);
     if (error) { toast.error(error.message); return; }
-    toast.success(mode === "void" ? "تم إلغاء الفاتورة بقيد عكسي وإرجاع المخزون" : "تم تصحيح الدفع وإعادة قيد الفاتورة");
+    toast.success(mode === "void" ? "تم إلغاء الفاتورة بقيد عكسي وإرجاع المخزون" : mode === "discount" ? `تم تسجيل خصم ₪${discAmount} بقيد خصم مسموح، ونقص الكاش المتوقع` : "تم تصحيح الدفع وإعادة قيد الفاتورة");
     reset();
     onDone();
   };
@@ -154,6 +166,8 @@ export function OrderCorrectionPanel({
         <div className="flex flex-wrap gap-2">
           {access.change_payment && <Button size="sm" variant="outline" onClick={() => setMode("change")}>تغيير نوع الدفع</Button>}
           {access.split_payment && <Button size="sm" variant="outline" onClick={() => { setMode("split"); setLines([{ option: "cash", amount: "" }, { option: opts[1]?.value || "", amount: "" }]); }}>تعديل المبلغ وتقسيمه</Button>}
+          {access.discount_order && <Button size="sm" variant="outline" onClick={() => setMode("discount")}>خصم</Button>}
+          {access.return_order && <Button size="sm" variant="outline" onClick={() => setReturnOpen(true)}>إرجاع</Button>}
           {access.void_order && <Button size="sm" variant="destructive" onClick={() => setMode("void")}>إلغاء الفاتورة</Button>}
         </div>
       ) : (
@@ -183,6 +197,16 @@ export function OrderCorrectionPanel({
               </div>
             </div>
           )}
+          {mode === "discount" && (
+            <div className="space-y-1.5">
+              <div className="flex gap-1.5 items-center">
+                <Input className="w-28 h-8 font-mono" dir="ltr" inputMode="decimal" placeholder="0" value={discStr} onChange={e => setDiscStr(e.target.value)} />
+                <Button size="sm" type="button" variant={discPct ? "outline" : "default"} onClick={() => setDiscPct(false)}>₪ مبلغ</Button>
+                <Button size="sm" type="button" variant={discPct ? "default" : "outline"} onClick={() => setDiscPct(true)}>% نسبة</Button>
+              </div>
+              <div className="text-muted-foreground">الخصم ₪{discAmount.toLocaleString()} — الفاتورة بتصير ₪{Math.max(Number(order.total) - discAmount, 0).toLocaleString()}. بيتسجل قيد خصم مسموح مقابل حساب الدفع، وبينقص الكاش المتوقع.</div>
+            </div>
+          )}
           {mode === "void" && <div className="text-destructive">رح ينعكس قيد الفاتورة ويرجع المخزون، والفاتورة بتضل محفوظة كملغاة.</div>}
           <Textarea dir="rtl" rows={2} placeholder="السبب (إلزامي)" value={reason} onChange={e => setReason(e.target.value)} />
           <div className="flex gap-2">
@@ -191,13 +215,85 @@ export function OrderCorrectionPanel({
           </div>
         </div>
       )}
+      {returnOpen && owner && sessionOf && (
+        <ReturnDialog
+          open={returnOpen}
+          onClose={() => setReturnOpen(false)}
+          originalOrderId={order.id}
+          originalOrderNumber={order.order_number ?? null}
+          originalTotal={Number(order.total)}
+          originalCurrency="ILS"
+          sessionId={sessionOf}
+          dataOwnerId={owner}
+          exchangeRates={{}}
+          shiftCorrection
+          onSuccess={onDone}
+        />
+      )}
     </div>
+  );
+}
+
+/** Move shift cash to another cash box (audited, linked to the shift). */
+export function ShiftCashTransferButton({ sessionId, ownerId, fromBoxId, defaultAmount, onDone }: {
+  sessionId: string; ownerId: string; fromBoxId: string; defaultAmount: number; onDone: () => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [boxes, setBoxes] = useState<{ id: string; name: string }[]>([]);
+  const [box, setBox] = useState("");
+  const [amount, setAmount] = useState("");
+  const [reason, setReason] = useState("");
+  const [busy, setBusy] = useState(false);
+  useEffect(() => {
+    if (!open) return;
+    supabase.from("cash_boxes" as any).select("id, name").eq("user_id", ownerId).neq("id", fromBoxId).order("name")
+      .then(({ data }) => setBoxes(((data as any[]) || [])));
+  }, [open, ownerId, fromBoxId]);
+  const submit = async () => {
+    const a = Number(amount);
+    if (!box) { toast.error("اختر الصندوق"); return; }
+    if (!(a > 0)) { toast.error("المبلغ غير صحيح"); return; }
+    setBusy(true);
+    const { error } = await supabase.rpc("pos_shift_transfer_cash_v1" as any, { p_session_id: sessionId, p_to_box_id: box, p_amount: a, p_reason: reason.trim() || null });
+    setBusy(false);
+    if (error) { toast.error(error.message); return; }
+    toast.success("تم ترحيل الكاش للصندوق، ويظهر ضمن الوردية بكشف الصندوق");
+    setOpen(false); onDone();
+  };
+  return (
+    <>
+      <button type="button" title="ترحيل الكاش إلى صندوق"
+        onClick={(e) => { e.stopPropagation(); setAmount(String(Math.round(defaultAmount * 100) / 100)); setReason(""); setBox(""); setOpen(true); }}
+        className="mr-2 inline-flex items-center gap-1 rounded border border-border px-1.5 py-0.5 text-[11px] text-foreground hover:bg-muted">
+        <ArrowLeftRight className="w-3.5 h-3.5" /> ترحيل لصندوق
+      </button>
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent dir="rtl" className="max-w-sm">
+          <DialogHeader><DialogTitle>ترحيل كاش الوردية إلى صندوق</DialogTitle></DialogHeader>
+          <div className="space-y-2 text-[12px]">
+            <select dir="rtl" className="w-full h-9 rounded border border-input bg-background px-2" value={box} onChange={e => setBox(e.target.value)}>
+              <option value="">— اختر الصندوق —</option>
+              {boxes.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
+            </select>
+            <Input dir="ltr" inputMode="decimal" className="font-mono" value={amount} onChange={e => setAmount(e.target.value)} />
+            <Textarea dir="rtl" rows={2} placeholder="ملاحظة (اختياري)" value={reason} onChange={e => setReason(e.target.value)} />
+            <div className="flex gap-2">
+              <Button size="sm" disabled={busy} onClick={submit}>{busy ? "جاري الترحيل..." : "ترحيل"}</Button>
+              <Button size="sm" variant="ghost" onClick={() => setOpen(false)}>إلغاء</Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }
 
 const ACTION_LABEL: Record<string, string> = {
   payment_method_change: "تغيير/تقسيم الدفع",
   order_void: "إلغاء فاتورة",
+  order_discount: "خصم على فاتورة",
+  order_return: "إرجاع",
+  cash_transfer: "ترحيل كاش لصندوق",
   purchase_cancel: "إلغاء مشتريات",
   purchase_edit: "تعديل مشتريات",
   expense_cancel: "إلغاء مصروف",

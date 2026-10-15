@@ -20,7 +20,7 @@ import {
 } from "@/components/ui/select";
 import JournalAccountPicker, { type PickerAccount } from "@/components/journal/JournalAccountPicker";
 import QuickCreateAccountDialog from "@/components/pos-reports/QuickCreateAccountDialog";
-import { useShiftCorrectionAccess, OrderCorrectionPanel, ShiftCorrectionsLog, canAct, type ShiftCorrectionAccess } from "@/components/pos-reports/ShiftCorrections";
+import { useShiftCorrectionAccess, OrderCorrectionPanel, ShiftCorrectionsLog, ShiftCashTransferButton, canAct, type ShiftCorrectionAccess } from "@/components/pos-reports/ShiftCorrections";
 import { formatOrderTypeLabel } from "@/lib/pos/order-type-label";
 
 interface ForeignAdjustmentRow {
@@ -749,6 +749,15 @@ function ShiftDetail({ session }: { session: POSSession }) {
             <span className="font-mono">
               {actualILSAtClose != null ? `₪${(actualILSAtClose - (session.opening_cash ?? 0)).toLocaleString(undefined, { maximumFractionDigits: 2 })}` : "لم تُغلق"}
             </span>
+            {canAct(correctionAccess, "transfer_cash") && (session as any).cash_box_id && (
+              <ShiftCashTransferButton
+                sessionId={session.id}
+                ownerId={(session as any).user_id}
+                fromBoxId={(session as any).cash_box_id}
+                defaultAmount={actualILSAtClose != null ? Math.max(actualILSAtClose - (session.opening_cash ?? 0), 0) : 0}
+                onDone={() => setReloadKey(k => k + 1)}
+              />
+            )}
           </Row>
           <Row label="فرق الكاش (شيكل)">
             <span className={cn("font-mono", varianceColor)}>
@@ -1972,7 +1981,7 @@ function VarianceSettleButton({
         className="mr-2 inline-flex items-center gap-1 rounded border border-border px-1.5 py-0.5 text-[11px] text-foreground hover:bg-muted"
         title="تسوية الفرق محاسبيًا"
       >
-        <ClipboardList className="w-3.5 h-3.5" /> تسوية
+        <ClipboardList className="w-3.5 h-3.5" /> {isShortage ? "تسجيل عجز" : "تسجيل فائض"}
       </button>
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent dir="rtl" className="max-w-md">

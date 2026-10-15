@@ -386,7 +386,7 @@ const POSReportsPage = () => {
         )}
 
         {/* ── Navigation Tabs (Dynamics-style) ── */}
-        <div className="border-b border-border sticky top-0 z-10 bg-background print:hidden">
+        <div className="border-b border-border sticky -top-2 md:-top-5 lg:-top-8 z-10 bg-background print:hidden">
           <nav className="flex -mb-px overflow-x-auto gap-1">
             {TABS.map(tab => (
               <button

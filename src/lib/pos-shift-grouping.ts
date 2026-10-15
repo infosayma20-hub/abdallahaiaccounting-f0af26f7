@@ -92,6 +92,9 @@ function resolveShiftKeyForRow(
   const ref = row.reference ? String(row.reference) : '';
   const byTx = row.transaction_id ? txToSession?.get(String(row.transaction_id)) : undefined;
   if (byTx) return byTx;
+  // Cash transfers posted from the shift study carry the session id in their reference.
+  const trf = ref.replace(/^REV-/, '').match(/^TRF-SH-([0-9a-f-]{36})-\d+$/i);
+  if (trf) return trf[1];
   if (ref && refToSession) {
     const byRef = refToSession.get(ref) || refToSession.get(ref.replace(/^REV-/, ''));
     if (byRef) return byRef;
