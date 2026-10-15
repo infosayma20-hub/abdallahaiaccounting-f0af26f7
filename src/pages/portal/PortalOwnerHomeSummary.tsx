@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import {
   TrendingUp, TrendingDown, Wallet, Users, HandCoins, Factory,
-  ShoppingBag, ChevronLeft, RefreshCw, ClipboardList, UserCheck, UserX, Clock,
+  ShoppingBag, ChevronLeft, RefreshCw, ClipboardList, UserCheck, UserX, Clock, FileText, CalendarClock,
 } from 'lucide-react';
 import PortalRosterSummaryCard from './PortalRosterSummaryCard';
 import PortalOrdersSummaryCard from './PortalOrdersSummaryCard';
@@ -19,6 +19,7 @@ interface Props {
   onOpenRoster?: () => void;
   /** When provided, an orders summary block is shown on the home screen. */
   onOpenOrders?: () => void;
+  onOpenEmployeeRequests?: () => void;
 }
 
 function fmt(n: number) {
@@ -52,7 +53,7 @@ function tokens(dark: boolean) {
 export default function PortalOwnerHomeSummary({
   theme, onOpenSalesDetail, onOpenFinance, onOpenLiquidity,
   onOpenReceivables, onOpenSuppliers, onOpenAttendance, onOpenTasks, onOpenRoster,
-  onOpenOrders,
+  onOpenOrders, onOpenEmployeeRequests,
 }: Props) {
   const t = tokens(theme === 'dark');
   const [sales, setSales] = useState<{ total: number; posTotal: number; invTotal: number; orderCount: number; growthPct: number; prevTotal: number } | null>(null);
@@ -60,6 +61,25 @@ export default function PortalOwnerHomeSummary({
   const [att, setAtt] = useState<{ present: number; absent: number; left: number; total: number } | null>(null);
   const [loading, setLoading] = useState(true);
   const [lastUpdate, setLastUpdate] = useState<Date>(new Date());
+
+  const [pendingReq, setPendingReq] = useState<number | null>(null);
+  const fetchRequests = useCallback(async () => {
+    if (!onOpenEmployeeRequests) return;
+    try {
+      const { data } = await supabase.functions.invoke('malaki-data', { body: { action: 'portal_requests_bundle' } });
+      const forms = (data?.requests || []).filter((r: any) => {
+        const st = r.status === 'in_progress' || (r.formType === 'disciplinary_action' && r.status === 'approved' && !r.finalDecidedAt) ? 'pending' : r.status;
+        return st === 'pending';
+      }).length;
+      const pens = (data?.penalties || []).filter((p: any) => !p.finalDecision || p.finalDecision === 'pending').length;
+      setPendingReq(forms + pens);
+    } catch (e) { console.error('[OwnerHomeSummary] requests', e); }
+  }, [onOpenEmployeeRequests]);
+  useEffect(() => {
+    fetchRequests();
+    const id = setInterval(() => { if (document.visibilityState === 'visible') fetchRequests(); }, 120000);
+    return () => clearInterval(id);
+  }, [fetchRequests]);
 
   const today = activeBusinessDate(new Date());
 
@@ -135,6 +155,23 @@ export default function PortalOwnerHomeSummary({
           <RefreshCw size={11} style={loading ? { animation: 'spin 1s linear infinite' } : {}} />
           تحديث
         </button>
+      </div>
+
+      {/* QUICK CARDS — linked shortcuts */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0,1fr))', gap: 8, marginBottom: 14 }}>
+        <QuickCard t={t} icon={<ShoppingBag size={18} />} color="#0EA5E9" label="المبيعات" value={sales ? fmt(sales.total) : '…'} onClick={onOpenSalesDetail} />
+        {onOpenEmployeeRequests && (
+          <QuickCard t={t} icon={<FileText size={18} />} color="#2563EB" label="طلبات الموظفين"
+            value={pendingReq === null ? '…' : pendingReq > 0 ? `${pendingReq} بانتظارك` : 'لا جديد'}
+            badge={pendingReq || 0} onClick={onOpenEmployeeRequests} />
+        )}
+        <QuickCard t={t} icon={<Users size={18} />} color="#16A34A" label="الحضور" value={att ? `${att.present} حاضر` : '…'} onClick={onOpenAttendance} />
+        <QuickCard t={t} icon={<Wallet size={18} />} color="#0D9488" label="السيولة" value={finance ? fmt(finance.cash) : '…'} onClick={onOpenLiquidity} />
+        <QuickCard t={t} icon={<HandCoins size={18} />} color="#8B5CF6" label="الذمم" value={finance ? fmt(finance.receivables) : '…'} onClick={onOpenReceivables} />
+        <QuickCard t={t} icon={<Factory size={18} />} color="#F59E0B" label="الموردين" value={finance ? fmt(finance.payables) : '…'} onClick={onOpenSuppliers} />
+        <QuickCard t={t} icon={<ClipboardList size={18} />} color="#EA580C" label="المهام" value="عرض" onClick={onOpenTasks} />
+        {onOpenRoster && <QuickCard t={t} icon={<CalendarClock size={18} />} color="#7C3AED" label="جداول الدوام" value="عرض" onClick={onOpenRoster} />}
+        {onOpenOrders && <QuickCard t={t} icon={<ShoppingBag size={18} />} color="#0891B2" label="الطلبيات" value="عرض" onClick={onOpenOrders} />}
       </div>
 
       {/* HERO — Sales today + YoY */}
@@ -310,6 +347,22 @@ function ActionTile({ t, icon, label, onClick }: any) {
       fontSize: 13, fontWeight: 600, fontFamily: 'Cairo', color: t.text, cursor: 'pointer',
     }}>
       {icon}{label}
+    </button>
+  );
+}
+function QuickCard({ t, icon, color, label, value, onClick, badge }: any) {
+  return (
+    <button onClick={onClick} style={{
+      position: 'relative', textAlign: 'right', cursor: 'pointer', fontFamily: 'Cairo',
+      background: t.cardBg, border: `1px solid ${t.cardBorder}`, borderRadius: 14, padding: 10,
+      display: 'flex', flexDirection: 'column', gap: 6, minHeight: 92,
+    }}>
+      {badge > 0 && (
+        <span style={{ position: 'absolute', top: 6, left: 6, minWidth: 18, height: 18, borderRadius: 9, background: '#EF4444', color: '#fff', fontSize: 10, fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 5px' }}>{badge}</span>
+      )}
+      <div style={{ width: 34, height: 34, borderRadius: 10, background: color + '22', color, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{icon}</div>
+      <div style={{ fontSize: 11, fontWeight: 700, color: t.text }}>{label}</div>
+      <div style={{ fontSize: 11, color: t.textMuted, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{value}</div>
     </button>
   );
 }

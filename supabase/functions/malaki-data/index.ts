@@ -643,6 +643,17 @@ Deno.serve(async (req) => {
             ? ((Number(current.total || 0) - Number(prevYear.total || 0)) / Number(prevYear.total || 0)) * 100
             : (Number(current.total || 0) > 0 ? 100 : 0);
 
+          // Daily breakdown — only for multi-day ranges with details.
+          let byDay: any[] = [];
+          if (!summaryOnly && dateFrom !== dateTo) {
+            const dayRes = await supabase.rpc("get_owner_sales_by_day", {
+              p_user_id: linkedUserId, p_from: dateFrom, p_to: dateTo,
+            });
+            if (!dayRes.error && Array.isArray(dayRes.data)) byDay = dayRes.data;
+            else if (dayRes.error) console.error("get_owner_sales_by_day failed:", dayRes.error);
+          }
+          (current as any).byDay = byDay;
+
           return respond({
             success: true,
             range: { from: dateFrom, to: dateTo },

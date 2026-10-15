@@ -40,6 +40,7 @@ interface RangeData {
   orderCount: number;
   byBranch: ({ id: string; name: string; location: string; total: number; orderCount: number } & Partial<PaymentAgg>)[];
   byItem: { name: string; quantity: number; revenue: number }[];
+  byDay?: { date: string; posTotal: number; invTotal: number; total: number; orderCount: number }[];
   byCashier: ({ name: string; total: number; orderCount: number; branchId?: string; branchName?: string } & Partial<PaymentAgg>)[];
   summary?: PaymentAgg;
 }
@@ -137,7 +138,7 @@ export default function PortalOwnerSalesHome({ theme, initialPreset }: Props) {
   const [customTo, setCustomTo] = useState(localDateStr(new Date()));
   const [data, setData] = useState<OwnerSales | null>(null);
   const [loading, setLoading] = useState(true);
-  const [activeView, setActiveView] = useState<'overview' | 'branches' | 'items' | 'cashiers' | 'yoy'>('overview');
+  const [activeView, setActiveView] = useState<'overview' | 'days' | 'branches' | 'items' | 'cashiers' | 'yoy'>('overview');
 
   const range = useMemo(() => {
     if (preset === 'custom') return { from: customFrom, to: customTo };
@@ -359,6 +360,7 @@ export default function PortalOwnerSalesHome({ theme, initialPreset }: Props) {
       <div style={{ display: 'flex', gap: 6, overflowX: 'auto', marginBottom: 10, paddingBottom: 4 }}>
         {([
           { key: 'overview' as const, label: 'نظرة عامة', icon: BarChart3 },
+          ...(range.from !== range.to ? [{ key: 'days' as const, label: 'حسب الأيام', icon: Calendar }] : []),
           { key: 'branches' as const, label: 'حسب الفرع', icon: Store },
           { key: 'cashiers' as const, label: terms.byCashier, icon: UserCheck },
           { key: 'items' as const, label: terms.byItem, icon: UtensilsCrossed },
@@ -397,7 +399,8 @@ export default function PortalOwnerSalesHome({ theme, initialPreset }: Props) {
         </div>
       ) : (
         <>
-          {activeView === 'overview' && <OverviewView c={c} t={t} />}
+          {(activeView === 'overview' || (activeView === 'days' && range.from === range.to)) && <OverviewView c={c} t={t} />}
+          {activeView === 'days' && range.from !== range.to && <DaysView days={c.byDay || []} t={t} loading={loading} />}
           {activeView === 'branches' && <BranchesView branches={c.byBranch} t={t} range={range} />}
           {activeView === 'cashiers' && <CashiersView cashiers={c.byCashier} t={t} />}
           {activeView === 'items' && <ItemsView items={c.byItem} t={t} />}
@@ -1193,6 +1196,44 @@ function YoYView({ current, prev, growthPct, t, range, prevRange, occasion, hijr
           })}
         </div>
       )}
+    </div>
+  );
+}
+function DaysView({ days, t, loading }: { days: NonNullable<RangeData['byDay']>; t: ReturnType<typeof getTokens>; loading: boolean }) {
+  if (!days.length) {
+    return <div style={{ textAlign: 'center', padding: 24, color: t.textMuted, fontSize: 12 }}>{loading ? 'جاري التحميل...' : 'لا توجد مبيعات يومية'}</div>;
+  }
+  const max = Math.max(...days.map(d => Number(d.total) || 0), 1);
+  const sum = days.reduce((a, d) => a + (Number(d.total) || 0), 0);
+  const best = days.reduce((a, d) => (Number(d.total) > Number(a.total) ? d : a), days[0]);
+  return (
+    <div dir="rtl" style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+        <div style={{ background: t.cardBg, border: `1px solid ${t.cardBorder}`, borderRadius: 12, padding: 10 }}>
+          <div style={{ fontSize: 10, color: t.textMuted }}>متوسط اليوم</div>
+          <div style={{ fontSize: 16, fontWeight: 800, color: t.text }}>{fmt(sum / days.length)}</div>
+        </div>
+        <div style={{ background: t.cardBg, border: `1px solid ${t.cardBorder}`, borderRadius: 12, padding: 10 }}>
+          <div style={{ fontSize: 10, color: t.textMuted }}>أعلى يوم</div>
+          <div style={{ fontSize: 13, fontWeight: 800, color: t.text }}>{dayNameOf(best.date)} {best.date.slice(8, 10)}/{best.date.slice(5, 7)} · {fmt(best.total)}</div>
+        </div>
+      </div>
+      {days.map(d => (
+        <div key={d.date} style={{ background: t.cardBg, border: `1px solid ${t.cardBorder}`, borderRadius: 12, padding: 10 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+            <div style={{ fontSize: 12, fontWeight: 700, color: t.text }}>{dayNameOf(d.date)} <span style={{ color: t.textMuted, fontWeight: 500 }}>{d.date.slice(8, 10)}/{d.date.slice(5, 7)}</span></div>
+            <div style={{ fontSize: 14, fontWeight: 800, color: t.text }}>{fmt(d.total)}</div>
+          </div>
+          <div style={{ height: 6, borderRadius: 4, background: t.chipBg, overflow: 'hidden' }}>
+            <div style={{ width: `${(Number(d.total) / max) * 100}%`, height: '100%', background: '#0EA5E9' }} />
+          </div>
+          <div style={{ display: 'flex', gap: 10, marginTop: 6, fontSize: 10, color: t.textMuted }}>
+            <span>نقطة البيع {fmt(d.posTotal)}</span>
+            {Number(d.invTotal) > 0 && <span>الفواتير {fmt(d.invTotal)}</span>}
+            <span>{d.orderCount} عملية</span>
+          </div>
+        </div>
+      ))}
     </div>
   );
 }

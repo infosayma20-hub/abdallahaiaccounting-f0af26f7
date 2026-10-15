@@ -876,6 +876,13 @@
       "when": 1791984119325,
       "tag": "0124_pos_purchases_supplier_fk_contacts",
       "breakpoints": true
+    },
+    {
+      "idx": 125,
+      "version": "7",
+      "when": 1792046720962,
+      "tag": "0125_owner_sales_by_day",
+      "breakpoints": true
     }
   ]
 }
