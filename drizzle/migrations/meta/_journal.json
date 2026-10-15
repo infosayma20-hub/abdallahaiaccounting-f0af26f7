@@ -946,6 +946,13 @@
       "when": 1792081291470,
       "tag": "0134_pos_purchase_as_invoice_v2",
       "breakpoints": true
+    },
+    {
+      "idx": 135,
+      "version": "7",
+      "when": 1792081401545,
+      "tag": "0135_pos_purchase_v2_fix_unlinked_item",
+      "breakpoints": true
     }
   ]
 }
