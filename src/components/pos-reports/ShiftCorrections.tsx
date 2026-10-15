@@ -74,7 +74,13 @@ export function OrderCorrectionPanel({
   ownerId: string | null;
   onDone: () => void;
 }) {
-  const opts = usePayOptions(ownerId);
+  const [owner, setOwner] = useState<string | null>(ownerId);
+  useEffect(() => {
+    if (ownerId) { setOwner(ownerId); return; }
+    supabase.from("pos_orders").select("user_id").eq("id", order.id).maybeSingle()
+      .then(({ data }) => setOwner((data as any)?.user_id ?? null));
+  }, [ownerId, order.id]);
+  const opts = usePayOptions(owner);
   const [payments, setPayments] = useState<any[]>([]);
   const [mode, setMode] = useState<"none" | "change" | "split" | "void">("none");
   const [target, setTarget] = useState("");
