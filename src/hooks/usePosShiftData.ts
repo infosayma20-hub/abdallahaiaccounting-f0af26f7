@@ -125,7 +125,7 @@ export function usePosShiftData(
           const slice = sessionIds.slice(i, i + 500);
           const [{ data: exps }, { data: purs }] = await Promise.all([
             supabase.from('pos_expenses').select('shift_id, transaction_id, reversal_transaction_id').eq('user_id', userId).in('shift_id', slice),
-            supabase.from('pos_purchases').select('id, shift_id, reversal_transaction_id').eq('user_id', userId).in('shift_id', slice),
+            supabase.from('pos_purchases').select('id, shift_id, reversal_transaction_id, voucher_number').eq('user_id', userId).in('shift_id', slice),
           ]);
           if (cancelled || myReq !== reqId.current) return;
           for (const e of (exps || []) as any[]) {
@@ -134,6 +134,8 @@ export function usePosShiftData(
           }
           for (const p of (purs || []) as any[]) {
             refMap.set('PUR-POS-' + String(p.id).slice(0, 8), String(p.shift_id));
+            // مشتريات مسجلة كفاتورة: حركة الصندوق هي سند الصرف التلقائي
+            if (p.voucher_number) refMap.set(String(p.voucher_number), String(p.shift_id));
             if (p.reversal_transaction_id) txMap.set(String(p.reversal_transaction_id), String(p.shift_id));
           }
         }
