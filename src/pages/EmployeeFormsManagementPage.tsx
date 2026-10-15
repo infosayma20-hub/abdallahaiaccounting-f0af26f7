@@ -1151,6 +1151,42 @@ export default function EmployeeFormsManagementPage() {
     return 0;
   });
   const paginated = sorted.slice((page - 1) * perPage, page * perPage);
+
+  /**
+   * راتب البصمة لكل طلب سلفة: من أول شهر الطلب حتى نهاية الشهر أو تاريخ
+   * «إلى» المختار أو اليوم (الأقرب) — بنفس معادلة «العرض الشهري» للحضور.
+   * Key: `${employee_id}|${YYYY}-${MM}`
+   */
+  const [attSalary, setAttSalary] = useState<Record<string, { amount: number; to: string }>>({});
+  const attSalaryNeed = useMemo(() => {
+    if (filterCategory !== "advances") return "";
+    const keys = new Set<string>();
+    paginated.forEach((f: any) => { if (f.employee_id && f.created_at) keys.add(monthKey(f.employee_id, f.created_at)); });
+    return Array.from(keys).sort().join(",");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filterCategory, paginated]);
+  useEffect(() => {
+    if (!attSalaryNeed) return;
+    let cancelled = false;
+    (async () => {
+      const byMonth: Record<string, string[]> = {};
+      attSalaryNeed.split(",").forEach((k) => { const [emp, ym] = k.split("|"); (byMonth[ym] ||= []).push(emp); });
+      const todayIso = format(new Date(), "yyyy-MM-dd");
+      const out: Record<string, { amount: number; to: string }> = {};
+      for (const [ym, emps] of Object.entries(byMonth)) {
+        const [y, m] = ym.split("-").map(Number);
+        const from = `${ym}-01`;
+        const monthEnd = format(new Date(y, m, 0), "yyyy-MM-dd");
+        const to = [monthEnd, dateTo || monthEnd, todayIso].sort()[0];
+        try {
+          const res = await loadAttendanceSalaries(emps, from, to);
+          Object.entries(res).forEach(([id, v]) => { out[`${id}|${ym}`] = { amount: v.amount, to }; });
+        } catch (e) { console.error("attendance salary", e); }
+      }
+      if (!cancelled) setAttSalary((prev) => ({ ...prev, ...out }));
+    })();
+    return () => { cancelled = true; };
+  }, [attSalaryNeed, dateTo]);
   const totalPages = Math.ceil(sorted.length / perPage);
 
   const toggleSort = (key: SortKey, additive: boolean) => {
