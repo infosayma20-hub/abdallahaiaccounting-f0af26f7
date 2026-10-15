@@ -244,7 +244,7 @@ export default function POSShiftAuditReport({ sessions }: Props) {
 
           {/* Detail panel */}
           <div>
-            {selected ? <ShiftDetail session={selected} /> : <Skeleton className="h-64" />}
+            {selected ? <ShiftDetail session={selected} studyDone={doneMap[selected.id] !== undefined ? doneMap[selected.id] : (selected.study_done_at ?? null)} onStudyDone={(v) => setDoneMap(m => ({ ...m, [selected.id]: v }))} /> : <Skeleton className="h-64" />}
           </div>
         </div>
       )}
@@ -252,7 +252,7 @@ export default function POSShiftAuditReport({ sessions }: Props) {
   );
 }
 
-function ShiftDetail({ session }: { session: POSSession }) {
+function ShiftDetail({ session, studyDone, onStudyDone }: { session: POSSession; studyDone: string | null; onStudyDone: (v: string | null) => void }) {
   const [loading, setLoading] = useState(true);
   const [orders, setOrders] = useState<SessionOrder[]>([]);
   const [payments, setPayments] = useState<SessionPayment[]>([]);
@@ -698,6 +698,10 @@ function ShiftDetail({ session }: { session: POSSession }) {
       )}
       {!loading && (
       <>
+      {session.state !== "open" && (
+        <StudyDoneBar sessionId={session.id} doneAt={studyDone}
+          onChange={(v) => { onStudyDone(v); setReloadKey(k => k + 1); }} />
+      )}
       {/* Section C: Actual numbers (moved to top, always open) */}
       <div className="border border-primary/40 rounded shadow-sm">
         <div className="px-3 py-2 text-[10px] uppercase tracking-wider text-primary bg-primary/5 border-b border-border">
@@ -2040,5 +2044,35 @@ function VarianceSettleButton({
         </DialogContent>
       </Dialog>
     </>
+  );
+}
+
+/** Accountant marks the shift study finished (ready); corrections lock until management reopens it. */
+function StudyDoneBar({ sessionId, doneAt, onChange }: { sessionId: string; doneAt: string | null; onChange: (v: string | null) => void }) {
+  const [busy, setBusy] = useState(false);
+  const run = async (done: boolean) => {
+    let reason: string | null = null;
+    if (!done) {
+      reason = window.prompt("سبب إعادة فتح الدراسة (إلزامي)") || "";
+      if (reason.trim().length < 3) { toast.error("السبب إلزامي"); return; }
+    } else if (!window.confirm("إنهاء دراسة الوردية؟ رح تصير جاهزة وتنقفل التعديلات عليها.")) return;
+    setBusy(true);
+    const { error } = await supabase.rpc("pos_shift_set_study_done_v1" as any, { p_session_id: sessionId, p_done: done, p_reason: reason });
+    setBusy(false);
+    if (error) { toast.error(error.message); return; }
+    toast.success(done ? "الوردية جاهزة ✓" : "أُعيد فتح الدراسة");
+    onChange(done ? new Date().toISOString() : null);
+  };
+  return (
+    <div className={cn("flex items-center justify-between gap-2 rounded border px-3 py-2 text-[12px]",
+      doneAt ? "border-primary/40 bg-primary/5" : "border-border")}>
+      <span className="flex items-center gap-1.5">
+        {doneAt ? <CheckCircle2 className="w-4 h-4 text-primary" /> : <ClipboardList className="w-4 h-4 text-muted-foreground" />}
+        {doneAt ? `جاهزة — انتهت الدراسة ${format(new Date(doneAt), "dd/MM HH:mm")}` : "الدراسة لسا مفتوحة"}
+      </span>
+      {doneAt
+        ? <Button size="sm" variant="ghost" disabled={busy} onClick={() => run(false)}>إعادة فتح</Button>
+        : <Button size="sm" disabled={busy} onClick={() => run(true)}>إنهاء الدراسة — جاهزة</Button>}
+    </div>
   );
 }
