@@ -33551,6 +33551,10 @@ export type Database = {
       }
       get_my_receiving_sessions: { Args: never; Returns: Json }
       get_my_team_employee_ids: { Args: never; Returns: string[] }
+      get_owner_sales_by_day: {
+        Args: { p_from: string; p_to: string; p_user_id: string }
+        Returns: Json
+      }
       get_owner_sales_fast: {
         Args: {
           p_from: string
