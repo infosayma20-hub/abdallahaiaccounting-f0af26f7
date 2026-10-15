@@ -1855,11 +1855,10 @@ const JournalNewPage = () => {
                   <FileText className="h-3.5 w-3.5" />
                   <ChevronDown className={`h-3 w-3 mr-1 transition-transform ${detailsOpen ? "rotate-180" : ""}`} />
                 </Button>
+                <JournalShiftPicker ownerId={ownerId} date={formDate} value={formPosSessionId} onChange={setFormPosSessionId} disabled={isReadOnly || saving} />
               </div>
             </div>
           </div>
-
-          <JournalShiftPicker ownerId={ownerId} date={formDate} value={formPosSessionId} onChange={setFormPosSessionId} disabled={isReadOnly || saving} />
           {detailsOpen && (
           <div className="space-y-4 pt-3 border-t border-border">
           {/* Subtype Tabs — chip strip, single row */}
