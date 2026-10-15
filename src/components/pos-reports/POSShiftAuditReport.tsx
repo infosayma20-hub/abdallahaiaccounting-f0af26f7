@@ -20,6 +20,7 @@ import {
 } from "@/components/ui/select";
 import JournalAccountPicker, { type PickerAccount } from "@/components/journal/JournalAccountPicker";
 import QuickCreateAccountDialog from "@/components/pos-reports/QuickCreateAccountDialog";
+import { useShiftCorrectionAccess, OrderCorrectionPanel, ShiftCorrectionsLog, canAct, type ShiftCorrectionAccess } from "@/components/pos-reports/ShiftCorrections";
 import { formatOrderTypeLabel } from "@/lib/pos/order-type-label";
 
 interface ForeignAdjustmentRow {
@@ -258,6 +259,7 @@ function ShiftDetail({ session }: { session: POSSession }) {
   const [audit, setAudit] = useState<ShiftAuditRow | null>(null);
   const [foreignAdjustments, setForeignAdjustments] = useState<ForeignAdjustmentRow[]>([]);
   const [reloadKey, setReloadKey] = useState(0);
+  const correctionAccess = useShiftCorrectionAccess(session.id, reloadKey);
   const { roles } = useUserRoles();
   const { user } = useAuth();
   const canEditAdjustments = roles.some(
@@ -305,7 +307,8 @@ function ShiftDetail({ session }: { session: POSSession }) {
         supabase
           .from("pos_purchases")
           .select("total_amount, payment_type")
-          .eq("shift_id", session.id),
+          .eq("shift_id", session.id)
+          .is("cancelled_at", null),
         supabase
           .from("pos_shift_foreign_adjustments" as any)
           .select("id, currency, foreign_amount, exchange_rate, ils_equivalent, reason, created_at, created_by")
@@ -716,6 +719,7 @@ function ShiftDetail({ session }: { session: POSSession }) {
             total={cashAdjustments.expensesILS + cashAdjustments.purchasesCashILS}
             canEdit={canEditAdjustments}
             canCancel={roles.some((r) => r === "admin" || r === "super_admin")}
+            access={correctionAccess}
             reloadKey={reloadKey}
             onChanged={() => setReloadKey(k => k + 1)}
           />
@@ -1004,8 +1008,13 @@ function ShiftDetail({ session }: { session: POSSession }) {
         )}
       </CollapsibleSection>
 
+      <ShiftCorrectionsLog sessionId={session.id} reloadKey={reloadKey} />
+
       {/* Order details dialog */}
       <OrderDetailsDialog
+        access={correctionAccess}
+        ownerId={(session as any).user_id ?? null}
+        onChanged={() => { setOpenOrderId(null); setReloadKey(k => k + 1); }}
         orderId={openOrderId}
         onClose={() => setOpenOrderId(null)}
         order={openOrderId ? orders.find(o => o.id === openOrderId) || null : null}
@@ -1193,8 +1202,11 @@ function ExpandableOrdersRow({
 
 // ── Order details dialog (items + notes) ──
 function OrderDetailsDialog({
-  orderId, order, onClose,
+  orderId, order, onClose, access, ownerId, onChanged,
 }: {
+  access: ShiftCorrectionAccess;
+  ownerId: string | null;
+  onChanged: () => void;
   orderId: string | null;
   order: SessionOrder | null;
   onClose: () => void;
@@ -1257,6 +1269,10 @@ function OrderDetailsDialog({
               )}
             </div>
           </div>
+        )}
+
+        {order && access.enabled && (
+          <OrderCorrectionPanel order={order as any} access={access} ownerId={ownerId} onDone={onChanged} />
         )}
 
         {order?.order_note && (
@@ -1513,8 +1529,11 @@ function ForeignAdjustmentsSection({
 // ── Cash expenses/purchases breakdown with accountant edit ──
 const EXP_KIND: Record<string, string> = { account: "مصروف", employee_advance: "سلفة موظف", employee_loan: "قرض موظف" };
 function ExpandableExpensesRow({
-  sessionId, total, canEdit, canCancel = false, reloadKey, onChanged,
-}: { sessionId: string; total: number; canEdit: boolean; canCancel?: boolean; reloadKey: number; onChanged: () => void }) {
+  sessionId, total, canEdit, canCancel: canCancelLegacy = false, access, reloadKey, onChanged,
+}: { sessionId: string; total: number; canEdit: boolean; canCancel?: boolean; access?: ShiftCorrectionAccess; reloadKey: number; onChanged: () => void }) {
+  const useShiftRpc = !!access && canAct(access, "cancel_cash_out");
+  const canCancel = canCancelLegacy || useShiftRpc;
+  const [cancelPurchId, setCancelPurchId] = useState<string | null>(null);
   const [cancelId, setCancelId] = useState<string | null>(null);
   const [cancelReason, setCancelReason] = useState("");
   const [open, setOpen] = useState(false);
@@ -1524,7 +1543,7 @@ function ExpandableExpensesRow({
   useEffect(() => {
     let c = false;
     (async () => {
-      const { data } = await supabase.from("pos_purchases").select("total_amount, payment_type").eq("shift_id", sessionId);
+      const { data } = await supabase.from("pos_purchases").select("total_amount, payment_type").eq("shift_id", sessionId).is("cancelled_at", null);
       const cash = ((data as any[]) || []).filter((x: any) => x.payment_type === "نقدي" || x.payment_type === "cash" || !x.payment_type);
       if (!c) setPurchSummary({ count: cash.length, total: cash.reduce((s: number, x: any) => s + (Number(x.total_amount) || 0), 0) });
     })();
@@ -1561,13 +1580,13 @@ function ExpandableExpensesRow({
       setLoading(true);
       const [e, p] = await Promise.all([
         supabase.from("pos_expenses").select("id, amount, description, account_code, expense_kind, created_at, cancelled_at, cancel_reason").eq("shift_id", sessionId).order("created_at"),
-        supabase.from("pos_purchases").select("id, total_amount, payment_type, notes, created_at, supplier_id").eq("shift_id", sessionId).order("created_at"),
+        supabase.from("pos_purchases").select("id, total_amount, payment_type, notes, created_at, supplier_id, cancelled_at, cancel_reason").eq("shift_id", sessionId).order("created_at"),
       ]);
       const supIds = Array.from(new Set(((p.data as any[]) || []).map((x: any) => x.supplier_id).filter(Boolean)));
       const supNames: Record<string, string> = {};
       if (supIds.length) {
-        const { data: cs } = await supabase.from("contacts").select("id, name").in("id", supIds);
-        ((cs as any[]) || []).forEach((c: any) => { supNames[c.id] = c.name; });
+        const { data: cs } = await supabase.from("contacts").select("id, contact_name").in("id", supIds);
+        ((cs as any[]) || []).forEach((c: any) => { supNames[c.id] = c.contact_name; });
       }
       const list = ((e.data as any[]) || []);
       const codes = Array.from(new Set(list.map(r => r.account_code).filter(Boolean)));
@@ -1604,11 +1623,22 @@ function ExpandableExpensesRow({
     const reason = cancelReason.trim();
     if (reason.length < 3) { toast.error("اكتب سبب الإلغاء"); return; }
     setSaving(true);
-    const { error } = await supabase.rpc("pos_cancel_expense_v1" as any, { p_expense_id: id, p_reason: reason });
+    const { error } = await supabase.rpc((useShiftRpc ? "pos_shift_cancel_expense_v1" : "pos_cancel_expense_v1") as any, { p_expense_id: id, p_reason: reason });
     setSaving(false);
     if (error) { toast.error(error.message); return; }
     toast.success("تم إلغاء المصروف وتسجيل قيد عكسي على الصندوق");
     setCancelId(null); setCancelReason(""); onChanged();
+  };
+
+  const cancelPurchase = async (id: string) => {
+    const reason = cancelReason.trim();
+    if (reason.length < 3) { toast.error("اكتب سبب الإلغاء"); return; }
+    setSaving(true);
+    const { error } = await supabase.rpc("pos_shift_cancel_purchase_v1" as any, { p_purchase_id: id, p_reason: reason });
+    setSaving(false);
+    if (error) { toast.error(error.message); return; }
+    toast.success("تم إلغاء المشتريات بقيد عكسي");
+    setCancelPurchId(null); setCancelReason(""); onChanged();
   };
 
   const fmt = (n: number) => `₪${Number(n || 0).toLocaleString(undefined, { maximumFractionDigits: 2 })}`;
@@ -1731,16 +1761,46 @@ function ExpandableExpensesRow({
                     </tr>
                   );
                 })}
-                {purch.map(p => (
-                  <tr key={p.id}>
-                    <td className="py-1 font-mono text-muted-foreground">{format(new Date(p.created_at), "HH:mm")}</td>
-                    <td className="py-1">مشتريات</td>
-                    <td className="py-1">{[p.supplier_name, p.notes].filter(Boolean).join(" — ") || "—"}</td>
-                    <td className="py-1">—</td>
-                    <td className="py-1 text-left font-mono">{fmt(p.total_amount)}</td>
-                    {(canEdit || canCancel) && <td />}
-                  </tr>
-                ))}
+                {purch.map(p => {
+                  const isCancelled = !!p.cancelled_at;
+                  if (cancelPurchId === p.id) return (
+                    <tr key={p.id} className="bg-destructive/5">
+                      <td className="py-1 font-mono text-muted-foreground">{format(new Date(p.created_at), "HH:mm")}</td>
+                      <td className="py-1">مشتريات</td>
+                      <td className="py-1 pl-1" colSpan={2}>
+                        <Input autoFocus className="h-7 text-xs" placeholder="سبب إلغاء المشتريات (إلزامي)" value={cancelReason} onChange={e => setCancelReason(e.target.value)} />
+                      </td>
+                      <td className="py-1 text-left font-mono">{fmt(p.total_amount)}</td>
+                      <td className="py-1">
+                        <div className="flex gap-1 justify-end">
+                          <button disabled={saving} onClick={() => cancelPurchase(p.id)} className="p-1 text-destructive" title="تأكيد الإلغاء"><Check className="w-3.5 h-3.5" /></button>
+                          <button onClick={() => { setCancelPurchId(null); setCancelReason(""); }} className="p-1 text-muted-foreground" title="تراجع"><X className="w-3.5 h-3.5" /></button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                  return (
+                    <tr key={p.id} className={isCancelled ? "opacity-60" : undefined}>
+                      <td className="py-1 font-mono text-muted-foreground">{format(new Date(p.created_at), "HH:mm")}</td>
+                      <td className="py-1">مشتريات</td>
+                      <td className="py-1">
+                        <span className={isCancelled ? "line-through" : undefined}>{[p.supplier_name, p.notes].filter(Boolean).join(" — ") || "—"}</span>
+                        {isCancelled && <Badge variant="destructive" className="mr-1 text-[9px] px-1 py-0">ملغاة{p.cancel_reason ? ` — ${p.cancel_reason}` : ""}</Badge>}
+                      </td>
+                      <td className="py-1">—</td>
+                      <td className={cn("py-1 text-left font-mono", isCancelled && "line-through")}>{fmt(p.total_amount)}</td>
+                      {(canEdit || canCancel) && (
+                        <td className="py-1 text-left whitespace-nowrap">
+                          {useShiftRpc && !isCancelled && (
+                            <button onClick={() => { setCancelId(null); setCancelPurchId(p.id); setCancelReason(""); }} className="p-1 text-muted-foreground hover:text-destructive" title="إلغاء المشتريات بقيد عكسي">
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          )}
+                        </td>
+                      )}
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           )}
