@@ -8,7 +8,7 @@ import {
   Home, Wallet, ClipboardList, BarChart3, MoreHorizontal,
   Settings, Bell, Sun, Moon, LogOut, Store, Factory,
   FileText, HandCoins, Send, Plus, RefreshCw, ChevronLeft,
-  X, Users, Package, CalendarClock, Megaphone, GraduationCap, Timer, Receipt, Star, MessageSquareWarning, CreditCard, BriefcaseBusiness
+  X, Users, Package, CalendarClock, Megaphone, GraduationCap, Timer, Receipt, Star, MessageSquareWarning, CreditCard, BriefcaseBusiness, LayoutDashboard
 } from 'lucide-react';
 import PortalLiquidityTab from './PortalLiquidityTab';
 import PortalChequesTab from './PortalChequesTab';
@@ -200,6 +200,7 @@ export default function PortalDashboard() {
   const [showDrawingsPage, setShowDrawingsPage] = useState(false);
   const [hasDrawingsAccount, setHasDrawingsAccount] = useState(false);
   const [showSalesReportPage, setShowSalesReportPage] = useState<null | 'type' | 'area'>(null);
+  const [showDashboardPage, setShowDashboardPage] = useState(false);
   const [hasOrders, setHasOrders] = useState(false);
   const { profile: portalProfile } = usePortalProfile();
   const { salesData, liquidityData, loading: dataLoading, needsSetup, lastUpdated, businessDay, refresh } = usePortalData(user?.id);
@@ -341,6 +342,7 @@ export default function PortalDashboard() {
     setShowEvaluationsPage(false);
     setShowDrawingsPage(false);
     setShowSalesReportPage(null);
+    setShowDashboardPage(false);
   };
 
   const themeMode = darkMode ? 'dark' as const : 'light' as const;
@@ -351,6 +353,7 @@ export default function PortalDashboard() {
     setShowFormsPage(false); setShowTrainingPage(false); setShowOrdersPage(false);
     setShowTrackingPage(false); setShowPettyCashPage(false); setShowLoyaltyPage(false);
     setShowComplaintsPage(false); setShowCompensationsPage(false); setShowEvaluationsPage(false); setShowDrawingsPage(false);
+    setShowDashboardPage(false);
   };
 
   const openPortalReport = (kind: 'type' | 'area') => {
@@ -485,6 +488,41 @@ export default function PortalDashboard() {
 
 
   const renderContent = () => {
+    if (showDashboardPage) {
+      return (
+        <div>
+          <div style={{ padding: '12px 12px 0' }}>
+            <button
+              onClick={() => setShowDashboardPage(false)}
+              style={{
+                background: c.chipBg, border: `1px solid ${c.chipBorder}`, borderRadius: 10,
+                padding: '6px 10px', cursor: 'pointer', color: c.textPrimary, fontFamily: 'Cairo', fontSize: 12,
+              }}
+            >← رجوع</button>
+          </div>
+          <PortalOwnerHomeSummary
+            theme={themeMode}
+            onOpenSalesDetail={() => { switchTab('finance'); setFinanceSection('sales'); }}
+            onOpenFinance={() => { switchTab('finance'); setFinanceSection('menu'); }}
+            onOpenLiquidity={() => { switchTab('finance'); setFinanceSection('liquidity'); }}
+            onOpenReceivables={() => { switchTab('finance'); setFinanceSection('receivables'); }}
+            onOpenSuppliers={() => { switchTab('finance'); setFinanceSection('suppliers'); }}
+            onOpenAttendance={() => switchTab('attendance')}
+            onOpenTasks={() => { setShowDashboardPage(false); setShowTasksPage(true); }}
+            onOpenRoster={() => { setShowDashboardPage(false); setShowRosterPage(true); }}
+            onOpenEmployeeRequests={() => { setShowDashboardPage(false); closeAllPages(); setShowEmployeeRequests(true); }}
+            onOpenOrders={hasOrders || portalProfile === 'retail'
+              ? () => {
+                  setShowDashboardPage(false);
+                  setShowTasksPage(false); setShowEmployeeRequests(false); setShowRosterPage(false);
+                  setShowBranchHoursPage(false); setShowCampaignsPage(false); setShowFormsPage(false);
+                  setShowTrainingPage(false); setShowOrdersPage(true);
+                }
+              : undefined}
+          />
+        </div>
+      );
+    }
     if (showEvaluationsPage) {
       return (
         <div>
@@ -695,28 +733,43 @@ export default function PortalDashboard() {
     }
   };
 
-  // ═══════ HOME TAB — Owner Summary Dashboard ═══════
+  // ═══════ HOME TAB — بطاقات كبيرة فقط؛ البيانات انتقلت إلى «لوحة التحكم» ═══════
   const renderHome = () => {
+    const homeCards: { label: string; icon: any; color: string; sub: string; action: () => void }[] = [
+      { label: 'لوحة التحكم', icon: LayoutDashboard, color: '#0D6EFD', sub: 'مبيعات اليوم والمالية والحضور', action: () => setShowDashboardPage(true) },
+      { label: 'المالية', icon: Wallet, color: '#16A34A', sub: 'المبيعات والسيولة والذمم', action: () => switchTab('finance') },
+      { label: 'الحضور', icon: Users, color: '#F59E0B', sub: 'حضور الموظفين اليوم', action: () => switchTab('attendance') },
+      { label: 'التقارير', icon: BarChart3, color: '#7C3AED', sub: 'نظرة عامة على الأداء', action: () => switchTab('reports') },
+      ...moreItems
+        .filter(m => m.group !== 'الإعدادات')
+        .map(m => ({ label: m.label, icon: m.icon, color: m.color, sub: m.group, action: m.action })),
+    ];
     return (
-      <PortalOwnerHomeSummary
-        theme={themeMode}
-        onOpenSalesDetail={() => { switchTab('finance'); setFinanceSection('sales'); }}
-        onOpenFinance={() => { switchTab('finance'); setFinanceSection('menu'); }}
-        onOpenLiquidity={() => { switchTab('finance'); setFinanceSection('liquidity'); }}
-        onOpenReceivables={() => { switchTab('finance'); setFinanceSection('receivables'); }}
-        onOpenSuppliers={() => { switchTab('finance'); setFinanceSection('suppliers'); }}
-        onOpenAttendance={() => switchTab('attendance')}
-        onOpenTasks={() => { setShowTasksPage(true); }}
-        onOpenRoster={() => { setShowRosterPage(true); }}
-        onOpenEmployeeRequests={() => { closeAllPages(); setShowEmployeeRequests(true); }}
-        onOpenOrders={hasOrders || portalProfile === 'retail'
-          ? () => {
-              setShowTasksPage(false); setShowEmployeeRequests(false); setShowRosterPage(false);
-              setShowBranchHoursPage(false); setShowCampaignsPage(false); setShowFormsPage(false);
-              setShowTrainingPage(false); setShowOrdersPage(true);
-            }
-          : undefined}
-      />
+      <div style={{ padding: '16px 16px 24px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+          {homeCards.map((card, i) => {
+            const Icon = card.icon;
+            return (
+              <button key={i} onClick={card.action} style={{
+                textAlign: 'right', background: c.cardBg, border: `1px solid ${c.cardBorder}`,
+                borderRadius: 16, padding: 16, cursor: 'pointer', position: 'relative',
+                overflow: 'hidden', display: 'flex', flexDirection: 'column', gap: 8,
+                minHeight: 130, fontFamily: 'Cairo',
+              }}>
+                <div style={{ position: 'absolute', top: 0, right: 0, left: 0, height: 3, background: card.color }} />
+                <div style={{
+                  width: 40, height: 40, borderRadius: 12, background: `${card.color}22`,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', color: card.color,
+                }}>
+                  <Icon size={20} />
+                </div>
+                <div style={{ fontSize: 14, fontWeight: 700, color: c.textPrimary }}>{card.label}</div>
+                <div style={{ fontSize: 10, color: c.textSecondary }}>{card.sub}</div>
+              </button>
+            );
+          })}
+        </div>
+      </div>
     );
   };
 
