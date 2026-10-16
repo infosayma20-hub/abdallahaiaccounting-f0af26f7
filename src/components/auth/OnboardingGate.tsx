@@ -69,7 +69,7 @@ export const OnboardingGate = ({ children }: { children: React.ReactNode }) => {
     // wizard) emits a new user object, which used to unmount the wizard and
     // flash step 1 again before restoring step 2.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user?.id, authLoading, location.pathname]);
+  }, [user?.id, authLoading, location.pathname, bootstrap.data, bootstrap.isLoading]);
 
   // Invalidate cache when leaving /onboarding so the next visit re-reads
   // whether the user just finished it.
