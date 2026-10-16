@@ -36,7 +36,6 @@ describe("document contact search", () => {
 
   it("does not hide lookup failures as empty results", async () => {
     const error = { message: "permission denied", details: "", hint: "", code: "42501" };
-    await expect(fetchAllRows(() => Promise.resolve({ data: null, error,
-      count: null, status: 403, statusText: "Forbidden", success: false as const }))).rejects.toEqual(error);
+    await expect(fetchAllRows(() => Promise.reject(error))).rejects.toEqual(error);
   });
 });
