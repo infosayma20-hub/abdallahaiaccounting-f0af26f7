@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from "react";
-import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useBootstrap } from "@/hooks/useBootstrap";
 
 export interface CompanyData {
   id: string;
@@ -49,81 +49,57 @@ export const useCompany = () => useContext(CompanyContext);
 
 export const CompanyProvider = ({ children }: { children: ReactNode }) => {
   const { user } = useAuth();
-  const [company, setCompany] = useState<CompanyData>(defaultCompany);
-  const [loading, setLoading] = useState(true);
+  const bootstrap = useBootstrap();
+  const [logoOverride, setLogoOverride] = useState<string | null | undefined>(undefined);
 
-  const fetchCompany = useCallback(async () => {
-    const userId = user?.id;
-    if (!userId) {
-      setCompany(defaultCompany);
-      setLoading(false);
-      return;
-    }
+  // كل بيانات الشركة تأتي من حزمة البدء الموحّدة — كانت 4 طلبات متتالية
+  // (companies ثم profiles ثم companies بالربط ثم company_settings).
+  const data = bootstrap.data;
+  const company: CompanyData = !user
+    ? defaultCompany
+    : (() => {
+        const resolvedCompany = data?.company ?? null;
+        const settingsData = data?.company_settings ?? null;
+        const profileData = data?.profile ?? null;
+        const name =
+          normalizeCompanyName(settingsData?.company_name) ||
+          normalizeCompanyName(profileData?.company_name) ||
+          normalizeCompanyName(resolvedCompany?.name) ||
+          "";
+        const logo =
+          logoOverride !== undefined
+            ? logoOverride
+            : resolvedCompany?.logo_url || settingsData?.logo_url || null;
+        return {
+          id: resolvedCompany?.id || "",
+          name,
+          logo_url: logo,
+          industry: profileData?.work_field || null,
+          address: resolvedCompany?.address || settingsData?.address || null,
+          phone: resolvedCompany?.phone || settingsData?.phone || null,
+          email: resolvedCompany?.email || settingsData?.email || null,
+          tax_number: resolvedCompany?.tax_number || settingsData?.tax_number || null,
+        };
+      })();
 
-    try {
-      const { data: companyData } = await supabase
-        .from("companies")
-        .select("id, name, logo_url, address, phone, email, tax_number")
-        .eq("owner_id", userId)
-        .maybeSingle();
+  const loading = !!user && bootstrap.isLoading;
 
-      const { data: profileData } = await supabase
-        .from("profiles")
-        .select("company_name, work_field, company_id")
-        .eq("user_id", userId)
-        .maybeSingle();
-
-      let resolvedCompany = companyData;
-      if (!resolvedCompany && profileData?.company_id) {
-        const { data: linkedCompany } = await supabase
-          .from("companies")
-          .select("id, name, logo_url, address, phone, email, tax_number")
-          .eq("id", profileData.company_id)
-          .maybeSingle();
-        resolvedCompany = linkedCompany;
-      }
-
-      const { data: settingsData } = await supabase
-        .from("company_settings" as any)
-        .select("company_name, logo_url, address, phone, email, tax_number")
-        .eq("user_id", userId)
-        .maybeSingle() as any;
-
-      const name =
-        normalizeCompanyName((settingsData as any)?.company_name) ||
-        normalizeCompanyName(profileData?.company_name) ||
-        normalizeCompanyName(resolvedCompany?.name) ||
-        "";
-
-      const logo = resolvedCompany?.logo_url || (settingsData as any)?.logo_url || null;
-
-      setCompany({
-        id: resolvedCompany?.id || "",
-        name,
-        logo_url: logo,
-        industry: profileData?.work_field || null,
-        address: resolvedCompany?.address || (settingsData as any)?.address || null,
-        phone: resolvedCompany?.phone || (settingsData as any)?.phone || null,
-        email: resolvedCompany?.email || (settingsData as any)?.email || null,
-        tax_number: resolvedCompany?.tax_number || (settingsData as any)?.tax_number || null,
-      });
-    } catch (err) {
-      console.error("Failed to load company data:", err);
-    } finally {
-      setLoading(false);
-    }
-  }, [user?.id]);
-
-  useEffect(() => {
-    fetchCompany();
-  }, [fetchCompany]);
+  const refreshCompany = useCallback(async () => {
+    setLogoOverride(undefined);
+    await bootstrap.refetch();
+  }, [bootstrap.refetch]);
 
   const updateCompanyLogo = useCallback((url: string | null) => {
-    setCompany(prev => ({ ...prev, logo_url: url }));
+    setLogoOverride(url);
   }, []);
 
+  // تغيّر الحساب — صفّر تجاوز الشعار.
+  useEffect(() => {
+    setLogoOverride(undefined);
+  }, [user?.id]);
+
   return (
-    <CompanyContext.Provider value={{ company, loading, refreshCompany: fetchCompany, updateCompanyLogo }}>
+    <CompanyContext.Provider value={{ company, loading, refreshCompany, updateCompanyLogo }}>
       {children}
     </CompanyContext.Provider>
   );

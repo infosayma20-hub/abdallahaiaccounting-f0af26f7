@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useBootstrap } from "@/hooks/useBootstrap";
 import { singleFlight } from "@/lib/single-flight";
 
 /**
@@ -18,6 +19,9 @@ import { singleFlight } from "@/lib/single-flight";
  *
  * Do NOT use this to read per-user UI tables like profiles or
  * company_settings — those should still key off auth.user.id.
+ *
+ * يفضّل owner_id من حزمة البدء الموحّدة (useBootstrap) ولا ينفّذ أي طلب
+ * إضافي عند توفرها؛ سلسلة الاستعلامات القديمة تبقى احتياطاً عند فشلها.
  */
 const OWNER_CACHE_PREFIX = "amwali:data-owner:";
 const OWNER_CACHE_VERSION = 2;
@@ -56,6 +60,7 @@ function writeCachedOwner(userId: string, ownerId: string) {
 
 export function useDataOwnerId(): { dataOwnerId: string | null; userId: string | null } {
   const { user } = useAuth();
+  const bootstrap = useBootstrap();
   // Seed from sessionStorage synchronously so the first render already has
   // the owner id — avoids the null→uuid flip that caused every dependent
   // useEffect to fire twice on every page mount.
@@ -64,11 +69,25 @@ export function useDataOwnerId(): { dataOwnerId: string | null; userId: string |
     return readCachedOwner(user.id);
   });
 
+  // المصدر المفضّل: owner_id من حزمة البدء (لا طلب إضافي إطلاقاً).
+  useEffect(() => {
+    if (!user?.id) return;
+    const fromBoot = bootstrap.data?.owner_id;
+    if (fromBoot && fromBoot !== dataOwnerId) {
+      setDataOwnerId(fromBoot);
+      writeCachedOwner(user.id, fromBoot);
+    }
+  }, [user?.id, bootstrap.data?.owner_id, dataOwnerId]);
+
   useEffect(() => {
     if (!user) {
       setDataOwnerId(null);
       return;
     }
+    // حزمة البدء نجحت — owner_id منها هو المرجع، لا حاجة لأي طلب آخر.
+    if (bootstrap.data?.owner_id) return;
+    // ما زالت الحزمة تُجلب — انتظرها بدل إطلاق طلب موازٍ.
+    if (bootstrap.isLoading) return;
     // Serve a fresh versioned cache instantly. Legacy/stale cache is only used
     // as a temporary hint and is revalidated below to avoid hiding owner data
     // from accountant/team accounts after owner-resolution fixes.
@@ -113,7 +132,7 @@ export function useDataOwnerId(): { dataOwnerId: string | null; userId: string |
     return () => {
       cancelled = true;
     };
-  }, [user]);
+  }, [user, bootstrap.data?.owner_id, bootstrap.isLoading]);
 
   return { dataOwnerId, userId: user?.id ?? null };
 }

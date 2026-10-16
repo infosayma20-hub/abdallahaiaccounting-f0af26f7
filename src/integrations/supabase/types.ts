@@ -33665,6 +33665,7 @@ export type Database = {
           total: number
         }[]
       }
+      get_my_bootstrap: { Args: never; Returns: Json }
       get_my_receiving_sessions: { Args: never; Returns: Json }
       get_my_team_employee_ids: { Args: never; Returns: string[] }
       get_owner_sales_by_day: {

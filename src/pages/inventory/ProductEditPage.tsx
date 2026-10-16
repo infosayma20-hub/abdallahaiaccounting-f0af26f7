@@ -398,31 +398,38 @@ export default function ProductEditPage() {
       }
 
 
-      // upsert child collections (delete-then-insert simplicity)
-      await Promise.all([
+      // upsert child collections (delete-then-insert simplicity).
+      // كل خطوة تُفحص — سابقاً كان فشل إدراج الباركود (مثلاً تكرار باركود
+      // لصنف آخر) يمر بصمت بعد حذف الباركودات القديمة، فيفقد الصنف باركوداته
+      // دون أي رسالة للمستخدم.
+      const delResults = await Promise.all([
         supabase.from("product_units" as any).delete().eq("product_id", pid),
         supabase.from("product_barcodes" as any).delete().eq("product_id", pid),
         supabase.from("product_price_tiers" as any).delete().eq("product_id", pid),
         supabase.from("product_warehouse_settings" as any).delete().eq("product_id", pid),
       ]);
+      const delErr = delResults.find((r) => r.error)?.error;
+      if (delErr) throw delErr;
 
       if (units.length) {
-        await supabase.from("product_units" as any).insert(units.map(u => ({
+        const { error } = await supabase.from("product_units" as any).insert(units.map(u => ({
           product_id: pid, user_id: ownerId,
           unit_name: u.unit_name, conversion_factor: Number(u.conversion_factor) || 1,
           is_sale: !!u.is_sale, is_purchase: !!u.is_purchase,
           is_default: !!u.is_default, is_active: !!u.is_active,
           barcode: u.barcode || null, notes: u.notes || null,
         })));
+        if (error) throw error;
       }
       const validBarcodes = barcodes.filter(b => String(b.barcode || "").trim());
       if (validBarcodes.length) {
-        await supabase.from("product_barcodes" as any).insert(validBarcodes.map(b => ({
+        const { error } = await supabase.from("product_barcodes" as any).insert(validBarcodes.map(b => ({
           product_id: pid, user_id: ownerId,
           barcode: String(b.barcode).trim(), description: b.description || null,
           unit_id: b.unit_id ?? null,
           is_default: !!b.is_default,
         })));
+        if (error) throw error;
       }
       if (tiers.length) {
         await supabase.from("product_price_tiers" as any).insert(tiers.map(t => ({

@@ -238,7 +238,9 @@ const ContactsPage = () => {
   }, [overdueDialogOpen, overdueContact, user]);
 
   const fetchContacts = async () => {
-    if (!user) return;
+    // ownerId قد يتأخر عن user لحظة الفتح — الجلب بدونه كان يستخدم user.id
+    // فيعرض لحسابات الفريق قائمة فارغة حتى أول تحديث يدوي.
+    if (!user || !ownerId) return;
     setLoading(true);
     try {
       // Phase 5J — Performance: single bulk RPC replaces per-contact fanout
@@ -284,7 +286,7 @@ const ContactsPage = () => {
     setAlerts((data as any[]) || []);
   };
 
-  useEffect(() => { fetchContacts(); fetchAlerts(); }, [user]);
+  useEffect(() => { fetchContacts(); fetchAlerts(); }, [user, ownerId]);
 
   // Real-time alerts
   useEffect(() => {

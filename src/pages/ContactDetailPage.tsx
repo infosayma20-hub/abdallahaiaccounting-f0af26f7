@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useDataOwnerId } from "@/hooks/useDataOwnerId";
 import ReceivablesAnalysisTab from "@/components/contacts/ReceivablesAnalysisTab";
 import { fetchContactBalance } from "@/lib/contact-balance";
 import AllocationsPanel from "@/components/accounting/AllocationsPanel";
@@ -22,6 +23,7 @@ const ContactDetailPage = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { dataOwnerId } = useDataOwnerId();
   const [contact, setContact] = useState<any>(null);
   const [transactions, setTransactions] = useState<any[]>([]);
   const [cheques, setCheques] = useState<any[]>([]);
@@ -32,7 +34,9 @@ const ContactDetailPage = () => {
   const [liveBalance, setLiveBalance] = useState<number>(0);
 
   useEffect(() => {
-    if (!user || !id) return;
+    // بيانات الشركة تُقرأ بمالك البيانات لا بحساب المستخدم — حسابات الفريق
+    // (محاسب/موارد) كانت ترى صفحة جهة الاتصال فارغة.
+    if (!user || !id || !dataOwnerId) return;
     const fetchData = async () => {
       setLoading(true);
       // First get the contact to know the name
@@ -44,7 +48,7 @@ const ContactDetailPage = () => {
       const { data: sameNameContacts } = await supabase
         .from('contacts')
         .select('id')
-        .eq('user_id', user.id)
+        .eq('user_id', dataOwnerId)
         .eq('contact_name', contactName);
       const allIds = (sameNameContacts || []).map((c: any) => c.id);
       if (!allIds.includes(id)) allIds.push(id);
@@ -62,7 +66,7 @@ const ContactDetailPage = () => {
       const { data: txByName } = await supabase
         .from('transactions')
         .select('*')
-        .eq('user_id', user.id)
+        .eq('user_id', dataOwnerId)
         .eq('is_deleted', false)
         .is('contact_id', null)
         .ilike('description', `%${contactName}%`)
@@ -76,7 +80,7 @@ const ContactDetailPage = () => {
       const { data: chequeData } = await supabase
         .from('cheques')
         .select('*')
-        .eq('user_id', user.id)
+        .eq('user_id', dataOwnerId)
         .order('cheque_date', { ascending: false });
       setCheques((chequeData as any[]) || []);
 
@@ -90,7 +94,7 @@ const ContactDetailPage = () => {
       setLoading(false);
     };
     fetchData();
-  }, [user, id]);
+  }, [user, id, dataOwnerId]);
 
   const stats = useMemo(() => {
     if (!transactions.length) return { totalSales: 0, totalPaid: 0, balance: 0, invoiceCount: 0 };

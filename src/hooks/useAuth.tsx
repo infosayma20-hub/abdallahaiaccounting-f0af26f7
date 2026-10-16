@@ -4,6 +4,7 @@ import type { User, Session } from "@supabase/supabase-js";
 import { normalizeAuthSessionExpiry, releaseAuthRefreshLeadership, startAuthRefreshCoordinator } from "@/lib/auth-cross-tab";
 import { isAuthSessionExpiredError, redirectToSessionExpired } from "@/lib/sessionExpired";
 import { clearPermissionSnapshot } from "@/lib/offline-permissions";
+import { clearBootstrapCache } from "@/hooks/useBootstrap";
 
 interface AuthContextType {
   user: User | null;
@@ -204,6 +205,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     // Wipe cached offline permissions so the next account on this device can
     // never inherit the previous user's access while the backend is down.
     try { await clearPermissionSnapshot(); } catch { /* best effort */ }
+    // إبطال حزمة البدء وقناة بثها حتى لا يرث الحساب التالي على الجهاز شيئاً.
+    try {
+      clearBootstrapCache(currentUser?.id);
+      window.dispatchEvent(new Event("amwali:signed-out"));
+    } catch { /* best effort */ }
     releaseAuthRefreshLeadership();
     await supabase.auth.signOut();
   };

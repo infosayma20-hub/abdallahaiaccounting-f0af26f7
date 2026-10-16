@@ -1,5 +1,7 @@
 import "fake-indexeddb/auto";
 import { renderHook, waitFor } from "@testing-library/react";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { createElement, type ReactNode } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   clearPermissionSnapshot,
@@ -20,7 +22,10 @@ vi.mock("@/integrations/supabase/client", () => ({
       }),
     }),
     rpc: () => Promise.resolve({ data: null, error: netError }),
-    channel: () => ({ on: () => ({ subscribe: () => ({}) }) }),
+    channel: () => {
+      const ch: any = { on: () => ch, subscribe: () => ({}) };
+      return ch;
+    },
     removeChannel: () => {},
   },
 }));
@@ -31,13 +36,22 @@ vi.mock("@/hooks/useAuth", () => ({
 
 import { usePermission, clearPermissionCache } from "@/hooks/usePermission";
 
+// usePermission يقرأ الآن من حزمة البدء الموحّدة (React Query) — الاختبار
+// يحتاج QueryClientProvider. الـ rpc في النموذج أعلاه يفشل دائماً، فيسلك
+// الخطاف مسار "دون اتصال" كما هو مطلوب.
+const queryClient = new QueryClient({
+  defaultOptions: { queries: { retry: false } },
+});
+const wrapper = ({ children }: { children: ReactNode }) =>
+  createElement(QueryClientProvider, { client: queryClient }, children);
+
 describe("usePermission — offline behaviour", () => {
   beforeEach(async () => {
     await clearPermissionSnapshot();
   });
 
   it("denies everything when offline with no snapshot (fail closed)", async () => {
-    const { result } = renderHook(() => usePermission("finance"));
+    const { result } = renderHook(() => usePermission("finance"), { wrapper });
     await waitFor(() => expect(result.current.loading).toBe(false));
     expect(result.current.can("receipts", "create")).toBe(false);
     expect(result.current.isAppAllowed).toBe(false);
@@ -58,7 +72,7 @@ describe("usePermission — offline behaviour", () => {
       app_deny: ["hr"],
     });
 
-    const { result } = renderHook(() => usePermission("finance"));
+    const { result } = renderHook(() => usePermission("finance"), { wrapper });
     await waitFor(() => expect(result.current.isOfflineSnapshot).toBe(true));
     expect(result.current.can("receipts", "create")).toBe(true);
     // Not granted by the server → still denied offline
@@ -77,7 +91,7 @@ describe("usePermission — offline behaviour", () => {
       app_allow: [],
       app_deny: ["hr"],
     });
-    const { result } = renderHook(() => usePermission("hr"));
+    const { result } = renderHook(() => usePermission("hr"), { wrapper });
     await waitFor(() => expect(result.current.isOfflineSnapshot).toBe(true));
     expect(result.current.isAppAllowed).toBe(false);
     expect(result.current.can("employees", "read")).toBe(false);
@@ -94,7 +108,7 @@ describe("usePermission — offline behaviour", () => {
       app_allow: [],
       app_deny: [],
     });
-    const { result } = renderHook(() => usePermission("finance"));
+    const { result } = renderHook(() => usePermission("finance"), { wrapper });
     await waitFor(() => expect(result.current.isOfflineSnapshot).toBe(true));
     expect(result.current.can("payments", "create")).toBe(false);
   });

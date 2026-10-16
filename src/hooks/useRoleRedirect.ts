@@ -1,24 +1,12 @@
 import { useState, useEffect } from "react";
-import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./useAuth";
 import { useUserRoles } from "./useUserRoles";
+import { useBootstrap } from "./useBootstrap";
 import { canUserCreateTenant } from "@/lib/tenantOwnerGuard";
 import { isAuthSessionExpiredError, redirectToSessionExpired } from "@/lib/sessionExpired";
 import { POST_LOGIN_ROUTE_READY_EVENT } from "@/components/auth/PostLoginWelcomeOverlay";
 
 const redirectCache = new Map<string, string | null>();
-
-type ProfileRouteMarker = { role?: string | null };
-type PosRouteMarker = { is_active?: boolean | null; is_call_center?: boolean | null; hide_employee_workspace?: boolean | null };
-type PortalRouteMarker = { is_active?: boolean | null };
-
-const readDataOrThrow = <T,>(result: { data: T; error: unknown }): T => {
-  if (result.error) {
-    if (isAuthSessionExpiredError(result.error)) redirectToSessionExpired();
-    throw result.error;
-  }
-  return result.data;
-};
 
 const readWorkspaceChoice = (userId: string) => {
   try {
@@ -53,6 +41,7 @@ export function clearRoleRedirectCache(userId?: string) {
 export function useRoleRedirect() {
   const { user, loading: authLoading } = useAuth();
   const { roles: sharedRoles, loading: rolesLoading } = useUserRoles();
+  const bootstrap = useBootstrap();
   const [targetPath, setTargetPath] = useState<string | null>(null);
   const [checking, setChecking] = useState(true);
   const [stalled, setStalled] = useState(false);
@@ -89,6 +78,12 @@ export function useRoleRedirect() {
       return;
     }
 
+    // كل بيانات التوجيه تأتي من حزمة البدء الموحّدة — لا جولات متتالية هنا.
+    if (bootstrap.isLoading) {
+      setChecking(true);
+      return;
+    }
+
     let isCancelled = false;
     setChecking(true);
     setStalled(false);
@@ -98,44 +93,15 @@ export function useRoleRedirect() {
 
     const resolve = async () => {
       try {
-        const [
-          profileResult,
-          empResult,
-          posUserResult,
-          portalUserResult,
-        ] = await Promise.all([
-          supabase
-            .from("profiles")
-            .select("invited_by, role")
-            .eq("user_id", user.id)
-            .maybeSingle(),
-          supabase
-            .from("employees")
-            .select("id, auth_user_id, user_id, is_active, is_terminated, is_manager, is_hr_manager, can_view_team, can_manage_schedule, can_manage_attendance, is_receiver, can_direct_receive, can_stock_count")
-            .eq("auth_user_id", user.id)
-            .maybeSingle(),
-          supabase
-            .from("pos_users")
-            .select("id, auth_user_id, user_id, is_active, is_call_center, hide_employee_workspace")
-            .eq("auth_user_id", user.id)
-            .maybeSingle(),
-          supabase
-            .from("malaki_portal_users")
-            .select("id, auth_user_id, user_id, is_active")
-            .eq("auth_user_id", user.id)
-            .maybeSingle(),
-        ]);
+        if (bootstrap.isError || !bootstrap.data) {
+          throw bootstrap.error || new Error("bootstrap unavailable");
+        }
+        const boot = bootstrap.data;
+        const empRow = boot.employee;
+        const posUser = boot.pos_user;
+        const portalUser = boot.portal_user;
 
-        const profileRow = readDataOrThrow(profileResult);
-        const empRow = readDataOrThrow(empResult);
-        const posUserRow = readDataOrThrow(posUserResult);
-        const portalUserRow = readDataOrThrow(portalUserResult);
-
-        const profile = profileRow as ProfileRouteMarker | null;
-        const posUser = posUserRow as PosRouteMarker | null;
-        const portalUser = portalUserRow as PortalRouteMarker | null;
-        // Roles come from the shared React Query cache (useUserRoles) —
-        // one query per session instead of per-hook fetches.
+        // Roles come from the shared bootstrap cache — one query per session.
         const roleSet = new Set<string>(sharedRoles);
         const isEmployee = !!empRow && empRow.is_active && !empRow.is_terminated;
         const isPosUser = !!posUser && posUser.is_active !== false;
@@ -145,13 +111,18 @@ export function useRoleRedirect() {
         const isSharedCallCenterOnly =
           !!posUser && !!posUser.is_call_center && !!posUser.hide_employee_workspace;
         const isPortalUser = !!portalUser && portalUser.is_active !== false;
-        const profileRole = profile?.role || undefined;
+        const profileRole = boot.profile?.role || undefined;
         if (profileRole) roleSet.add(profileRole);
         if (isEmployee) roleSet.add("employee");
         if (isPosUser) roleSet.add("cashier");
         if (isPortalUser) roleSet.add("portal");
         const roles = Array.from(roleSet);
         const hasAdminAccess = roles.some((role) => role === "admin" || role === "super_admin" || role === "hr_manager" || role.startsWith("accountant"));
+
+        // صلاحية مساحة الشكاوى من حزمة البدء (كانت استعلاماً منفصلاً).
+        const hasFeedbackWorkspace = boot.feature_permissions.some(
+          (p) => p.app_key === "call_center_feedback" && p.access_state === "allow"
+        );
 
         // إذا المستخدم مندوب + موظف نشط (وما عنده admin) — اعرض شاشة اختيار workspace
         // ما لم يكن قد اختار سابقاً في نفس الجلسة.
@@ -225,16 +196,9 @@ export function useRoleRedirect() {
           // must reach the chooser instead of being forced into /employee.
           let nextPath = "/employee";
           if (!isSharedCallCenterOnly) {
-            const { data: fbPerms } = await supabase
-              .from("user_feature_permissions")
-              .select("id")
-              .eq("target_user_id", user.id)
-              .eq("app_key", "call_center_feedback")
-              .eq("access_state", "allow")
-              .limit(1);
             // موظف مستودع (استلام بضاعة / استلام مباشر) عنده مساحتين: الموظف والمستودع
-            const isWarehouse = !!(empRow as any)?.is_receiver || !!(empRow as any)?.can_direct_receive || !!(empRow as any)?.can_stock_count;
-            if ((fbPerms && fbPerms.length > 0) || isWarehouse) {
+            const isWarehouse = !!empRow?.is_receiver || !!empRow?.can_direct_receive || !!empRow?.can_stock_count;
+            if (hasFeedbackWorkspace || isWarehouse) {
               const chosen = readWorkspaceChoice(user.id);
               const resolved = resolvePosWorkspaceChoice(chosen);
               if (isCancelled) return;
@@ -258,7 +222,7 @@ export function useRoleRedirect() {
           console.info("[role-redirect] finalRedirect = /employee", {
             authUid: user.id,
             employeeId: empRow.id,
-            employeeAuthUserId: empRow.auth_user_id,
+            employeeAuthUserId: user.id,
             employeeOwnerUserId: empRow.user_id,
             userRoles: roles,
             isManager: empRow.is_manager,
@@ -306,29 +270,11 @@ export function useRoleRedirect() {
           // Feedback-only user: has call_center_feedback permission AND no
           // other system roles AND no employee record — go straight to /feedback.
           if (!isEmployee) {
-            const { data: fbPerms } = await supabase
-              .from("user_feature_permissions")
-              .select("id")
-              .eq("target_user_id", user.id)
-              .eq("app_key", "call_center_feedback")
-              .eq("access_state", "allow")
-              .limit(1);
-            if (fbPerms && fbPerms.length > 0) {
+            if (hasFeedbackWorkspace) {
               nextPath = "/feedback";
             } else {
-                // Resolve the true tenant owner (the user may have been
-              // invited as admin by the company owner — their accounts
-              // live under the owner's UID, not their own).
-              const { data: ownerIdData } = await supabase.rpc(
-                "get_team_owner_id",
-                { _user_id: user.id }
-              );
-              const ownerId = (ownerIdData as string | null) || user.id;
-              const { count } = await supabase
-                .from("accounts")
-                .select("id", { count: "exact", head: true })
-                .eq("user_id", ownerId);
-              if (count && count > 0) {
+              // مالك البيانات وعدد الحسابات من حزمة البدء (كانا استعلامين).
+              if (boot.has_accounts) {
                 nextPath = "/apps";
               } else {
                 // Final safety: never seed a stray tenant for a user who
@@ -376,7 +322,7 @@ export function useRoleRedirect() {
       isCancelled = true;
       window.clearTimeout(stallTimer);
     };
-  }, [user, authLoading, rolesLoading, sharedRoles, workspaceChoiceVersion, attempt]);
+  }, [user, authLoading, rolesLoading, sharedRoles, workspaceChoiceVersion, attempt, bootstrap.data, bootstrap.isLoading, bootstrap.isError, bootstrap.error]);
 
   const retry = () => {
     if (user) redirectCache.delete(user.id);

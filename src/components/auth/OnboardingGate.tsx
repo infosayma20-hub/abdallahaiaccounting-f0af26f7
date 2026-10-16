@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Navigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
+import { useBootstrap } from "@/hooks/useBootstrap";
 import { fetchOnboardingStatus, type OnboardingStatus } from "@/lib/authRedirect";
 
 /**
@@ -19,6 +20,7 @@ const sessionStatusCache = new Map<string, OnboardingStatus>();
 
 export const OnboardingGate = ({ children }: { children: React.ReactNode }) => {
   const { user, loading: authLoading } = useAuth();
+  const bootstrap = useBootstrap();
   const location = useLocation();
   const [status, setStatus] = useState<OnboardingStatus | "loading">(() => {
     if (user?.id && sessionStatusCache.has(user.id)) {
@@ -42,6 +44,16 @@ export const OnboardingGate = ({ children }: { children: React.ReactNode }) => {
       setStatus(cached);
       return;
     }
+    // المسار السريع: حزمة البدء تكفي لإثبات أن الحساب قائم (حسابات مزروعة أو
+    // سجل موظف/كاشير/بوابة) — لا حاجة لجولة fetchOnboardingStatus الثلاثية.
+    // المستخدم الجديد تماماً فقط يسلك المسار القديم الكامل.
+    const boot = bootstrap.data;
+    if (boot && (boot.has_accounts || boot.employee || boot.pos_user || boot.portal_user)) {
+      sessionStatusCache.set(user.id, "completed");
+      setStatus("completed");
+      return;
+    }
+    if (bootstrap.isLoading) return;
     let cancelled = false;
     setStatus("loading");
     (async () => {
@@ -57,7 +69,7 @@ export const OnboardingGate = ({ children }: { children: React.ReactNode }) => {
     // wizard) emits a new user object, which used to unmount the wizard and
     // flash step 1 again before restoring step 2.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user?.id, authLoading, location.pathname]);
+  }, [user?.id, authLoading, location.pathname, bootstrap.data, bootstrap.isLoading]);
 
   // Invalidate cache when leaving /onboarding so the next visit re-reads
   // whether the user just finished it.
