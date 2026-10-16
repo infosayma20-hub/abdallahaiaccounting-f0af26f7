@@ -22,7 +22,10 @@ vi.mock("@/integrations/supabase/client", () => ({
       }),
     }),
     rpc: () => Promise.resolve({ data: null, error: netError }),
-    channel: () => ({ on: () => ({ subscribe: () => ({}) }) }),
+    channel: () => {
+      const ch: any = { on: () => ch, subscribe: () => ({}) };
+      return ch;
+    },
     removeChannel: () => {},
   },
 }));
