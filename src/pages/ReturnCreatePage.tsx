@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useRef } from "react";
 import { pickTenantAccountCode } from "@/lib/tenantAccountResolver";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { Navigate, useNavigate, useSearchParams } from "react-router-dom";
 import { Loader2, Save, Send, Plus, Trash2, AlertTriangle, Package, Search, ArrowRight, XCircle } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -118,12 +118,12 @@ const ReturnCreatePage = ({ returnType }: Props) => {
   const { user } = useAuth();
   const { dataOwnerId } = useDataOwnerId();
   const ownerId = dataOwnerId || user?.id;
-  const pilot = isReturnsPilot(ownerId);
   const { can, loading: permissionsLoading } = useAccountantPermissions();
   const canProcess = !permissionsLoading && can("can_process_returns");
   const commandKeyRef = useRef(crypto.randomUUID());
   const [revision, setRevision] = useState(0);
   const [postingVersion, setPostingVersion] = useState(0);
+  const pilot = isReturnsPilot(ownerId) || postingVersion === 1;
   const [returnNumber, setReturnNumber] = useState("");
   const [showPreview, setShowPreview] = useState(false);
   const [warehouses, setWarehouses] = useState<{id: string; name: string}[]>([]);
@@ -686,6 +686,7 @@ const ReturnCreatePage = ({ returnType }: Props) => {
   };
 
   useSavePostShortcut(() => handleSave(false), !saving && !readonly);
+  if (!recordId) return <Navigate replace to={`/invoices/new?type=${returnType === "sales" ? "sales_return" : "purchase_return"}`} />;
 
   if (loading) {
     return <div className="flex justify-center py-20"><Loader2 className="h-6 w-6 animate-spin" /></div>;

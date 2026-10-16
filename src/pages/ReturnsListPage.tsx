@@ -130,7 +130,7 @@ const ReturnsListPage = ({ returnType }: Props) => {
 
   const handleDelete = async (row: ReturnRow) => {
     if (!canProcess || busyId || !ownerId) return;
-    if (pilot) {
+    if (pilot || row.posting_version === 1) {
       if (!confirm(`حذف المسودة ${row.return_number}؟`)) return;
       setBusyId(row.id);
       try { await cancelManagedReturn(ownerId, row, true); await fetchRows(); } catch (error) { toast({title: "تعذر الحذف", description: error instanceof Error ? error.message : "أعد المحاولة", variant: "destructive"}); } finally { setBusyId(null); }
@@ -155,7 +155,7 @@ const ReturnsListPage = ({ returnType }: Props) => {
     if (!confirm(`إلغاء المردود ${row.return_number}؟\nسيتم عكس القيد المحاسبي وحركة المخزون تلقائياً.\nيبقى السجل للمراجعة كـ"ملغى".`)) return;
     setBusyId(row.id);
     try {
-      if (pilot) {
+      if (pilot || row.posting_version === 1) {
         await cancelManagedReturn(ownerId, row);
         broadcastChange("transaction", "deleted", row.id);
         toast({ title: "تم إلغاء المردود وعكس آثاره" });
@@ -341,7 +341,7 @@ const ReturnsListPage = ({ returnType }: Props) => {
               key: "new",
               label: "جديد",
               items: [
-                { key: "new", label: newButtonLabel, icon: Plus, variant: "primary", onClick: () => navigate(newPath), disabled: !canProcess },
+                { key: "new", label: newButtonLabel, icon: Plus, variant: "primary", onClick: () => navigate(`/invoices/new?type=${isSales ? "sales_return" : "purchase_return"}`), disabled: !canProcess },
               ],
             },
             {
@@ -358,7 +358,7 @@ const ReturnsListPage = ({ returnType }: Props) => {
       ] satisfies ActionTab[]}
     >
     <div className="space-y-4" dir="rtl">
-      <div className="flex flex-wrap items-center justify-between gap-2"><span className="text-xs text-muted-foreground">{filtered.length} مردود</span><div className="flex items-center gap-2"><div className="flex bg-muted/50 rounded-lg p-0.5"><Button variant="ghost" size="icon" className={`h-8 w-8 ${viewMode === "cards" ? "bg-background text-primary" : "text-muted-foreground"}`} title="عرض بطاقات" aria-label="عرض بطاقات" onClick={() => setViewMode("cards")}><LayoutGrid className="h-4 w-4" /></Button><Button variant="ghost" size="icon" className={`h-8 w-8 ${viewMode === "table" ? "bg-background text-primary" : "text-muted-foreground"}`} title="عرض جدول" aria-label="عرض جدول" onClick={() => setViewMode("table")}><Table2 className="h-4 w-4" /></Button></div><Button size="sm" className="gap-1" disabled={!canProcess} onClick={() => navigate(newPath)}><Plus className="h-4 w-4" />{newButtonLabel}</Button></div></div>
+      <div className="flex flex-wrap items-center justify-between gap-2"><span className="text-xs text-muted-foreground">{filtered.length} مردود</span><div className="flex items-center gap-2"><div className="flex bg-muted/50 rounded-lg p-0.5"><Button variant="ghost" size="icon" className={`h-8 w-8 ${viewMode === "cards" ? "bg-background text-primary" : "text-muted-foreground"}`} title="عرض بطاقات" aria-label="عرض بطاقات" onClick={() => setViewMode("cards")}><LayoutGrid className="h-4 w-4" /></Button><Button variant="ghost" size="icon" className={`h-8 w-8 ${viewMode === "table" ? "bg-background text-primary" : "text-muted-foreground"}`} title="عرض جدول" aria-label="عرض جدول" onClick={() => setViewMode("table")}><Table2 className="h-4 w-4" /></Button></div><Button size="sm" className="gap-1" disabled={!canProcess} onClick={() => navigate(`/invoices/new?type=${isSales ? "sales_return" : "purchase_return"}`)}><Plus className="h-4 w-4" />{newButtonLabel}</Button></div></div>
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         <Card><CardContent className="p-4">
           <div className="text-xs text-muted-foreground">إجمالي المردودات</div>

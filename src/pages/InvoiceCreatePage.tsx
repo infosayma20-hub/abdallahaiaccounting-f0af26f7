@@ -58,6 +58,10 @@ import { formatDbError } from "@/lib/db-error-toast";
 import CostCenterCombobox from "@/components/cost-centers/CostCenterCombobox";
 import { useTT } from "@/i18n/dict";
 import useAccountingOutbox from "@/hooks/useAccountingOutbox";
+import { useAccountantPermissions } from "@/hooks/useAccountantPermissions";
+import { calculateReturnLine, calculateReturnSummary } from "@/lib/returns";
+import { broadcastChange } from "@/lib/crossTabSync";
+import { documentPartyType, isReturnDocument, validateReturnItems, type InvoiceDocumentType } from "@/lib/invoice-document-type";
 
 // Lightweight in-memory cache for exchange rates to avoid re-fetching the
 // same currency on every currency-select toggle. 5-minute TTL, per-tab.
@@ -83,6 +87,8 @@ const TAX_CATEGORY_OPTIONS: { value: TaxCategory; label: string; rate: number }[
 interface InvoiceItem {
   id: string;
   productId?: string;
+  sourceInvoiceItemId?: string | null;
+  maxReturnableQty?: number | null;
   description: string;
   quantity: number;
   bonusQuantity: number;
@@ -238,6 +244,19 @@ const InvoiceCreatePage = () => {
   const { user } = useAuth();
   const { dataOwnerId } = useDataOwnerId();
   const ownerId = dataOwnerId || user?.id;
+  const { can, loading: returnPermissionsLoading } = useAccountantPermissions();
+  const [documentType, setDocumentType] = useState<InvoiceDocumentType>(() => {
+    const type = searchParams.get("type");
+    return type === "sales_return" || type === "purchase_return" || type === "purchase" ? type : "sales";
+  });
+  const isReturn = isReturnDocument(documentType);
+  const [returnReason, setReturnReason] = useState("");
+  const [originalInvoiceId, setOriginalInvoiceId] = useState("");
+  const [originalInvoiceSearch, setOriginalInvoiceSearch] = useState("");
+  const [originalInvoices, setOriginalInvoices] = useState<{id: string; invoice_number: string | null; invoice_date: string; total_amount: number}[]>([]);
+  const [loadingReturnSource, setLoadingReturnSource] = useState(false);
+  const returnCommandKeyRef = useRef(crypto.randomUUID());
+  const [savedReturn, setSavedReturn] = useState<{id: string; return_number: string} | null>(null);
   const { queueDocument: queueOfflineDocument } = useAccountingOutbox();
   const { company } = useCompany();
   const { toast } = useToast();
@@ -434,7 +453,7 @@ const InvoiceCreatePage = () => {
   // through the dedicated voucher system (receipt for sales, payment for purchases).
   // This mirrors QuickBooks/Xero accrual flow: invoice → AR/AP, then voucher → cash/bank.
   const [form, setForm] = useState({
-    type: (prefillType === "purchase" ? "purchase" : "sales") as "sales" | "purchase",
+    type: documentPartyType(documentType),
     contactName: "",
     contactId: null as string | null,
     date: new Date().toISOString().split("T")[0],
@@ -466,6 +485,65 @@ const InvoiceCreatePage = () => {
     invoiceDiscountType: "amount" as "amount" | "percent",
   });
 
+  useEffect(() => { if (isEditMode) setDocumentType(form.type); }, [isEditMode, form.type]);
+  const documentSnapshots = useRef(new Map<InvoiceDocumentType, { form: typeof form; contactSearch: string; returnReason: string; originalInvoiceId: string }>());
+  const changeDocumentType = (next: InvoiceDocumentType) => {
+    if (isEditMode || creating || loadingReturnSource || savedReturn || next === documentType) return;
+    documentSnapshots.current.set(documentType, { form, contactSearch, returnReason, originalInvoiceId });
+    const snapshot = documentSnapshots.current.get(next);
+    setDocumentType(next);
+    setForm(snapshot?.form || { ...form, type: documentPartyType(next), contactName: "", contactId: null,
+      items: [createEmptyItem()], invoiceDiscount: 0, invoiceKind: "credit", cashAccountCode: null,
+      currency: "شيكل", exchangeRate: 1, notes: "", notesInternal: "" });
+    setContactSearch(snapshot?.contactSearch || "");
+    setSelectedContact(null);
+    setReturnReason(snapshot?.returnReason || "");
+    setOriginalInvoiceId(snapshot?.originalInvoiceId || "");
+    setOriginalInvoiceSearch("");
+    returnCommandKeyRef.current = crypto.randomUUID();
+  };
+  useEffect(() => {
+    if (!isReturn || !ownerId || !form.contactId) { setOriginalInvoices([]); return; }
+    let active = true;
+    fetchAllRows<any>((from, to) => supabase.from("invoices")
+      .select("id,invoice_number,invoice_date,total_amount")
+      .eq("user_id", ownerId).eq("contact_id", form.contactId || "")
+      .in("invoice_type", form.type === "sales" ? ["sale", "sales"] : ["purchase"])
+      .not("status", "in", "(draft,cancelled,void)").or("is_voided.is.null,is_voided.eq.false")
+      .in("currency", ["شيكل", "ILS", "₪"]).order("invoice_date", { ascending: false }).order("id").range(from,to))
+      .then(data => { if (active) setOriginalInvoices(data); })
+      .catch(error => { if (active) toast({ title: "تعذر تحميل الفواتير الأصلية", description: error.message, variant: "destructive" }); });
+    return () => { active = false; };
+  }, [isReturn, ownerId, form.contactId, form.type]);
+  const pullReturnInvoice = async (id: string) => {
+    if (!id) { setOriginalInvoiceId(""); setForm(p => ({ ...p, items: p.items.map(i => ({ ...i, sourceInvoiceItemId: null, maxReturnableQty: null })) })); return; }
+    if (!ownerId || loadingReturnSource) return;
+    setLoadingReturnSource(true);
+    try {
+      const { data: invoice, error } = await supabase.from("invoices").select("id,warehouse_id,tax_inclusive")
+        .eq("id",id).eq("user_id",ownerId).eq("contact_id",form.contactId || "").single();
+      if (error) throw error;
+      const [remaining, originals] = await Promise.all([
+        fetchAllRows<any>((from,to) => supabase.from("invoice_items_returnable").select("*").eq("invoice_id",id).order("invoice_item_id").range(from,to)),
+        fetchAllRows<any>((from,to) => supabase.from("invoice_items").select("id,description,discount,discount_type,quantity,unit_price,tax_rate,product_id").eq("invoice_id",id).order("id").range(from,to)),
+      ]);
+      const originalMap = new Map(originals.map(i => [i.id,i]));
+      const items = remaining.filter(i => Number(i.remaining_returnable_quantity)>0).map(i => {
+        const src = originalMap.get(i.invoice_item_id);
+        const quantity = Number(i.remaining_returnable_quantity);
+        return { ...createEmptyItem(), productId: i.product_id || undefined, sourceInvoiceItemId: i.invoice_item_id,
+          maxReturnableQty: quantity, description: src?.description || i.description || "", quantity,
+          unitPrice: Number(i.unit_price), discountType: "amount" as const,
+          discount: src?.discount_type === "percent" ? Number(src.discount || 0)*Number(i.unit_price)*quantity/100 : Number(src?.discount || 0)*quantity/Math.max(Number(src?.quantity || 0),1),
+          taxRate: Number(i.tax_rate || 0), taxCategory: Number(i.tax_rate)>0 ? "taxable" as const : "zero" as const };
+      });
+      if (!items.length) throw new Error("لا توجد كمية متبقية للإرجاع من هذه الفاتورة");
+      setOriginalInvoiceId(id);
+      setForm(p => ({ ...p, items, warehouseId: invoice.warehouse_id, taxInclusive: Boolean(invoice.tax_inclusive), invoiceDiscount: 0 }));
+    } catch (error) { toast({title: "تعذر ربط الفاتورة", description: error instanceof Error ? error.message : "أعد المحاولة",variant: "destructive"}); }
+    finally { setLoadingReturnSource(false); }
+  };
+
   // ─── المبلغ المدفوع فعلياً للفاتورة النقدية ───
   // الافتراضي = إجمالي الفاتورة ويتبعها تلقائياً حتى يلمسه المستخدم (touched).
   // يدعم: دفع أقل (متبقٍ على الذمة) / دفع أكثر (رصيد للجهة) / صفر (آجل بالكامل).
@@ -479,8 +557,8 @@ const InvoiceCreatePage = () => {
   // ─── Auto-Draft: حفظ تلقائي يحمي من فقدان البيانات عند التنقل بين التبويبات ───
   // معطّل في وضع التعديل (التعديل يحمل بياناته من قاعدة البيانات)،
   // وعند الاستيراد من duplicate (له منطق منفصل).
-  const draftFormId = `invoice_${form.type === "purchase" ? "purchase" : "sales"}_new`;
-  const draftScope = [user?.id || "anon", company?.id || "no-company", location.pathname, form.type, "new"].join(":");
+  const draftFormId = `invoice_${documentType}_new`;
+  const draftScope = [user?.id || "anon", company?.id || "no-company", location.pathname, documentType, "new"].join(":");
   const invoiceDraftSnapshot = useMemo(() => ({
     form,
     contactSearch,
@@ -488,8 +566,8 @@ const InvoiceCreatePage = () => {
     invoiceTerms,
     attachments,
     cashPaidInput,
-    cashPaidTouched,
-  }), [form, contactSearch, customerOverrides, invoiceTerms, attachments, cashPaidInput, cashPaidTouched]);
+    cashPaidTouched, returnReason, originalInvoiceId,
+  }), [form, contactSearch, customerOverrides, invoiceTerms, attachments, cashPaidInput, cashPaidTouched, returnReason, originalInvoiceId]);
 
   const { hasDraft, restoreDraft, clearDraft, draftSavedAt } = useFormDraft(
     draftFormId,
@@ -497,6 +575,8 @@ const InvoiceCreatePage = () => {
     (draft) => {
       const typedDraft = draft as typeof invoiceDraftSnapshot;
       if (typedDraft && typedDraft.form) {
+        setReturnReason(typedDraft.returnReason || "");
+        setOriginalInvoiceId(typedDraft.originalInvoiceId || "");
         // Back-compat: older drafts may lack invoiceKind / cashAccountCode.
         const restored = typedDraft.form as typeof form;
         setForm({
@@ -972,6 +1052,7 @@ const InvoiceCreatePage = () => {
 
   // ─── Item Calculations ───
   const calcItemSubtotal = useCallback((item: InvoiceItem) => {
+    if (isReturn) return calculateReturnLine(item, taxEnabled, form.taxInclusive).total;
     const base = item.quantity * item.unitPrice;
     let discountAmount = 0;
     if (item.discountType === "percent") {
@@ -986,7 +1067,7 @@ const InvoiceCreatePage = () => {
     if (form.taxInclusive) return afterDiscount;
     const tax = afterDiscount * (item.taxRate / 100);
     return afterDiscount + tax;
-  }, [taxEnabled, form.taxInclusive]);
+  }, [isReturn, taxEnabled, form.taxInclusive]);
 
   useEffect(() => {
     if (!isEditMode || !editInvoiceId) {
@@ -1196,6 +1277,13 @@ const InvoiceCreatePage = () => {
   }, []);
 
   const summary = useMemo(() => {
+    if (isReturn) {
+      const value = calculateReturnSummary(form.items, taxEnabled, form.taxInclusive);
+      return { subtotal: value.subtotal, totalDiscount: value.discount, itemsDiscount: value.discount,
+        invoiceDiscountAmount: 0, totalTax: value.tax, total: value.total,
+        paidAmount: form.invoiceKind === "cash" ? value.total : 0,
+        remainingAmount: form.invoiceKind === "cash" ? 0 : value.total };
+    }
     const grossTotal = form.items.reduce((s, i) => s + i.quantity * i.unitPrice, 0);
     const itemsDiscount = form.items.reduce((s, i) => s + getItemDiscountAmount(i), 0);
     // Cash invoices are immediately marked as paid (paid_amount = total, remaining = 0).
@@ -1251,7 +1339,7 @@ const InvoiceCreatePage = () => {
       total,
       ...computePaid(total),
     };
-  }, [form.items, form.taxInclusive, form.invoiceKind, form.invoiceDiscount, form.invoiceDiscountType, taxEnabled, getItemDiscountAmount]);
+  }, [isReturn, form.items, form.taxInclusive, form.invoiceKind, form.invoiceDiscount, form.invoiceDiscountType, taxEnabled, getItemDiscountAmount]);
 
   // المبلغ النقدي الفعلي: يتبع الإجمالي حتى يلمسه المستخدم، ويقبل الكسور (0.5+).
   const cashPaidAmount = useMemo(() => {
@@ -1275,6 +1363,10 @@ const InvoiceCreatePage = () => {
   useEffect(() => { filteredContactsRef.current = filteredContacts; }, [filteredContacts]);
 
   const selectContact = (contact: Contact) => {
+    if (isReturn && contact.id !== form.contactId) {
+      setOriginalInvoiceId("");
+      setForm(p => ({ ...p, items: [createEmptyItem()] }));
+    }
     setSelectedContact(contact);
     setContactSearch(contact.contact_name);
     setShowContactDropdown(false);
@@ -1347,6 +1439,7 @@ const InvoiceCreatePage = () => {
 
   // ─── Item Updates ───
   const updateItem = (id: string, field: keyof InvoiceItem, value: any) => {
+    if (isReturn && originalInvoiceId && (field === "taxRate" || field === "taxCategory" || field === "productId")) return;
     setForm(prev => ({
       ...prev,
       items: prev.items.map(item => {
@@ -1386,6 +1479,7 @@ const InvoiceCreatePage = () => {
   };
 
   const selectProduct = (itemId: string, productId: string) => {
+    if (isReturn && originalInvoiceId) return;
     const prod = products.find(p => p.id === productId);
     if (!prod) return;
     setProductSearchByRow(prev => ({ ...prev, [itemId]: prod.name }));
@@ -1543,7 +1637,35 @@ const InvoiceCreatePage = () => {
   // ─── Create / Update Invoice ───
   const handleCreate = async (asDraft = false) => {
     // Belt-and-suspenders: bail immediately on any re-entrant call.
-    if (creatingRef.current) return;
+    if (creatingRef.current || savedReturn) return;
+    if (isReturn) {
+      if (!user || !ownerId || returnPermissionsLoading || !can("can_process_returns")) { toast({ title: "لا تملك صلاحية معالجة المردودات", variant: "destructive" }); return; }
+      if (!form.contactId || !returnReason.trim() || !validateReturnItems(form.items) || form.items.some(i => !i.description.trim() || i.unitPrice <= 0) || summary.total <= 0 || form.invoiceDiscount !== 0) {
+        toast({ title: "اختر جهة موجودة وأدخل السبب والبنود بكميات صحيحة؛ الخصم يكون على البنود فقط", variant: "destructive" }); return;
+      }
+      if (loadingReturnSource || !navigator.onLine) { toast({title: "انتظر تحميل الفاتورة وتأكد من الاتصال", variant:"destructive"}); return; }
+      if (form.invoiceKind === "cash" && !form.cashAccountCode) { toast({title:"اختر الصندوق أو البنك",variant:"destructive"}); return; }
+      creatingRef.current = true; setCreating(true);
+      try {
+        const method = form.invoiceKind === "credit" ? "credit" : bankAccounts.some(b => b.gl_account_code === form.cashAccountCode) ? "bank" : "cash";
+        const { data, error } = await supabase.rpc("save_return_command_v1", {
+          p_owner: ownerId, p_command_key: returnCommandKeyRef.current, p_confirm: !asDraft,
+          p_document: { return_type: form.type, contact_id: form.contactId, return_date: form.date, related_invoice_id: originalInvoiceId || null,
+            reason: returnReason.trim(), notes: form.notes, refund_method: method, refund_account_code: form.cashAccountCode,
+            warehouse_id: form.warehouseId, cost_center_id: form.costCenterId, tax_inclusive: form.taxInclusive, currency: form.currency },
+          p_items: form.items.map(i => ({ product_id: i.productId || null, source_invoice_item_id: i.sourceInvoiceItemId || null,
+            description: i.description, quantity: i.quantity, unit_price: i.unitPrice,
+            discount: calculateReturnLine(i,taxEnabled,form.taxInclusive).storedDiscount, tax_rate: i.taxRate, tax_category: i.taxCategory })),
+        });
+        if (error) throw error;
+        const result = data as {id: string; return_number: string};
+        setSavedReturn(result); clearDraft();
+        broadcastChange("transaction", "updated", result.id);
+        toast({title: asDraft ? "تم حفظ مسودة المردود" : "تم حفظ وترحيل المردود", description: result.return_number});
+      } catch (error) { toast({title:"تعذر حفظ المردود",description:formatDbError(error,"أعد المحاولة"),variant:"destructive"}); }
+      finally { creatingRef.current=false; setCreating(false); }
+      return;
+    }
     if (!asDraft && !validate()) return;
     if (!user) return;
     // جهة نقدية عامة: فاتورة نقدية (غير مسودة) بدون جهة تُسجَّل على "زبون نقدي"/"مورد نقدي"
@@ -2433,7 +2555,7 @@ const InvoiceCreatePage = () => {
 
   const buildPrintInvoice = () => ({
     type: form.type,
-    invoiceNumber: printDocNumber,
+    invoiceNumber: isReturn ? savedReturn?.return_number || "— غير محفوظ —" : printDocNumber,
 
     date: form.date,
     dueDate: form.dueDate,
@@ -2456,9 +2578,9 @@ const InvoiceCreatePage = () => {
       taxRate: i.taxRate,
       taxCategory: i.taxCategory,
       unitOfMeasure: i.unitOfMeasure || "قطعة",
-      subtotal: calcItemSubtotal(i),
+      subtotal: isReturn ? calculateReturnLine(i, taxEnabled, form.taxInclusive).total : calcItemSubtotal(i),
     })),
-    notes: form.notes,
+    notes: isReturn ? [returnReason, form.notes].filter(Boolean).join("\n") : form.notes,
     status: isEditMode ? "sent" : "draft",
     paymentMethod: form.paymentMethod,
     subtotal: summary.subtotal,
@@ -2477,7 +2599,7 @@ const InvoiceCreatePage = () => {
     // الرصيد الختامي للجهة بعد احتساب الفاتورة الحالية.
     // لا يُطبع أي رصيد على مستند غير محفوظ أو عليه تعديلات غير محفوظة،
     // لأن «الرصيد قبل الفاتورة» يُشتق بالطرح ويعطي رقماً غير حقيقي.
-    const balancesAllowed = !isUnsavedDoc && !hasUnsavedEdits;
+    const balancesAllowed = !isReturn && !isUnsavedDoc && !hasUnsavedEdits;
     const baselineBalance = balancesAllowed
       ? (contactStatementBalance ?? selectedContact?.balance ?? (selectedContact as any)?.current_balance ?? null)
       : null;
@@ -2506,6 +2628,7 @@ const InvoiceCreatePage = () => {
     const printNode = (
       <InvoicePrintView
         invoice={previewInvoice}
+        printMode={isReturn ? "return" : "invoice"}
         settings={companySettings}
         copyLabel={isEditMode && !previewOnly && !hasUnsavedEdits ? tt("أصلية") : tt("معاينة")}
       />
@@ -2734,7 +2857,7 @@ const InvoiceCreatePage = () => {
     const newGroup = {
       key: "new", label: tt("جديد"), items: [
         { key: "new", label: tt("فاتورة جديدة"), icon: Plus, variant: "primary" as const,
-          onClick: () => startNewInvoice() },
+          onClick: () => { if (isReturn) { setSavedReturn(null); setOriginalInvoiceId(""); setReturnReason(""); returnCommandKeyRef.current=crypto.randomUUID(); } startNewInvoice(); } },
         ...(inEdit ? [{ key: "duplicate", label: tt("إنشاء مشابه"), icon: Copy,
           onClick: () => handleNewSimilar() }] : []),
       ],
@@ -2752,23 +2875,23 @@ const InvoiceCreatePage = () => {
         ]}
       : { key: "save", label: tt("حفظ"), items: [
           { key: "draft", label: tt("حفظ كمسودة"), icon: Save,
-            onClick: () => handleCreateRef.current?.(true), disabled: creating },
+            onClick: () => handleCreateRef.current?.(true), disabled: creating || Boolean(savedReturn) },
           { key: "post", label: tt("حفظ وترحيل"), icon: CheckCircle, variant: "primary" as const,
-            onClick: () => handleCreateRef.current?.(false), disabled: creating },
+            onClick: () => handleCreateRef.current?.(false), disabled: creating || Boolean(savedReturn) },
         ]};
     const viewGroup = { key: "view", label: tt("عرض"), items: [
       { key: "preview", label: tt("معاينة"), icon: Eye,     onClick: () => handlePrintRef.current?.(true) },
       { key: "print",   label: tt("طباعة"),  icon: Printer, onClick: () => handlePrintRef.current?.(false) },
     ]};
     const navGroup = { key: "nav", label: tt("تنقل"), items: [
-      { key: "prev", label: tt("السابق"), icon: ChevronRight, onClick: () => goToAdjacentInvoice("prev") },
-      { key: "next", label: tt("التالي"), icon: ChevronLeft,  onClick: () => goToAdjacentInvoice("next") },
-      { key: "inquiry", label: tt("استعلام"), icon: ListChecks, onClick: () => navigate("/invoices") },
+      { key: "prev", label: tt("السابق"), icon: ChevronRight, onClick: () => isReturn ? navigate(form.type === "sales" ? "/sales/returns" : "/purchases/returns") : goToAdjacentInvoice("prev") },
+      { key: "next", label: tt("التالي"), icon: ChevronLeft,  onClick: () => isReturn ? navigate(form.type === "sales" ? "/sales/returns" : "/purchases/returns") : goToAdjacentInvoice("next") },
+      { key: "inquiry", label: tt("استعلام"), icon: ListChecks, onClick: () => navigate(isReturn ? form.type === "sales" ? "/sales/returns" : "/purchases/returns" : "/invoices") },
       { key: "center",  label: tt("فتح مركز المالية"), icon: Calculator, onClick: () => navigate("/accounting-center") },
     ]};
     return [{ key: "general", label: tt("عام"), groups: [newGroup, saveGroup, viewGroup, navGroup] }];
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isEditMode, isReadOnly, creating]);
+  }, [isEditMode, isReadOnly, creating, isReturn, savedReturn, form.type]);
 
   // Ctrl/Cmd+Enter is already wired via useInvoiceKeyboard above (onSave → handleCreate).
 
@@ -2786,7 +2909,7 @@ const InvoiceCreatePage = () => {
 
   return (
     <FinanceShell
-      title={isEditMode ? (isReadOnly ? tt("عرض الفاتورة") : tt("تعديل الفاتورة")) : tt("إنشاء فاتورة جديدة")}
+      title={isReturn ? (form.type === "sales" ? "مردود مبيعات" : "مردود مشتريات") : isEditMode ? (isReadOnly ? tt("عرض الفاتورة") : tt("تعديل الفاتورة")) : tt("إنشاء فاتورة جديدة")}
       breadcrumb={[
         { label: tt("المالية"), href: "/accounting-center" },
         { label: tt("الفواتير"), href: "/invoices" },
@@ -2847,7 +2970,7 @@ const InvoiceCreatePage = () => {
           when isReadOnly. Uses <fieldset disabled> which natively disables
           all descendant inputs/buttons/selects without per-field plumbing.
           `contents` class keeps the grid layout intact. */}
-      <fieldset disabled={isReadOnly} className="contents">
+      <fieldset disabled={isReadOnly || Boolean(savedReturn)} className="contents">
       {/* ═══════════════════════════════════════════════════════════════
           PROFESSIONAL ACCOUNTING-GRADE LAYOUT — 12-column grid (RTL)
           ───────────────────────────────────────────────────────────────
@@ -2866,45 +2989,31 @@ const InvoiceCreatePage = () => {
       <Card className="border border-border/60 shadow-sm rounded-2xl">
         <CardHeader className="pb-2 pt-3 px-4">
           <CardTitle className="text-[13px] font-semibold flex items-center gap-2">
-            <FileText className="h-4 w-4 text-primary" />{tt("بيانات الفاتورة")}
+            <FileText className="h-4 w-4 text-primary" />{isReturn ? "بيانات المردود" : tt("بيانات الفاتورة")}
           </CardTitle>
         </CardHeader>
         <CardContent className="px-4 pb-4 space-y-3">
-          {/* Type Toggle — compact segmented control aligned to the right (RTL) */}
-          <div className="flex justify-start">
-            <div
-              role="tablist"
-              aria-label={tt("نوع الفاتورة")}
-              className="inline-flex w-full max-w-[420px] rounded-xl border border-border bg-muted/40 p-1 shadow-sm"
-            >
-              <button
-                type="button"
-                role="tab"
-                aria-selected={form.type === "sales"}
-                onClick={() => setForm(p => ({ ...p, type: "sales" }))}
-                className={`flex-1 h-9 rounded-lg text-[12px] font-semibold transition-all flex items-center justify-center gap-1.5 ${
-                  form.type === "sales"
-                    ? "bg-primary text-primary-foreground shadow"
-                    : "text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                <Receipt className="h-3.5 w-3.5" />{tt("فاتورة مبيعات")}
-              </button>
-              <button
-                type="button"
-                role="tab"
-                aria-selected={form.type === "purchase"}
-                onClick={() => setForm(p => ({ ...p, type: "purchase" }))}
-                className={`flex-1 h-9 rounded-lg text-[12px] font-semibold transition-all flex items-center justify-center gap-1.5 ${
-                  form.type === "purchase"
-                    ? "bg-primary text-primary-foreground shadow"
-                    : "text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                <ShoppingCart className="h-3.5 w-3.5" />{tt("فاتورة مشتريات")}
-              </button>
-            </div>
+          <div role="tablist" dir="rtl" aria-label="نوع المستند" className="grid grid-cols-2 sm:grid-cols-4 gap-1 rounded-lg border border-border bg-muted/40 p-1">
+            {([['sales','فاتورة مبيعات'],['purchase','فاتورة مشتريات'],['sales_return','مردود مبيعات'],['purchase_return','مردود مشتريات']] as const).map(([type,label]) => (
+              <Button key={type} type="button" role="tab" aria-selected={documentType===type} variant={documentType===type ? "default" : "ghost"}
+                disabled={isEditMode || creating || loadingReturnSource || Boolean(savedReturn)} onClick={() => changeDocumentType(type)} className="h-9 text-xs px-2 gap-1">
+                {documentPartyType(type)==="sales" ? <Receipt className="h-3.5 w-3.5"/> : <ShoppingCart className="h-3.5 w-3.5"/>}{label}
+              </Button>
+            ))}
           </div>
+          {isReturn && <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div><Label className="text-xs">الفاتورة الأصلية</Label>
+              <Input placeholder="بحث برقم الفاتورة أو المبلغ..." value={originalInvoiceSearch} onChange={e=>setOriginalInvoiceSearch(e.target.value)} disabled={!form.contactId || loadingReturnSource}/>
+              <Select dir="rtl" value={originalInvoiceId || "free"} disabled={!form.contactId || loadingReturnSource} onValueChange={v=>pullReturnInvoice(v==="free"?"":v)}>
+                <SelectTrigger><SelectValue placeholder="مردود حر"/></SelectTrigger><SelectContent>
+                  <SelectItem value="free">مردود حر — دون فاتورة أصلية</SelectItem>
+                  {originalInvoices.filter(i=>i.id===originalInvoiceId || multiWordMatchAny(originalInvoiceSearch,i.invoice_number,i.invoice_date,String(i.total_amount))).slice(0,50).map(i=><SelectItem key={i.id} value={i.id}>{i.invoice_number} — {i.invoice_date} — {i.total_amount} ₪</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div><Label className="text-xs">سبب المردود <span className="text-destructive">*</span></Label><Input value={returnReason} onChange={e=>setReturnReason(e.target.value)} placeholder="سبب المردود..."/></div>
+          </div>}
+          {savedReturn && <div className="flex items-center justify-between gap-2 text-sm text-primary"><span>تم حفظ المردود {savedReturn.return_number}</span><Button variant="outline" onClick={()=>navigate(`${form.type==='sales'?'/sales/returns':'/purchases/returns'}/new?view=${savedReturn.id}`)}>عرض المردود</Button></div>}
 
           {/* Row 1 (Enter order): Issue Date → Currency → Due Date → Payment Terms · Invoice # is read-only on the right */}
           <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
@@ -2919,7 +3028,7 @@ const InvoiceCreatePage = () => {
             </div>
             <div>
               <label className="text-[11px] text-muted-foreground mb-1 block font-medium">{tt("العملة")}</label>
-              <Select value={form.currency} onValueChange={async (v) => {
+              <Select dir="rtl" disabled={isReturn} value={form.currency} onValueChange={async (v) => {
                 setForm(p => ({ ...p, currency: v, exchangeRate: v === "شيكل" ? 1 : p.exchangeRate }));
                 if (v !== "شيكل" && user) {
                   const codeMap: Record<string, string> = { "دولار": "USD", "دينار": "JOD", "يورو": "EUR" };
@@ -2974,11 +3083,11 @@ const InvoiceCreatePage = () => {
             </div>
             <div>
               <label className="text-[11px] text-muted-foreground mb-1 block font-medium">
-                {tt("رقم الفاتورة")}
+                {isReturn ? "رقم المردود" : tt("رقم الفاتورة")}
                 {!isEditMode && <span className="text-[10px] text-amber-600"> — {tt("مبدئي، يُعتمد عند الحفظ")}</span>}
               </label>
               <Input
-                value={nextInvoiceNumber}
+                value={isReturn ? savedReturn?.return_number || "يُعتمد عند الحفظ" : nextInvoiceNumber}
                 readOnly
 
                 tabIndex={-1}
@@ -3001,7 +3110,7 @@ const InvoiceCreatePage = () => {
                   <Input
                     placeholder={`${tt("ابحث عن")} ${form.type === "sales" ? tt("زبون") : tt("مورد")}...`}
                     value={contactSearch}
-                    onChange={e => { setContactSearch(e.target.value); setForm(p => ({ ...p, contactName: e.target.value, contactId: null })); setSelectedContact(null); setShowContactDropdown(true); setContactActiveIdx(-1); }}
+                    onChange={e => { if (isReturn) { setOriginalInvoiceId(""); setForm(p=>({...p,items:[createEmptyItem()]})); } setContactSearch(e.target.value); setForm(p => ({ ...p, contactName: e.target.value, contactId: null })); setSelectedContact(null); setShowContactDropdown(true); setContactActiveIdx(-1); }}
                     onFocus={() => { setShowContactDropdown(true); setContactActiveIdx(-1); }}
                     onBlur={() => setTimeout(() => setShowContactDropdown(false), 200)}
                     onKeyDown={e => {
@@ -3067,7 +3176,7 @@ const InvoiceCreatePage = () => {
                         }
                       }}
                       onMouseEnter={() => setContactActiveIdx(idx)}
-                      onClick={() => selectContact(c)}
+                      onClick={() => { if(isReturn) { setOriginalInvoiceId(""); setForm(p=>({...p,items:[createEmptyItem()]})); } selectContact(c); }}
                       className={`w-full text-right px-3 py-2.5 text-sm transition-colors flex items-center justify-between gap-2 ${idx === contactActiveIdx ? "bg-muted" : "hover:bg-muted"}`}
                     >
                       <div>
@@ -3276,7 +3385,8 @@ const InvoiceCreatePage = () => {
                         min="0"
                         step="0.01"
                         dir="ltr"
-                        value={cashPaidTouched ? cashPaidInput : String(Math.round(summary.total * 100) / 100)}
+                        disabled={isReturn}
+                        value={isReturn ? String(summary.total) : cashPaidTouched ? cashPaidInput : String(Math.round(summary.total * 100) / 100)}
                         onChange={e => { setCashPaidInput(e.target.value); setCashPaidTouched(true); }}
                         onKeyDown={e => {
                           if (e.key === "Enter") { e.preventDefault(); e.stopPropagation(); focusFirstProductTrigger(); }
@@ -3588,7 +3698,8 @@ const InvoiceCreatePage = () => {
                             min="0"
                             step="0.01"
                             dir="ltr"
-                            value={cashPaidTouched ? cashPaidInput : String(Math.round(summary.total * 100) / 100)}
+                            disabled={isReturn}
+                        value={isReturn ? String(summary.total) : cashPaidTouched ? cashPaidInput : String(Math.round(summary.total * 100) / 100)}
                             onChange={e => { setCashPaidInput(e.target.value); setCashPaidTouched(true); }}
                             onKeyDown={e => {
                               if (e.key === "Enter") { e.preventDefault(); e.stopPropagation(); focusFirstProductTrigger(); }
@@ -3686,6 +3797,8 @@ const InvoiceCreatePage = () => {
       <aside className="lg:col-span-4 lg:sticky lg:top-4 self-start w-full">
         <SmartSummaryPanel
           variant="invoice"
+          returnDocument={isReturn}
+          cashDocument={form.invoiceKind === "cash"}
           isPosted={isEditMode}
           invoiceType={form.type}
           subtotal={summary.subtotal}
@@ -3704,7 +3817,7 @@ const InvoiceCreatePage = () => {
           currency={form.currency}
           exchangeRate={form.exchangeRate}
           dueDate={form.dueDate}
-          refNumber={nextInvoiceNumber}
+          refNumber={isReturn ? savedReturn?.return_number || "—" : nextInvoiceNumber}
           currencySymbol={currSymbol}
           onOpenStatement={selectedContact ? () => window.open(`/account-statement?contact_id=${selectedContact.id}`, "_blank") : undefined}
         />
@@ -3718,7 +3831,7 @@ const InvoiceCreatePage = () => {
         <CardHeader className="pb-2 pt-2.5 px-4 border-b border-border bg-background">
           <div className="flex items-center justify-between gap-2">
             <CardTitle className="text-sm font-semibold flex items-center gap-2">
-              <Package className="h-4 w-4 text-primary" />{tt("بنود الفاتورة")}
+              <Package className="h-4 w-4 text-primary" />{isReturn ? "بنود المردود" : tt("بنود الفاتورة")}
               <span className="text-[10px] font-normal text-muted-foreground">({form.items.length} {form.items.length === 1 ? tt("بند") : tt("بنود")})</span>
             </CardTitle>
             {/* Overflow menu keeps advanced actions reachable without cluttering the header */}
@@ -3729,7 +3842,7 @@ const InvoiceCreatePage = () => {
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-56">
-                {taxEnabled && (
+                {taxEnabled && !(isReturn && originalInvoiceId) && (
                   <DropdownMenuItem onSelect={(e) => { e.preventDefault(); setForm(p => ({ ...p, taxInclusive: !p.taxInclusive })); }}>
                     <Percent className="ml-2 h-4 w-4" />
                     <span>{form.taxInclusive ? tt("الأسعار شاملة الضريبة ✓") : tt("الأسعار غير شاملة الضريبة")}</span>
@@ -3910,6 +4023,7 @@ const InvoiceCreatePage = () => {
                       {/* Bonus quantity (free units) */}
                       <td className="py-1.5 px-2 align-middle min-w-[100px]">
                         <InvoiceNumericInput
+                          disabled={isReturn}
                           min={0}
                           step="any"
                           value={item.bonusQuantity}
@@ -4151,7 +4265,7 @@ const InvoiceCreatePage = () => {
             </button>
             <div className="flex items-center gap-4 text-[12.5px] flex-wrap justify-end">
               {/* Invoice-level discount (on the entire invoice, not per item) */}
-              <div className="flex items-center gap-1.5" dir="rtl">
+              <div className={`flex items-center gap-1.5 ${isReturn ? "hidden" : ""}`} dir="rtl">
                 <span className="text-muted-foreground text-[11.5px]">{tt("خصم الفاتورة")}</span>
                 <Input
                   type="number"
@@ -4401,6 +4515,7 @@ const InvoiceCreatePage = () => {
       </div>
 
       </fieldset>
+      {savedReturn && <div className="flex items-center justify-between gap-2 text-sm text-primary py-3"><span>تم حفظ المردود {savedReturn.return_number}</span><Button variant="outline" onClick={() => navigate(`${form.type === "sales" ? "/sales/returns" : "/purchases/returns"}/new?view=${savedReturn.id}`)}>فتح المردود المحفوظ</Button></div>}
 
 
       {/* Quick Add Product Dialog */}
