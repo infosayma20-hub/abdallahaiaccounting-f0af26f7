@@ -34044,6 +34044,10 @@ export type Database = {
         }[]
       }
       get_wallet_reconciliation: { Args: { _owner?: string }; Returns: Json }
+      global_search: {
+        Args: { p_limit?: number; p_query: string }
+        Returns: Json
+      }
       has_feature_permission: {
         Args: { _app: string; _feature: string; _perm: string; _user: string }
         Returns: boolean
