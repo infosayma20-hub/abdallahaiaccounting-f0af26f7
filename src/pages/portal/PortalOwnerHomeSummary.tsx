@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import {
   TrendingUp, TrendingDown, Wallet, Users, HandCoins, Factory,
-  ShoppingBag, ChevronLeft, RefreshCw, ClipboardList, UserCheck, UserX, Clock, FileText, CalendarClock,
+  ShoppingBag, ChevronLeft, RefreshCw, ClipboardList, UserCheck, UserX, Clock,
 } from 'lucide-react';
 import PortalRosterSummaryCard from './PortalRosterSummaryCard';
 import PortalOrdersSummaryCard from './PortalOrdersSummaryCard';
