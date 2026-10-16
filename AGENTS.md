@@ -24,4 +24,4 @@ Subdirectories may have their own `AGENTS.md` (e.g. `src/components/pos/`); read
 - Portal ops alerts come only from triggers calling `notify_ops_alert` (errors swallowed). Why: never block the source operation.
 - SECURITY DEFINER functions taking a client owner id must guard it (team/holding member, super_admin, or no JWT). Why: they bypass RLS.
 - Employee visibility RLS uses array helpers `my_chain_employee_ids()`/`my_managed_branch_employee_ids()` via `id = ANY((SELECT ...))`, identical in meaning to `is_my_team_employee`/`is_managed_branch_employee`. Why: per-row calls were 100x slower.
-- Invoice numbers come only from `invoice_sequences` via atomic `UPDATE … RETURNING` in `generate_invoice_number`; MAX over invoices is computed only when a counter row is first created. Why: no per-insert scans, race-safe.
+- Invoice numbers: `generate_invoice_number` increments `invoice_sequences` atomically; MAX scan only when seeding a new counter. Why: fast, race-safe.
