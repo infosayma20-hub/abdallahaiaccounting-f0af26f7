@@ -8,7 +8,7 @@ import {
   Home, Wallet, ClipboardList, BarChart3, MoreHorizontal,
   Settings, Bell, Sun, Moon, LogOut, Store, Factory,
   FileText, HandCoins, Send, Plus, RefreshCw, ChevronLeft,
-  X, Users, Package, CalendarClock, Megaphone, GraduationCap, Timer, Receipt, Star, MessageSquareWarning, CreditCard, BriefcaseBusiness, LayoutDashboard
+  X, Users, Package, CalendarClock, Megaphone, GraduationCap, Timer, Receipt, Star, MessageSquareWarning, CreditCard, BriefcaseBusiness, LayoutDashboard, ShoppingBag
 } from 'lucide-react';
 import PortalLiquidityTab from './PortalLiquidityTab';
 import PortalChequesTab from './PortalChequesTab';
@@ -735,7 +735,8 @@ export default function PortalDashboard() {
 
   // ═══════ HOME TAB — بطاقات كبيرة فقط؛ البيانات انتقلت إلى «لوحة التحكم» ═══════
   const renderHome = () => {
-    const homeCards: { label: string; icon: any; color: string; sub: string; action: () => void }[] = [
+    const homeCards: { label: string; icon: any; color: string; sub: string; value?: string; action: () => void }[] = [
+      { label: 'المبيعات', icon: ShoppingBag, color: '#0EA5E9', sub: 'نقطة البيع والفواتير اليوم', value: `₪${fmtMoney(salesToday)}`, action: () => { switchTab('finance'); setFinanceSection('sales'); } },
       { label: 'لوحة التحكم', icon: LayoutDashboard, color: '#0D6EFD', sub: 'مبيعات اليوم والمالية والحضور', action: () => setShowDashboardPage(true) },
       { label: 'المالية', icon: Wallet, color: '#16A34A', sub: 'المبيعات والسيولة والذمم', action: () => switchTab('finance') },
       { label: 'الحضور', icon: Users, color: '#F59E0B', sub: 'حضور الموظفين اليوم', action: () => switchTab('attendance') },
@@ -764,6 +765,9 @@ export default function PortalDashboard() {
                   <Icon size={20} />
                 </div>
                 <div style={{ fontSize: 14, fontWeight: 700, color: c.textPrimary }}>{card.label}</div>
+                {card.value && (
+                  <div style={{ fontSize: 18, fontWeight: 900, color: card.color, fontFamily: 'Cairo', lineHeight: 1.2 }}>{card.value}</div>
+                )}
                 <div style={{ fontSize: 10, color: c.textSecondary }}>{card.sub}</div>
               </button>
             );
