@@ -33459,6 +33459,7 @@ export type Database = {
           variance: number
         }[]
       }
+      get_contact_card: { Args: { p_contact_id: string }; Returns: Json }
       get_contact_statement: {
         Args: {
           p_contact_id: string

@@ -1,4 +1,5 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useMemo } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { useParams, useNavigate } from "react-router-dom";
 import { ArrowRight, Loader2, Pencil, Phone, Mail, MapPin, Globe, Building2, FileText, CreditCard, BarChart3, History, AlertTriangle, CheckCircle, Clock, PieChart, Link2 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -9,7 +10,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useDataOwnerId } from "@/hooks/useDataOwnerId";
 import ReceivablesAnalysisTab from "@/components/contacts/ReceivablesAnalysisTab";
-import { fetchContactBalance } from "@/lib/contact-balance";
 import AllocationsPanel from "@/components/accounting/AllocationsPanel";
 
 const classConfig: Record<string, { color: string; bg: string; label: string }> = {
@@ -24,77 +24,25 @@ const ContactDetailPage = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { dataOwnerId } = useDataOwnerId();
-  const [contact, setContact] = useState<any>(null);
-  const [transactions, setTransactions] = useState<any[]>([]);
-  const [cheques, setCheques] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("invoices");
-  // Phase 5G — Single Source of Truth: live balance from get_contact_balance.
-  // Replaces all reads of `contact.current_balance` for display.
-  const [liveBalance, setLiveBalance] = useState<number>(0);
 
-  useEffect(() => {
-    // بيانات الشركة تُقرأ بمالك البيانات لا بحساب المستخدم — حسابات الفريق
-    // (محاسب/موارد) كانت ترى صفحة جهة الاتصال فارغة.
-    if (!user || !id || !dataOwnerId) return;
-    const fetchData = async () => {
-      setLoading(true);
-      // First get the contact to know the name
-      const { data: contactData } = await supabase.from('contacts').select('*').eq('id', id).single();
-      setContact(contactData);
-      const contactName = (contactData as any)?.contact_name?.trim() || "";
-      
-      // Find all contact IDs with the same name (handle duplicates)
-      const { data: sameNameContacts } = await supabase
-        .from('contacts')
-        .select('id')
-        .eq('user_id', dataOwnerId)
-        .eq('contact_name', contactName);
-      const allIds = (sameNameContacts || []).map((c: any) => c.id);
-      if (!allIds.includes(id)) allIds.push(id);
-
-      // Fetch transactions matching any of these IDs OR by name fallback
-      const { data: txByIds } = await supabase
-        .from('transactions')
-        .select('*')
-        .eq('is_deleted', false)
-        .in('contact_id', allIds)
-        .order('transaction_date', { ascending: false })
-        .limit(500);
-      
-      // Also fetch transactions with no contact_id but matching name in description
-      const { data: txByName } = await supabase
-        .from('transactions')
-        .select('*')
-        .eq('user_id', dataOwnerId)
-        .eq('is_deleted', false)
-        .is('contact_id', null)
-        .ilike('description', `%${contactName}%`)
-        .order('transaction_date', { ascending: false })
-        .limit(200);
-      
-      const idSet = new Set((txByIds || []).map((t: any) => t.id));
-      const merged = [...(txByIds || []), ...(txByName || []).filter((t: any) => !idSet.has(t.id))];
-      setTransactions(merged);
-
-      const { data: chequeData } = await supabase
-        .from('cheques')
-        .select('*')
-        .eq('user_id', dataOwnerId)
-        .order('cheque_date', { ascending: false });
-      setCheques((chequeData as any[]) || []);
-
-      // Fetch authoritative balance from the ledger (same source as
-      // AccountStatement). This must always match what the user sees there.
-      if (id) {
-        const bal = await fetchContactBalance(id);
-        setLiveBalance(bal);
-      }
-
-      setLoading(false);
-    };
-    fetchData();
-  }, [user, id, dataOwnerId]);
+  // المرحلة 4ب — بطاقة العميل بطلب واحد (get_contact_card) ومخزّنة بالذاكرة،
+  // فالعودة للبطاقة تظهر فوراً بدون مؤشر تحميل.
+  const { data: card, isLoading } = useQuery({
+    queryKey: ["contact-card", dataOwnerId, id],
+    enabled: !!user && !!id && !!dataOwnerId,
+    staleTime: 60_000,
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc("get_contact_card" as any, { p_contact_id: id });
+      if (error) throw error;
+      return data as any;
+    },
+  });
+  const contact = card?.contact ?? null;
+  const transactions: any[] = card?.transactions ?? [];
+  const cheques: any[] = card?.cheques ?? [];
+  const liveBalance = Number(card?.balance?.balance ?? 0);
+  const loading = isLoading || !dataOwnerId;
 
   const stats = useMemo(() => {
     if (!transactions.length) return { totalSales: 0, totalPaid: 0, balance: 0, invoiceCount: 0 };
