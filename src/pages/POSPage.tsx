@@ -1897,12 +1897,15 @@ const POSPage = ({ variant = "v1" }: { variant?: "v1" | "v2" } = {}) => {
   }, [session?.id, userId, dataOwnerId]);
 
   // Refresh products & categories when page regains focus (e.g. after editing in inventory)
+  // — throttled to once per 5 minutes; cashier tabs regain focus constantly.
+  const lastFocusReloadRef = useRef(Date.now());
   useEffect(() => {
     const handleFocus = () => {
-      if (dataOwnerId && session) {
-        loadProducts();
-        loadCategories();
-      }
+      if (!dataOwnerId || !session) return;
+      if (Date.now() - lastFocusReloadRef.current < 5 * 60_000) return;
+      lastFocusReloadRef.current = Date.now();
+      loadProducts();
+      loadCategories();
     };
     window.addEventListener("focus", handleFocus);
     return () => window.removeEventListener("focus", handleFocus);
