@@ -399,24 +399,15 @@ export function useSaveJournalVoucher() {
     const validationError = validateJournalInput({ ...input, mode });
     if (validationError) return { success: false, error: validationError };
 
-    const shiftError = await validateShift(input, ownerId);
-    if (shiftError) return { success: false, error: shiftError };
-
-    // ── (0) حماية الفترة المقفلة (fiscal period lock) ──
-    const lockError = await checkFiscalPeriodLock(ownerId, input.date);
-    if (lockError) return { success: false, error: lockError };
-
-    // ── (0.1) حارس منع التكرار (Duplicate Guard) ──
-    // منع إنشاء سند مطابق (نفس المالك/التاريخ/المبلغ/الوصف) خلال آخر 5 دقائق.
-    // السبب: ضغطات "حفظ" متكررة أو تبويبات مفتوحة أو استعادة مسودّة تعيد الإرسال.
-    // الحارس آمن: يتجاهل المسودّات ولا يمنع التكرار المشروع بعد 5 دقائق.
-    try {
-      const totalDebitForCheck = input.lines.reduce(
-        (s, l) => s + (Number(l.debit) || 0),
-        0
-      );
-      const descForCheck = (input.description?.trim() || input.notes?.trim() || "").slice(0, 500);
-      if (mode !== "draft" && totalDebitForCheck > 0) {
+    // ── (0) الوردية + الفترة المقفلة + حارس التكرار: فحوصات قراءة مستقلة
+    // تُنفَّذ بالتوازي، والأخطاء تُفحص بنفس ترتيب الأولوية السابق.
+    // حارس التكرار: يمنع سندًا مطابقًا (المالك/التاريخ/المبلغ/الوصف) خلال 5 دقائق،
+    // يتجاهل المسودّات، وfail-soft عند فشل الاستعلام.
+    const dupCheck = async (): Promise<string | null> => {
+      try {
+        const totalDebitForCheck = input.lines.reduce((s, l) => s + (Number(l.debit) || 0), 0);
+        const descForCheck = (input.description?.trim() || input.notes?.trim() || "").slice(0, 500);
+        if (mode === "draft" || totalDebitForCheck <= 0) return null;
         const fiveMinAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString();
         const { data: dupRows } = await supabase
           .from("vouchers")
@@ -430,16 +421,21 @@ export function useSaveJournalVoucher() {
           .gte("created_at", fiveMinAgo)
           .limit(1);
         if (dupRows && dupRows.length > 0) {
-          return {
-            success: false,
-            error: `⚠️ يوجد سند مطابق تم إنشاؤه للتو (${(dupRows[0] as any).ref_number || ""}). تم منع التكرار.`,
-          };
+          return `⚠️ يوجد سند مطابق تم إنشاؤه للتو (${(dupRows[0] as any).ref_number || ""}). تم منع التكرار.`;
         }
+      } catch (e) {
+        console.warn("[dup-guard] check failed:", e);
       }
-    } catch (e) {
-      // Fail-soft: لا نمنع الحفظ لو فشل الاستعلام
-      console.warn("[dup-guard] check failed:", e);
-    }
+      return null;
+    };
+    const [shiftError, lockError, dupError] = await Promise.all([
+      validateShift(input, ownerId),
+      checkFiscalPeriodLock(ownerId, input.date),
+      dupCheck(),
+    ]);
+    if (shiftError) return { success: false, error: shiftError };
+    if (lockError) return { success: false, error: lockError };
+    if (dupError) return { success: false, error: dupError };
 
     setSaving(true);
     let createdVoucherId: string | null = null;
@@ -690,11 +686,12 @@ export function useSaveJournalVoucher() {
     const validationError = validateJournalInput({ ...input, mode });
     if (validationError) return { success: false, error: validationError };
 
-    const shiftError = await validateShift(input, ownerId);
+    // فحوصات مستقلة بالتوازي (قراءة فقط) — نفس ترتيب أولوية الأخطاء.
+    const [shiftError, lockError] = await Promise.all([
+      validateShift(input, ownerId),
+      checkFiscalPeriodLock(ownerId, input.date),
+    ]);
     if (shiftError) return { success: false, error: shiftError };
-
-    // فحص الفترة المقفلة على التاريخ الجديد
-    const lockError = await checkFiscalPeriodLock(ownerId, input.date);
     if (lockError) return { success: false, error: lockError };
 
     setSaving(true);
