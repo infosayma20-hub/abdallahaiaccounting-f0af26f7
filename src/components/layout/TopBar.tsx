@@ -3,6 +3,7 @@ import { useState, useEffect, useRef } from "react";
 import { Search, Bell, Settings, LogOut, User, Menu, Sun, Moon, FileText, Wallet, Users, X, Keyboard, Zap, Landmark, ClipboardList, Store, BarChart3, Banknote, Package, BookOpen, CreditCard, TrendingUp, Calculator, Receipt, ShoppingCart, Lock, MessageSquare } from "lucide-react";
 import { useInternalMessages } from "@/hooks/useInternalMessages";
 import { useAuth } from "@/hooks/useAuth";
+import { useBootstrap } from "@/hooks/useBootstrap";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 import { useTheme } from "@/hooks/useTheme";
 import LanguageSwitcher from "@/i18n/LanguageSwitcher";
@@ -228,22 +229,26 @@ const ProfileDropdown = ({
   const [agreementOpen, setAgreementOpen] = useState(false);
   const tt = useTT();
   const [info, setInfo] = useState<{ license: string | null; endDate: string | null; status: string | null }>({ license: null, endDate: null, status: null });
+  const bootstrap = useBootstrap();
 
   useEffect(() => {
+    // الاشتراك من حزمة البدء الموحّدة — الاستعلام المباشر بـ user.id كان
+    // يرجع فارغاً لحسابات الفريق لأن الفوترة على حساب المالك.
+    const boot = bootstrap.data;
+    if (!boot) return;
     (async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-      const [{ data: company }, { data: sub }] = await Promise.all([
-        supabase.from("companies").select("license_number").eq("owner_id", user.id).maybeSingle(),
-        supabase.from("subscriptions").select("current_period_end, status").eq("user_id", user.id).order("created_at", { ascending: false }).limit(1).maybeSingle(),
-      ]);
+      let license: string | null = null;
+      if (boot.company?.id) {
+        const { data: company } = await supabase.from("companies").select("license_number").eq("id", boot.company.id).maybeSingle();
+        license = (company as any)?.license_number ?? null;
+      }
       setInfo({
-        license: (company as any)?.license_number ?? null,
-        endDate: (sub as any)?.current_period_end ?? null,
-        status: (sub as any)?.status ?? null,
+        license,
+        endDate: boot.subscription?.current_period_end ?? null,
+        status: boot.subscription?.status ?? null,
       });
     })();
-  }, []);
+  }, [bootstrap.data]);
 
   const isTrial = info.status === "trial";
   return (
