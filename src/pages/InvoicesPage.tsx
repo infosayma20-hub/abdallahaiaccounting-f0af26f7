@@ -448,8 +448,12 @@ const InvoicesPage = () => {
           : invoicesQuery.in("warehouse_id", ["00000000-0000-0000-0000-000000000000"]);
       }
 
-      const [{ data: dbInvoices }, cbRes, baRes] = await Promise.all([
-        invoicesQuery.order("created_at", { ascending: false }),
+      // جلب كامل بصفحات — بلا هذا كان الخادم يقطع القائمة عند 1000 فاتورة
+      // بصمت، فتختفي الفواتير الأقدم من القائمة والتصدير.
+      const [dbInvoices, cbRes, baRes] = await Promise.all([
+        fetchAllRows<any>((from, to) =>
+          invoicesQuery.order("created_at", { ascending: false }).range(from, to)
+        ),
         supabase.from("cash_boxes").select("name, gl_account_code").eq("user_id", ownerId),
         supabase.from("bank_accounts").select("name, gl_account_code").eq("user_id", ownerId),
       ]);
@@ -547,7 +551,10 @@ const InvoicesPage = () => {
   useEffect(() => {
     if (!user) return;
     if (warehouseScopeLoading) return; // ننتظر معرفة نطاق الفرع قبل جلب الفواتير
-    if (!invPermsLoading && !canViewCurrentList) {
+    // ننتظر انتهاء تحميل الصلاحيات قبل أي جلب — بدون هذا الحارس كان الجلب
+    // ينطلق مرتين: مرة قبل اكتمال الصلاحيات ومرة بعدها.
+    if (invPermsLoading) return;
+    if (!canViewCurrentList) {
       // ممنوع من مشاهدة القوائم — لا نجلب الفواتير إطلاقاً، فقط بيانات نموذج الإنشاء
       fetchContacts();
       fetchProducts();
