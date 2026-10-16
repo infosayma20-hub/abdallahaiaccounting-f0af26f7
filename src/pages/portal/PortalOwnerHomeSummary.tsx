@@ -316,19 +316,3 @@ function ActionTile({ t, icon, label, onClick }: any) {
     </button>
   );
 }
-function QuickCard({ t, icon, color, label, value, onClick, badge }: any) {
-  return (
-    <button onClick={onClick} style={{
-      position: 'relative', textAlign: 'right', cursor: 'pointer', fontFamily: 'Cairo',
-      background: t.cardBg, border: `1px solid ${t.cardBorder}`, borderRadius: 14, padding: 10,
-      display: 'flex', flexDirection: 'column', gap: 6, minHeight: 92,
-    }}>
-      {badge > 0 && (
-        <span style={{ position: 'absolute', top: 6, left: 6, minWidth: 18, height: 18, borderRadius: 9, background: '#EF4444', color: '#fff', fontSize: 10, fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 5px' }}>{badge}</span>
-      )}
-      <div style={{ width: 34, height: 34, borderRadius: 10, background: color + '22', color, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{icon}</div>
-      <div style={{ fontSize: 11, fontWeight: 700, color: t.text }}>{label}</div>
-      <div style={{ fontSize: 11, color: t.textMuted, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{value}</div>
-    </button>
-  );
-}
