@@ -431,6 +431,69 @@ export type Database = {
         }
         Relationships: []
       }
+      account_balances_daily: {
+        Row: {
+          account_code: string
+          credit: number
+          currency: string
+          day: string
+          debit: number
+          user_id: string
+        }
+        Insert: {
+          account_code: string
+          credit?: number
+          currency?: string
+          day: string
+          debit?: number
+          user_id: string
+        }
+        Update: {
+          account_code?: string
+          credit?: number
+          currency?: string
+          day?: string
+          debit?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
+      account_balances_drift_log: {
+        Row: {
+          account_code: string | null
+          checked_at: string
+          currency: string | null
+          expected_credit: number | null
+          expected_debit: number | null
+          id: number
+          stored_credit: number | null
+          stored_debit: number | null
+          user_id: string | null
+        }
+        Insert: {
+          account_code?: string | null
+          checked_at?: string
+          currency?: string | null
+          expected_credit?: number | null
+          expected_debit?: number | null
+          id?: number
+          stored_credit?: number | null
+          stored_debit?: number | null
+          user_id?: string | null
+        }
+        Update: {
+          account_code?: string | null
+          checked_at?: string
+          currency?: string | null
+          expected_credit?: number | null
+          expected_debit?: number | null
+          id?: number
+          stored_credit?: number | null
+          stored_debit?: number | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       account_merge_log: {
         Row: {
           batch: string
@@ -31634,6 +31697,17 @@ export type Database = {
       }
     }
     Functions: {
+      _abd_apply: {
+        Args: {
+          p_amt: number
+          p_cr: string
+          p_cur: string
+          p_day: string
+          p_dr: string
+          p_user: string
+        }
+        Returns: undefined
+      }
       _apply_cco_edit_changes: {
         Args: { p_changes: Json; p_order_id: string }
         Returns: undefined
@@ -32239,6 +32313,7 @@ export type Database = {
         }
         Returns: Json
       }
+      check_account_balances_daily: { Args: never; Returns: number }
       check_can_change_base_currency: {
         Args: { p_data_owner_id?: string }
         Returns: Json
