@@ -170,11 +170,20 @@ const CashTransferPage = () => {
   const purgeTransactionsForRef = async (ref: string) => {
     if (!dataOwnerId || !ref) return;
     // Soft-delete matching journal entries (paired debit+credit rows share the same ref)
-    await supabase
+    const { error } = await supabase
       .from("transactions")
       .update({ is_deleted: true } as any)
       .eq("user_id", dataOwnerId)
       .ilike("description", `%${REF_TAG(ref)}%`);
+    if (error) throw new Error(`تعذر عكس القيد القديم: ${error.message}`);
+    // Verify: a silent block (RLS/trigger) must stop the edit, otherwise a second entry is posted
+    const { count } = await supabase
+      .from("transactions")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", dataOwnerId)
+      .eq("is_deleted", false)
+      .ilike("description", `%${REF_TAG(ref)}%`);
+    if ((count ?? 0) > 0) throw new Error("لم يتم عكس القيد القديم — لم يُحفظ التعديل حتى لا يتكرر القيد");
   };
 
   const performPosting = async (refKey: string) => {
@@ -289,7 +298,7 @@ const CashTransferPage = () => {
         const { rate, ilsEquivalent, finalDesc } = await performPosting(newRef);
 
         // Update audit row
-        await supabase.from("cash_transfers").update({
+        const { data: upd, error: updErr } = await supabase.from("cash_transfers").update({
           from_box_id: fromBoxId,
           to_box_id: toBoxId,
           amount: amountNum,
@@ -298,7 +307,12 @@ const CashTransferPage = () => {
           exchange_rate: rate,
           transfer_date: transferDate,
           description: finalDesc,
-        }).eq("id", editId);
+        }).eq("id", editId).select("id");
+        if (updErr || !upd?.length) {
+          // Roll back the freshly posted pair so the ledger never holds an orphan entry
+          await purgeTransactionsForRef(newRef).catch(() => {});
+          throw new Error(updErr?.message || "تعذر تحديث سجل التحويل — لم يُحفظ التعديل");
+        }
 
         broadcastChange("transaction", "updated", editId);
         toast({ title: "✅ تم تحديث التحويل وإعادة الترحيل" });
