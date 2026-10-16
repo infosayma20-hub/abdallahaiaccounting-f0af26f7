@@ -52,6 +52,7 @@ const PAYMENT_TYPES = new Set([
 const POS_TYPES = new Set([
   "pos_sale", "pos_cogs", "pos_transfer", "pos_expense", "pos_meal",
   "pos_currency_exchange",
+  "pos_return", "pos_return_vat", "pos_return_cogs", "pos_return_damage",
 ]);
 
 const CHEQUE_TYPES = new Set([
