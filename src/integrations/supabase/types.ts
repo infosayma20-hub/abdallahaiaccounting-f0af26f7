@@ -34431,6 +34431,8 @@ export type Database = {
           wheels_fixed_price: number
         }[]
       }
+      me_can_view_exec_complaints: { Args: never; Returns: boolean }
+      me_can_view_hr_complaints: { Args: never; Returns: boolean }
       move_account: {
         Args: {
           p_account_id: string
@@ -34439,9 +34441,14 @@ export type Database = {
         }
         Returns: Json
       }
+      my_branch_mgr_all_employee_ids: { Args: never; Returns: string[] }
+      my_builtin_form_view_keys: { Args: never; Returns: string[] }
       my_chain_employee_ids: { Args: never; Returns: string[] }
       my_managed_branch_employee_ids: { Args: never; Returns: string[] }
       my_org_employee_ids: { Args: never; Returns: string[] }
+      my_own_employee_ids: { Args: never; Returns: string[] }
+      my_template_view_all_ids: { Args: never; Returns: string[] }
+      my_template_view_pair_keys: { Args: never; Returns: string[] }
       my_visible_employee_ids: { Args: never; Returns: string[] }
       next_amwali_quote_number: { Args: never; Returns: string }
       next_doc_number: {
