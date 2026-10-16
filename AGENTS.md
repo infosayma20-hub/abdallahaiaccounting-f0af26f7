@@ -2,9 +2,9 @@
 
 Subdirectories may have their own `AGENTS.md` (e.g. `src/components/pos/`); read it before changing files there.
 
-- Use “يونيفاي” / “UNIFY” exclusively in all user-facing forms, documents, printouts, emails, notifications, and defaults; retain legacy `amwali` identifiers only where changing them would break storage, routes, database objects, integrations, or historical links.
-- Session bootstrap: RPC `get_my_bootstrap()` feeds `useBootstrap` (React Query + sessionStorage + one realtime channel); all role/permission/owner/subscription hooks read from it — never add per-hook fetches for those. Why: one request instead of ~10 serial rounds at startup.
-- Barcode goods receiving writes only via SECURITY DEFINER RPCs (`receiving_*`, `assign_receiving_session`) on `procurement_receiving_*`; stock/GL stay in the purchase-invoice flow. Why: workers must not see prices or post financials.
+- User-facing text uses only “يونيفاي”/“UNIFY”; keep legacy `amwali` identifiers only where renaming breaks storage, routes, DB objects or links.
+- Session bootstrap: RPC `get_my_bootstrap()` feeds `useBootstrap` (React Query + sessionStorage + one realtime channel); all role/permission/owner/subscription hooks read from it — never add per-hook fetches for those. Why: one startup request.
+- Barcode goods receiving writes only via SECURITY DEFINER RPCs (`receiving_*`, `assign_receiving_session`) on `procurement_receiving_*`; stock/GL stay in the purchase-invoice flow. Why: workers never see prices.
 - Purchase order lines reference `procurement_items`; stock goes to `procurement_items.inventory_product_id` via `ensure_procurement_item_product`, and invoice lines carry `procurement_order_item_id` for cumulative received qty. Why: order item ids are not product ids (FK failed silently before).
 - Warehouse receiving is a standalone employee workspace: entry requires an active receiver flag or an assigned session, and back returns only to the workspace chooser. Why: keep warehouse staff out of the admin ERP shell.
 - Employee hot-drink sales use the dedicated atomic RPC and `[EMPLOYEE_HOT_DRINK]` line marker; first two drinks per POS business day are half price, later ones full price, marked lines bypass stock. Why: auditable and race-safe.
