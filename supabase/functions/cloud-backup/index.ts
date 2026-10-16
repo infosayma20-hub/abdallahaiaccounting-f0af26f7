@@ -183,7 +183,7 @@ Deno.serve(async (req) => {
     const y = now.getFullYear(), m = String(now.getMonth() + 1).padStart(2, '0'), d = String(now.getDate()).padStart(2, '0')
     const root = `العملاء/${slug(companyName)}__${ownerId.slice(0, 8)}`
     const folder = `${root}/النسخ-الاحتياطية/${y}/${m}/${d}`
-    const { data: catalog, error } = await sb.rpc('cloud_backup_table_catalog')
+    const { data: catalog, error } = await sb.rpc('cloud_backup_table_catalog_cached')
     if (error) return json({ success: false, error: error.message }, 500)
     const colOf: Record<string, string> = {}
     const tasks: Task[] = []
