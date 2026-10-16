@@ -42,6 +42,8 @@ const fmtAmount = (n: number, currency?: string) => {
 const fmtDate = (d: string) => { if (!d) return "—"; const p = d.split("-"); return p.length === 3 ? `${p[2]}/${p[1]}/${p[0]}` : d; };
 
 const getTypeBadge = (txType: string): { label: string; color: string; bg: string } => {
+  if (txType.startsWith("pos_return")) return { label: "مردود نقطة البيع", color: "hsl(var(--foreground))", bg: "hsl(var(--muted))" };
+  if (["sales_return", "sale_return", "purchase_return"].includes(txType)) return { label: txType === "purchase_return" ? "مردود مشتريات" : "مردود مبيعات", color: "hsl(var(--foreground))", bg: "hsl(var(--muted))" };
   if (txType.includes("pos")) return { label: "مبيعات POS", color: "#7C3AED", bg: "#EDE9FE" };
   if (txType.includes("sale") || txType.includes("فاتورة")) return { label: "فاتورة مبيعات", color: "#059669", bg: "#ECFDF5" };
   if (txType.includes("receipt") || txType.includes("قبض")) return { label: "سند قبض", color: "#2563EB", bg: "#EFF6FF" };
@@ -55,6 +57,7 @@ const getTypeBadge = (txType: string): { label: string; color: string; bg: strin
 
 // Resolve source URL from transaction_type and reference
 function resolveSourceUrl(txType: string, reference: string, txId: string): { viewUrl: string | null; editUrl: string | null } {
+  if (txType.includes("pos")) return { viewUrl: null, editUrl: null };
   // Voucher-based (receipt/payment)
   if (txType.includes("receipt") || txType.includes("قبض")) {
     return { viewUrl: `/finance/receipts`, editUrl: null };

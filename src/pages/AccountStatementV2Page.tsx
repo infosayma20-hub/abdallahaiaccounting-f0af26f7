@@ -45,6 +45,7 @@ import { Package, ChevronRight } from "lucide-react";
 import { ArrowUp, ArrowDown, ChevronsUpDown } from "lucide-react";
 import { getStatementBalanceColor, resolveStatementDebitCredit } from "@/lib/accounting/statement-side";
 import { resolveDocumentRoute } from "@/lib/account-statement/resolveDocumentRoute";
+import { txTypeMatchesFilter } from "@/lib/account-statement/transactionTypeFilter";
 
 // ─── Reference label formatting ───
 // Shortens long internal references (UUIDs etc.) into Arabic-friendly labels.
@@ -103,6 +104,7 @@ const getDayName = (d: string) => { try { const date = parseISO(d); const diff =
 
 const getTypeBadge = (txType: string) => {
   if (txType === "reversal" || txType.includes("reverse")) return "قيد عكسي";
+  if (txType.startsWith("pos_return")) return "مردود نقطة البيع";
   if (txType.includes("pos")) return "مبيعات POS";
   if (txType === "sales_return" || txType === "sale_return") return "مردود مبيعات";
   if (txType === "purchase_return") return "مردود مشتريات";
@@ -140,20 +142,8 @@ const TX_TYPE_FILTERS = [
   { value: "payment", label: "سندات صرف" },
   { value: "journal", label: "قيود محاسبية" },
   { value: "purchase", label: "فواتير مشتريات" },
+  { value: "return", label: "المردودات" },
 ];
-
-const txTypeMatchesFilter = (transactionType: string, filter: string) => {
-  if (filter === "all") return true;
-  const type = (transactionType || "").toLowerCase();
-  if (filter === "journal") {
-    return type.includes("journal") || type.includes("قيد") || type.includes("salary") || type === "manual";
-  }
-  if (filter === "sale") return type.includes("sale") || type.includes("فاتورة");
-  if (filter === "receipt") return type.includes("receipt") || type.includes("قبض");
-  if (filter === "payment") return type.includes("payment") || type.includes("صرف");
-  if (filter === "purchase") return type.includes("purchase") || type.includes("مشتريات");
-  return type.includes(filter);
-};
 
 // ─── COMPONENT ───
 const AccountStatementV2Page = () => {

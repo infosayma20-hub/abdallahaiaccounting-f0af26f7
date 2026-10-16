@@ -56,6 +56,13 @@ describe("shift grouping includes cash-out documents", () => {
 });
 
 describe("shift study corrections stay inside their shift", () => {
+  it("groups a POS return and its VAT under the actual refund reference", () => {
+    const rows = [row({ transaction_id: "ret", transaction_type: "pos_return", reference: "RET-1", credit: 20, balance: -20 }), row({ transaction_id: "vat", transaction_type: "pos_return_vat", reference: "RET-1", credit: 3.2, balance: -23.2 })];
+    const result = groupRowsByShift(rows, { shifts: new Map([["S1", info]]), orderToSession: new Map(), refToSession: new Map([["RET-1", "S1"]]), expandedSessions: new Set(), enabled: true });
+    expect(result).toHaveLength(1);
+    expect(result[0].credit).toBe(23.2);
+    expect(result[0].balance).toBe(-23.2);
+  });
   it("folds a later discount, a return and the surplus settlement so the shift nets to zero", () => {
     const sid = "20d27bca-6836-4fa5-b1be-77771a29e260";
     const rows = [

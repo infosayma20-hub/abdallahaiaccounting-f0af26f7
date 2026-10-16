@@ -155,6 +155,19 @@ export function usePosShiftData(
         // 4) Cash-out documents of the same shifts (expenses / purchases + reversals).
         const txMap = new Map<string, string>(orderTxMap);
         const refMap = new Map<string, string>();
+        // Refund GL references are RET-… rather than the POS order number.
+        // Resolve the actual posting reference so VAT/cost lines share the shift.
+        const orderTxIds = Array.from(orderTxMap.keys());
+        for (let i = 0; i < orderTxIds.length; i += 100) {
+          const { data: postings, error: postingError } = await supabase.from('transactions')
+            .select('id,reference').eq('user_id', userId).in('id', orderTxIds.slice(i, i + 100));
+          if (cancelled || myReq !== reqId.current) return;
+          if (postingError) throw postingError;
+          for (const posting of postings || []) {
+            const sid = orderTxMap.get(posting.id);
+            if (sid && posting.reference) refMap.set(posting.reference, sid);
+          }
+        }
         for (const v of linkedJournals) {
           if (v.pos_session_id && shiftMap.has(v.pos_session_id)) refMap.set(v.ref_number, v.pos_session_id);
         }

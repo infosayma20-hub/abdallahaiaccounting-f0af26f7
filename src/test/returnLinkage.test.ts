@@ -14,4 +14,11 @@ describe("return document linkage", () => {
   it("keeps ordinary purchase invoices on their existing path", () => {
     expect(classifyTransaction({ transaction_type: "purchase", reference: "INV-1" }).navigatePath).toBe("/invoices?search=INV-1");
   });
+  it("protects all POS refund accounting lines and opens the POS source", () => {
+    for (const type of ["pos_return", "pos_return_vat", "pos_return_cogs", "pos_return_damage"]) {
+      expect(classifyTransaction({ transaction_type: type, reference: "POS-R-4" })).toMatchObject({
+        isLinked: true, docType: "pos_session", navigatePath: "/reports/pos-invoice-register?search=POS-R-4",
+      });
+    }
+  });
 });
