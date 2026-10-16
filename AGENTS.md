@@ -23,3 +23,4 @@ Subdirectories may have their own `AGENTS.md` (e.g. `src/components/pos/`); read
 <!-- LOVABLE:END -->
 - Delivery note → invoice only via RPC `convert_delivery_note_to_invoice` (draft invoice with `source_delivery_note_id`, no second stock deduction); cancelling it calls `release_delivery_note_from_invoice`. Why: the note already moved stock.
 - Portal ops alerts (cancel, discount, payment change, attendance edit) come only from triggers calling `notify_ops_alert` to `malaki_portal_users.receive_ops_alerts`; errors swallowed. Why: never block the source operation.
+- SECURITY DEFINER read functions that take a tenant/owner id from the client must guard it (team member, active holding member, super_admin, or no JWT for service jobs). Why: definer functions bypass RLS, so an unchecked id leaks other tenants' data.
