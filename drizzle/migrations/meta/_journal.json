@@ -1009,6 +1009,13 @@
       "when": 1792116454194,
       "tag": "0143_cash_transfer_autolink_respect_date",
       "breakpoints": true
+    },
+    {
+      "idx": 144,
+      "version": "7",
+      "when": 1792118747894,
+      "tag": "0144_perf_phase1_balances_guard_and_indexes",
+      "breakpoints": true
     }
   ]
 }

@@ -1,0 +1,1 @@
+- Fresh sign-ins keep login visible while `/apps` preloads, then navigate after gates settle (with watchdog); launcher grid/favorites/locked apps persist. Why: no flashes.
