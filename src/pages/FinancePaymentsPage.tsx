@@ -7,6 +7,7 @@ import {
 } from "lucide-react";
 import * as XLSX from "xlsx";
 import { supabase } from "@/integrations/supabase/client";
+import { fetchAllRows, fetchRowsByIds } from "@/lib/fetch-all-rows";
 import { useAuth } from "@/hooks/useAuth";
 import { useDataOwnerId } from "@/hooks/useDataOwnerId";
 import { useToast } from "@/hooks/use-toast";
@@ -121,12 +122,12 @@ export default function FinancePaymentsPage() {
     if (!user) return;
     setLoading(true);
     const [rvRes, cRes, cbRes, baRes, empRes] = await Promise.all([
-      supabase.from("vouchers").select("*").eq("user_id", ownerId).eq("type", "payment")
-        .order("date", { ascending: false }),
-      supabase.from("contacts").select("id, contact_name").eq("user_id", ownerId),
+      fetchAllRows<any>((from, to) => supabase.from("vouchers").select("*").eq("user_id", ownerId).eq("type", "payment")
+        .order("date", { ascending: false }).order("id").range(from, to)).then(data => ({ data })),
+      fetchAllRows<any>((from, to) => supabase.from("contacts").select("id, contact_name").eq("user_id", ownerId).order("id").range(from, to)).then(data => ({ data })),
       supabase.from("cash_boxes").select("id, name, currency, gl_account_code").eq("user_id", ownerId),
       supabase.from("bank_accounts").select("id, name, currency, gl_account_code").eq("user_id", ownerId),
-      supabase.from("employees").select("id, full_name").eq("user_id", ownerId),
+      fetchAllRows<any>((from, to) => supabase.from("employees").select("id, full_name").eq("user_id", ownerId).order("id").range(from, to)).then(data => ({ data })),
     ]);
     const cMap = new Map<string, string>((cRes.data || []).map((c: any) => [c.id, c.contact_name]));
     const cbMap = new Map<string, any>((cbRes.data || []).map((b: any) => [b.id, b]));
@@ -147,10 +148,10 @@ export default function FinancePaymentsPage() {
     const txIds = (rvRes.data || []).map((rv: any) => rv.linked_transaction_id).filter(Boolean);
     const txMap = new Map<string, { cost_center_id: string | null; debit_account_code: string | null; credit_account_code: string | null; currency: string | null }>();
     if (txIds.length) {
-      const { data: tx } = await supabase
+      const tx = await fetchRowsByIds<any>(txIds, (ids, from, to) => supabase
         .from("transactions")
         .select("id, cost_center_id, debit_account_code, credit_account_code, currency")
-        .in("id", txIds);
+        .eq("user_id", ownerId).in("id", ids).order("id").range(from, to));
       for (const t of (tx || [])) {
         txMap.set(t.id, {
           cost_center_id: (t as any).cost_center_id || null,
@@ -163,11 +164,11 @@ export default function FinancePaymentsPage() {
     const debitCodes = Array.from(new Set(Array.from(txMap.values()).map((t) => t.debit_account_code).filter(Boolean) as string[]));
     const accountMap = new Map<string, string>();
     if (debitCodes.length) {
-      const { data: accounts } = await supabase
+      const accounts = await fetchRowsByIds<any>(debitCodes, (codes, from, to) => supabase
         .from("accounts")
         .select("account_code, account_name")
         .eq("user_id", ownerId)
-        .in("account_code", debitCodes);
+        .in("account_code", codes).order("id").range(from, to));
       for (const a of (accounts || []) as any[]) accountMap.set(a.account_code, a.account_name);
     }
     const ccMap = new Map<string, string>(
@@ -284,7 +285,7 @@ export default function FinancePaymentsPage() {
     let data = applyFilters(rows, shellFilters);
     if (searchQuery.trim()) {
       data = data.filter((r) =>
-        multiWordMatchAny(searchQuery, r.ref_number, r.contact_name, r.notes, r.payment_label, r.account_label),
+        multiWordMatchAny(searchQuery, r.ref_number, r.contact_name, r.notes, r.payment_label, r.account_label, String(r.amount), r.date, r.currency, r.cost_center_name),
       );
     }
     return data;

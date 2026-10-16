@@ -28,6 +28,7 @@ import { useDataOwnerId } from "@/hooks/useDataOwnerId";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { fetchAllRows } from "@/lib/fetch-all-rows";
+import { multiWordMatchAny } from "@/lib/utils";
 import { useCompanySettings } from "@/hooks/useCompanySettings";
 import { isInvoicesRpcEnabled, callCreateInvoiceLedgerRpc } from "@/lib/invoice-rpc";
 import { callCreateReceiptRpc, callCreatePaymentRpc } from "@/lib/voucher-rpc";
@@ -592,11 +593,13 @@ const InvoiceCreatePage = () => {
 
   // ─── Data Fetching ───
   useEffect(() => {
-    if (!user) return;
+    if (!user || !ownerId) return;
     const fetchAll = async () => {
       const currentYear = new Date().getFullYear();
       const [cRes, pRes, sRes, bRes, cbRes, salesSequenceRes, purchaseSequenceRes, taxSettingsRes, settingsRes] = await Promise.all([
-        supabase.from("contacts").select("id, contact_name, contact_type, phone, email, address, payment_terms_days, current_balance, credit_limit, tax_number, sales_rep_id").eq("user_id", ownerId).neq("is_archived", true).order("contact_name"),
+        fetchAllRows<Contact>((from, to) =>
+          supabase.from("contacts").select("id, contact_name, contact_type, phone, email, address, payment_terms_days, current_balance, credit_limit, tax_number, sales_rep_id").eq("user_id", ownerId).or("is_archived.is.null,is_archived.eq.false").order("contact_name").order("id").range(from, to)
+        ).then(data => ({ data, error: null })),
         fetchAllRows<any>((from, to) =>
           supabase.from("products").select("*").eq("user_id", ownerId).order("name").range(from, to)
         ).then((data) => ({ data, error: null as any })),
@@ -826,7 +829,7 @@ const InvoiceCreatePage = () => {
       }
     };
     fetchAll().then(() => setDraftReady(true), () => setDraftReady(true));
-  }, [user]);
+  }, [user, ownerId]);
 
   // Recompute the next invoice number whenever the user toggles between sales and purchase.
   // Each type has its own independent counter (e.g. INV-2026-0001, PO-2026-0001).
@@ -1265,7 +1268,7 @@ const InvoiceCreatePage = () => {
   const filteredContacts = useMemo(() => {
     const typeFilter = form.type === "sales" ? "عميل" : "مورد";
     return contacts.filter(c =>
-      c.contact_name.includes(contactSearch) &&
+      multiWordMatchAny(contactSearch, c.contact_name, c.phone, c.tax_number, c.email) &&
       (c.contact_type === typeFilter || c.contact_type === "عميل ومورد" || !contactSearch)
     );
   }, [contacts, contactSearch, form.type]);

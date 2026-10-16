@@ -7,6 +7,7 @@ import {
 } from "lucide-react";
 import * as XLSX from "xlsx";
 import { supabase } from "@/integrations/supabase/client";
+import { fetchAllRows, fetchRowsByIds } from "@/lib/fetch-all-rows";
 import { useAuth } from "@/hooks/useAuth";
 import { useDataOwnerId } from "@/hooks/useDataOwnerId";
 import { useToast } from "@/hooks/use-toast";
@@ -140,12 +141,12 @@ export default function FinanceReceiptsPage() {
     if (!user) return;
     setLoading(true);
     const [rvRes, unifiedRes, cRes, cbRes, baRes] = await Promise.all([
-      supabase.from("receipt_vouchers").select("*").eq("user_id", ownerId)
-        .order("payment_date", { ascending: false }),
-      supabase.from("vouchers").select("*")
+      fetchAllRows<any>((from, to) => supabase.from("receipt_vouchers").select("*").eq("user_id", ownerId)
+        .order("payment_date", { ascending: false }).order("id").range(from, to)).then(data => ({ data })),
+      fetchAllRows<any>((from, to) => supabase.from("vouchers").select("*")
         .eq("user_id", ownerId).eq("type", "receipt")
-        .order("date", { ascending: false }),
-      supabase.from("contacts").select("id, contact_name").eq("user_id", ownerId),
+        .order("date", { ascending: false }).order("id").range(from, to)).then(data => ({ data })),
+      fetchAllRows<any>((from, to) => supabase.from("contacts").select("id, contact_name").eq("user_id", ownerId).order("id").range(from, to)).then(data => ({ data })),
       supabase.from("cash_boxes").select("id, name, currency, gl_account_code").eq("user_id", ownerId),
       supabase.from("bank_accounts").select("id, name, currency, gl_account_code").eq("user_id", ownerId),
     ]);
@@ -165,10 +166,10 @@ export default function FinanceReceiptsPage() {
     const txIds = (rvRes.data || []).map((rv: any) => rv.linked_transaction_id).filter(Boolean);
     const txMap = new Map<string, { cost_center_id: string | null; currency: string | null }>();
     if (txIds.length) {
-      const { data: tx } = await supabase
+      const tx = await fetchRowsByIds<any>(txIds, (ids, from, to) => supabase
         .from("transactions")
         .select("id, cost_center_id, currency")
-        .in("id", txIds);
+        .eq("user_id", ownerId).in("id", ids).order("id").range(from, to));
       for (const t of (tx || [])) txMap.set(t.id, {
         cost_center_id: (t as any).cost_center_id || null,
         currency: (t as any).currency || null,
@@ -256,7 +257,7 @@ export default function FinanceReceiptsPage() {
     const all = [...mapped, ...unifiedMapped].sort((a, b) => (b.date || "").localeCompare(a.date || ""));
     setRows(all);
     setLoading(false);
-  }, [user, costCenters]);
+  }, [user, ownerId, costCenters]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
@@ -315,7 +316,7 @@ export default function FinanceReceiptsPage() {
     let data = applyFilters(rows, shellFilters);
     if (searchQuery.trim()) {
       data = data.filter((r) =>
-        multiWordMatchAny(searchQuery, r.ref_number, r.contact_name, r.notes, r.payment_label, r.account_label),
+        multiWordMatchAny(searchQuery, r.ref_number, r.contact_name, r.notes, r.payment_label, r.account_label, String(r.amount), r.date, r.currency, r.cost_center_name),
       );
     }
     return data;

@@ -39,7 +39,7 @@ const isCustomer = (c: Contact) => ["customer", "عميل", "زبون", "عمي�
 const isSupplier = (c: Contact) => ["supplier", "مورد", "عميل ومورد"].includes(c.contact_type);
 const isEmployee = (c: Contact) => ["employee", "موظف"].includes(c.contact_type);
 
-const MIN_CHARS = 3;
+const MIN_CHARS = 1;
 const MAX_PER_GROUP = 20;
 
 function formatAmount(n: number) {

@@ -253,10 +253,10 @@ const JournalEntriesPage = () => {
             .order("transaction_date", { ascending: false })
             .range(from, to)
         ).then((data) => ({ data, error: null as any })).catch((error) => ({ data: [] as any[], error })),
-        supabase.from("accounts")
+        fetchAllRows<any>((from, to) => supabase.from("accounts")
           .select("id, account_name, account_code, account_type")
           .eq("user_id", ownerId)
-          .order("account_code"),
+          .order("account_code").order("id").range(from, to)).then(data => ({ data, error: null })),
         supabase.from("profiles")
           .select("display_name, company_name")
           .eq("user_id", ownerId)

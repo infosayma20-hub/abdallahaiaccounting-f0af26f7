@@ -17,6 +17,7 @@ import { Dialog, DialogContent } from "@/components/ui/dialog";
 import useFocusHighlight from "@/hooks/useFocusHighlight";
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
+import { fetchAllRows } from "@/lib/fetch-all-rows";
 import { useAuth } from "@/hooks/useAuth";
 import { useDataOwnerId } from "@/hooks/useDataOwnerId";
 import { useToast } from "@/hooks/use-toast";
@@ -174,15 +175,15 @@ const FinanceJournalPage = () => {
     setLoading(true);
     // Only fetch the vouchers list on page load (fast).
     // Accounts + contacts are only needed inside the form modal — load them lazily.
-    const vRes = await supabase
+    const voucherRows = await fetchAllRows<any>((from, to) => supabase
       .from("vouchers")
       .select("id, ref_number, date, subtype, contact_id, description, notes, amount, currency, status, created_at")
       .eq("user_id", dataOwnerId)
       .eq("type", "journal")
       .neq("status", "cancelled")
-      .order("created_at", { ascending: false })
-      .limit(500);
-    setVouchers(vRes.data || []);
+      .order("created_at", { ascending: false }).order("id")
+      .range(from, to));
+    setVouchers(voucherRows);
     setLoading(false);
   }, [user, dataOwnerId]);
 
@@ -191,8 +192,8 @@ const FinanceJournalPage = () => {
     if (refDataLoaded || refDataLoading || !dataOwnerId) return;
     setRefDataLoading(true);
     const [aRes, cRes] = await Promise.all([
-      supabase.from("accounts").select("account_code, account_name, account_type").eq("user_id", dataOwnerId).eq("is_active", true).order("account_code"),
-      supabase.from("contacts").select("id, contact_name, contact_type, current_balance").eq("user_id", dataOwnerId).neq("is_archived", true),
+      fetchAllRows<any>((from, to) => supabase.from("accounts").select("account_code, account_name, account_type").eq("user_id", dataOwnerId).eq("is_active", true).order("account_code").order("id").range(from, to)).then(data => ({ data })),
+      fetchAllRows<any>((from, to) => supabase.from("contacts").select("id, contact_name, contact_type, current_balance").eq("user_id", dataOwnerId).or("is_archived.is.null,is_archived.eq.false").order("id").range(from, to)).then(data => ({ data })),
     ]);
     setAccounts(aRes.data || []);
     setContacts(cRes.data || []);
@@ -229,8 +230,8 @@ const FinanceJournalPage = () => {
   const diff = Math.abs(totalDebit - totalCredit);
 
   // Helper to normalize contact types (handle both EN and AR values)
-  const isCustomer = (c: any) => ["customer", "عميل", "زبون"].includes(c.contact_type);
-  const isSupplier = (c: any) => ["supplier", "مورد"].includes(c.contact_type);
+  const isCustomer = (c: any) => ["customer", "عميل", "زبون", "عميل ومورد"].includes(c.contact_type);
+  const isSupplier = (c: any) => ["supplier", "مورد", "عميل ومورد"].includes(c.contact_type);
   const isEmployee = (c: any) => ["employee", "موظف"].includes(c.contact_type);
 
   const filteredContacts = useMemo(() => {

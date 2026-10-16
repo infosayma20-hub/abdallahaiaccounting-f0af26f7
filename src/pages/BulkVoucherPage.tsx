@@ -11,6 +11,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useDataOwnerId } from "@/hooks/useDataOwnerId";
 import { useCompanySettings } from "@/hooks/useCompanySettings";
 import { fetchAllAccountsForOwner } from "@/lib/fetchAllAccounts";
+import { fetchAllRows } from "@/lib/fetch-all-rows";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -165,8 +166,8 @@ export default function BulkVoucherPage({ mode }: Props) {
       const [emp, con, cb, ba] = await Promise.all([
         // Include inactive employees too: old vouchers reference employees who left,
         // and the deduction-month picker must still match them.
-        supabase.from("employees").select("id, full_name, is_active").eq("user_id", ownerId).order("full_name"),
-        supabase.from("contacts").select("id, contact_name, linked_account_code, contact_type").eq("user_id", ownerId).order("contact_name"),
+        fetchAllRows<EmployeeRow>((from, to) => supabase.from("employees").select("id, full_name, is_active").eq("user_id", ownerId).order("full_name").order("id").range(from, to)).then(data => ({ data })),
+        fetchAllRows<ContactRow>((from, to) => supabase.from("contacts").select("id, contact_name, linked_account_code, contact_type").eq("user_id", ownerId).order("contact_name").order("id").range(from, to)).then(data => ({ data })),
         supabase.from("cash_boxes").select("id, name, gl_account_code").eq("user_id", ownerId).eq("is_active", true),
         supabase.from("bank_accounts").select("id, name, bank_name, gl_account_code").eq("user_id", ownerId).eq("is_active", true),
       ]);
