@@ -8,6 +8,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Activity, CheckCircle2, XCircle, ClipboardList, Printer, UserCog, Eye, Send, UserCheck, ChevronLeft } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { tFormType } from "@/lib/hrLabels";
+import { useDataOwnerId } from "@/hooks/useDataOwnerId";
 
 type ActivityItem = {
   id: string;
@@ -85,13 +86,16 @@ export function HrActivitySummary() {
     [daysBack],
   );
 
+  const { dataOwnerId } = useDataOwnerId();
   const { data: items, isLoading } = useQuery({
-    queryKey: ["hr-activity-summary", since],
+    queryKey: ["hr-activity-summary", since, dataOwnerId],
+    enabled: !!dataOwnerId,
     queryFn: async (): Promise<ActivityItem[]> => {
       const [auditRes, printsRes, usersRes] = await Promise.all([
         supabase
           .from("employee_form_audit_log")
           .select("id, created_at, action, actor_name, employee_forms(id, form_type, title, employees!employee_forms_employee_id_fkey(full_name))")
+          .eq("user_id", dataOwnerId!)
           .gte("created_at", since)
           .order("created_at", { ascending: false })
           .limit(600),
