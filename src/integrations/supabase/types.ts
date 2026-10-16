@@ -34439,6 +34439,8 @@ export type Database = {
         }
         Returns: Json
       }
+      my_chain_employee_ids: { Args: never; Returns: string[] }
+      my_managed_branch_employee_ids: { Args: never; Returns: string[] }
       my_org_employee_ids: { Args: never; Returns: string[] }
       my_visible_employee_ids: { Args: never; Returns: string[] }
       next_amwali_quote_number: { Args: never; Returns: string }
