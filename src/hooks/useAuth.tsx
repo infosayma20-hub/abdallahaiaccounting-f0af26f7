@@ -204,6 +204,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     // Wipe cached offline permissions so the next account on this device can
     // never inherit the previous user's access while the backend is down.
     try { await clearPermissionSnapshot(); } catch { /* best effort */ }
+    // إبطال حزمة البدء وقناة بثها حتى لا يرث الحساب التالي على الجهاز شيئاً.
+    try {
+      clearBootstrapCache(currentUser?.id);
+      window.dispatchEvent(new Event("amwali:signed-out"));
+    } catch { /* best effort */ }
     releaseAuthRefreshLeadership();
     await supabase.auth.signOut();
   };
