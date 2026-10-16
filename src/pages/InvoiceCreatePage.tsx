@@ -1651,6 +1651,7 @@ const InvoiceCreatePage = () => {
         if (error) throw error;
         const result = data as {id: string; return_number: string};
         setSavedReturn(result); clearDraft();
+        broadcastChange("transaction", "updated", result.id);
         toast({title: asDraft ? "تم حفظ مسودة المردود" : "تم حفظ وترحيل المردود", description: result.return_number});
       } catch (error) { toast({title:"تعذر حفظ المردود",description:formatDbError(error,"أعد المحاولة"),variant:"destructive"}); }
       finally { creatingRef.current=false; setCreating(false); }
@@ -2589,7 +2590,7 @@ const InvoiceCreatePage = () => {
     // الرصيد الختامي للجهة بعد احتساب الفاتورة الحالية.
     // لا يُطبع أي رصيد على مستند غير محفوظ أو عليه تعديلات غير محفوظة،
     // لأن «الرصيد قبل الفاتورة» يُشتق بالطرح ويعطي رقماً غير حقيقي.
-    const balancesAllowed = !isUnsavedDoc && !hasUnsavedEdits;
+    const balancesAllowed = !isReturn && !isUnsavedDoc && !hasUnsavedEdits;
     const baselineBalance = balancesAllowed
       ? (contactStatementBalance ?? selectedContact?.balance ?? (selectedContact as any)?.current_balance ?? null)
       : null;
@@ -3787,6 +3788,8 @@ const InvoiceCreatePage = () => {
       <aside className="lg:col-span-4 lg:sticky lg:top-4 self-start w-full">
         <SmartSummaryPanel
           variant="invoice"
+          returnDocument={isReturn}
+          cashDocument={form.invoiceKind === "cash"}
           isPosted={isEditMode || Boolean(savedReturn)}
           invoiceType={form.type}
           subtotal={summary.subtotal}
@@ -3798,7 +3801,7 @@ const InvoiceCreatePage = () => {
           itemsCount={form.items.filter(i => i.productId || i.description?.trim()).length}
           partyName={selectedContact?.contact_name || form.contactName || null}
           partyId={selectedContact?.id || null}
-          balanceBefore={isReturn ? undefined : contactStatementBalance ?? selectedContact?.balance ?? selectedContact?.current_balance ?? 0}
+          balanceBefore={contactStatementBalance ?? selectedContact?.balance ?? selectedContact?.current_balance ?? 0}
           openInvoicesTotal={contactOpenInvoicesTotal}
           unappliedCredit={contactUnappliedCredit}
           creditLimit={selectedContact?.credit_limit ?? null}
@@ -4253,7 +4256,7 @@ const InvoiceCreatePage = () => {
             </button>
             <div className="flex items-center gap-4 text-[12.5px] flex-wrap justify-end">
               {/* Invoice-level discount (on the entire invoice, not per item) */}
-              <div className="flex items-center gap-1.5" dir="rtl">
+              <div className={`flex items-center gap-1.5 ${isReturn ? "hidden" : ""}`} dir="rtl">
                 <span className="text-muted-foreground text-[11.5px]">{tt("خصم الفاتورة")}</span>
                 <Input
                   type="number"
