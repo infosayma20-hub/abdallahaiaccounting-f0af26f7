@@ -62,24 +62,6 @@ export default function PortalOwnerHomeSummary({
   const [loading, setLoading] = useState(true);
   const [lastUpdate, setLastUpdate] = useState<Date>(new Date());
 
-  const [pendingReq, setPendingReq] = useState<number | null>(null);
-  const fetchRequests = useCallback(async () => {
-    if (!onOpenEmployeeRequests) return;
-    try {
-      const { data } = await supabase.functions.invoke('malaki-data', { body: { action: 'portal_requests_bundle' } });
-      const forms = (data?.requests || []).filter((r: any) => {
-        const st = r.status === 'in_progress' || (r.formType === 'disciplinary_action' && r.status === 'approved' && !r.finalDecidedAt) ? 'pending' : r.status;
-        return st === 'pending';
-      }).length;
-      const pens = (data?.penalties || []).filter((p: any) => !p.finalDecision || p.finalDecision === 'pending').length;
-      setPendingReq(forms + pens);
-    } catch (e) { console.error('[OwnerHomeSummary] requests', e); }
-  }, [onOpenEmployeeRequests]);
-  useEffect(() => {
-    fetchRequests();
-    const id = setInterval(() => { if (document.visibilityState === 'visible') fetchRequests(); }, 120000);
-    return () => clearInterval(id);
-  }, [fetchRequests]);
 
   const today = activeBusinessDate(new Date());
 
@@ -157,22 +139,6 @@ export default function PortalOwnerHomeSummary({
         </button>
       </div>
 
-      {/* QUICK CARDS — linked shortcuts */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0,1fr))', gap: 8, marginBottom: 14 }}>
-        <QuickCard t={t} icon={<ShoppingBag size={18} />} color="#0EA5E9" label="المبيعات" value={sales ? fmt(sales.total) : '…'} onClick={onOpenSalesDetail} />
-        {onOpenEmployeeRequests && (
-          <QuickCard t={t} icon={<FileText size={18} />} color="#2563EB" label="طلبات الموظفين"
-            value={pendingReq === null ? '…' : pendingReq > 0 ? `${pendingReq} بانتظارك` : 'لا جديد'}
-            badge={pendingReq || 0} onClick={onOpenEmployeeRequests} />
-        )}
-        <QuickCard t={t} icon={<Users size={18} />} color="#16A34A" label="الحضور" value={att ? `${att.present} حاضر` : '…'} onClick={onOpenAttendance} />
-        <QuickCard t={t} icon={<Wallet size={18} />} color="#0D9488" label="السيولة" value={finance ? fmt(finance.cash) : '…'} onClick={onOpenLiquidity} />
-        <QuickCard t={t} icon={<HandCoins size={18} />} color="#8B5CF6" label="الذمم" value={finance ? fmt(finance.receivables) : '…'} onClick={onOpenReceivables} />
-        <QuickCard t={t} icon={<Factory size={18} />} color="#F59E0B" label="الموردين" value={finance ? fmt(finance.payables) : '…'} onClick={onOpenSuppliers} />
-        <QuickCard t={t} icon={<ClipboardList size={18} />} color="#EA580C" label="المهام" value="عرض" onClick={onOpenTasks} />
-        {onOpenRoster && <QuickCard t={t} icon={<CalendarClock size={18} />} color="#7C3AED" label="جداول الدوام" value="عرض" onClick={onOpenRoster} />}
-        {onOpenOrders && <QuickCard t={t} icon={<ShoppingBag size={18} />} color="#0891B2" label="الطلبيات" value="عرض" onClick={onOpenOrders} />}
-      </div>
 
       {/* HERO — Sales today + YoY */}
       <button onClick={onOpenSalesDetail} style={{
