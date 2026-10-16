@@ -339,11 +339,13 @@ export default function EmployeeFormsManagementPage() {
     const PAGE = 1000;
     const rows: any[] = [];
     for (let offset = 0; ; offset += PAGE) {
-      const { data, error } = await (supabase as any)
+      let q: any = (supabase as any)
         .from(table)
-        .select("*")
-        // فلتر الشركة: يحصر فحص الصلاحيات على صفوف الشركة بدل الجدول كامل (نفس النتيجة، أسرع)
-        .eq("user_id", dataOwnerId || user?.id)
+        .select("*");
+      // فلتر الشركة (employee_forms فقط؛ correction_requests بلا user_id): يحصر فحص الصلاحيات على صفوف الشركة — نفس النتيجة، أسرع
+      const ownerId = dataOwnerId || user?.id;
+      if (table === "employee_forms" && ownerId) q = q.eq("user_id", ownerId);
+      const { data, error } = await q
         .is("hr_hidden_at", null)
         .order("created_at", { ascending: false })
         .order("id", { ascending: true })
