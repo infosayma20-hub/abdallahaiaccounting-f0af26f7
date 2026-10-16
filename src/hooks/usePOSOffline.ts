@@ -135,7 +135,9 @@ export function usePOSOffline({ userId, sessionId, terminalId, companyId }: UseP
       // margin). A full refresh runs once per 24h so deletions also propagate.
       const fullKey = `pos_last_full_sync_${userId}`;
       const lastFull = Number(localStorage.getItem(fullKey) || 0);
-      const lastSync = localStorage.getItem('pos_last_sync');
+      // نقطة الانطلاق = أكبر updated_at رجع من الخادم (مش ساعة الجهاز)
+      const cursorKey = `pos_sync_cursor_${userId}`;
+      const lastSync = localStorage.getItem(cursorKey);
       const isDelta = !!lastSync && Date.now() - lastFull < 24 * 3600_000;
       const since = isDelta ? new Date(new Date(lastSync!).getTime() - 120_000).toISOString() : null;
       // products has no is_active column — the old .eq('is_active', true) made
@@ -145,7 +147,7 @@ export function usePOSOffline({ userId, sessionId, terminalId, companyId }: UseP
       let afterId: string | null = null;
       for (let page = 0; page < 50; page++) {
         let pq: any = (supabase.from('products') as any)
-          .select('id, name, sell_price, buy_price, quantity, category, sku, barcode, tax_rate, unit, is_pos_available, pos_category_id, color, image_url, min_quantity')
+          .select('id, name, sell_price, buy_price, quantity, category, sku, barcode, tax_rate, unit, is_pos_available, pos_category_id, color, image_url, min_quantity, updated_at')
           .eq('user_id', userId)
           .order('id')
           .limit(1000);
@@ -163,7 +165,7 @@ export function usePOSOffline({ userId, sessionId, terminalId, companyId }: UseP
       let afterContactId: string | null = null;
       for (let page = 0; page < 50; page++) {
         let cq: any = (supabase.from('contacts') as any)
-          .select('id, contact_name, phone, current_balance, credit_limit, contact_type')
+          .select('id, contact_name, phone, current_balance, credit_limit, contact_type, updated_at')
           .eq('user_id', userId)
           .or('contact_type.eq.عميل,contact_type.eq.both,contact_type.eq.customer')
           .order('id')
@@ -189,6 +191,10 @@ export function usePOSOffline({ userId, sessionId, terminalId, companyId }: UseP
       }
 
 
+      let maxTs = lastSync || '';
+      for (const r of productRows) if (r.updated_at && r.updated_at > maxTs) maxTs = r.updated_at;
+      for (const r of customerRows) if (r.updated_at && r.updated_at > maxTs) maxTs = r.updated_at;
+      if (maxTs) localStorage.setItem(cursorKey, maxTs);
       const now = new Date().toISOString();
       localStorage.setItem('pos_last_sync', now);
       setLastSyncAt(now);
