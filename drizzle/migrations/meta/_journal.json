@@ -1058,6 +1058,13 @@
       "when": 1792132098613,
       "tag": "0150_perf_4b_contact_card_and_trgm",
       "breakpoints": true
+    },
+    {
+      "idx": 151,
+      "version": "7",
+      "when": 1792132410040,
+      "tag": "0151_phase5_account_balances_daily",
+      "breakpoints": true
     }
   ]
 }
