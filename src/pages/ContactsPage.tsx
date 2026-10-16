@@ -485,17 +485,24 @@ const ContactsPage = () => {
         return;
       }
 
-      // Handle opening balance in edit — always clean up old OB first
+      // المرحلة 3ب — الرصيد الافتتاحي لا يُلمس إلا إذا تغيّر المبلغ أو الاتجاه.
       const obAmount = parseFloat(editData.opening_balance) || 0;
-      // Soft-delete ALL existing opening balance transactions for this contact
       const { data: existingOBs } = await supabase.from('transactions')
-        .select('id').eq('contact_id', editContact.id).eq('is_opening_balance', true).eq('is_deleted', false);
-      if (existingOBs && existingOBs.length > 0) {
-        await supabase.from('transactions')
+        .select('id, amount, debit_account_code, credit_account_code')
+        .eq('contact_id', editContact.id).eq('is_opening_balance', true).eq('is_deleted', false);
+      const wantDebit = editData.balance_direction === "debit";
+      const obUnchanged =
+        (obAmount <= 0 && (!existingOBs || existingOBs.length === 0)) ||
+        (obAmount > 0 && existingOBs?.length === 1 &&
+          Math.abs(Number(existingOBs[0].amount) - obAmount) < 0.005 &&
+          (wantDebit ? existingOBs[0].credit_account_code === "3400" : existingOBs[0].debit_account_code === "3400"));
+      if (!obUnchanged && existingOBs && existingOBs.length > 0) {
+        const { error: delErr } = await supabase.from('transactions')
           .update({ is_deleted: true } as any)
           .in('id', existingOBs.map(t => t.id));
+        if (delErr) throw delErr;
       }
-      if (obAmount > 0) {
+      if (!obUnchanged && obAmount > 0) {
         const isDebit = editData.balance_direction === "debit";
         const isSupplierSide = editData.contact_type === "مورد" || (editData.contact_type === "عميل ومورد" && !isDebit);
         const parentCode = isSupplierSide ? "2110" : "1130";
