@@ -44,6 +44,16 @@ export const OnboardingGate = ({ children }: { children: React.ReactNode }) => {
       setStatus(cached);
       return;
     }
+    // المسار السريع: حزمة البدء تكفي لإثبات أن الحساب قائم (حسابات مزروعة أو
+    // سجل موظف/كاشير/بوابة) — لا حاجة لجولة fetchOnboardingStatus الثلاثية.
+    // المستخدم الجديد تماماً فقط يسلك المسار القديم الكامل.
+    const boot = bootstrap.data;
+    if (boot && (boot.has_accounts || boot.employee || boot.pos_user || boot.portal_user)) {
+      sessionStatusCache.set(user.id, "completed");
+      setStatus("completed");
+      return;
+    }
+    if (bootstrap.isLoading) return;
     let cancelled = false;
     setStatus("loading");
     (async () => {
