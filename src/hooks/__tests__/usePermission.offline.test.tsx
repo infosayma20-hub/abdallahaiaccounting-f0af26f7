@@ -48,7 +48,7 @@ describe("usePermission — offline behaviour", () => {
   });
 
   it("denies everything when offline with no snapshot (fail closed)", async () => {
-    const { result } = renderHook(() => usePermission("finance"));
+    const { result } = renderHook(() => usePermission("finance"), { wrapper });
     await waitFor(() => expect(result.current.loading).toBe(false));
     expect(result.current.can("receipts", "create")).toBe(false);
     expect(result.current.isAppAllowed).toBe(false);
@@ -69,7 +69,7 @@ describe("usePermission — offline behaviour", () => {
       app_deny: ["hr"],
     });
 
-    const { result } = renderHook(() => usePermission("finance"));
+    const { result } = renderHook(() => usePermission("finance"), { wrapper });
     await waitFor(() => expect(result.current.isOfflineSnapshot).toBe(true));
     expect(result.current.can("receipts", "create")).toBe(true);
     // Not granted by the server → still denied offline
@@ -88,7 +88,7 @@ describe("usePermission — offline behaviour", () => {
       app_allow: [],
       app_deny: ["hr"],
     });
-    const { result } = renderHook(() => usePermission("hr"));
+    const { result } = renderHook(() => usePermission("hr"), { wrapper });
     await waitFor(() => expect(result.current.isOfflineSnapshot).toBe(true));
     expect(result.current.isAppAllowed).toBe(false);
     expect(result.current.can("employees", "read")).toBe(false);
@@ -105,7 +105,7 @@ describe("usePermission — offline behaviour", () => {
       app_allow: [],
       app_deny: [],
     });
-    const { result } = renderHook(() => usePermission("finance"));
+    const { result } = renderHook(() => usePermission("finance"), { wrapper });
     await waitFor(() => expect(result.current.isOfflineSnapshot).toBe(true));
     expect(result.current.can("payments", "create")).toBe(false);
   });
