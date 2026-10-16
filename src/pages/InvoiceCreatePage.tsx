@@ -60,6 +60,7 @@ import { useTT } from "@/i18n/dict";
 import useAccountingOutbox from "@/hooks/useAccountingOutbox";
 import { useAccountantPermissions } from "@/hooks/useAccountantPermissions";
 import { calculateReturnLine, calculateReturnSummary } from "@/lib/returns";
+import { broadcastChange } from "@/lib/crossTabSync";
 import { documentPartyType, isReturnDocument, validateReturnItems, type InvoiceDocumentType } from "@/lib/invoice-document-type";
 
 // Lightweight in-memory cache for exchange rates to avoid re-fetching the
@@ -1432,6 +1433,7 @@ const InvoiceCreatePage = () => {
 
   // ─── Item Updates ───
   const updateItem = (id: string, field: keyof InvoiceItem, value: any) => {
+    if (isReturn && originalInvoiceId && (field === "taxRate" || field === "taxCategory" || field === "productId")) return;
     setForm(prev => ({
       ...prev,
       items: prev.items.map(item => {
