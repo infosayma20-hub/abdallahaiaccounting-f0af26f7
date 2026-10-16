@@ -4,6 +4,7 @@ import type { User, Session } from "@supabase/supabase-js";
 import { normalizeAuthSessionExpiry, releaseAuthRefreshLeadership, startAuthRefreshCoordinator } from "@/lib/auth-cross-tab";
 import { isAuthSessionExpiredError, redirectToSessionExpired } from "@/lib/sessionExpired";
 import { clearPermissionSnapshot } from "@/lib/offline-permissions";
+import { clearBootstrapCache } from "@/hooks/useBootstrap";
 
 interface AuthContextType {
   user: User | null;
