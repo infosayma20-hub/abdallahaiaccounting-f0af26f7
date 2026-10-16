@@ -342,6 +342,8 @@ export default function EmployeeFormsManagementPage() {
       const { data, error } = await (supabase as any)
         .from(table)
         .select("*")
+        // فلتر الشركة: يحصر فحص الصلاحيات على صفوف الشركة بدل الجدول كامل (نفس النتيجة، أسرع)
+        .eq("user_id", dataOwnerId || user?.id)
         .is("hr_hidden_at", null)
         .order("created_at", { ascending: false })
         .order("id", { ascending: true })
