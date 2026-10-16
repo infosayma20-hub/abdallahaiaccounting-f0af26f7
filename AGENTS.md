@@ -23,3 +23,4 @@ Subdirectories may have their own `AGENTS.md` (e.g. `src/components/pos/`, `src/
 - Invoice numbers: `generate_invoice_number` increments `invoice_sequences` atomically; MAX only on first seed. Why: race-safe.
 - Document search loads complete tenant-scoped lookup lists with stable pagination; linked-record lookups use `fetchRowsByIds` and Arabic matching uses `multiWordMatchAny`. Why: avoid silently missing contacts or old vouchers and oversized lookup URLs.
 - Journal voucher edits never soft-delete posted lines: RPC `reverse_voucher_transactions` mirrors them on their original date, then new lines post. Why: audit trail.
+- Unified invoice creation keeps returns in `returns`/`return_items` via `save_return_command_v1`; managed documents use the same RPC for edits and cancellation, independent of tenant pilot flags. Why: never mix invoice posting with returns or bypass managed-write guards.

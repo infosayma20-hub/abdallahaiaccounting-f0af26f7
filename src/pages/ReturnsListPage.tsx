@@ -130,7 +130,7 @@ const ReturnsListPage = ({ returnType }: Props) => {
 
   const handleDelete = async (row: ReturnRow) => {
     if (!canProcess || busyId || !ownerId) return;
-    if (pilot) {
+    if (pilot || row.posting_version === 1) {
       if (!confirm(`حذف المسودة ${row.return_number}؟`)) return;
       setBusyId(row.id);
       try { await cancelManagedReturn(ownerId, row, true); await fetchRows(); } catch (error) { toast({title: "تعذر الحذف", description: error instanceof Error ? error.message : "أعد المحاولة", variant: "destructive"}); } finally { setBusyId(null); }
@@ -155,7 +155,7 @@ const ReturnsListPage = ({ returnType }: Props) => {
     if (!confirm(`إلغاء المردود ${row.return_number}؟\nسيتم عكس القيد المحاسبي وحركة المخزون تلقائياً.\nيبقى السجل للمراجعة كـ"ملغى".`)) return;
     setBusyId(row.id);
     try {
-      if (pilot) {
+      if (pilot || row.posting_version === 1) {
         await cancelManagedReturn(ownerId, row);
         broadcastChange("transaction", "deleted", row.id);
         toast({ title: "تم إلغاء المردود وعكس آثاره" });

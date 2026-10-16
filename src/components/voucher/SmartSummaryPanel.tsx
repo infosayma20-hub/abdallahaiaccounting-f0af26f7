@@ -45,6 +45,8 @@ interface ReceiptPaymentProps extends BaseProps {
 
 interface InvoiceProps extends BaseProps {
   variant: "invoice" | "credit_note" | "debit_note";
+  returnDocument?: boolean;
+  cashDocument?: boolean;
   isPosted?: boolean;
   invoiceType: "sales" | "purchase";
   subtotal: number;
@@ -560,6 +562,8 @@ function Warning({
  */
 function InvoiceSummary({
   variant,
+  returnDocument = false,
+  cashDocument = false,
   isPosted = false,
   invoiceType,
   subtotal,
@@ -595,7 +599,7 @@ function InvoiceSummary({
   // the historical "before" and the real current "after" — not a
   // double-counted projection.
   const rawBalance = balanceBefore ?? 0;
-  const delta = isCreditNote
+  const delta = returnDocument ? (cashDocument ? 0 : isPurchase ? total : -total) : isCreditNote
     ? (isSales ? -total : total)
     : (isPurchase ? -total : total);
   const before = isPosted ? rawBalance - delta : rawBalance;
@@ -615,7 +619,7 @@ function InvoiceSummary({
     : isPurchase
       ? "text-rose-600"
       : "text-emerald-600";
-  const heroLabel = isCreditNote
+  const heroLabel = returnDocument ? (isPurchase ? tt("إجمالي مردود المشتريات") : tt("إجمالي مردود المبيعات")) : isCreditNote
     ? tt("إجمالي الإشعار")
     : isPurchase
       ? tt("إجمالي فاتورة المشتريات")
@@ -631,7 +635,7 @@ function InvoiceSummary({
           </span>
           <span className={`inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[9px] font-bold ${isPurchase ? "bg-rose-500/15 text-rose-700" : isCreditNote ? "bg-amber-500/15 text-amber-700" : "bg-emerald-500/15 text-emerald-700"}`}>
             {isPurchase ? <ArrowUp className="h-2.5 w-2.5" /> : <ArrowDown className="h-2.5 w-2.5" />}
-            {isCreditNote ? tt("مرتجع") : isPurchase ? tt("صادر") : tt("وارد")}
+            {returnDocument || isCreditNote ? tt("مرتجع") : isPurchase ? tt("صادر") : tt("وارد")}
           </span>
         </div>
         <AnimatePresence mode="wait">
@@ -703,7 +707,7 @@ function InvoiceSummary({
                 <span className="text-muted-foreground">
                   {isPosted ? tt("أثر هذا المستند (مُسجَّل)") : tt("أثر هذا المستند")}
                   <span className="mx-1 text-[10px] text-muted-foreground/70">
-                    {isPurchase
+                    {returnDocument ? (cashDocument ? tt("(نقدي — دون أثر على الذمة)") : isPurchase ? tt("(تخفيض ذمة المورد — مدين)") : tt("(تخفيض ذمة الزبون — دائن)")) : isPurchase
                       ? tt("(زيادة على المورد — دائن)")
                       : isCreditNote
                         ? tt("(تخفيض على الزبون — دائن)")
@@ -714,7 +718,7 @@ function InvoiceSummary({
                   className={`font-bold ${isPurchase || isCreditNote ? "text-rose-600" : "text-emerald-600"}`}
                   style={{ fontVariantNumeric: "tabular-nums" }}
                 >
-                  +{symbol}{fmt(Math.abs(total))}
+                  {delta < 0 ? "−" : "+"}{symbol}{fmt(Math.abs(delta))}
                 </span>
               </div>
               <BalanceRow label={isPosted ? tt("الرصيد الحالي (يشمل هذا المستند)") : tt("الرصيد المتوقع بعد الحفظ")} value={after} symbol={symbol} bold />

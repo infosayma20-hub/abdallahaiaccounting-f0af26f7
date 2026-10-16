@@ -118,12 +118,12 @@ const ReturnCreatePage = ({ returnType }: Props) => {
   const { user } = useAuth();
   const { dataOwnerId } = useDataOwnerId();
   const ownerId = dataOwnerId || user?.id;
-  const pilot = isReturnsPilot(ownerId);
   const { can, loading: permissionsLoading } = useAccountantPermissions();
   const canProcess = !permissionsLoading && can("can_process_returns");
   const commandKeyRef = useRef(crypto.randomUUID());
   const [revision, setRevision] = useState(0);
   const [postingVersion, setPostingVersion] = useState(0);
+  const pilot = isReturnsPilot(ownerId) || postingVersion === 1;
   const [returnNumber, setReturnNumber] = useState("");
   const [showPreview, setShowPreview] = useState(false);
   const [warehouses, setWarehouses] = useState<{id: string; name: string}[]>([]);
