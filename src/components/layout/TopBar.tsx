@@ -195,7 +195,7 @@ const GlobalSearchBar = ({ collapsed, onToggle }: { collapsed: boolean; onToggle
         value={query}
         onChange={(e) => setQuery(e.target.value)}
         onFocus={() => setShowResults(true)}
-        placeholder={tt("ابحث عن معاملة، عميل...")}
+        placeholder={tt("ابحث بأي كلمة: فاتورة، سند، عميل، صنف، ملاحظة...")}
         style={{
           width: "100%",
           height: 36,
