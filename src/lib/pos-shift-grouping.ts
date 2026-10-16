@@ -78,6 +78,8 @@ export interface GroupableRow {
 // cash-box ledger balance.
 const POS_TX_TYPES = new Set([
   'pos_sale', 'pos_sale_vat', 'pos_refund', 'pos_payment_adjustment',
+  // خصم لاحق من دراسة الوردية — مرجعه رقم الفاتورة نفسه
+  'pos_sale_discount',
 ]);
 // Reversal entries for POS sales — reference is prefixed with "REV-" over the
 // original order_number, so we can resolve them back to the same shift.

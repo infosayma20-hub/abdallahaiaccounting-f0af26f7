@@ -54,3 +54,24 @@ describe("shift grouping includes cash-out documents", () => {
     expect(out[0].balance).toBe(50);
   });
 });
+
+describe("shift study corrections stay inside their shift", () => {
+  it("folds a later discount, a return and the surplus settlement so the shift nets to zero", () => {
+    const sid = "20d27bca-6836-4fa5-b1be-77771a29e260";
+    const rows = [
+      row({ transaction_id: "sale", transaction_type: "pos_sale", reference: "POS-A", debit: 1131.1, balance: 1131.1 }),
+      row({ transaction_id: "disc", transaction_type: "pos_sale_discount", reference: "POS-A", credit: 5, balance: 1126.1 }),
+      row({ transaction_id: "ret", transaction_type: "pos_return", reference: "RET-20261015-0001", credit: 10, balance: 1116.1 }),
+      row({ transaction_id: "rev", transaction_type: "reversal", reference: "REV-POS-A", credit: 3, balance: 1113.1 }),
+      row({ transaction_id: "trf", transaction_type: "cash_transfer", reference: `TRF-SH-${sid}-1`, credit: 1116, balance: -2.9 }),
+      row({ transaction_id: "sur", transaction_type: "cash_surplus", reference: "SHIFT-20d27bca", debit: 2.9, balance: 0 }),
+    ];
+    const result = groupRowsByShift(rows as any, {
+      shifts: new Map([[sid, { ...info, session_id: sid }]]), orderToSession: new Map([["POS-A", sid]]),
+      txToSession: new Map([["ret", sid]]), refToSession: new Map([["SHIFT-20d27bca", sid]]),
+      expandedSessions: new Set(), enabled: true,
+    });
+    expect(result).toHaveLength(1);
+    expect(Math.round((result[0].debit - result[0].credit) * 100) / 100).toBe(0);
+  });
+});
