@@ -26,6 +26,9 @@ const GROUPS: { title: string; items: Item[] }[] = [
     { key: "can_view_invoice_history", label: "رؤية سجل الفواتير" },
     { key: "can_edit_invoices", label: "تعديل الفواتير (استدعاء)", dependsOn: "can_view_invoice_history" },
     { key: "can_cancel_invoices", label: "إلغاء الفواتير", dependsOn: "can_view_invoice_history" },
+    { key: "can_pos_return", label: "مردود مبيعات (إرجاع أصناف)", dependsOn: "can_view_invoice_history" },
+    { key: "require_manager_for_invoices", label: "التعديل والإلغاء بموافقة مدير", dependsOn: "can_view_invoice_history" },
+    { key: "require_manager_for_returns", label: "المردود بموافقة مدير", dependsOn: "can_pos_return" },
     { key: "print_invoices", label: "طباعة الفواتير" },
   ]},
   { title: "الأصناف", items: [
@@ -47,7 +50,8 @@ const ALL_KEYS = GROUPS.flatMap(g => g.items.map(i => i.key));
 const POS_FALLBACK: Record<string, boolean> = {
   can_open_register: true, can_close_register: true, can_view_profits: false,
   can_apply_discount: true, can_edit_prices: true, allow_credit_sale: true, open_cash_drawer: false, can_remove_cart_items: true,
-  can_view_invoice_history: true, can_edit_invoices: true, can_cancel_invoices: true, print_invoices: true,
+  can_view_invoice_history: true, can_edit_invoices: true, can_cancel_invoices: true, can_pos_return: false,
+  require_manager_for_invoices: true, require_manager_for_returns: true, print_invoices: true,
   manage_products_categories: false, can_add_inventory: false, can_create_product: false, can_record_purchases: false,
   can_pay_purchases_cash: false, can_create_supplier: false, can_affect_inventory_on_purchase: false,
   can_record_expenses: false, can_create_expense_category: false,
