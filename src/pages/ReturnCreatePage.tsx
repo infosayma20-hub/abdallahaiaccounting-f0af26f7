@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useRef } from "react";
 import { pickTenantAccountCode } from "@/lib/tenantAccountResolver";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { Navigate, useNavigate, useSearchParams } from "react-router-dom";
 import { Loader2, Save, Send, Plus, Trash2, AlertTriangle, Package, Search, ArrowRight, XCircle } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -686,6 +686,7 @@ const ReturnCreatePage = ({ returnType }: Props) => {
   };
 
   useSavePostShortcut(() => handleSave(false), !saving && !readonly);
+  if (!recordId) return <Navigate replace to={`/invoices/new?type=${returnType === "sales" ? "sales_return" : "purchase_return"}`} />;
 
   if (loading) {
     return <div className="flex justify-center py-20"><Loader2 className="h-6 w-6 animate-spin" /></div>;
