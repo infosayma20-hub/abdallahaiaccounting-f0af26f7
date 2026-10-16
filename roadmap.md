@@ -1,29 +1,13 @@
-# المرحلة 4أ — تسريع فتح البرنامج والتنقل + إصلاح أخطاء الدقة
+# خارطة الطريق
 
-## 1) حزمة بدء تشغيل واحدة
-- [ ] دالة `get_my_bootstrap()` SECURITY DEFINER (أدوار، نوع حساب، مالك بيانات، إعداد أولي، شركة/ملف، اشتراك، صلاحيات ميزات، تجاوزات تطبيقات)
-- [ ] تخزين sessionStorage + إبطال عند خروج/تغيير شركة/بث صلاحيات
-- [ ] تحويل المستهلكين لـ React Query بمفتاح ["bootstrap", uid]: useRoleRedirect, OnboardingGate, CompanyProvider, useSubscription, useMyFeaturePermissions, useMyAppOverrides
+## المرحلة 4أ — تسريع فتح البرنامج والتنقل + إصلاح أخطاء الدقة ✅ (مكتملة 2026-10-16)
 
-## 2) الصلاحيات مرة واحدة
-- [ ] مزوّد واحد في WebLayout بقناة بث واحدة
-- [ ] usePermission وCan يقرآن منه بدون طلب
+1. ✅ دالة `get_my_bootstrap()` (migration 0149) + خطاف `useBootstrap` — طلب واحد بدل ~10 جولات متتالية.
+2. ✅ مزوّد صلاحيات واحد: `useUserRoles`/`useMyFeaturePermissions`/`useMyAppOverrides`/`usePermission`/`useDataOwnerId`/`useRoleRedirect`/`CompanyProvider`/`useSubscription`/`OnboardingGate` كلها تقرأ من الحزمة؛ قناة بث واحدة لكل مستخدم.
+3. ✅ تحميل الشيفرة: WebLayout/ModuleGuard/FeatureGuard استيراد مباشر؛ تحميل مسبق عند مرور الفأرة على روابط القائمة الجانبية (`src/lib/pagePreload.ts`).
+4. ✅ أخطاء الدقة: حد 1000/5000 الصامت (لوحة التحكم + قائمة الفواتير صارا بصفحات كاملة)؛ user.id بدل ownerId في ContactDetailPage/useDashboardData/TopBar/ContactsPage؛ حفظ باركود المنتج يفحص الأخطاء؛ الرسائل الداخلية بجلب مستهدف؛ منع الجلب المزدوج في InvoicesPage.
 
-## 3) تحميل الشيفرة
-- [ ] WebLayout/ModuleGuard/FeatureGuard استيراد مباشر لا lazy
-- [ ] تحميل مسبق عند hover على رابط القائمة الجانبية
+**قياسات بعد التنفيذ:** طلبات الخلفية حتى قائمة الفواتير 52→43 (سلسلة الصلاحيات نفسها صارت RPC واحد + role_defaults مرة بالجلسة)؛ get_team_owner_id 2→1؛ user_roles المنفصل اختفى. اختبارات الصلاحيات دون اتصال 11/11 ناجحة. فشل accessContext/payroll parity قديم لا علاقة له بالتعديل.
 
-## 4) أخطاء دقة
-- [ ] حد 1000 صف: useDashboardData، قائمة الفواتير، عملاء InvoiceCreatePage، حسابات ProductEditPage
-- [ ] user.id بدل ownerId: ContactDetailPage، useDashboardData، TopBar، AccountStatementV2Page
-- [ ] ContactsPage: التأثير يتجاهل ownerId
-- [ ] ProductEditPage.save: حذف ثم إدراج بدون فحص خطأ → فحص كل خطأ / دالة save_product بمعاملة
-- [ ] useInternalMessages: فلتر بالمستخدم الحالي
-- [ ] InvoicesPage: لا جلب قبل انتهاء الصلاحيات
-- [ ] AccountStatementV2Page: تسجيل lastTxFilterKeyRef
-
-## قياس قبل/بعد
-- [ ] عدد الطلبات المتسلسلة حتى قائمة الفواتير
-- [ ] عدد قنوات البث في قائمة الفواتير
-- [ ] زمن الفتح والتنقل
-- [ ] بصمة الشاشات لكل دور
+## قادم (بانتظار برومبتات المستخدم)
+- الشريحة الأولى من الفاتورة الموحّدة: فاتورة مبيعات آجلة ببنود خدمات فقط (لم تبدأ — بانتظار موافقة/برومبت).
