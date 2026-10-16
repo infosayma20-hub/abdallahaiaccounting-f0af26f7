@@ -8,7 +8,7 @@ import {
   Home, Wallet, ClipboardList, BarChart3, MoreHorizontal,
   Settings, Bell, Sun, Moon, LogOut, Store, Factory,
   FileText, HandCoins, Send, Plus, RefreshCw, ChevronLeft,
-  X, Users, Package, CalendarClock, Megaphone, GraduationCap, Timer, Receipt, Star, MessageSquareWarning, CreditCard, BriefcaseBusiness
+  X, Users, Package, CalendarClock, Megaphone, GraduationCap, Timer, Receipt, Star, MessageSquareWarning, CreditCard, BriefcaseBusiness, LayoutDashboard
 } from 'lucide-react';
 import PortalLiquidityTab from './PortalLiquidityTab';
 import PortalChequesTab from './PortalChequesTab';
@@ -200,6 +200,7 @@ export default function PortalDashboard() {
   const [showDrawingsPage, setShowDrawingsPage] = useState(false);
   const [hasDrawingsAccount, setHasDrawingsAccount] = useState(false);
   const [showSalesReportPage, setShowSalesReportPage] = useState<null | 'type' | 'area'>(null);
+  const [showDashboardPage, setShowDashboardPage] = useState(false);
   const [hasOrders, setHasOrders] = useState(false);
   const { profile: portalProfile } = usePortalProfile();
   const { salesData, liquidityData, loading: dataLoading, needsSetup, lastUpdated, businessDay, refresh } = usePortalData(user?.id);
