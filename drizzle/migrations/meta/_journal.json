@@ -1065,6 +1065,13 @@
       "when": 1792132410040,
       "tag": "0151_phase5_account_balances_daily",
       "breakpoints": true
+    },
+    {
+      "idx": 152,
+      "version": "7",
+      "when": 1792133109167,
+      "tag": "0152_guard_owner_balance_functions",
+      "breakpoints": true
     }
   ]
 }

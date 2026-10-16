@@ -31863,6 +31863,72 @@ export type Database = {
         Args: { p_account_code: string; p_user_id: string }
         Returns: undefined
       }
+      _get_all_cash_box_balances_unguarded: {
+        Args: { p_owner: string }
+        Returns: {
+          account_code: string
+          balance: number
+        }[]
+      }
+      _get_cash_box_native_balances_unguarded: {
+        Args: { p_owner: string }
+        Returns: {
+          account_code: string
+          balance_foreign: number
+          balance_ils: number
+        }[]
+      }
+      _get_cash_boxes_balances_bulk_unguarded: {
+        Args: { p_user_id: string }
+        Returns: {
+          balance: number
+          box_id: string
+        }[]
+      }
+      _get_contact_balance_reconciliation_unguarded: {
+        Args: { p_user_id: string }
+        Returns: {
+          contact_id: string
+          contact_name: string
+          contact_type: string
+          is_active: boolean
+          is_archived: boolean
+          ledger_balance: number
+          ledger_credits: number
+          ledger_debits: number
+          linked_account_code: string
+          stored_balance: number
+          tx_count: number
+          variance: number
+        }[]
+      }
+      _get_owner_sales_fast_unguarded: {
+        Args: {
+          p_from: string
+          p_to: string
+          p_user_id: string
+          p_with_details?: boolean
+        }
+        Returns: Json
+      }
+      _get_rep_customers_with_balances_unguarded: {
+        Args: { p_sales_rep_id: string; p_user_id: string }
+        Returns: {
+          balance: number
+          contact_id: string
+          contact_name: string
+          last_tx_date: string
+          linked_account_code: string
+          phone: string
+        }[]
+      }
+      _get_sub_account_balances_unguarded: {
+        Args: { p_owner: string; p_parents: string[] }
+        Returns: {
+          account_code: string
+          balance: number
+        }[]
+      }
       _infer_bulk_emp_category: { Args: { _desc: string }; Returns: string }
       _inv_cost_account: {
         Args: { _owner: string; _role: string }
@@ -32215,6 +32281,7 @@ export type Database = {
         Args: { _object_name: string }
         Returns: boolean
       }
+      can_access_owner_data: { Args: { p_owner: string }; Returns: boolean }
       can_fill_form_template: {
         Args: { _template_id: string }
         Returns: boolean
