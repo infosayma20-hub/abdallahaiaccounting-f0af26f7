@@ -26,6 +26,9 @@ const GROUPS: { title: string; items: Item[] }[] = [
     { key: "can_view_invoice_history", label: "رؤية سجل الفواتير" },
     { key: "can_edit_invoices", label: "تعديل الفواتير (استدعاء)", dependsOn: "can_view_invoice_history" },
     { key: "can_cancel_invoices", label: "إلغاء الفواتير", dependsOn: "can_view_invoice_history" },
+    { key: "can_pos_return", label: "مردود مبيعات (إرجاع أصناف)", dependsOn: "can_view_invoice_history" },
+    { key: "require_manager_for_invoices", label: "التعديل والإلغاء بموافقة مدير", dependsOn: "can_view_invoice_history" },
+    { key: "require_manager_for_returns", label: "المردود بموافقة مدير", dependsOn: "can_pos_return" },
     { key: "print_invoices", label: "طباعة الفواتير" },
   ]},
   { title: "الأصناف", items: [
