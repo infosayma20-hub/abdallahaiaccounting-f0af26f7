@@ -488,6 +488,41 @@ export default function PortalDashboard() {
 
 
   const renderContent = () => {
+    if (showDashboardPage) {
+      return (
+        <div>
+          <div style={{ padding: '12px 12px 0' }}>
+            <button
+              onClick={() => setShowDashboardPage(false)}
+              style={{
+                background: c.chipBg, border: `1px solid ${c.chipBorder}`, borderRadius: 10,
+                padding: '6px 10px', cursor: 'pointer', color: c.textPrimary, fontFamily: 'Cairo', fontSize: 12,
+              }}
+            >← رجوع</button>
+          </div>
+          <PortalOwnerHomeSummary
+            theme={themeMode}
+            onOpenSalesDetail={() => { switchTab('finance'); setFinanceSection('sales'); }}
+            onOpenFinance={() => { switchTab('finance'); setFinanceSection('menu'); }}
+            onOpenLiquidity={() => { switchTab('finance'); setFinanceSection('liquidity'); }}
+            onOpenReceivables={() => { switchTab('finance'); setFinanceSection('receivables'); }}
+            onOpenSuppliers={() => { switchTab('finance'); setFinanceSection('suppliers'); }}
+            onOpenAttendance={() => switchTab('attendance')}
+            onOpenTasks={() => { setShowDashboardPage(false); setShowTasksPage(true); }}
+            onOpenRoster={() => { setShowDashboardPage(false); setShowRosterPage(true); }}
+            onOpenEmployeeRequests={() => { setShowDashboardPage(false); closeAllPages(); setShowEmployeeRequests(true); }}
+            onOpenOrders={hasOrders || portalProfile === 'retail'
+              ? () => {
+                  setShowDashboardPage(false);
+                  setShowTasksPage(false); setShowEmployeeRequests(false); setShowRosterPage(false);
+                  setShowBranchHoursPage(false); setShowCampaignsPage(false); setShowFormsPage(false);
+                  setShowTrainingPage(false); setShowOrdersPage(true);
+                }
+              : undefined}
+          />
+        </div>
+      );
+    }
     if (showEvaluationsPage) {
       return (
         <div>
