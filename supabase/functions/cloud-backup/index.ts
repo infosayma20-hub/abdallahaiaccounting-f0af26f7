@@ -222,26 +222,36 @@ Deno.serve(async (req) => {
         const task = st.tasks[st.i]
         if (task.kind === 'rows') {
           const cat = category(task.t)
+          // Keyset pagination on id (id=gt.<last>) — offset scans grow with every page.
+          // Tables without an id column fall back to offset paging.
           const fetchPage = (order: boolean) => fetch(
-            `${url}/rest/v1/${task.t}?${task.q}${order ? '&order=id.asc' : ''}&limit=${PAGE}&offset=${st.from}`,
+            order
+              ? `${url}/rest/v1/${task.t}?${task.q}&order=id.asc&limit=${PAGE}${st.lastId ? `&id=gt.${encodeURIComponent(st.lastId)}` : ''}`
+              : `${url}/rest/v1/${task.t}?${task.q}&limit=${PAGE}&offset=${st.from}`,
             { headers: restHeaders })
-          let r = await fetchPage(true)
-          if (!r.ok && r.status === 400) { await r.body?.cancel(); r = await fetchPage(false) }
+          let keyset = st.noId !== true
+          let r = await fetchPage(keyset)
+          if (!r.ok && r.status === 400 && keyset && !st.lastId) {
+            await r.body?.cancel(); keyset = false; st.noId = true; r = await fetchPage(false)
+          }
           if (!r.ok) {
             st.errors.push(`${task.t}: ${r.status} ${(await r.text()).slice(0, 150)}`)
           } else {
-            const range = r.headers.get('content-range') ?? ''
-            const mm = range.match(/^(\d+)-(\d+)/)
-            const n = mm ? Number(mm[2]) - Number(mm[1]) + 1 : 0
+            const buf = new Uint8Array(await r.arrayBuffer())
+            const rows = buf.byteLength > 2 ? JSON.parse(new TextDecoder().decode(buf)) as any[] : []
+            const n = rows.length
             if (n > 0) {
-              const buf = new Uint8Array(await r.arrayBuffer())
               await put(`${st.folder}/${cat}/${task.t}/part-${String(st.part).padStart(3, '0')}.json`, buf)
               st.rows += n; st.records += n; st.bytes += buf.byteLength; st.part++
-              if (n === PAGE) { st.from += PAGE; continue }
-            } else await r.body?.cancel()
+              if (n === PAGE) {
+                if (keyset) st.lastId = rows[n - 1].id
+                else st.from += PAGE
+                continue
+              }
+            }
           }
           if (st.rows) st.manifest.push({ table: task.t, category: cat, rows: st.rows, files: st.part })
-          st.i++; st.from = 0; st.part = 0; st.rows = 0
+          st.i++; st.from = 0; st.part = 0; st.rows = 0; st.lastId = null; st.noId = false
         } else if (task.kind === 'prune') {
           // Keep the last RETENTION_DAYS daily folders; delete older dated folders (files/ is never pruned).
           const base = `${st.root}/النسخ-الاحتياطية/`
