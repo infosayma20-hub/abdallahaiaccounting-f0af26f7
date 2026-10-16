@@ -200,7 +200,7 @@ export function useDashboardData() {
     } finally {
       setLoading(false);
     }
-  }, [user]);
+  }, [user, dataOwnerId]);
 
   useEffect(() => { fetchAll(); }, [fetchAll]);
 
