@@ -94,6 +94,8 @@ const bankAccountsCache = new Map<string, { data: any[]; ts: number }>();
 interface Contact {
   id: string;
   contact_name: string;
+  phone?: string | null;
+  tax_number?: string | null;
   contact_type?: string;
   current_balance: number;
   ledger_balance?: number;
@@ -826,10 +828,11 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
       fetchAllRows<Contact>((from, to) =>
         supabase
           .from("contacts")
-          .select("id, contact_name, contact_type, current_balance")
+          .select("id, contact_name, contact_type, current_balance, phone, tax_number")
           .eq("user_id", ownerId)
-          .eq("is_archived", false)
+          .or("is_archived.is.null,is_archived.eq.false")
           .order("contact_name")
+          .order("id")
           .range(from, to) as any
       ).then((data) => ({ data, error: null })),
       fetchAllRows<any>((from, to) =>
@@ -1436,7 +1439,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
 
   const filteredContacts = useMemo(() => {
     if (!contactSearch.trim()) return contacts.slice(0, 10);
-    return contacts.filter(c => multiWordMatchAny(contactSearch, c.contact_name)).slice(0, 10);
+    return contacts.filter(c => multiWordMatchAny(contactSearch, c.contact_name, c.phone, c.tax_number)).slice(0, 10);
   }, [contacts, contactSearch]);
 
   // Inline quick-create contact — mirrors the invoice flow.

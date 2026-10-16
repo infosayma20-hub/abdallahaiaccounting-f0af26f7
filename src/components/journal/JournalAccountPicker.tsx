@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/command";
 import { Search, ChevronDown, X } from "lucide-react";
 import * as VisuallyHidden from "@radix-ui/react-visually-hidden";
+import { multiWordMatchAny } from "@/lib/utils";
 
 export interface PickerAccount {
   account_code: string;
@@ -152,10 +153,7 @@ export default function JournalAccountPicker({
             shouldFilter
             className="rounded-lg"
             filter={(itemValue, search) => {
-              if (!search) return 1;
-              const tokens = search.trim().toLowerCase().split(/\s+/);
-              const haystack = itemValue.toLowerCase();
-              return tokens.every((t) => haystack.includes(t)) ? 1 : 0;
+              return multiWordMatchAny(search, itemValue) ? 1 : 0;
             }}
           >
             <CommandInput

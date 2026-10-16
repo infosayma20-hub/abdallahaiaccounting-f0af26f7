@@ -85,3 +85,17 @@ export async function fetchAllRows<T = any>(
   }
   return all;
 }
+
+/** Batch linked-record lookups to keep URLs bounded and avoid the row cap. */
+export async function fetchRowsByIds<T>(
+  ids: string[],
+  buildQuery: (ids: string[], from: number, to: number) => PromiseLike<PostgrestSingleResponse<T[]>>,
+): Promise<T[]> {
+  const unique = [...new Set(ids)];
+  const rows: T[] = [];
+  for (let start = 0; start < unique.length; start += 100) {
+    const batch = unique.slice(start, start + 100);
+    rows.push(...await fetchAllRows<T>((from, to) => buildQuery(batch, from, to)));
+  }
+  return rows;
+}

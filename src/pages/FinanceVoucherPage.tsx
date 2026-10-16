@@ -15,6 +15,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
+import { fetchAllRows } from "@/lib/fetch-all-rows";
 import { useAuth } from "@/hooks/useAuth";
 import { useDataOwnerId } from "@/hooks/useDataOwnerId";
 import { Can } from "@/components/permissions/Can";
@@ -214,9 +215,9 @@ const FinanceVoucherPage = ({ voucherType }: Props) => {
 
     if (isReceipt) {
       const [rvRes, cRes, linksRes] = await Promise.all([
-        supabase.from("receipt_vouchers").select("*").eq("user_id", ownerId).order("created_at", { ascending: false }),
-        supabase.from("contacts").select("id, contact_name, contact_type").eq("user_id", ownerId).neq("is_archived", true),
-        supabase.from("payment_invoice_links").select("payment_id, allocated_amount"),
+        fetchAllRows<any>((from, to) => supabase.from("receipt_vouchers").select("*").eq("user_id", ownerId).order("created_at", { ascending: false }).order("id").range(from, to)).then(data => ({ data })),
+        fetchAllRows<any>((from, to) => supabase.from("contacts").select("id, contact_name, contact_type").eq("user_id", ownerId).or("is_archived.is.null,is_archived.eq.false").order("id").range(from, to)).then(data => ({ data })),
+        fetchAllRows<any>((from, to) => supabase.from("payment_invoice_links").select("payment_id, allocated_amount").order("id").range(from, to)).then(data => ({ data })),
       ]);
       // Build allocated map
       const allocMap = new Map<string, number>();
@@ -237,9 +238,9 @@ const FinanceVoucherPage = ({ voucherType }: Props) => {
       setContacts(cRes.data || []);
     } else {
       const [vRes, cRes, txRes] = await Promise.all([
-        supabase.from("vouchers").select("*").eq("user_id", ownerId).eq("type", "payment").order("created_at", { ascending: false }),
-        supabase.from("contacts").select("id, contact_name, contact_type").eq("user_id", ownerId).neq("is_archived", true),
-        supabase.from("transactions").select("id, debit_account_code").eq("user_id", ownerId).eq("is_deleted", false),
+        fetchAllRows<any>((from, to) => supabase.from("vouchers").select("*").eq("user_id", ownerId).eq("type", "payment").order("created_at", { ascending: false }).order("id").range(from, to)).then(data => ({ data })),
+        fetchAllRows<any>((from, to) => supabase.from("contacts").select("id, contact_name, contact_type").eq("user_id", ownerId).or("is_archived.is.null,is_archived.eq.false").order("id").range(from, to)).then(data => ({ data })),
+        fetchAllRows<any>((from, to) => supabase.from("transactions").select("id, debit_account_code").eq("user_id", ownerId).eq("is_deleted", false).order("id").range(from, to)).then(data => ({ data })),
       ]);
       const txMap = new Map<string, string>();
       for (const tx of (txRes.data || [])) {
@@ -254,7 +255,7 @@ const FinanceVoucherPage = ({ voucherType }: Props) => {
     }
 
     setLoading(false);
-  }, [user, voucherType, isReceipt]);
+  }, [user, ownerId, voucherType, isReceipt]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
   useEffect(() => {

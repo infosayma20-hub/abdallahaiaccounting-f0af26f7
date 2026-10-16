@@ -21,4 +21,5 @@ Subdirectories may have their own `AGENTS.md` (e.g. `src/components/pos/`, `src/
 - SECURITY DEFINER functions taking a client owner id must guard it (team/holding member, super_admin, or no JWT). Why: they bypass RLS.
 - Employee visibility RLS uses array helpers `my_chain_employee_ids()`/`my_managed_branch_employee_ids()` via `id = ANY((SELECT ...))`, identical to `is_my_team_employee`/`is_managed_branch_employee`. Why: per-row calls were 100x slower.
 - Invoice numbers: `generate_invoice_number` increments `invoice_sequences` atomically; MAX only on first seed. Why: race-safe.
+- Document search loads complete tenant-scoped lookup lists with stable pagination; linked-record lookups use `fetchRowsByIds` and Arabic matching uses `multiWordMatchAny`. Why: avoid silently missing contacts or old vouchers and oversized lookup URLs.
 - Journal voucher edits never soft-delete posted lines: RPC `reverse_voucher_transactions` mirrors them on their original date, then new lines post. Why: audit trail.
