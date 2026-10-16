@@ -3705,6 +3705,24 @@ export type Database = {
           },
         ]
       }
+      cloud_backup_catalog_cache: {
+        Row: {
+          catalog: Json
+          computed_on: string
+          id: number
+        }
+        Insert: {
+          catalog: Json
+          computed_on: string
+          id?: number
+        }
+        Update: {
+          catalog?: Json
+          computed_on?: string
+          id?: number
+        }
+        Relationships: []
+      }
       cloud_backup_config: {
         Row: {
           cron_token: string
@@ -32309,6 +32327,13 @@ export type Database = {
         }[]
       }
       cloud_backup_table_catalog: {
+        Args: never
+        Returns: {
+          filter_column: string
+          table_name: string
+        }[]
+      }
+      cloud_backup_table_catalog_cached: {
         Args: never
         Returns: {
           filter_column: string

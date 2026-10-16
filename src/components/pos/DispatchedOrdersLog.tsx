@@ -188,7 +188,7 @@ export default function DispatchedOrdersLog({ open, onClose, dataOwnerId, isAdmi
 
     let query = supabase
       .from("call_center_orders" as any)
-      .select("*")
+      .select("id,source_app,target_branch_id,target_branch_name,customer_name,customer_phone,delivery_type,delivery_address,payment_method,items,total,order_note,status,dispatched_by_name,created_at,accepted_at,delivered_at,delivered_to_device,pos_order_id,is_editing,editing_by_name,editing_by,editing_started_at,editing_heartbeat_at,delivery_fee,delivery_info,cancelled_at,cancelled_by_name,cancel_reason")
       .eq("user_id", dataOwnerId)
       .gte("created_at", start.toISOString())
       .lte("created_at", end.toISOString())

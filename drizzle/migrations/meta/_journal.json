@@ -1016,6 +1016,13 @@
       "when": 1792118747894,
       "tag": "0144_perf_phase1_balances_guard_and_indexes",
       "breakpoints": true
+    },
+    {
+      "idx": 145,
+      "version": "7",
+      "when": 1792119244451,
+      "tag": "0145_cloud_backup_catalog_cache_and_backup_indexes",
+      "breakpoints": true
     }
   ]
 }
