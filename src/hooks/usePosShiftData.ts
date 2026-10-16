@@ -131,6 +131,7 @@ export function usePosShiftData(
         // 3) Build order_number → session_id mapping via pos_orders.
         const sessionIds = Array.from(shiftMap.keys());
         const mapping = new Map<string, string>();
+        const orderTxMap = new Map<string, string>();
         if (sessionIds.length > 0) {
           // Chunk to stay under PostgREST URL limits (~2000 items).
           const CHUNK = 500;
@@ -138,23 +139,27 @@ export function usePosShiftData(
             const slice = sessionIds.slice(i, i + CHUNK);
             const { data: orderRows, error: orderErr } = await supabase
               .from('pos_orders')
-              .select('order_number, session_id')
+              .select('order_number, session_id, transaction_id')
               .eq('user_id', userId)
               .in('session_id', slice);
             if (cancelled || myReq !== reqId.current) return;
             if (orderErr) { console.warn('[usePosShiftData] pos_orders fetch failed:', orderErr.message); continue; }
             for (const o of (orderRows || []) as any[]) {
               if (o.order_number && o.session_id) mapping.set(String(o.order_number), String(o.session_id));
+              // مرتجعات نقطة البيع: رقم الطلب يتغير، فالربط بمعرف القيد
+              if (o.transaction_id && o.session_id) orderTxMap.set(String(o.transaction_id), String(o.session_id));
             }
           }
         }
 
         // 4) Cash-out documents of the same shifts (expenses / purchases + reversals).
-        const txMap = new Map<string, string>();
+        const txMap = new Map<string, string>(orderTxMap);
         const refMap = new Map<string, string>();
         for (const v of linkedJournals) {
           if (v.pos_session_id && shiftMap.has(v.pos_session_id)) refMap.set(v.ref_number, v.pos_session_id);
         }
+        // قيد تسوية عجز/فائض الوردية مرجعه SHIFT-<أول 8 خانات من معرف الوردية>
+        for (const sid of sessionIds) refMap.set('SHIFT-' + sid.slice(0, 8), sid);
         for (let i = 0; i < sessionIds.length; i += 500) {
           const slice = sessionIds.slice(i, i + 500);
           const [{ data: exps }, { data: purs }] = await Promise.all([
