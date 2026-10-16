@@ -1,4 +1,5 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useMemo } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { useParams, useNavigate } from "react-router-dom";
 import { ArrowRight, Loader2, Pencil, Phone, Mail, MapPin, Globe, Building2, FileText, CreditCard, BarChart3, History, AlertTriangle, CheckCircle, Clock, PieChart, Link2 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -9,7 +10,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useDataOwnerId } from "@/hooks/useDataOwnerId";
 import ReceivablesAnalysisTab from "@/components/contacts/ReceivablesAnalysisTab";
-import { fetchContactBalance } from "@/lib/contact-balance";
 import AllocationsPanel from "@/components/accounting/AllocationsPanel";
 
 const classConfig: Record<string, { color: string; bg: string; label: string }> = {
