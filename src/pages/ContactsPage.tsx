@@ -837,21 +837,6 @@ const ContactsPage = () => {
 
   const rightSlot = (
     <>
-      <div className="relative">
-        <Search className="absolute right-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
-        <Input
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          placeholder="بحث اسم، هاتف، رقم ضريبي..."
-          className="h-8 w-64 pr-8 text-[12.5px]"
-          dir="rtl"
-        />
-        {searchQuery && (
-          <button onClick={() => setSearchQuery("")} className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
-            <X className="h-3.5 w-3.5" />
-          </button>
-        )}
-      </div>
       <ColumnVisibilityMenu state={cols} />
       <DropdownMenu open={showAlerts} onOpenChange={setShowAlerts}>
         <DropdownMenuTrigger asChild>
