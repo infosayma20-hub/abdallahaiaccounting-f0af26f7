@@ -1,5 +1,7 @@
 import "fake-indexeddb/auto";
 import { renderHook, waitFor } from "@testing-library/react";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { createElement, type ReactNode } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   clearPermissionSnapshot,
@@ -30,6 +32,15 @@ vi.mock("@/hooks/useAuth", () => ({
 }));
 
 import { usePermission, clearPermissionCache } from "@/hooks/usePermission";
+
+// usePermission يقرأ الآن من حزمة البدء الموحّدة (React Query) — الاختبار
+// يحتاج QueryClientProvider. الـ rpc في النموذج أعلاه يفشل دائماً، فيسلك
+// الخطاف مسار "دون اتصال" كما هو مطلوب.
+const queryClient = new QueryClient({
+  defaultOptions: { queries: { retry: false } },
+});
+const wrapper = ({ children }: { children: ReactNode }) =>
+  createElement(QueryClientProvider, { client: queryClient }, children);
 
 describe("usePermission — offline behaviour", () => {
   beforeEach(async () => {
