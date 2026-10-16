@@ -737,15 +737,15 @@ export function useSaveJournalVoucher() {
           .eq("id", voucherId);
         if (preErr) throw new Error(`فشل تجهيز السند للتعديل: ${preErr.message}`);
       }
-      // ⚠️ الحذف عبر RPC آمنة (security definer) لضمان نجاح التنظيف حتى للمحاسبين/الكاشير
-      // الذين لا يملكون صلاحية حذف مباشرة على جدول transactions.
-      // الفشل هنا يجب أن يوقف العملية كي لا نُنتج حركات يتيمة (المشكلة الأصلية).
+      // ⚠️ التعديل لا يحذف القيد القديم: قيد عكسي بنفس تاريخه، ثم قيد جديد بالقيم الجديدة.
+      // يتم عبر RPC آمنة (security definer) — الفشل يوقف العملية قبل إنشاء أي قيد جديد.
       {
-        const { error: rpcDelErr } = await supabase.rpc("delete_voucher_transactions", {
+        const { error: rpcRevErr } = await supabase.rpc("reverse_voucher_transactions", {
           p_voucher_id: voucherId,
           p_owner_id: ownerId,
+          p_reason: `تعديل سند ${existing.ref_number || ""}`.trim(),
         });
-        if (rpcDelErr) throw new Error(`فشل حذف الحركات القديمة: ${rpcDelErr.message}`);
+        if (rpcRevErr) throw new Error(`فشل عكس القيد القديم: ${rpcRevErr.message}`);
       }
 
       // (3) إعادة بناء lines + transactions باستخدام نفس منطق save

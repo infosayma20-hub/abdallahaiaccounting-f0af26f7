@@ -34044,6 +34044,10 @@ export type Database = {
         }[]
       }
       get_wallet_reconciliation: { Args: { _owner?: string }; Returns: Json }
+      global_search: {
+        Args: { p_limit?: number; p_query: string }
+        Returns: Json
+      }
       has_feature_permission: {
         Args: { _app: string; _feature: string; _perm: string; _user: string }
         Returns: boolean
@@ -35355,6 +35359,10 @@ export type Database = {
       reverse_periodic_inventory_adjustment: {
         Args: { _count_id: string }
         Returns: Json
+      }
+      reverse_voucher_transactions: {
+        Args: { p_owner_id: string; p_reason?: string; p_voucher_id: string }
+        Returns: number
       }
       revert_orphan_call_center_orders: { Args: never; Returns: number }
       review_leave_day_reversal: {

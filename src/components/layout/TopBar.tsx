@@ -93,7 +93,7 @@ const IconButton = ({
 
 interface SearchResult {
   id: string;
-  type: "transaction" | "account" | "contact";
+  type: "transaction" | "account" | "contact" | "invoice" | "voucher" | "product" | "cheque";
   title: string;
   subtitle: string;
   path?: string;
@@ -106,6 +106,7 @@ const GlobalSearchBar = ({ collapsed, onToggle }: { collapsed: boolean; onToggle
   const { user } = useAuth();
   const navigate = useNavigate();
   const tt = useTT();
+  const bootstrap = useBootstrap();
   const inputRef = useRef<HTMLInputElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [query, setQuery] = useState("");
@@ -122,14 +123,32 @@ const GlobalSearchBar = ({ collapsed, onToggle }: { collapsed: boolean; onToggle
       const q = query.trim();
       const found: SearchResult[] = [];
       try {
-        const [txRes, accRes, contactsRes] = await Promise.all([
-          supabase.from('transactions').select('id, description, transaction_date, amount, transaction_type, reference, debit_account_code, credit_account_code').eq('user_id', user.id).or(`description.ilike.%${q}%,reference.ilike.%${q}%,transaction_type.ilike.%${q}%`).order('transaction_date', { ascending: false }).limit(8),
-          supabase.from('accounts').select('id, account_name, account_code, account_type').eq('user_id', user.id).or(`account_name.ilike.%${q}%,account_code.ilike.%${q}%,account_type.ilike.%${q}%`).limit(8),
-          supabase.from('contacts').select('id, contact_name, contact_type, phone').eq('user_id', user.id).or(`contact_name.ilike.%${q}%,phone.ilike.%${q}%`).limit(8),
-        ]);
-        (txRes.data || []).forEach(tx => { found.push({ id: tx.id, type: "transaction", title: tx.description || tx.transaction_type || tt("معاملة"), subtitle: `${tx.transaction_date || ""} • ₪${(tx.amount || 0).toLocaleString()} • ${tx.transaction_type || ""}`, path: `/transactions?search=${encodeURIComponent(tx.description || tx.reference || "")}`, icon: FileText, txReference: tx.reference, txType: tx.transaction_type }); });
-        (accRes.data || []).forEach(acc => { found.push({ id: acc.id, type: "account", title: `${acc.account_code} - ${acc.account_name}`, subtitle: acc.account_type, path: `/accounts?search=${encodeURIComponent(acc.account_name)}`, icon: Wallet }); });
-        (contactsRes.data || []).forEach(c => { found.push({ id: c.id, type: "contact", title: c.contact_name, subtitle: c.contact_type || "", path: `/contacts?search=${encodeURIComponent(c.contact_name)}`, icon: Users }); });
+        // بحث شامل من الخادم (فواتير، سندات، حركات، عملاء، أصناف، شيكات، حسابات — مع الملاحظات)
+        // حسب شركة المستخدم وصلاحياته.
+        const { data } = await supabase.rpc("global_search" as any, { p_query: q, p_limit: 6 });
+        const rows = (Array.isArray(data) ? data : []) as any[];
+        for (const r of rows) {
+          if (r.type === "invoice") {
+            found.push({ id: r.id, type: "invoice", title: r.title, subtitle: r.subtitle || "", path: `/invoices/new?edit=${r.id}`, icon: Receipt });
+          } else if (r.type === "voucher") {
+            const kind = r.voucher_type === "receipt" ? "receipt" : "payment";
+            const bulk = r.subtype === "bulk" || /^B(RV|PV)-/i.test(r.ref || "");
+            const path = r.voucher_type === "journal"
+              ? `/finance/journal/new?edit=${r.id}`
+              : bulk ? `/finance/${kind}/bulk/${r.id}/edit` : `/finance/${kind}/${r.id}/edit`;
+            found.push({ id: r.id, type: "voucher", title: r.title, subtitle: r.subtitle || "", path, icon: BookOpen });
+          } else if (r.type === "transaction") {
+            found.push({ id: r.id, type: "transaction", title: r.title, subtitle: r.subtitle || "", path: `/transactions?search=${encodeURIComponent(r.ref || r.title || "")}`, icon: FileText, txReference: r.ref, txType: r.tx_type });
+          } else if (r.type === "contact") {
+            found.push({ id: r.id, type: "contact", title: r.title, subtitle: r.subtitle || "", path: `/contacts/${r.id}`, icon: Users });
+          } else if (r.type === "product") {
+            found.push({ id: r.id, type: "product", title: r.title, subtitle: r.subtitle || "", path: `/inventory/products/${r.id}/edit`, icon: Package });
+          } else if (r.type === "cheque") {
+            found.push({ id: r.id, type: "cheque", title: r.title, subtitle: r.subtitle || "", path: `/cheques?search=${encodeURIComponent(r.ref || "")}`, icon: CreditCard });
+          } else if (r.type === "account") {
+            found.push({ id: r.id, type: "account", title: r.title, subtitle: r.subtitle || "", path: `/accounts?search=${encodeURIComponent(r.ref || "")}`, icon: Wallet });
+          }
+        }
       } catch { /* silent */ }
       setResults(found);
       setLoading(false);
@@ -149,7 +168,7 @@ const GlobalSearchBar = ({ collapsed, onToggle }: { collapsed: boolean; onToggle
     if (result.type === "transaction" && user?.id) {
       try {
         const route = await resolveDocumentRoute({
-          ownerId: user.id,
+          ownerId: bootstrap.data?.owner_id || user.id,
           reference: result.txReference,
           transactionType: result.txType,
           transactionId: result.id,
@@ -162,8 +181,8 @@ const GlobalSearchBar = ({ collapsed, onToggle }: { collapsed: boolean; onToggle
 
   if (collapsed) return <IconButton icon={Search} onClick={onToggle} title={tt("بحث")} />;
 
-  const typeLabel: Record<string, string> = { transaction: tt("معاملات"), account: tt("حسابات"), contact: tt("جهات اتصال") };
-  const typeColor: Record<string, string> = { transaction: "bg-accent/10 text-accent", account: "bg-warning/10 text-warning", contact: "bg-primary/10 text-primary" };
+  const typeLabel: Record<string, string> = { invoice: tt("فواتير"), voucher: tt("سندات وقيود"), transaction: tt("حركات"), contact: tt("جهات اتصال"), product: tt("أصناف"), cheque: tt("شيكات"), account: tt("حسابات") };
+  const typeColor: Record<string, string> = { invoice: "bg-success/10 text-success", voucher: "bg-accent/10 text-accent", transaction: "bg-accent/10 text-accent", account: "bg-warning/10 text-warning", contact: "bg-primary/10 text-primary", product: "bg-primary/10 text-primary", cheque: "bg-warning/10 text-warning" };
   const grouped = results.reduce<Record<string, SearchResult[]>>((acc, r) => { (acc[r.type] = acc[r.type] || []).push(r); return acc; }, {});
 
   return (
@@ -177,7 +196,7 @@ const GlobalSearchBar = ({ collapsed, onToggle }: { collapsed: boolean; onToggle
         value={query}
         onChange={(e) => setQuery(e.target.value)}
         onFocus={() => setShowResults(true)}
-        placeholder={tt("ابحث عن معاملة، عميل...")}
+        placeholder={tt("ابحث بأي كلمة: فاتورة، سند، عميل، صنف، ملاحظة...")}
         style={{
           width: "100%",
           height: 36,

@@ -1,17 +1,12 @@
 # Project Rules
 
-Subdirectories may have their own `AGENTS.md` (e.g. `src/components/pos/`); read it before changing files there.
+Subdirectories may have their own `AGENTS.md` (e.g. `src/components/pos/`, `src/pages/procurement/`); read it before changing files there.
 
-- Use “يونيفاي” / “UNIFY” exclusively in all user-facing forms, documents, printouts, emails, notifications, and defaults; retain legacy `amwali` identifiers only where changing them would break storage, routes, database objects, integrations, or historical links.
-- Session bootstrap: RPC `get_my_bootstrap()` feeds `useBootstrap` (React Query + sessionStorage + one realtime channel); all role/permission/owner/subscription hooks read from it — never add per-hook fetches for those. Why: one request instead of ~10 serial rounds at startup.
-- Barcode goods receiving writes only via SECURITY DEFINER RPCs (`receiving_*`, `assign_receiving_session`) on `procurement_receiving_*`; stock/GL stay in the purchase-invoice flow. Why: workers must not see prices or post financials.
-- Purchase order lines reference `procurement_items`; stock goes to `procurement_items.inventory_product_id` via `ensure_procurement_item_product`, and invoice lines carry `procurement_order_item_id` for cumulative received qty. Why: order item ids are not product ids (FK failed silently before).
-- Warehouse receiving is a standalone employee workspace: entry requires an active receiver flag or an assigned session, and back returns only to the workspace chooser. Why: keep warehouse staff out of the admin ERP shell.
+- User-facing text uses only “يونيفاي”/“UNIFY”; keep legacy `amwali` identifiers only where renaming breaks storage, routes, DB objects or links.
+- Session bootstrap: RPC `get_my_bootstrap()` feeds `useBootstrap` (React Query + sessionStorage + one realtime channel); all role/permission/owner/subscription hooks read from it — never add per-hook fetches for those. Why: one startup request.
 - Employee hot-drink sales use the dedicated atomic RPC and `[EMPLOYEE_HOT_DRINK]` line marker; first two drinks per POS business day are half price, later ones full price, marked lines bypass stock. Why: auditable and race-safe.
 - Attendance rules (Asia/Hebron, 06:00 business-day start, gap/grace/tolerance/cap defaults) live only in DB function `attendance_departure_rules()`; `recompute_attendance_day`, `hr_backfill_attendance` and the UI read from it. Why: one source of truth.
 - HR attendance edits never mutate raw `attendance_events`; only RPC `hr_save_attendance_day` (overrides, break diffs, gap dismissals, recompute, audit in one transaction). Why: edits survive new punches and stay auditable.
-- Purchase-order edits go only through RPC `update_procurement_order` (gate: `procurement_order_edit_block_reason`); it keeps line ids, forbids qty below invoiced or deleting received lines, logs before/after in `procurement_order_edits`. Why: keep links and audit.
-- Direct receiving (no PO): `employees.can_direct_receive` users act only via `direct_receiving_*` RPCs on `procurement_orders` (`source='direct_receiving'`); submit creates a receiving session so the invoice flow posts stock/GL; temp lines linked via `direct_receiving_link_temp_line`. Why: finance stays in one audited path.
 - Camera scanning uses shared `POSBarcodeScanner` (native detector or local `public/zxing/` ponyfill); inputs normalize via `src/lib/barcode.ts`; RPCs match via `_barcode_variants()`. Why: fast offline scans.
 - Barcodes are unique per tenant across products.barcode and product_barcodes (trigger enforce_unique_product_barcode); one product may have many barcodes. Why: a scan must resolve to exactly one product.
 - Role checks in RLS policies and helper functions (admin, hr_manager, accountant_*) must be AND-combined with a tenant check (is_team_member / is_same_team / company owner); only super_admin may be global. Why: every company owner holds 'admin', so a bare has_role leaks data across tenants.
@@ -26,3 +21,4 @@ Subdirectories may have their own `AGENTS.md` (e.g. `src/components/pos/`); read
 - SECURITY DEFINER functions taking a client owner id must guard it (team/holding member, super_admin, or no JWT). Why: they bypass RLS.
 - Employee visibility RLS uses array helpers `my_chain_employee_ids()`/`my_managed_branch_employee_ids()` via `id = ANY((SELECT ...))`, identical to `is_my_team_employee`/`is_managed_branch_employee`. Why: per-row calls were 100x slower.
 - Invoice numbers: `generate_invoice_number` increments `invoice_sequences` atomically; MAX only on first seed. Why: race-safe.
+- Journal voucher edits never soft-delete posted lines: RPC `reverse_voucher_transactions` mirrors them on their original date, then new lines post. Why: audit trail.
