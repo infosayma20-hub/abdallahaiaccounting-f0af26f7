@@ -1072,6 +1072,13 @@
       "when": 1792133109167,
       "tag": "0152_guard_owner_balance_functions",
       "breakpoints": true
+    },
+    {
+      "idx": 153,
+      "version": "7",
+      "when": 1792133251091,
+      "tag": "0153_reverse_voucher_transactions_on_edit",
+      "breakpoints": true
     }
   ]
 }

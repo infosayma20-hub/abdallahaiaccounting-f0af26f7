@@ -35356,6 +35356,10 @@ export type Database = {
         Args: { _count_id: string }
         Returns: Json
       }
+      reverse_voucher_transactions: {
+        Args: { p_owner_id: string; p_reason?: string; p_voucher_id: string }
+        Returns: number
+      }
       revert_orphan_call_center_orders: { Args: never; Returns: number }
       review_leave_day_reversal: {
         Args: { _action: string; _reason?: string; _reversal_id: string }
