@@ -31,10 +31,12 @@ import { ReadOnlyProvider } from "@/contexts/ReadOnlyContext";
 // full-screen fallback before the separate account check, which looked like
 // two consecutive loading screens on every hard refresh.
 import AuthPage from "./pages/AuthPage";
-// Authenticated-app shells load on demand — keeping them out of the initial
-// bundle means the login screen no longer waits for the whole app UI
-// (top bar widgets, calculator, markdown support widget, HR bell …).
-const WebLayout = lazy(() => import("./components/layout/WebLayout"));
+// WebLayout/ModuleGuard/FeatureGuard تُستورد مباشرة: هي على مسار كل شاشة
+// بعد تسجيل الدخول، وتحميلها الكسول كان يسبب ثلاثة ملفات متتالية قبل ظهور
+// أي شاشة. بقية الشاشات تبقى كسولة.
+import WebLayout from "./components/layout/WebLayout";
+import ModuleGuard from "./components/layout/ModuleGuard";
+import FeatureGuard from "./components/permissions/FeatureGuard";
 import FeedbackShell from "./components/layout/FeedbackShell";
 import RoleGuard from "./components/RoleGuard";
 import { OnboardingGate } from "@/components/auth/OnboardingGate";
@@ -43,8 +45,6 @@ import HRPermGuard from "./components/HRPermGuard";
 const HRShell = lazy(() => import("./components/hr/HRShell"));
 const InvoicesPage = lazy(() => import("./pages/InvoicesPage"));
 const BirthdayPreview = lazy(() => import("@/pages/__BirthdayPreview"));
-const ModuleGuard = lazy(() => import("./components/layout/ModuleGuard"));
-const FeatureGuard = lazy(() => import("./components/permissions/FeatureGuard"));
 const POSDeviceAuthGuard = lazy(() => import("./components/pos/POSDeviceAuthGuard"));
 const KioskPage = lazy(() => import("./pages/kiosk/KioskPage"));
 const KioskSettingsPage = lazy(() => import("./pages/pos/KioskSettingsPage"));
