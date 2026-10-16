@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useUserRoles } from "@/hooks/useUserRoles";
 
 export type IMRole =
   | "admin"
@@ -60,25 +61,54 @@ export function useInternalMessages() {
   const [messages, setMessages] = useState<InternalMessageRow[]>([]);
   const [recipients, setRecipients] = useState<InternalMessageRecipientRow[]>([]);
   const [loading, setLoading] = useState(true);
-  const [userRoles, setUserRoles] = useState<string[]>([]);
+  // الأدوار من حزمة البدء الموحّدة — كانت تُجلب هنا باستعلام منفصل.
+  const { roles: userRoles } = useUserRoles();
+  const rolesKey = userRoles.join("|");
 
   const load = useCallback(async () => {
     if (!user?.id) return;
     setLoading(true);
-    const [{ data: msgs }, { data: recs }, { data: roles }] = await Promise.all([
+    // جلب مستهدف بدل سحب كل رسائل الشركة: رسائلي الواردة (لي شخصياً أو
+    // لأدواري) + الرسائل التي أرسلتها، ثم تفاصيل تلك الرسائل فقط.
+    const roleFilter = userRoles.length ? `,recipient_role.in.(${userRoles.join(",")})` : "";
+    const [{ data: myRecs }, { data: sent }] = await Promise.all([
+      supabase
+        .from("internal_message_recipients" as any)
+        .select("*")
+        .or(`recipient_user_id.eq.${user.id}${roleFilter}`),
       supabase
         .from("internal_messages" as any)
         .select("*")
+        .eq("sender_id", user.id)
         .order("created_at", { ascending: false })
         .limit(300),
-      supabase.from("internal_message_recipients" as any).select("*").limit(1000),
-      supabase.from("user_roles").select("role").eq("user_id", user.id),
+    ]);
+    const msgIds = Array.from(new Set([
+      ...(((myRecs as any[]) || []).map((r) => r.message_id) as string[]),
+      ...(((sent as any[]) || []).map((m) => m.id) as string[]),
+    ]));
+    if (msgIds.length === 0) {
+      setMessages([]);
+      setRecipients([]);
+      setLoading(false);
+      return;
+    }
+    const [{ data: msgs }, { data: recs }] = await Promise.all([
+      supabase
+        .from("internal_messages" as any)
+        .select("*")
+        .in("id", msgIds)
+        .order("created_at", { ascending: false }),
+      supabase
+        .from("internal_message_recipients" as any)
+        .select("*")
+        .in("message_id", msgIds),
     ]);
     setMessages((msgs as any) || []);
     setRecipients((recs as any) || []);
-    setUserRoles(((roles as any[]) || []).map(r => r.role));
     setLoading(false);
-  }, [user?.id]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id, rolesKey]);
 
   useEffect(() => {
     load();
