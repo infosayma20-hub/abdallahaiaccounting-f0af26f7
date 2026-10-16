@@ -23,6 +23,7 @@ import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip
 import { navigationSections, getAllChildren, type NavItem } from "@/config/navigationConfig";
 import { useMyAppOverrides } from "@/hooks/useMyAppOverrides";
 import { useTT } from "@/i18n/dict";
+import { preloadPage } from "@/lib/pagePreload";
 
 interface SidebarProps {
   collapsed: boolean;
@@ -167,6 +168,8 @@ const AppSidebar = ({ collapsed, onToggle, mobileOpen, onMobileClose }: SidebarP
           borderRadius: 8,
         }}
         onMouseEnter={(e) => {
+          // تحميل مسبق لملف الشاشة لحظة مرور الفأرة — التنقل يظهر فورياً.
+          if (!disabled) preloadPage(item.path);
           if (disabled || isHighlighted) return;
           e.currentTarget.style.background = "rgba(255,255,255,0.06)";
           e.currentTarget.style.color = "rgba(255,255,255,0.9)";
@@ -276,6 +279,7 @@ const AppSidebar = ({ collapsed, onToggle, mobileOpen, onMobileClose }: SidebarP
                           width: "calc(100% - 16px)",
                         }}
                         onMouseEnter={(e) => {
+                          preloadPage(child.path);
                           if (childActive) return;
                           e.currentTarget.style.background = "rgba(255,255,255,0.05)";
                           e.currentTarget.style.color = "rgba(255,255,255,0.8)";
