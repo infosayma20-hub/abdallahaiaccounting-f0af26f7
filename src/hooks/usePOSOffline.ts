@@ -131,6 +131,13 @@ export function usePOSOffline({ userId, sessionId, terminalId, companyId }: UseP
   const preCacheData = useCallback(async () => {
     if (!userId) return;
     try {
+      // Delta sync: only rows changed since the last sync (minus 2 min safety
+      // margin). A full refresh runs once per 24h so deletions also propagate.
+      const fullKey = `pos_last_full_sync_${userId}`;
+      const lastFull = Number(localStorage.getItem(fullKey) || 0);
+      const lastSync = localStorage.getItem('pos_last_sync');
+      const isDelta = !!lastSync && Date.now() - lastFull < 24 * 3600_000;
+      const since = isDelta ? new Date(new Date(lastSync!).getTime() - 120_000).toISOString() : null;
       // products has no is_active column — the old .eq('is_active', true) made
       // this query fail outright, so the offline cache stayed empty. Also page
       // past PostgREST's 1000-row cap (Top Car has 2.8k products).
@@ -142,6 +149,7 @@ export function usePOSOffline({ userId, sessionId, terminalId, companyId }: UseP
           .eq('user_id', userId)
           .order('id')
           .limit(1000);
+        if (since) pq = pq.gte('updated_at', since);
         if (afterId) pq = pq.gt('id', afterId);
         const { data: chunk, error } = await pq;
         if (error) break;
@@ -160,6 +168,7 @@ export function usePOSOffline({ userId, sessionId, terminalId, companyId }: UseP
           .or('contact_type.eq.عميل,contact_type.eq.both,contact_type.eq.customer')
           .order('id')
           .limit(1000);
+        if (since) cq = cq.gte('updated_at', since);
         if (afterContactId) cq = cq.gt('id', afterContactId);
         const { data: chunk, error } = await cq;
         if (error) break;
@@ -170,8 +179,14 @@ export function usePOSOffline({ userId, sessionId, terminalId, companyId }: UseP
       }
       const customersRes = { data: customerRows.length ? customerRows : null };
 
-      if (productRows.length) await cacheProducts(productRows);
-      if (customersRes.data) await cacheCustomers(customersRes.data);
+      if (isDelta) {
+        await upsertMany('products', productRows);
+        await upsertMany('customers', customerRows);
+      } else {
+        if (productRows.length) await cacheProducts(productRows);
+        if (customersRes.data) await cacheCustomers(customersRes.data);
+        localStorage.setItem(fullKey, String(Date.now()));
+      }
 
 
       const now = new Date().toISOString();
