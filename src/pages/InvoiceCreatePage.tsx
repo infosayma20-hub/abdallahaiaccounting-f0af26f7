@@ -485,6 +485,7 @@ const InvoiceCreatePage = () => {
     invoiceDiscountType: "amount" as "amount" | "percent",
   });
 
+  useEffect(() => { if (isEditMode) setDocumentType(form.type); }, [isEditMode, form.type]);
   const documentSnapshots = useRef(new Map<InvoiceDocumentType, { form: typeof form; contactSearch: string; returnReason: string; originalInvoiceId: string }>());
   const changeDocumentType = (next: InvoiceDocumentType) => {
     if (isEditMode || creating || loadingReturnSource || savedReturn || next === documentType) return;
@@ -1051,6 +1052,7 @@ const InvoiceCreatePage = () => {
 
   // ─── Item Calculations ───
   const calcItemSubtotal = useCallback((item: InvoiceItem) => {
+    if (isReturn) return calculateReturnLine(item, taxEnabled, form.taxInclusive).total;
     const base = item.quantity * item.unitPrice;
     let discountAmount = 0;
     if (item.discountType === "percent") {
@@ -1065,7 +1067,7 @@ const InvoiceCreatePage = () => {
     if (form.taxInclusive) return afterDiscount;
     const tax = afterDiscount * (item.taxRate / 100);
     return afterDiscount + tax;
-  }, [taxEnabled, form.taxInclusive]);
+  }, [isReturn, taxEnabled, form.taxInclusive]);
 
   useEffect(() => {
     if (!isEditMode || !editInvoiceId) {
@@ -1477,6 +1479,7 @@ const InvoiceCreatePage = () => {
   };
 
   const selectProduct = (itemId: string, productId: string) => {
+    if (isReturn && originalInvoiceId) return;
     const prod = products.find(p => p.id === productId);
     if (!prod) return;
     setProductSearchByRow(prev => ({ ...prev, [itemId]: prod.name }));
@@ -2881,14 +2884,14 @@ const InvoiceCreatePage = () => {
       { key: "print",   label: tt("طباعة"),  icon: Printer, onClick: () => handlePrintRef.current?.(false) },
     ]};
     const navGroup = { key: "nav", label: tt("تنقل"), items: [
-      { key: "prev", label: tt("السابق"), icon: ChevronRight, onClick: () => goToAdjacentInvoice("prev") },
-      { key: "next", label: tt("التالي"), icon: ChevronLeft,  onClick: () => goToAdjacentInvoice("next") },
-      { key: "inquiry", label: tt("استعلام"), icon: ListChecks, onClick: () => navigate("/invoices") },
+      { key: "prev", label: tt("السابق"), icon: ChevronRight, onClick: () => isReturn ? navigate(form.type === "sales" ? "/sales/returns" : "/purchases/returns") : goToAdjacentInvoice("prev") },
+      { key: "next", label: tt("التالي"), icon: ChevronLeft,  onClick: () => isReturn ? navigate(form.type === "sales" ? "/sales/returns" : "/purchases/returns") : goToAdjacentInvoice("next") },
+      { key: "inquiry", label: tt("استعلام"), icon: ListChecks, onClick: () => navigate(isReturn ? form.type === "sales" ? "/sales/returns" : "/purchases/returns" : "/invoices") },
       { key: "center",  label: tt("فتح مركز المالية"), icon: Calculator, onClick: () => navigate("/accounting-center") },
     ]};
     return [{ key: "general", label: tt("عام"), groups: [newGroup, saveGroup, viewGroup, navGroup] }];
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isEditMode, isReadOnly, creating, isReturn, savedReturn]);
+  }, [isEditMode, isReadOnly, creating, isReturn, savedReturn, form.type]);
 
   // Ctrl/Cmd+Enter is already wired via useInvoiceKeyboard above (onSave → handleCreate).
 
