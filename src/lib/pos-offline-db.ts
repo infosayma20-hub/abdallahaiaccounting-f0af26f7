@@ -216,6 +216,19 @@ export async function cacheCustomers(customers: any[]): Promise<void> {
   await putAll('customers', customers);
 }
 
+/** Upsert rows without clearing the store (delta sync). */
+export async function upsertMany(storeName: 'products' | 'customers', items: any[]): Promise<void> {
+  if (!items.length) return;
+  const db = await openDB();
+  const transaction = db.transaction(storeName, 'readwrite');
+  const store = transaction.objectStore(storeName);
+  for (const item of items) store.put(item);
+  return new Promise((resolve, reject) => {
+    transaction.oncomplete = () => resolve();
+    transaction.onerror = () => reject(transaction.error);
+  });
+}
+
 export async function getCachedProducts(): Promise<any[]> {
   return getAll('products');
 }
