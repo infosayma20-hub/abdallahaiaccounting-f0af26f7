@@ -106,6 +106,7 @@ const GlobalSearchBar = ({ collapsed, onToggle }: { collapsed: boolean; onToggle
   const { user } = useAuth();
   const navigate = useNavigate();
   const tt = useTT();
+  const bootstrap = useBootstrap();
   const inputRef = useRef<HTMLInputElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [query, setQuery] = useState("");
