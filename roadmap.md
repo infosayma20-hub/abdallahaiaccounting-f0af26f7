@@ -1,22 +1,29 @@
-# Roadmap — Inventory costing (plan approved 2026-10-06)
-- [x] Manual journal shift link: compact dated picker, tenant/cash-box validated voucher link, statement grouping (4 tests); authenticated draft save/readback/deletion verified, no test posting or historical ledger changes. Live posted statement not exercised.
-- [x] Employee voice: authenticated category and messages page opened without runtime errors at 430px/1280px; guarded nested TooltipTrigger→Button asChild against fragment injection, seven tests passed; no request/permission changes. Own-account list empty, existing-request detail in Reham's account not verified.
-- [x] HR launch crash: reproduced React.Children.only in shared Button, restored the single-child Slot contract; nine tests passed and authenticated HR → employees navigation rendered without runtime errors; employee data/permissions unchanged, Reham's own account not accessed.
-- [x] Finance mobile: shared tables scroll, existing tooltip/title commands have visible phone labels, delivery notes use mobile cards and iframe printing, invoice commands use FinanceShell; authenticated mobile/desktop checks and four read-only end-to-end tests passed without financial writes.
-- [ ] Finance mobile physical print: confirm phone print/share dialog on the customer's actual phone/printer; sandbox verifies document rendering, not a physical printer.
-- [x] Print-note number order: reproduced with librsvg, corrected receipt/kitchen notes without changing stored data, visually checked Arabic/bilingual outputs; five regression tests passed.
-- [ ] Print-note rollout: corrected bridge source must be installed on branch printing computers; physical printer verification unavailable from the sandbox. No installer/ZIP or printer settings changed.
-- [x] Returns: invoice-like sales/purchase form and list; pilot-only atomic lifecycle tested for service sales/purchase and linked sales-stock create, replay, edit, cancel; original stock restored and financial net effect zero. No historical documents changed.
-- [x] Returns audit (pilot): verified sales/purchase cash and bank ±116 refunds and reversal to original balances; purchase-stock create/edit/cancel restored product qty 99, cost value 396 and supplier balance 0; statement opens the return and UI edit persisted revision 2; VAT-category tampering rejected with unchanged stock; return transactions route to return documents, not invoices. All test postings cancelled, legacy documents untouched.
-- [ ] Returns rollout: broader FIFO/periodic/perpetual GL certification and replacement of legacy delete-on-cancel remain prerequisites; production rollout waits on approval, not enabled.
-- [x] Cashier discount: Aboud's saved permission verified; shared dialog re-reads tenant/cashier permission, caps fixed/percent discounts, self-approves without manager bypass; authenticated isolated-dialog test passed, session unchanged; other tenant approval behavior unchanged.
-- [ ] Cashier discount station check: verify from the full POS button on an authorized branch device; sandbox is blocked by the existing device guard, no guard bypass or sale performed.
-- [x] Import Beit Alkul catalog: 105 products + 31 size/type choices in 15 required single-choice groups; bakery-only links, zero stock, 105 audit entries; catalog/choice hashes match CSV exactly; historical products untouched. Photos await user uploads.
-- [x] POS v2: restore Malaky-only stockout dialog beside transferred-order alerts; move kitchen into More; verified with 3 tests and isolated browser rendering, without changing sales/stock data.
-- [x] Phase 1: engine (moving avg / FIFO / reversal / negative stock), settings choice + lock + audit, readiness check, valuation report reads engine
-- [x] Phase 2: engine GL (perpetual) for invoices, voids, delivery notes, returns, adjustments/counts, negative variance, reversals; POS sale/return COGS from engine; periodic = no COGS at sale; sale line cost write-back
-- [x] Phase 2b: transfers carry source cost; FIFO void restores original layers; rep sales no double COGS; deterministic FIFO order
-- [x] Phase 3: item card + reconciliation page (/inventory-costing); periodic closing value from engine
-- [x] Activated on demo tenant info.sayma20 (perpetual + moving avg); all 4 combos tested in rolled-back transactions
-- [ ] Phase 4: method-change wizard with adjustment entry; optional opening-inventory journal at activation; staged rollout to real tenants — waits on user decision
-- [ ] Note: production, imports and stock documents keep their own GL postings (engine values their movements only)
+# المرحلة 4أ — تسريع فتح البرنامج والتنقل + إصلاح أخطاء الدقة
+
+## 1) حزمة بدء تشغيل واحدة
+- [ ] دالة `get_my_bootstrap()` SECURITY DEFINER (أدوار، نوع حساب، مالك بيانات، إعداد أولي، شركة/ملف، اشتراك، صلاحيات ميزات، تجاوزات تطبيقات)
+- [ ] تخزين sessionStorage + إبطال عند خروج/تغيير شركة/بث صلاحيات
+- [ ] تحويل المستهلكين لـ React Query بمفتاح ["bootstrap", uid]: useRoleRedirect, OnboardingGate, CompanyProvider, useSubscription, useMyFeaturePermissions, useMyAppOverrides
+
+## 2) الصلاحيات مرة واحدة
+- [ ] مزوّد واحد في WebLayout بقناة بث واحدة
+- [ ] usePermission وCan يقرآن منه بدون طلب
+
+## 3) تحميل الشيفرة
+- [ ] WebLayout/ModuleGuard/FeatureGuard استيراد مباشر لا lazy
+- [ ] تحميل مسبق عند hover على رابط القائمة الجانبية
+
+## 4) أخطاء دقة
+- [ ] حد 1000 صف: useDashboardData، قائمة الفواتير، عملاء InvoiceCreatePage، حسابات ProductEditPage
+- [ ] user.id بدل ownerId: ContactDetailPage، useDashboardData، TopBar، AccountStatementV2Page
+- [ ] ContactsPage: التأثير يتجاهل ownerId
+- [ ] ProductEditPage.save: حذف ثم إدراج بدون فحص خطأ → فحص كل خطأ / دالة save_product بمعاملة
+- [ ] useInternalMessages: فلتر بالمستخدم الحالي
+- [ ] InvoicesPage: لا جلب قبل انتهاء الصلاحيات
+- [ ] AccountStatementV2Page: تسجيل lastTxFilterKeyRef
+
+## قياس قبل/بعد
+- [ ] عدد الطلبات المتسلسلة حتى قائمة الفواتير
+- [ ] عدد قنوات البث في قائمة الفواتير
+- [ ] زمن الفتح والتنقل
+- [ ] بصمة الشاشات لكل دور
