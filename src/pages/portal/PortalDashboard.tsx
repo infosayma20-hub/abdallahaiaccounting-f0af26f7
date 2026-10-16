@@ -342,6 +342,7 @@ export default function PortalDashboard() {
     setShowEvaluationsPage(false);
     setShowDrawingsPage(false);
     setShowSalesReportPage(null);
+    setShowDashboardPage(false);
   };
 
   const themeMode = darkMode ? 'dark' as const : 'light' as const;
@@ -352,6 +353,7 @@ export default function PortalDashboard() {
     setShowFormsPage(false); setShowTrainingPage(false); setShowOrdersPage(false);
     setShowTrackingPage(false); setShowPettyCashPage(false); setShowLoyaltyPage(false);
     setShowComplaintsPage(false); setShowCompensationsPage(false); setShowEvaluationsPage(false); setShowDrawingsPage(false);
+    setShowDashboardPage(false);
   };
 
   const openPortalReport = (kind: 'type' | 'area') => {
