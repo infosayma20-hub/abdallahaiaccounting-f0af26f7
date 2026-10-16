@@ -33,8 +33,10 @@ const PRELOAD_MAP: Array<[string, Importer]> = [
   ["/stock-documents", () => import("@/pages/inventory/StockDocumentsPage")],
   ["/stock-movements", () => import("@/pages/StockMovementsPage")],
   // المالية
-  ["/finance/receipt", () => import("@/pages/ReceiptVoucherPage")],
-  ["/finance/payment", () => import("@/pages/PaymentVoucherPage")],
+  ["/finance/receipt/new", () => import("@/pages/VoucherFormPage")],
+  ["/finance/payment/new", () => import("@/pages/VoucherFormPage")],
+  ["/finance/receipts", () => import("@/pages/FinanceReceiptsPage")],
+  ["/finance/payments", () => import("@/pages/FinancePaymentsPage")],
   ["/finance/journal", () => import("@/pages/JournalEntriesPage")],
   ["/finance/cheques", () => import("@/pages/ChequesPage")],
   ["/finance/cash-boxes", () => import("@/pages/CashBoxesPage")],
