@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Navigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
+import { useBootstrap } from "@/hooks/useBootstrap";
 import { fetchOnboardingStatus, type OnboardingStatus } from "@/lib/authRedirect";
 
 /**
@@ -19,6 +20,7 @@ const sessionStatusCache = new Map<string, OnboardingStatus>();
 
 export const OnboardingGate = ({ children }: { children: React.ReactNode }) => {
   const { user, loading: authLoading } = useAuth();
+  const bootstrap = useBootstrap();
   const location = useLocation();
   const [status, setStatus] = useState<OnboardingStatus | "loading">(() => {
     if (user?.id && sessionStatusCache.has(user.id)) {
