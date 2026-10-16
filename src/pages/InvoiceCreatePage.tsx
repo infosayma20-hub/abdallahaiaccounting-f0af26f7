@@ -1361,6 +1361,10 @@ const InvoiceCreatePage = () => {
   useEffect(() => { filteredContactsRef.current = filteredContacts; }, [filteredContacts]);
 
   const selectContact = (contact: Contact) => {
+    if (isReturn && contact.id !== form.contactId) {
+      setOriginalInvoiceId("");
+      setForm(p => ({ ...p, items: [createEmptyItem()] }));
+    }
     setSelectedContact(contact);
     setContactSearch(contact.contact_name);
     setShowContactDropdown(false);
@@ -2571,9 +2575,9 @@ const InvoiceCreatePage = () => {
       taxRate: i.taxRate,
       taxCategory: i.taxCategory,
       unitOfMeasure: i.unitOfMeasure || "قطعة",
-      subtotal: calcItemSubtotal(i),
+      subtotal: isReturn ? calculateReturnLine(i, taxEnabled, form.taxInclusive).total : calcItemSubtotal(i),
     })),
-    notes: form.notes,
+    notes: isReturn ? [returnReason, form.notes].filter(Boolean).join("\n") : form.notes,
     status: isEditMode ? "sent" : "draft",
     paymentMethod: form.paymentMethod,
     subtotal: summary.subtotal,
@@ -3792,7 +3796,7 @@ const InvoiceCreatePage = () => {
           variant="invoice"
           returnDocument={isReturn}
           cashDocument={form.invoiceKind === "cash"}
-          isPosted={isEditMode || Boolean(savedReturn)}
+          isPosted={isEditMode}
           invoiceType={form.type}
           subtotal={summary.subtotal}
           totalDiscount={summary.totalDiscount}
@@ -4508,6 +4512,7 @@ const InvoiceCreatePage = () => {
       </div>
 
       </fieldset>
+      {savedReturn && <div className="flex items-center justify-between gap-2 text-sm text-primary py-3"><span>تم حفظ المردود {savedReturn.return_number}</span><Button variant="outline" onClick={() => navigate(`${form.type === "sales" ? "/sales/returns" : "/purchases/returns"}/new?view=${savedReturn.id}`)}>فتح المردود المحفوظ</Button></div>}
 
 
       {/* Quick Add Product Dialog */}

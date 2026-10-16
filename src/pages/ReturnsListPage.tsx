@@ -341,7 +341,7 @@ const ReturnsListPage = ({ returnType }: Props) => {
               key: "new",
               label: "جديد",
               items: [
-                { key: "new", label: newButtonLabel, icon: Plus, variant: "primary", onClick: () => navigate(newPath), disabled: !canProcess },
+                { key: "new", label: newButtonLabel, icon: Plus, variant: "primary", onClick: () => navigate(`/invoices/new?type=${isSales ? "sales_return" : "purchase_return"}`), disabled: !canProcess },
               ],
             },
             {
