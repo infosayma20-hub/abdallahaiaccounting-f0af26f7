@@ -576,7 +576,7 @@ const ProfitLoss = () => {
   // ── Export PDF ──
   const handleExportPDF = () => {
     const rows = statementLines.filter(l => l.type !== "spacer" && l.type !== "header");
-    const tableHeaders = ["البند", "المبلغ", ...(showPercentages ? ["%"] : []), ...(showComparison ? ["الفترة السابقة"] : [])];
+    const tableHeaders = ["البند", ...(multiCC ? ccColumns!.map(c => c.name) : ["المبلغ"]), ...(showPercentages && !multiCC ? ["%"] : []), ...(showComparison && !multiCC ? ["الفترة السابقة"] : [])];
     const tableRows = rows.map(l => {
       const isNeg = l.amount < 0;
       const pctVal = current.totalRevenue > 0 ? ((l.amount / current.totalRevenue) * 100).toFixed(1) + "%" : "";
@@ -584,11 +584,17 @@ const ProfitLoss = () => {
       const isBold = l.type === "subtotal" || l.type === "total" || l.type === "grand-total" || !!l.group;
       const style = isBold ? 'font-weight:700;' : '';
       const bgStyle = l.type === "grand-total" ? 'background:#F0FDF4;' : l.type === "total" ? 'background:#F8FAFC;' : '';
+      const amountCells = multiCC
+        ? ccColumns!.map(col => {
+            const v = col.map.get(ccLineKey(l)) ?? 0;
+            return `<span style="${style}${v < 0 ? 'color:#DC2626;' : ''}">${l.group === "head" ? "" : fmtAmount(v)}</span>`;
+          })
+        : [`<span style="${style}${isNeg ? 'color:#DC2626;' : ''}">${l.type === "header" || l.group === "head" ? "" : fmtAmount(l.amount)}</span>`];
       return [
         `<span style="padding-right:${indent}px;${style}">${l.label}</span>`,
-        `<span style="${style}${isNeg ? 'color:#DC2626;' : ''}">${l.type === "header" || l.group === "head" ? "" : fmtAmount(l.amount)}</span>`,
-        ...(showPercentages ? [l.group === "head" ? "" : pctVal] : []),
-        ...(showComparison && l.compareAmount !== undefined ? [fmtAmount(l.compareAmount)] : showComparison ? [""] : []),
+        ...amountCells,
+        ...(showPercentages && !multiCC ? [l.group === "head" ? "" : pctVal] : []),
+        ...(showComparison && !multiCC && l.compareAmount !== undefined ? [fmtAmount(l.compareAmount)] : showComparison && !multiCC ? [""] : []),
       ];
     });
 
