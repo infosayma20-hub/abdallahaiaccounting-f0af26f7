@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import {
-  Loader2, Landmark, ChevronDown, ChevronRight, Calendar, FileSpreadsheet, Download, Printer,
+  Loader2, Landmark, ChevronDown, ChevronUp, ChevronRight, Calendar, FileSpreadsheet, Download, Printer,
   TrendingUp, TrendingDown, RefreshCw, Calculator, AlertTriangle,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
@@ -11,7 +11,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
-import { ReportSummary, exportToExcel } from "@/components/ReportComponents";
+import { exportToExcel } from "@/components/ReportComponents";
 import ReportStatusBadge from "@/components/reports/ReportStatusBadge";
 import { generateProfessionalPDFHtml, openPrintWindow, useCompanyInfo } from "@/components/ReportPrintLayout";
 import {
