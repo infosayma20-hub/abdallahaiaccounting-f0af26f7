@@ -715,19 +715,51 @@ const ProfitLoss = () => {
             ))}
           </div>
           {costCenters.length > 0 && (
-            <div className="flex items-center gap-1.5 mr-4">
+            <div className="relative flex items-center gap-1.5 mr-4">
               <span className="text-muted-foreground text-[10px]">الفرع / مركز التكلفة:</span>
-              <select
-                value={costCenterFilter}
-                onChange={(e) => setCostCenterFilter(e.target.value)}
-                className="h-7 rounded-md border border-input bg-background px-2 text-[11px]"
+              <button
+                type="button"
+                onClick={() => setCcOpen(v => !v)}
+                className="h-7 rounded-md border border-input bg-background px-2 text-[11px] flex items-center gap-1.5 min-w-[120px] justify-between"
               >
-                <option value="all">الكل</option>
-                <option value="none">بدون مركز تكلفة</option>
-                {costCenters.map(cc => (
-                  <option key={cc.id} value={cc.id}>{cc.name}</option>
-                ))}
-              </select>
+                <span>
+                  {ccSelected.length === 0
+                    ? "الكل"
+                    : ccSelected.length === 1
+                      ? (ccSelected[0] === "none" ? "بدون مركز تكلفة" : costCenters.find(c => c.id === ccSelected[0])?.name || "مركز واحد")
+                      : `${ccSelected.length} مراكز (عمود لكل مركز)`}
+                </span>
+                <ChevronDown className="h-3 w-3 text-muted-foreground" />
+              </button>
+              {ccOpen && (
+                <>
+                  <div className="fixed inset-0 z-40" onClick={() => setCcOpen(false)} />
+                  <div className="absolute top-8 right-0 z-50 w-56 rounded-md border border-border bg-card shadow-lg p-2 space-y-1.5">
+                    <label className="flex items-center gap-1.5 cursor-pointer text-[11px]">
+                      <Checkbox checked={ccSelected.length === 0} onCheckedChange={() => setCcSelected([])} />
+                      <span className="font-medium">الكل (عمود واحد)</span>
+                    </label>
+                    <div className="border-t border-border/60 my-1" />
+                    <label className="flex items-center gap-1.5 cursor-pointer text-[11px]">
+                      <Checkbox
+                        checked={ccSelected.includes("none")}
+                        onCheckedChange={(v) => setCcSelected(prev => v ? [...prev, "none"] : prev.filter(k => k !== "none"))}
+                      />
+                      <span>بدون مركز تكلفة</span>
+                    </label>
+                    {costCenters.map(cc => (
+                      <label key={cc.id} className="flex items-center gap-1.5 cursor-pointer text-[11px]">
+                        <Checkbox
+                          checked={ccSelected.includes(cc.id)}
+                          onCheckedChange={(v) => setCcSelected(prev => v ? [...prev, cc.id] : prev.filter(k => k !== cc.id))}
+                        />
+                        <span>{cc.name}</span>
+                      </label>
+                    ))}
+                    <p className="text-[10px] text-muted-foreground border-t border-border/60 pt-1.5">اختر مركزين أو أكثر ليظهر عمود مستقل لكل مركز</p>
+                  </div>
+                </>
+              )}
             </div>
           )}
         </div>
