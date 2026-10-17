@@ -29408,6 +29408,44 @@ export type Database = {
         }
         Relationships: []
       }
+      wa_channel_tokens: {
+        Row: {
+          channel_id: string
+          ciphertext: string
+          created_at: string
+          id: string
+          iv: string
+          owner_id: string
+          updated_at: string
+        }
+        Insert: {
+          channel_id: string
+          ciphertext: string
+          created_at?: string
+          id?: string
+          iv: string
+          owner_id: string
+          updated_at?: string
+        }
+        Update: {
+          channel_id?: string
+          ciphertext?: string
+          created_at?: string
+          id?: string
+          iv?: string
+          owner_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wa_channel_tokens_channel_id_fkey"
+            columns: ["channel_id"]
+            isOneToOne: true
+            referencedRelation: "wa_channels"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       wa_channels: {
         Row: {
           connected_via: string
