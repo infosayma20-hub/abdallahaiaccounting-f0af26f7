@@ -580,6 +580,9 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
       toast.error(err.message || "تعذر التنقل بين السندات");
     }
   };
+  // Always call the latest version (current editId) — the action tabs are memoized.
+  const goToAdjacentVoucherRef = useRef(goToAdjacentVoucher);
+  goToAdjacentVoucherRef.current = goToAdjacentVoucher;
 
   // ─── Action Pane tabs (FinanceShell) — receipt + payment ───
   // CRITICAL: this useMemo must live ABOVE the editLoading/saved early
@@ -622,8 +625,8 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
       { key: "print", label: "طباعة", icon: Printer, onClick: () => handlePrintRef.current?.() },
     ]};
     const navGroup = { key: "nav", label: "تنقل", items: [
-      { key: "prev", label: "السابق", icon: ChevronRight, onClick: () => goToAdjacentVoucher("prev") },
-      { key: "next", label: "التالي", icon: ChevronLeft, onClick: () => goToAdjacentVoucher("next") },
+      { key: "prev", label: "السابق", icon: ChevronRight, onClick: () => goToAdjacentVoucherRef.current("prev") },
+      { key: "next", label: "التالي", icon: ChevronLeft, onClick: () => goToAdjacentVoucherRef.current("next") },
       { key: "inquiry", label: "استعلام", icon: ListChecks, onClick: () => navigate(listRoute) },
       { key: "center", label: "فتح مركز المالية", icon: Calculator, onClick: () => navigate("/accounting-center") },
     ]};
