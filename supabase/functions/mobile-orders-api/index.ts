@@ -728,7 +728,7 @@ async function handleListMappings(ownerId: string) {
 async function handleGetOrder(ownerId: string, reference: string) {
   const { data } = await admin
     .from("call_center_orders")
-    .select("id, status, total, created_at, accepted_at, delivered_at, cancelled_at, cancel_reason, target_branch_name, pos_order_id, payment_method, delivery_type")
+    .select("id, status, total, created_at, accepted_at, delivered_at, cancelled_at, cancel_reason, target_branch_name, pos_order_id, payment_method, delivery_type, delivery_info")
     .eq("user_id", ownerId)
     .eq("client_reference_id", reference)
     .maybeSingle();
@@ -744,7 +744,7 @@ async function handleGetOrder(ownerId: string, reference: string) {
     total: data.total,
     branch_name: data.target_branch_name,
     payment_method: data.payment_method,
-    delivery_type: data.delivery_type,
+    delivery_type: (data.delivery_info as any)?.original_delivery_type || data.delivery_type,
     pos_order_id: data.pos_order_id,
     created_at: data.created_at,
     accepted_at: data.accepted_at,
