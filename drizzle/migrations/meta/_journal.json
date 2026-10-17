@@ -1149,6 +1149,27 @@
       "when": 1792261364313,
       "tag": "0163_stock_count_unit_history_guard",
       "breakpoints": true
+    },
+    {
+      "idx": 164,
+      "version": "7",
+      "when": 1792261759198,
+      "tag": "0164_pos_shift_complete_sales_invoice",
+      "breakpoints": true
+    },
+    {
+      "idx": 165,
+      "version": "7",
+      "when": 1792261967112,
+      "tag": "0165_shift_sale_inventory_and_kitchen_guards",
+      "breakpoints": true
+    },
+    {
+      "idx": 166,
+      "version": "7",
+      "when": 1792262081686,
+      "tag": "0166_pos_tax_contact_lookup_correct_column",
+      "breakpoints": true
     }
   ]
 }

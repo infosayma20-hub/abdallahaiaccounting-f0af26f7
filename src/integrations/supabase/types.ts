@@ -666,6 +666,7 @@ export type Database = {
           can_manage_suppliers: boolean | null
           can_manage_vat: boolean | null
           can_manage_warehouses: boolean | null
+          can_pos_shift_add_sale: boolean
           can_pos_shift_cancel_cash_out: boolean
           can_pos_shift_change_payment: boolean
           can_pos_shift_discount: boolean
@@ -736,6 +737,7 @@ export type Database = {
           can_manage_suppliers?: boolean | null
           can_manage_vat?: boolean | null
           can_manage_warehouses?: boolean | null
+          can_pos_shift_add_sale?: boolean
           can_pos_shift_cancel_cash_out?: boolean
           can_pos_shift_change_payment?: boolean
           can_pos_shift_discount?: boolean
@@ -806,6 +808,7 @@ export type Database = {
           can_manage_suppliers?: boolean | null
           can_manage_vat?: boolean | null
           can_manage_warehouses?: boolean | null
+          can_pos_shift_add_sale?: boolean
           can_pos_shift_cancel_cash_out?: boolean
           can_pos_shift_change_payment?: boolean
           can_pos_shift_discount?: boolean
@@ -17355,6 +17358,8 @@ export type Database = {
           return_reason: string | null
           session_id: string
           session_seq: number | null
+          shift_sale_request_id: string | null
+          shift_sale_request_payload: Json | null
           skip_wheels_dispatch: boolean
           source: string | null
           state: string
@@ -17460,6 +17465,8 @@ export type Database = {
           return_reason?: string | null
           session_id: string
           session_seq?: number | null
+          shift_sale_request_id?: string | null
+          shift_sale_request_payload?: Json | null
           skip_wheels_dispatch?: boolean
           source?: string | null
           state?: string
@@ -17565,6 +17572,8 @@ export type Database = {
           return_reason?: string | null
           session_id?: string
           session_seq?: number | null
+          shift_sale_request_id?: string | null
+          shift_sale_request_payload?: Json | null
           skip_wheels_dispatch?: boolean
           source?: string | null
           state?: string
@@ -32420,6 +32429,8 @@ export type Database = {
         Args: { p_terminal_discount: string; p_user_id: string }
         Returns: string
       }
+      _pos_sale_paid_at: { Args: { p_order_id: string }; Returns: string }
+      _pos_sale_posting_date: { Args: { p_order_id: string }; Returns: string }
       _pos_shift_correction_gate: {
         Args: { p_perm: string; p_reason: string; p_session_id: string }
         Returns: undefined
@@ -35328,6 +35339,19 @@ export type Database = {
           p_session_id: string
           p_supplier_id: string
           p_unit_price: number
+        }
+        Returns: Json
+      }
+      pos_shift_add_sale_v1: {
+        Args: {
+          p_customer_id: string
+          p_customer_name: string
+          p_items: Json
+          p_notes: string
+          p_payment_type: string
+          p_reason: string
+          p_request_id: string
+          p_session_id: string
         }
         Returns: Json
       }
