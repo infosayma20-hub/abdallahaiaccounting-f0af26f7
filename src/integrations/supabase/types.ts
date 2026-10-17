@@ -36140,6 +36140,18 @@ export type Database = {
         }
         Returns: Json
       }
+      stock_count_create_product_v2: {
+        Args: {
+          p_barcodes: string[]
+          p_counted_qty?: number
+          p_image_url?: string
+          p_name: string
+          p_note?: string
+          p_sell_price: number
+          p_unit: string
+        }
+        Returns: Json
+      }
       stock_count_get: { Args: { p_product_id: string }; Returns: Json }
       stock_count_lookup: { Args: { p_code: string }; Returns: Json }
       stock_count_report_unknown: {
@@ -36169,6 +36181,18 @@ export type Database = {
         }
         Returns: Json
       }
+      stock_count_submit_v2: {
+        Args: {
+          p_counted_qty?: number
+          p_name?: string
+          p_note?: string
+          p_product_id: string
+          p_sell_price?: number
+          p_unit: string
+        }
+        Returns: Json
+      }
+      stock_count_units: { Args: never; Returns: Json }
       stock_movement_signed_qty: {
         Args: {
           _qty: number

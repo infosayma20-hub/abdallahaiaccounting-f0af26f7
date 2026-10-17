@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
 import ManagerHeader from "@/components/employee/manager/ManagerHeader";
+import ProductUnitSelect from "@/components/inventory/ProductUnitSelect";
 import StockCountBarcodes from "@/components/employee/StockCountBarcodes";
 import POSBarcodeScanner from "@/components/pos/POSBarcodeScanner";
 import { normalizeBarcode } from "@/lib/barcode";
@@ -28,6 +29,8 @@ export default function EmployeeStockCountTab({ onBack }: { onBack: () => void }
   const [product, setProduct] = useState<Product | null>(null);
   const [name, setName] = useState("");
   const [price, setPrice] = useState("");
+  const [unit, setUnit] = useState("قطعة");
+  const [units, setUnits] = useState<string[]>([]);
   const [qty, setQty] = useState("");
   const [saving, setSaving] = useState(false);
   const [unknownCode, setUnknownCode] = useState<string | null>(null);
@@ -38,6 +41,7 @@ export default function EmployeeStockCountTab({ onBack }: { onBack: () => void }
   const [newName, setNewName] = useState("");
   const [newPrice, setNewPrice] = useState("");
   const [newQty, setNewQty] = useState("");
+  const [newUnit, setNewUnit] = useState("قطعة");
   const [newCodes, setNewCodes] = useState<string[]>([]);
   const [extraCode, setExtraCode] = useState("");
   const [newImg, setNewImg] = useState<{ blob: Blob; preview: string } | null>(null);
@@ -51,7 +55,7 @@ export default function EmployeeStockCountTab({ onBack }: { onBack: () => void }
 
   const resetNew = (c: string | null) => {
     setUnknownCode(c); setUnknownNote(""); setNewName(""); setNewPrice(""); setNewQty("");
-    setNewCodes(c ? [c] : []); setExtraCode(""); setNewImg(null);
+    setNewCodes(c ? [c] : []); setExtraCode(""); setNewImg(null); setNewUnit("قطعة");
   };
 
   const prepImage = async (f: File) => {
@@ -69,6 +73,7 @@ export default function EmployeeStockCountTab({ onBack }: { onBack: () => void }
   };
 
   const createProduct = async () => {
+    if (creating) return;
     const n = newName.trim();
     const pr = Number(newPrice);
     const q = newQty.trim() === "" ? null : Number(newQty);
@@ -78,11 +83,12 @@ export default function EmployeeStockCountTab({ onBack }: { onBack: () => void }
     setCreating(true);
     try {
       const image = newImg ? await uploadProductImage(newImg.blob) : null;
-      const { error } = await supabase.rpc("stock_count_create_product", {
-        p_name: n, p_sell_price: pr, p_barcodes: newCodes, p_image_url: image as any, p_counted_qty: q as any,
+      const { error } = await supabase.rpc("stock_count_create_product_v2", {
+        p_name: n, p_sell_price: pr, p_barcodes: newCodes, p_unit: newUnit, p_image_url: image as any, p_counted_qty: q as any,
       });
       if (error) throw error;
       toast.success(q !== null ? "عُرّف الصنف — الكمية أُرسلت للمراجعة" : "عُرّف الصنف وصار يظهر في نقطة البيع");
+      setUnits((prev) => Array.from(new Set([...prev, newUnit])));
       resetNew(null); setCode("");
       setTimeout(() => codeRef.current?.focus(), 50);
     } catch (e: any) { toast.error(e?.message || "تعذّر تعريف الصنف"); }
@@ -110,6 +116,17 @@ export default function EmployeeStockCountTab({ onBack }: { onBack: () => void }
     });
   }, []);
 
+  useEffect(() => {
+    if (!ctx) return;
+    let cancelled = false;
+    supabase.rpc("stock_count_units").then(({ data, error }) => {
+      if (cancelled) return;
+      if (error) { toast.error("تعذّر تحميل الوحدات المحفوظة"); return; }
+      if (Array.isArray(data)) setUnits(data.filter((v): v is string => typeof v === "string"));
+    });
+    return () => { cancelled = true; };
+  }, [ctx]);
+
   const lookup = async (raw: string) => {
     const c = normalizeBarcode(raw);
     if (!c) return;
@@ -121,6 +138,7 @@ export default function EmployeeStockCountTab({ onBack }: { onBack: () => void }
     resetNew(null);
     const p = data as any as Product;
     setProduct(p);
+    setUnit(p.unit ?? "قطعة");
     setName("");
     setPrice("");
     setQty("");
@@ -156,6 +174,7 @@ export default function EmployeeStockCountTab({ onBack }: { onBack: () => void }
     if (!data) { toast.error("الصنف غير موجود"); return; }
     resetNew(null);
     setProduct(data as Product);
+    setUnit((data as Product).unit ?? "قطعة");
     setName(""); setPrice(""); setQty(""); setCode("");
   };
 
@@ -171,19 +190,20 @@ export default function EmployeeStockCountTab({ onBack }: { onBack: () => void }
   };
 
   const save = async () => {
-    if (!product) return;
+    if (!product || saving) return;
     const n = name.trim();
     const pr = price.trim() === "" ? null : Number(price);
     const q = qty.trim() === "" ? null : Number(qty);
-    if (!n && pr === null && q === null) { toast.message("لم تُدخل أي تعديل"); return; }
+    if (!n && pr === null && q === null && unit === (product.unit ?? "قطعة")) { toast.message("لم تُدخل أي تعديل"); return; }
     if ((pr !== null && (!isFinite(pr) || pr < 0)) || (q !== null && (!isFinite(q) || q < 0))) { toast.error("أدخل رقمًا صحيحًا"); return; }
     setSaving(true);
-    const { error } = await supabase.rpc("stock_count_submit", {
-      p_product_id: product.id, p_name: n || null, p_sell_price: pr, p_counted_qty: q,
+    const { error } = await supabase.rpc("stock_count_submit_v2", {
+      p_product_id: product.id, p_unit: unit, p_name: n || null, p_sell_price: pr, p_counted_qty: q,
     });
     setSaving(false);
     if (error) { toast.error(error.message); return; }
     toast.success(q !== null ? "تم الحفظ — الكمية أُرسلت للمراجعة" : "تم الحفظ");
+    setUnits((prev) => Array.from(new Set([...prev, unit])));
     setProduct(null);
     setTimeout(() => codeRef.current?.focus(), 50);
   };
@@ -261,6 +281,7 @@ export default function EmployeeStockCountTab({ onBack }: { onBack: () => void }
                     <input ref={newFileRef} type="file" accept="image/*" capture="environment" className="hidden"
                       onChange={async (e) => { const f = e.target.files?.[0]; e.target.value = ""; if (f) setNewImg(await prepImage(f)); }} />
                   </div>
+                  <div className="space-y-1"><Label>الوحدة *</Label><ProductUnitSelect value={newUnit} onChange={setNewUnit} units={units} disabled={creating} /></div>
                   <div><Label>اسم الصنف *</Label><Input value={newName} placeholder="مثال: حليب مبخّر 410غ" onChange={(e) => setNewName(e.target.value)} /></div>
                   <div className="grid grid-cols-2 gap-2">
                     <div><Label>سعر البيع *</Label><Input inputMode="decimal" value={newPrice} onChange={(e) => setNewPrice(e.target.value)} /></div>
@@ -329,13 +350,14 @@ export default function EmployeeStockCountTab({ onBack }: { onBack: () => void }
                   {product.pending_qty !== null && (
                     <div className="text-xs text-muted-foreground">يوجد عدّ سابق بانتظار المراجعة: {product.pending_qty} — العدّ الجديد يستبدله.</div>
                   )}
-                  <StockCountBarcodes productId={product.id} scanned={barcodeScan}
+                  <StockCountBarcodes key={product.id} productId={product.id} scanned={barcodeScan}
                     onScanRequest={() => { setBarcodeScan(null); setScanTarget("barcode"); setScanOpen(true); }}
                     onChanged={async () => {
                       const { data } = await (supabase.rpc as any)("stock_count_get", { p_product_id: product.id });
                       if (data) setProduct((cur) => (cur && cur.id === product.id ? { ...cur, barcode: (data as Product).barcode } : cur));
                     }} />
                   <div className="space-y-2">
+                    <div className="space-y-1"><Label>وحدة المخزون</Label><ProductUnitSelect key={product.id} value={unit} onChange={setUnit} units={units} disabled={saving} /></div>
                     <div>
                       <Label>اسم جديد (اختياري)</Label>
                       <div className="flex gap-2">
@@ -354,12 +376,12 @@ export default function EmployeeStockCountTab({ onBack }: { onBack: () => void }
                     </div>
                     <div className="grid grid-cols-2 gap-2">
                       <div><Label>سعر بيع جديد</Label><Input inputMode="decimal" value={price} placeholder="اختياري" onChange={(e) => setPrice(e.target.value)} /></div>
-                      <div><Label>الكمية المعدودة</Label><Input inputMode="decimal" value={qty} disabled={!ctx.warehouse_id} placeholder="اختياري" onChange={(e) => setQty(e.target.value)} /></div>
+                      <div><Label>الكمية المعدودة ({unit})</Label><Input inputMode="decimal" value={qty} disabled={!ctx.warehouse_id} placeholder="اختياري" onChange={(e) => setQty(e.target.value)} /></div>
                     </div>
                     <p className="text-[11px] text-muted-foreground">الاسم والسعر يتغيّران فورًا في كل الفروع. الكمية تُراجع قبل اعتمادها.</p>
                   </div>
                   <div className="flex gap-2">
-                    <Button variant="outline" className="flex-1" onClick={() => setProduct(null)}>إلغاء</Button>
+                    <Button variant="outline" className="flex-1" disabled={saving} onClick={() => setProduct(null)}>إلغاء</Button>
                     <Button className="flex-1" onClick={save} disabled={saving}>{saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}حفظ</Button>
                   </div>
                 </CardContent>

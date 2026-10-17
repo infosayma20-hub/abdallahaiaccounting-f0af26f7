@@ -1135,6 +1135,13 @@
       "when": 1792257182985,
       "tag": "0161_ops_alerts_post_payment_ops",
       "breakpoints": true
+    },
+    {
+      "idx": 162,
+      "version": "7",
+      "when": 1792260939983,
+      "tag": "0162_stock_count_units_and_extra_barcodes",
+      "breakpoints": true
     }
   ]
 }

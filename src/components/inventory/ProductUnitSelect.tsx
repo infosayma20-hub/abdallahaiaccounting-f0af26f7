@@ -11,6 +11,8 @@ interface Props {
   value: string;
   onChange: (v: string) => void;
   ownerId?: string;
+  units?: string[];
+  disabled?: boolean;
 }
 
 /**
@@ -18,7 +20,7 @@ interface Props {
  * Shows defaults + any distinct `products.unit` already saved for this tenant
  * + inline "add custom unit" affordance.
  */
-export default function ProductUnitSelect({ value, onChange, ownerId }: Props) {
+export default function ProductUnitSelect({ value, onChange, ownerId, units, disabled = false }: Props) {
   const [adding, setAdding] = useState(false);
   const [draft, setDraft] = useState("");
   const [dbUnits, setDbUnits] = useState<string[]>([]);
@@ -44,10 +46,10 @@ export default function ProductUnitSelect({ value, onChange, ownerId }: Props) {
   }, [ownerId]);
 
   const options = useMemo(() => {
-    const merged = [...DEFAULT_UNITS, ...dbUnits, ...localUnits];
+    const merged = [...DEFAULT_UNITS, ...dbUnits, ...(units ?? []), ...localUnits];
     if (value) merged.push(value);
     return Array.from(new Set(merged.filter(Boolean)));
-  }, [dbUnits, localUnits, value]);
+  }, [dbUnits, units, localUnits, value]);
 
   const commitDraft = () => {
     const v = draft.trim();
@@ -64,19 +66,22 @@ export default function ProductUnitSelect({ value, onChange, ownerId }: Props) {
       <div className="flex gap-1">
         <Input
           value={draft}
+          aria-label="اسم الوحدة الجديدة"
+          maxLength={80}
+          disabled={disabled}
           onChange={e => setDraft(e.target.value)}
           placeholder="اسم الوحدة الجديدة..."
           autoFocus
-          className="h-9 text-xs flex-1"
+          className="h-10 min-w-0 flex-1"
           onKeyDown={e => {
             if (e.key === "Enter") { e.preventDefault(); commitDraft(); }
             else if (e.key === "Escape") { setAdding(false); setDraft(""); }
           }}
         />
-        <Button type="button" size="icon" variant="default" className="h-9 w-9" onClick={commitDraft}>
+        <Button type="button" size="icon" variant="default" className="h-10 w-10 shrink-0" aria-label="اعتماد الوحدة الجديدة" disabled={disabled || !draft.trim()} onClick={commitDraft}>
           <Check className="h-4 w-4" />
         </Button>
-        <Button type="button" size="icon" variant="outline" className="h-9 w-9" onClick={() => { setAdding(false); setDraft(""); }}>
+        <Button type="button" size="icon" variant="outline" className="h-10 w-10 shrink-0" aria-label="إلغاء إضافة الوحدة" disabled={disabled} onClick={() => { setAdding(false); setDraft(""); }}>
           <X className="h-4 w-4" />
         </Button>
       </div>
@@ -85,13 +90,15 @@ export default function ProductUnitSelect({ value, onChange, ownerId }: Props) {
 
   return (
     <Select
+      dir="rtl"
+      disabled={disabled}
       value={value}
       onValueChange={v => {
         if (v === "__add_custom__") setAdding(true);
         else onChange(v);
       }}
     >
-      <SelectTrigger><SelectValue placeholder="اختر الوحدة" /></SelectTrigger>
+      <SelectTrigger aria-label="وحدة الصنف"><SelectValue placeholder="اختر الوحدة" /></SelectTrigger>
       <SelectContent>
         {options.map(u => <SelectItem key={u} value={u}>{u}</SelectItem>)}
         <div className="border-t border-border my-1" />
