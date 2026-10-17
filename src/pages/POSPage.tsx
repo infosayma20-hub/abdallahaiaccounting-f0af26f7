@@ -1286,11 +1286,8 @@ const POSPage = ({ variant = "v1" }: { variant?: "v1" | "v2" } = {}) => {
   // Pre-staging refs (full implementation lives just before handleCompleteOrder,
   // after all state hooks like cartTotals/userId/etc are declared).
   const stagedOrderIdRef = useRef<string | null>(null);
-  // A "معلقة" (draft) order recalled into the cart from InvoiceHistoryDrawer.
-  // The sale is rung up as a fresh order, so the recalled draft MUST be removed
-  // once payment succeeds — otherwise it lingers forever as a phantom معلقة row
-  // duplicating the real invoice.
-  const recalledDraftOrderIdRef = useRef<string | null>(null);
+  // Recalled drafts are tracked per OrderTab.savedOrderId, never globally:
+  // switching tabs must not associate payment with another suspended order.
   const stagedHashRef = useRef<string | null>(null);
   const stagingInFlightRef = useRef<boolean>(false);
   const stageOrderInBackgroundRef = useRef<(() => Promise<void>) | null>(null);
@@ -6562,17 +6559,18 @@ const POSPage = ({ variant = "v1" }: { variant?: "v1" | "v2" } = {}) => {
       // 🧹 Remove the recalled "معلقة" draft (if any) — the sale it represented
       // is now a real completed invoice. Guarded on state='draft' so a real
       // invoice can never be deleted by this path.
-      const recalledDraftId = recalledDraftOrderIdRef.current;
+      const recalledDraftId = activeOrder.savedOrderId;
       if (recalledDraftId && recalledDraftId !== orderId) {
-        recalledDraftOrderIdRef.current = null;
         try {
-          await clearOrderLinesWithModifiers(recalledDraftId);
-          await supabase.from("pos_orders").delete().eq("id", recalledDraftId).eq("state", "draft" as any);
+          const { data: draftToRemove } = await supabase.from("pos_orders").select("id")
+            .eq("id", recalledDraftId).eq("user_id", dataOwnerId).eq("state", "draft" as any).maybeSingle();
+          if (draftToRemove) {
+            await clearOrderLinesWithModifiers(recalledDraftId);
+            await supabase.from("pos_orders").delete().eq("id", recalledDraftId).eq("state", "draft" as any);
+          }
         } catch (e) {
           console.warn("[POS] recalled draft cleanup failed:", e);
         }
-      } else {
-        recalledDraftOrderIdRef.current = null;
       }
 
       if (tableName) {
@@ -11437,9 +11435,6 @@ const POSPage = ({ variant = "v1" }: { variant?: "v1" | "v2" } = {}) => {
                 setActiveOrderIndex(orders.length);
               }
               setRecallBanner(null);
-              // Remember the recalled draft so it gets deleted after payment
-              // instead of staying behind as a duplicate "معلقة" invoice.
-              recalledDraftOrderIdRef.current = orderId || null;
               setShowInvoiceHistory(false);
             }}
           />

@@ -1,4 +1,7 @@
 const PREFIX = "[POS_DRAFT_V1]";
+export function draftVisibleNote(row: { order_note?: string | null; notes?: string | null }): string {
+  return row.order_note || (row.notes?.startsWith(PREFIX) ? "" : row.notes || "");
+}
 type Mode = "dine_in" | "takeaway" | "delivery";
 export interface DraftDetails {
   name: string;

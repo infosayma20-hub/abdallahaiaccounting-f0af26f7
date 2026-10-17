@@ -25,7 +25,7 @@ import type { PrintOrder, PrintItem } from "@/hooks/usePrintBridge";
 import { printReceiptImage, printStationTicketImage, printKitchenTicketsImage } from "@/lib/image-print-service";
 import { getServerNow, initServerClock, isClockSkewed, getClockSkewMs } from "@/lib/pos/server-clock";
 import { usePosLang } from "@/i18n/pos-lang";
-import { hydrateDraftLine, type SavedDraft } from "@/lib/pos/draft-order";
+import { hydrateDraftLine, draftVisibleNote, type SavedDraft } from "@/lib/pos/draft-order";
 
 // ── Types ──
 interface InvoiceOrder {
@@ -1233,9 +1233,9 @@ export default function InvoiceHistoryDrawer({
                           )}
                         </div>
                       )}
-                      {(order.order_note || order.notes) && canSeeDetails(order) && (
-                        <div className="text-[10px] mt-0.5 truncate max-w-full" style={{ color: "#94A3B8" }} title={order.order_note || order.notes || ""}>
-                          ملاحظة: {(order.order_note || order.notes || "").split("\n")[0].slice(0, 60)}{((order.order_note || order.notes || "").length > 60 || (order.order_note || order.notes || "").includes("\n")) ? "…" : ""}
+                      {draftVisibleNote(order) && canSeeDetails(order) && (
+                        <div className="text-[10px] mt-0.5 truncate max-w-full" style={{ color: "#94A3B8" }} title={draftVisibleNote(order)}>
+                          ملاحظة: {draftVisibleNote(order).split("\n")[0].slice(0, 60)}{(draftVisibleNote(order).length > 60 || draftVisibleNote(order).includes("\n")) ? "…" : ""}
                         </div>
                       )}
                     </div>
@@ -1339,7 +1339,7 @@ export default function InvoiceHistoryDrawer({
                   ? Number(selectedOrder.total)
                   : itemsSubtotal; // delivery NOT added — it's collected by driver
                 const showDelivery = canSeeDetails(selectedOrder) && (selectedOrder.is_delivery || selectedOrder.delivery_address || selectedOrder.customer_address || selectedOrder.area_name);
-                const showNote = canSeeDetails(selectedOrder) && (selectedOrder.order_note || selectedOrder.notes);
+                const showNote = canSeeDetails(selectedOrder) && draftVisibleNote(selectedOrder);
                 // Neutral cell wrapper
                 const Field = ({ label, children }: { label: string; children: React.ReactNode }) => (
                   <div>
@@ -1432,7 +1432,7 @@ export default function InvoiceHistoryDrawer({
                       <div className="py-3 border-b" style={{ borderColor: "#F1F5F9" }}>
                         <div className="text-[10px] mb-1" style={{ color: "#94A3B8" }}>{tr("ملاحظة الطلبية")}</div>
                         <div className="text-[12px] whitespace-pre-wrap leading-relaxed break-words" style={{ color: "#334155" }}>
-                          {selectedOrder.order_note || selectedOrder.notes}
+                          {draftVisibleNote(selectedOrder)}
                         </div>
                       </div>
                     )}
@@ -1592,7 +1592,7 @@ export default function InvoiceHistoryDrawer({
                       total: selectedOrder.total,
                       subtotal: selectedOrder.subtotal,
                       discount_amount: selectedOrder.discount_amount,
-                      order_note: (selectedOrder as any).order_note || (selectedOrder as any).notes,
+                      order_note: draftVisibleNote(selectedOrder),
                       order_type: (selectedOrder as any).order_type,
                       table_name: (selectedOrder as any).table_name,
                       customer_name: (selectedOrder as any).customer_name || (selectedOrder as any).guest_name || null,
@@ -1730,7 +1730,7 @@ export default function InvoiceHistoryDrawer({
                       printed_order_number: getPrintedOrderNumber(selectedOrder),
                       queue_number: selectedOrder.daily_display_number ?? selectedOrder.queue_number ?? null,
                       created_at: (selectedOrder as any).created_at,
-                      order_note: (selectedOrder as any).order_note || (selectedOrder as any).notes,
+                      order_note: draftVisibleNote(selectedOrder),
                       order_type: (selectedOrder as any).order_type,
                       table_name: (selectedOrder as any).table_name,
                       customer_name: (selectedOrder as any).customer_name || (selectedOrder as any).guest_name || null,
