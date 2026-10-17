@@ -418,14 +418,15 @@ const ProfitLoss = () => {
 
       Array.from(parentMap.values()).sort((a, b) => b.total - a.total).forEach(group => {
         if (group.children.length > 0) {
-          // Parent account as header-like item
-          addLine(group.name, group.total, 2, "item", section, group.txs, undefined, group.code);
-          if (detailLevel >= 2) {
-            group.children.sort((a, b) => b.total - a.total).forEach(child => {
-              if (!showZeroAccounts && child.total === 0) return;
-              addLine(`${child.code} - ${child.name}`, child.total, 3 as any, "item", section, child.txs, undefined, child.code);
-            });
-          }
+          // Parent account: group heading (no amount) → children → "إجمالي" row
+          addLine(`${group.code} - ${group.name}`, group.total, 2, "item", section, group.txs, undefined, group.code);
+          (lines[lines.length - 1] as any).group = "head";
+          group.children.sort((a, b) => b.total - a.total).forEach(child => {
+            if (!showZeroAccounts && child.total === 0) return;
+            addLine(`${child.code} - ${child.name}`, child.total, 3 as any, "item", section, child.txs, undefined, child.code);
+          });
+          addLine(`إجمالي ${group.name}`, group.total, 2, "item", section, group.txs);
+          (lines[lines.length - 1] as any).group = "total";
         } else {
           const prevVal = prevEntries?.find(([n]) => n === group.name)?.[1]?.total;
           addLine(group.name, group.total, 2, "item", section, group.txs, prevVal, group.code);
