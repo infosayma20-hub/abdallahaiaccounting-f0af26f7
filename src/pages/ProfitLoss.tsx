@@ -798,11 +798,17 @@ const ProfitLoss = () => {
               <table className="w-full text-[12.5px]">
                 <thead>
                   <tr className="border-b border-border bg-muted/40">
-                    <th className="px-4 py-2 text-right font-semibold text-foreground text-[11.5px] uppercase tracking-wide" style={{ width: "55%" }}>البند</th>
-                    <th className="px-4 py-2 text-left font-semibold text-foreground text-[11.5px] uppercase tracking-wide">المبلغ</th>
-                    {showPercentages && <th className="px-3 py-2 text-center font-semibold text-foreground text-[11.5px] uppercase tracking-wide w-16">%</th>}
-                    {showComparison && <th className="px-4 py-2 text-left font-semibold text-foreground text-[11.5px] uppercase tracking-wide">السابقة</th>}
-                    {showComparison && <th className="px-3 py-2 text-center font-semibold text-foreground text-[11.5px] uppercase tracking-wide w-20">التغير</th>}
+                    <th className="px-4 py-2 text-right font-semibold text-foreground text-[11.5px] uppercase tracking-wide" style={multiCC ? undefined : { width: "55%" }}>البند</th>
+                    {multiCC ? (
+                      ccColumns!.map(col => (
+                        <th key={col.key} className="px-4 py-2 text-left font-semibold text-foreground text-[11.5px] uppercase tracking-wide whitespace-nowrap">{col.name}</th>
+                      ))
+                    ) : (
+                      <th className="px-4 py-2 text-left font-semibold text-foreground text-[11.5px] uppercase tracking-wide">المبلغ</th>
+                    )}
+                    {showPercentages && !multiCC && <th className="px-3 py-2 text-center font-semibold text-foreground text-[11.5px] uppercase tracking-wide w-16">%</th>}
+                    {showComparison && !multiCC && <th className="px-4 py-2 text-left font-semibold text-foreground text-[11.5px] uppercase tracking-wide">السابقة</th>}
+                    {showComparison && !multiCC && <th className="px-3 py-2 text-center font-semibold text-foreground text-[11.5px] uppercase tracking-wide w-20">التغير</th>}
                   </tr>
                 </thead>
                 <tbody>
