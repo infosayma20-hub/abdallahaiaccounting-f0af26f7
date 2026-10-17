@@ -51,6 +51,15 @@ interface CallCenterOrder {
   editing_heartbeat_at?: string | null;
 }
 
+/** نوع الطلب الحقيقي: الطلبات الخارجية تحفظ نوعها الأصلي (صالة/سفري) في delivery_info */
+const orderTypeLabel = (o: { delivery_type: string; delivery_info?: any | null }) => {
+  const t = o.delivery_info?.original_delivery_type || o.delivery_type;
+  if (t === "delivery") return "توصيل";
+  if (t === "dine_in") return "صالة";
+  if (t === "takeaway") return "سفري";
+  return "استلام";
+};
+
 interface OrderEdit {
   id: string;
   call_center_order_id: string;
@@ -196,7 +205,7 @@ const PendingOrdersPanel = ({ dataOwnerId, branchId, sessionId, enabled, onAccep
               ? `📱 طلبية جديدة من التطبيق: ${newest.customer_name}`
               : `📞 طلب جديد من الكول سنتر: ${newest.customer_name}`, {
           duration: 10000,
-          description: `${orderSourceLabel(newest)} • ${newest.delivery_type === "delivery" ? "توصيل" : "استلام"} • ₪${newest.total}`,
+          description: `${orderSourceLabel(newest)} • ${orderTypeLabel(newest)} • ₪${newest.total}`,
           action: {
             label: "عرض",
             onClick: () => setOpen(true),
@@ -607,7 +616,7 @@ const PendingOrdersPanel = ({ dataOwnerId, branchId, sessionId, enabled, onAccep
                           {order.delivery_type === "delivery" ? (
                             <><Truck className="h-2.5 w-2.5 ml-0.5" /> توصيل</>
                           ) : (
-                            <><ShoppingBag className="h-2.5 w-2.5 ml-0.5" /> استلام</>
+                            <><ShoppingBag className="h-2.5 w-2.5 ml-0.5" /> {orderTypeLabel(order)}</>
                           )}
                         </Badge>
                       </div>

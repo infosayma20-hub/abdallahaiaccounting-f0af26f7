@@ -24,7 +24,17 @@ interface AppOrder {
   order_note: string | null;
   created_at: string;
   client_reference_id?: string | null;
+  delivery_info?: any | null;
 }
+
+/** نوع الطلب الحقيقي: الطلبات الخارجية تحفظ نوعها الأصلي (صالة/سفري) في delivery_info */
+const orderTypeLabel = (o: { delivery_type: string; delivery_info?: any | null }) => {
+  const t = o.delivery_info?.original_delivery_type || o.delivery_type;
+  if (t === "delivery") return "توصيل";
+  if (t === "dine_in") return "صالة";
+  if (t === "takeaway") return "سفري";
+  return "استلام";
+};
 
 interface Branch { id: string; name: string }
 
@@ -172,7 +182,7 @@ export default function AppOrdersInboxPanel({ open, onClose, dataOwnerId, onCoun
                   {o.customer_phone && <span className="flex items-center gap-1"><Phone className="h-3 w-3" />{o.customer_phone}</span>}
                   <span className="flex items-center gap-1">
                     {o.delivery_type === "delivery" ? <Truck className="h-3 w-3" /> : <ShoppingBag className="h-3 w-3" />}
-                    {o.delivery_type === "delivery" ? "توصيل" : "استلام"}
+                    {orderTypeLabel(o)}
                   </span>
                   <span className="flex items-center gap-1">
                     {o.payment_method === "visa" ? <CreditCard className="h-3 w-3" /> : <Banknote className="h-3 w-3" />}
