@@ -543,30 +543,31 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
     const numberField = isReceipt ? "receipt_number" : "ref_number";
     const routePrefix = isReceipt ? "/finance/receipt" : "/finance/payment";
     try {
-      // Always fetch the current voucher's created_at as the cursor so navigation
-      // stays consistent after moving between vouchers (do NOT rely on a stale
-      // window global which only reflected the first-loaded voucher).
+      // Navigate by the voucher serial number (zero-padded, e.g. REC-2026-0027),
+      // using the current voucher's number as the cursor.
       let cursor: string | null = null;
       if (editId) {
         const { data: cur } = await supabase
           .from(table as any)
-          .select("created_at")
+          .select(numberField)
           .eq("id", editId)
           .maybeSingle();
-        cursor = (cur as any)?.created_at ?? null;
+        cursor = (cur as any)?.[numberField] ?? null;
       }
       let q = supabase
         .from(table as any)
         .select(`id, ${numberField}, created_at`)
-        .eq("user_id", ownerId);
+        .eq("user_id", ownerId)
+        .not(numberField, "is", null);
+      if (!isReceipt) q = q.eq("type", "payment");
       if (cursor) {
         if (direction === "prev") {
-          q = q.lt("created_at", cursor).order("created_at", { ascending: false });
+          q = q.lt(numberField, cursor).order(numberField, { ascending: false });
         } else {
-          q = q.gt("created_at", cursor).order("created_at", { ascending: true });
+          q = q.gt(numberField, cursor).order(numberField, { ascending: true });
         }
       } else {
-        q = q.order("created_at", { ascending: direction !== "prev" });
+        q = q.order(numberField, { ascending: direction !== "prev" });
       }
       const { data, error } = await q.limit(1);
       if (error) throw error;
