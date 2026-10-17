@@ -21,6 +21,7 @@ export type ShiftCorrectionAccess = {
   discount_order?: boolean;
   return_order?: boolean;
   transfer_cash?: boolean;
+  add_sale?: boolean;
 };
 
 /** Server-side access summary for accountant shift corrections (gate is enforced again in every RPC). */
@@ -334,6 +335,7 @@ const ACTION_LABEL: Record<string, string> = {
   cash_close: "ترحيل مع تسوية الفرق",
   expense_add: "إضافة مصروف",
   purchase_add: "إضافة فاتورة مشتريات",
+  sale_add: "إضافة فاتورة مبيعات",
   purchase_cancel: "إلغاء مشتريات",
   purchase_edit: "تعديل مشتريات",
   expense_cancel: "إلغاء مصروف",
@@ -362,6 +364,7 @@ export function ShiftCorrectionsLog({ sessionId, reloadKey }: { sessionId: strin
   if (!rows.length) return null;
   const summary = (r: any) => {
     const b = r.before_data || {}, a = r.after_data || {};
+    if (r.action === "sale_add") return `${a.order_number || ""} — ₪${a.amount ?? ""} — ${a.payment_type === "credit" ? "آجل" : "نقدي"}`;
     if (r.action === "payment_method_change") return `${b.methods || "—"} ₪${b.amount ?? ""} ← ${a.method === "mixed" ? "مقسّم" : a.method}`;
     if (r.action === "order_void") return `₪${b.total ?? ""} — ملغاة`;
     if (r.action === "purchase_edit") return `₪${b.total_amount ?? ""} ← ₪${a.total_amount ?? ""}${a.debit_account_code && a.debit_account_code !== b.debit_account_code ? ` (حساب ${b.debit_account_code} ← ${a.debit_account_code})` : ""}`;

@@ -447,7 +447,7 @@ const POSReportsPage = () => {
             )}
             {activeTab === "shifts" && <POSShiftsReport sessions={data.sessions} onRefresh={data.refetch} />}
             {activeTab === "customers" && data.dataOwnerId && <POSCustomersReport dataOwnerId={data.dataOwnerId} />}
-            {activeTab === "shift-audit" && <POSShiftAuditReport sessions={data.sessions} />}
+            {activeTab === "shift-audit" && <POSShiftAuditReport sessions={data.sessions} onRefresh={data.refetch} />}
             {activeTab === "expenses" && data.dataOwnerId && <POSExpensesReport dataOwnerId={data.dataOwnerId} dateFrom={data.dateFrom} dateTo={data.dateTo} sessions={data.sessions} />}
             {activeTab === "kiosk" && data.dataOwnerId && <POSKioskReport dataOwnerId={data.dataOwnerId} dateFrom={data.dateFrom} dateTo={data.dateTo} />}
             {activeTab === "delivery-apps" && (

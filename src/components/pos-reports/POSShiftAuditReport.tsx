@@ -22,6 +22,7 @@ import JournalAccountPicker, { type PickerAccount } from "@/components/journal/J
 import QuickCreateAccountDialog from "@/components/pos-reports/QuickCreateAccountDialog";
 import { useShiftCorrectionAccess, OrderCorrectionPanel, ShiftCorrectionsLog, ShiftCashTransferButton, ShiftAddCashOutButtons, canAct, type ShiftCorrectionAccess } from "@/components/pos-reports/ShiftCorrections";
 import { formatOrderTypeLabel } from "@/lib/pos/order-type-label";
+import ShiftAddSaleDialog from "@/components/pos-reports/ShiftAddSaleDialog";
 
 interface ForeignAdjustmentRow {
   id: string;
@@ -154,9 +155,10 @@ const EMPTY_CASH_ADJUSTMENTS: CashAdjustmentState = {
 interface Props {
   sessions: POSSession[];
   branchName?: string | null;
+  onRefresh?: () => void;
 }
 
-export default function POSShiftAuditReport({ sessions }: Props) {
+export default function POSShiftAuditReport({ sessions, onRefresh }: Props) {
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
   const filtered = useMemo(() => {
@@ -244,7 +246,7 @@ export default function POSShiftAuditReport({ sessions }: Props) {
 
           {/* Detail panel */}
           <div>
-            {selected ? <ShiftDetail session={selected} studyDone={doneMap[selected.id] !== undefined ? doneMap[selected.id] : (selected.study_done_at ?? null)} onStudyDone={(v) => setDoneMap(m => ({ ...m, [selected.id]: v }))} /> : <Skeleton className="h-64" />}
+            {selected ? <ShiftDetail session={selected} onRefresh={onRefresh} studyDone={doneMap[selected.id] !== undefined ? doneMap[selected.id] : (selected.study_done_at ?? null)} onStudyDone={(v) => setDoneMap(m => ({ ...m, [selected.id]: v }))} /> : <Skeleton className="h-64" />}
           </div>
         </div>
       )}
@@ -252,7 +254,7 @@ export default function POSShiftAuditReport({ sessions }: Props) {
   );
 }
 
-function ShiftDetail({ session, studyDone, onStudyDone }: { session: POSSession; studyDone: string | null; onStudyDone: (v: string | null) => void }) {
+function ShiftDetail({ session, studyDone, onStudyDone, onRefresh }: { session: POSSession; studyDone: string | null; onStudyDone: (v: string | null) => void; onRefresh?: () => void }) {
   const [loading, setLoading] = useState(true);
   const [orders, setOrders] = useState<SessionOrder[]>([]);
   const [payments, setPayments] = useState<SessionPayment[]>([]);
@@ -750,6 +752,7 @@ function ShiftDetail({ session, studyDone, onStudyDone }: { session: POSSession;
       )}
       {!loading && (
       <>
+      {canAct(correctionAccess, "add_sale") && <div className="flex justify-start"><ShiftAddSaleDialog sessionId={session.id} ownerId={session.user_id} businessDate={session.business_date || session.opened_at.slice(0,10)} cashBoxId={session.cash_box_id || null} onDone={() => { setReloadKey(k => k+1); onRefresh?.(); }} /></div>}
       {session.state !== "open" && (
         <StudyDoneBar sessionId={session.id} doneAt={studyDone}
           onChange={(v) => { onStudyDone(v); setReloadKey(k => k + 1); }} />
