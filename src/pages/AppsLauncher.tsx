@@ -345,8 +345,20 @@ const AppsLauncher = ({ preloadOnly = false }: AppsLauncherProps) => {
     return (settings as any)?.hidden_apps || [];
   }, [settings]);
 
+  // WhatsApp agent is off by default: enabled only for owners with an agent profile.
+  const [waAgentEnabled, setWaAgentEnabled] = useState(false);
+  useEffect(() => {
+    if (!user?.id) return;
+    let cancelled = false;
+    supabase.from("wa_agent_profiles").select("id").limit(1).then(({ data }) => {
+      if (!cancelled) setWaAgentEnabled(!!data && data.length > 0);
+    });
+    return () => { cancelled = true; };
+  }, [user?.id]);
+
   // Item is locked by super admin
   const isAppDisabled = (app: NavItem) => {
+    if (app.id === "wa-agent" && !waAgentEnabled) return true;
     if (denyOverrides.has(app.id)) return true;
     if (allowOverrides.has(app.id)) return false;
     if (hiddenApps.includes(app.id)) return true;
