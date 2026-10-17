@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import type { PosShiftInfo } from "@/lib/pos-shift-grouping";
+import { fetchAllRows } from "@/lib/fetch-all-rows";
 
 export interface PosShiftDataResult {
   shifts: Map<string, PosShiftInfo>;
@@ -137,13 +138,12 @@ export function usePosShiftData(
           const CHUNK = 500;
           for (let i = 0; i < sessionIds.length; i += CHUNK) {
             const slice = sessionIds.slice(i, i + CHUNK);
-            const { data: orderRows, error: orderErr } = await supabase
+            const orderRows = await fetchAllRows<{order_number: string | null; session_id: string; transaction_id: string | null}>((from, to) => supabase
               .from('pos_orders')
               .select('order_number, session_id, transaction_id')
               .eq('user_id', userId)
-              .in('session_id', slice);
+              .in('session_id', slice).order('id').range(from, to));
             if (cancelled || myReq !== reqId.current) return;
-            if (orderErr) { console.warn('[usePosShiftData] pos_orders fetch failed:', orderErr.message); continue; }
             for (const o of (orderRows || []) as any[]) {
               if (o.order_number && o.session_id) mapping.set(String(o.order_number), String(o.session_id));
               // مرتجعات نقطة البيع: رقم الطلب يتغير، فالربط بمعرف القيد
