@@ -1114,6 +1114,13 @@
       "when": 1792217695929,
       "tag": "0158_wa_channel_tokens_encrypted",
       "breakpoints": true
+    },
+    {
+      "idx": 159,
+      "version": "7",
+      "when": 1792236672808,
+      "tag": "0159_migration",
+      "breakpoints": true
     }
   ]
 }
