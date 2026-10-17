@@ -1125,6 +1125,33 @@ const GenericReportPage = ({ reportKey }: GenericReportPageProps) => {
   };
 
   const handlePrint = async () => {
+    if (reportKey === "cash-movement" || reportKey === "bank-movement") {
+      // Print every movement in the dedicated print layout (same as invoice print), not the screen.
+      const opening = data[0]?.openingBalance ?? 0;
+      const movementRows = data.slice(1);
+      await printGenericReport({
+        uid,
+        reportTitle: config.title,
+        reportSubtitle: config.description,
+        dateFrom,
+        dateTo,
+        userEmail: user?.email || null,
+        source: "GL transactions (read-only)",
+        columns: [
+          { key: "date", label: "التاريخ", type: "date" },
+          { key: "description", label: "البيان", type: "text" },
+          { key: "inflow", label: "وارد", type: "currency" },
+          { key: "outflow", label: "صادر", type: "currency" },
+          { key: "balance", label: "الرصيد", type: "currency" },
+        ] as ColumnDef[],
+        data: [
+          { date: "", description: "الرصيد الافتتاحي", inflow: 0, outflow: 0, balance: opening },
+          ...movementRows,
+        ],
+        totals: { inflow: "sum", outflow: "sum" },
+      });
+      return;
+    }
     const cols = getReportColumns();
     if (!cols || !cols.length) {
       // No structured columns (custom render branches) — fall back to browser print
