@@ -14,7 +14,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useCompanySettings } from "@/hooks/useCompanySettings";
 import * as XLSX from "xlsx";
 import { format, startOfMonth, endOfMonth, subMonths, startOfYear, endOfYear, startOfWeek, endOfWeek, subDays } from "date-fns";
-import { generateProfessionalPDFHtml, openPrintWindow, useCompanyInfo } from "@/components/ReportPrintLayout";
+import { generateProfessionalPDFHtml, printHtmlDirect, useCompanyInfo } from "@/components/ReportPrintLayout";
 import { setNextExportBranding } from "@/lib/excel-export";
 import {
   fetchTransactions, fetchAccounts, buildAccountMap, normalizeAccountType, getAccountNameOnly,
@@ -584,7 +584,7 @@ const ProfitLoss = () => {
         "تم استبعاد الأرصدة الافتتاحية من هذه القائمة",
       ],
     });
-    openPrintWindow(html);
+    printHtmlDirect(html);
   };
 
   const periodLabel = `${dateFrom} — ${dateTo}`;
