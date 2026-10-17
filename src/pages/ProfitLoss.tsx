@@ -759,7 +759,7 @@ const ProfitLoss = () => {
 
                     const rowCls =
                       line.type === "header" ? "font-semibold text-foreground uppercase text-[11.5px] tracking-wide" :
-                      line.type === "subtotal" ? "border-t border-border font-semibold text-foreground" :
+                      line.type === "subtotal" ? "border-t border-border font-bold text-foreground" :
                       line.type === "total" ? "border-t border-border font-bold text-foreground" :
                       line.type === "grand-total" ? "border-t-2 border-b-2 border-double border-foreground font-bold text-foreground" :
                       line.group === "head" ? "font-semibold text-foreground bg-muted/30" :

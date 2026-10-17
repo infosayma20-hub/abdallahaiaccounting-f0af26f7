@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import {
-  Loader2, Landmark, ChevronDown, ChevronRight, Calendar, FileSpreadsheet, Download, Printer,
+  Loader2, Landmark, ChevronDown, ChevronUp, ChevronRight, Calendar, FileSpreadsheet, Download, Printer,
   TrendingUp, TrendingDown, RefreshCw, Calculator, AlertTriangle,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
@@ -11,7 +11,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
-import { ReportSummary, exportToExcel } from "@/components/ReportComponents";
+import { exportToExcel } from "@/components/ReportComponents";
 import ReportStatusBadge from "@/components/reports/ReportStatusBadge";
 import { generateProfessionalPDFHtml, openPrintWindow, useCompanyInfo } from "@/components/ReportPrintLayout";
 import {
@@ -311,95 +311,104 @@ const BalanceSheetPage = () => {
     openPrintWindow(html);
   };
 
-  const renderHierarchicalSection = (
+  // Renders one section (الأصول / الالتزامات / حقوق الملكية) as table rows in
+  // the same visual language as قائمة الدخل: section header row, parent rows
+  // with muted background, subtotal row with top border, all totals bold.
+  const renderSectionRows = (
     title: string,
+    sectionKey: string,
     lines: FlatAccountLine[],
     total: number,
-    color: string,
     prevTotal?: number,
     normalSide: "debit" | "credit" = "debit",
   ) => {
     if (lines.length === 0 && !showZeroAccounts) return null;
+    const isSectionCollapsed = collapsedGroups.has(`section:${sectionKey}`);
+    const colSpan = showComparison ? 4 : 2;
 
     return (
-      <div className="space-y-1">
-        <h2 className={`text-sm font-bold ${color} px-1 mb-2`}>{title}</h2>
-        <div className="rounded-xl border border-border/50 overflow-hidden">
-          {lines.map((line, i) => {
-            const isParentRow = line.hasChildren;
-            const isCollapsed = collapsedGroups.has(line.code);
-            const indent = (line.depth - 1) * 24;
-            // Presented balance: signed for the section's natural side.
-            // Debit-normal sections (أصول) show line.balance as-is.
-            // Credit-normal sections (خصوم / حقوق) flip so a normal credit balance
-            // reads positive; an abnormal debit balance stays negative and is
-            // flagged as "رصيد شاذ".
-            const presented = normalSide === "debit" ? line.balance : -line.balance;
-            const isAbnormal = presented < 0 && Math.abs(presented) > 0.001;
-            const prevRaw = showComparison ? prevLineBalanceFor(line.code) : 0;
-            const prevPresented = normalSide === "debit" ? prevRaw : -prevRaw;
-            const change = showComparison && Math.abs(prevPresented) > 0.001
-              ? ((presented - prevPresented) / Math.abs(prevPresented)) * 100
-              : null;
+      <>
+        <tr className="font-semibold text-foreground uppercase text-[11.5px] tracking-wide">
+          <td className="px-4 py-1.5" colSpan={colSpan}>
+            <div className="flex items-center gap-1.5">
+              <button onClick={() => toggleGroup(`section:${sectionKey}`)} className="p-0.5 rounded hover:bg-muted">
+                {isSectionCollapsed ? <ChevronDown className="h-3 w-3" /> : <ChevronUp className="h-3 w-3" />}
+              </button>
+              <span>{title}</span>
+            </div>
+          </td>
+        </tr>
+        {!isSectionCollapsed && lines.map((line, i) => {
+          const isParentRow = line.hasChildren;
+          const isCollapsed = collapsedGroups.has(line.code);
+          const indent = line.depth * 16;
+          // Presented balance: signed for the section's natural side.
+          // Debit-normal sections (أصول) show line.balance as-is.
+          // Credit-normal sections (خصوم / حقوق) flip so a normal credit balance
+          // reads positive; an abnormal debit balance stays negative and is
+          // flagged as "رصيد شاذ".
+          const presented = normalSide === "debit" ? line.balance : -line.balance;
+          const isAbnormal = presented < 0 && Math.abs(presented) > 0.001;
+          const prevRaw = showComparison ? prevLineBalanceFor(line.code) : 0;
+          const prevPresented = normalSide === "debit" ? prevRaw : -prevRaw;
+          const change = showComparison && Math.abs(prevPresented) > 0.001
+            ? ((presented - prevPresented) / Math.abs(prevPresented)) * 100
+            : null;
 
-            return (
-              <div
-                key={`${line.code}-${i}`}
-                className={`flex items-center justify-between px-4 py-2.5 border-b border-border/30 text-xs transition-colors ${
-                  isParentRow ? "bg-muted/40 hover:bg-muted/60 cursor-pointer" : "hover:bg-muted/10"
-                }`}
-                style={{ paddingRight: `${16 + indent}px` }}
-                onClick={() => isParentRow && toggleGroup(line.code)}
-              >
-                <div className="flex items-center gap-2 min-w-0">
+          return (
+            <tr
+              key={`${sectionKey}-${line.code}-${i}`}
+              className={`transition-colors ${isParentRow ? "font-semibold text-foreground bg-muted/30 cursor-pointer" : "hover:bg-muted/20"}`}
+              onClick={() => isParentRow && toggleGroup(line.code)}
+            >
+              <td className="px-4 py-1.5" style={{ paddingRight: `${16 + indent}px` }}>
+                <div className="flex items-center gap-1.5">
                   {isParentRow && (
                     isCollapsed
-                      ? <ChevronRight className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
-                      : <ChevronDown className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
+                      ? <ChevronRight className="h-3 w-3 text-muted-foreground flex-shrink-0" />
+                      : <ChevronDown className="h-3 w-3 text-muted-foreground flex-shrink-0" />
                   )}
-                  {!isParentRow && <div className="w-3.5" />}
-                  <span className="text-[10px] text-muted-foreground font-mono w-10 flex-shrink-0">{line.code}</span>
-                  <span className={`truncate ${isParentRow ? "font-bold text-foreground" : "text-foreground font-medium"}`}>
-                    {line.name}
-                  </span>
+                  <span className="text-[10px] text-muted-foreground font-mono flex-shrink-0">{line.code}</span>
+                  <span className="truncate">{line.name}</span>
                   {isAbnormal && !isParentRow && (
                     <span className="text-[9px] px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-700 dark:text-amber-400 border border-amber-500/30 font-medium flex-shrink-0">
                       رصيد شاذ
                     </span>
                   )}
                 </div>
-                <div className="flex items-center gap-3">
-                  {showComparison && (
-                    <span className="text-[10px] text-muted-foreground tabular-nums w-20 text-left">
-                      {Math.abs(prevPresented) > 0.001 ? `₪${prevPresented.toLocaleString()}` : "—"}
-                    </span>
-                  )}
-                  <span className={`font-bold tabular-nums whitespace-nowrap ${
-                    isAbnormal ? "text-amber-600 dark:text-amber-400" : (isParentRow ? color : "text-foreground")
-                  }`}>
-                    {Math.abs(presented) > 0.001 ? `₪${presented.toLocaleString()}` : "—"}
-                  </span>
-                  {showComparison && change !== null && (
-                    <span className={`text-[9px] tabular-nums flex items-center gap-0.5 w-14 ${change >= 0 ? "text-emerald-600" : "text-red-500"}`}>
+              </td>
+              <td className={`px-4 py-1.5 text-left tabular-nums ${isAbnormal ? "text-amber-600 dark:text-amber-400 font-bold" : "text-foreground"}`}>
+                {Math.abs(presented) > 0.001 ? `₪${presented.toLocaleString()}` : "—"}
+              </td>
+              {showComparison && (
+                <td className="px-4 py-1.5 text-left tabular-nums text-muted-foreground">
+                  {Math.abs(prevPresented) > 0.001 ? `₪${prevPresented.toLocaleString()}` : "—"}
+                </td>
+              )}
+              {showComparison && (
+                <td className="px-3 py-1.5 text-center tabular-nums text-muted-foreground">
+                  {change !== null ? (
+                    <span className={`inline-flex items-center gap-0.5 text-[10.5px] ${change >= 0 ? "text-emerald-600" : "text-red-500"}`}>
                       {change >= 0 ? <TrendingUp className="h-2.5 w-2.5" /> : <TrendingDown className="h-2.5 w-2.5" />}
                       {Math.abs(change).toFixed(1)}%
                     </span>
-                  )}
-                </div>
-              </div>
-            );
-          })}
-          <div className="flex items-center justify-between px-4 py-2.5 border-t border-border bg-muted/20 text-xs font-bold">
-            <span className="text-muted-foreground">إجمالي {title}</span>
-            <div className="flex items-center gap-3">
-              {showComparison && prevTotal !== undefined && (
-                <span className="text-[10px] text-muted-foreground tabular-nums w-20 text-left">₪{prevTotal.toLocaleString()}</span>
+                  ) : ""}
+                </td>
               )}
-              <span className={color}>₪{total.toLocaleString()}</span>
-            </div>
-          </div>
-        </div>
-      </div>
+            </tr>
+          );
+        })}
+        <tr className="border-t border-border font-bold text-foreground">
+          <td className="px-4 py-1.5" style={{ paddingRight: "32px" }}>إجمالي {title}</td>
+          <td className="px-4 py-1.5 text-left tabular-nums">₪{total.toLocaleString()}</td>
+          {showComparison && (
+            <td className="px-4 py-1.5 text-left tabular-nums text-muted-foreground">
+              {prevTotal !== undefined ? `₪${prevTotal.toLocaleString()}` : ""}
+            </td>
+          )}
+          {showComparison && <td className="px-3 py-1.5" />}
+        </tr>
+      </>
     );
   };
 
@@ -502,11 +511,20 @@ const BalanceSheetPage = () => {
         <div className="flex items-center justify-center py-16"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>
       ) : (
         <>
-          <ReportSummary items={[
-            { label: "إجمالي الأصول", value: current.totalAssets, color: "primary", signed: true },
-            { label: "إجمالي الالتزامات", value: current.totalLiabilities, color: "destructive", signed: true },
-            { label: "حقوق الملكية", value: current.totalEquity, color: "warning", signed: true },
-          ]} />
+          {/* Monochrome summary strip — same style as قائمة الدخل */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 border border-border rounded-sm bg-card divide-x divide-x-reverse divide-border">
+            {[
+              { label: "إجمالي الأصول", value: `₪${current.totalAssets.toLocaleString()}` },
+              { label: "إجمالي الالتزامات", value: `₪${current.totalLiabilities.toLocaleString()}` },
+              { label: "حقوق الملكية", value: `₪${current.totalEquity.toLocaleString()}` },
+              { label: "التوازن", value: isBalanced ? "متوازنة" : `فرق ₪${Math.abs(current.totalAssets - current.totalLiabilities - current.totalEquity).toLocaleString()}` },
+            ].map((c, i) => (
+              <div key={i} className="px-4 py-2.5">
+                <p className="text-[10.5px] text-muted-foreground mb-0.5">{c.label}</p>
+                <p className="text-[15px] font-semibold tabular-nums text-foreground">{c.value}</p>
+              </div>
+            ))}
+          </div>
 
           {showComparison && previous && (
             <div className="text-center text-[10px] text-muted-foreground py-1">
@@ -568,33 +586,61 @@ const BalanceSheetPage = () => {
             </div>
           )}
 
-          {renderHierarchicalSection("الأصول", assetLines, current.totalAssets, "text-primary", previous?.totalAssets, "debit")}
-          {renderHierarchicalSection("الالتزامات", liabLines, current.totalLiabilities, "text-destructive", previous?.totalLiabilities, "credit")}
-          
-          <div className="space-y-1">
-            {renderHierarchicalSection("حقوق الملكية", eqLines, current.totalEquity, "text-warning", previous?.totalEquity, "credit")}
-            {current.netProfit !== 0 && (
-              <div className="rounded-xl border border-border/50 overflow-hidden mx-1">
-                <div className="flex items-center justify-between px-4 py-2.5 bg-emerald-50 dark:bg-emerald-500/10 text-xs">
-                  <span className="font-medium text-emerald-700 dark:text-emerald-400">
-                    {current.netProfit >= 0 ? "📊 صافي ربح الفترة الحالية" : "📊 صافي خسارة الفترة الحالية"}
-                  </span>
-                  <span className={`font-mono font-bold ${current.netProfit >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-red-600 dark:text-red-400"}`}>
-                    ₪{Math.abs(current.netProfit).toLocaleString()}
-                  </span>
-                </div>
-              </div>
-            )}
+          {/* ── Statement Table — same design as قائمة الدخل ── */}
+          <div className="border border-border rounded-sm bg-card overflow-hidden">
+            <div className="px-4 py-3 border-b border-border">
+              <p className="text-[13px] font-semibold text-foreground text-center">{companyName || "النظام المالي"}</p>
+              <p className="text-[11px] text-muted-foreground text-center mt-0.5">قائمة المركز المالي — كما في {periodLabel}</p>
+              <p className="text-[10.5px] text-muted-foreground text-center">(المبالغ بالشيكل الإسرائيلي)</p>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-[12.5px]">
+                <thead>
+                  <tr className="border-b border-border bg-muted/40">
+                    <th className="px-4 py-2 text-right font-semibold text-foreground text-[11.5px] uppercase tracking-wide" style={{ width: "55%" }}>البند</th>
+                    <th className="px-4 py-2 text-left font-semibold text-foreground text-[11.5px] uppercase tracking-wide">الرصيد</th>
+                    {showComparison && <th className="px-4 py-2 text-left font-semibold text-foreground text-[11.5px] uppercase tracking-wide">السابقة</th>}
+                    {showComparison && <th className="px-3 py-2 text-center font-semibold text-foreground text-[11.5px] uppercase tracking-wide w-20">التغير</th>}
+                  </tr>
+                </thead>
+                <tbody>
+                  {renderSectionRows("الأصول", "assets", assetLines, current.totalAssets, previous?.totalAssets, "debit")}
+                  <tr><td colSpan={showComparison ? 4 : 2} className="h-2" /></tr>
+                  {renderSectionRows("الالتزامات", "liabilities", liabLines, current.totalLiabilities, previous?.totalLiabilities, "credit")}
+                  <tr><td colSpan={showComparison ? 4 : 2} className="h-2" /></tr>
+                  {renderSectionRows("حقوق الملكية", "equity", eqLines, current.totalEquity, previous?.totalEquity, "credit")}
+                  {current.netProfit !== 0 && (
+                    <tr className="hover:bg-muted/20">
+                      <td className="px-4 py-1.5" style={{ paddingRight: "48px" }}>
+                        {current.netProfit >= 0 ? "صافي ربح الفترة الحالية" : "صافي خسارة الفترة الحالية"}
+                      </td>
+                      <td className="px-4 py-1.5 text-left tabular-nums text-foreground">
+                        ₪{Math.abs(current.netProfit).toLocaleString()}
+                      </td>
+                      {showComparison && <td className="px-4 py-1.5" />}
+                      {showComparison && <td className="px-3 py-1.5" />}
+                    </tr>
+                  )}
+                  <tr className="border-t-2 border-b-2 border-double border-foreground font-bold text-foreground">
+                    <td className="px-4 py-1.5">إجمالي الالتزامات وحقوق الملكية</td>
+                    <td className="px-4 py-1.5 text-left tabular-nums">
+                      ₪{(current.totalLiabilities + current.totalEquity).toLocaleString()}
+                    </td>
+                    {showComparison && (
+                      <td className="px-4 py-1.5 text-left tabular-nums text-muted-foreground">
+                        {previous ? `₪${(previous.totalLiabilities + previous.totalEquity).toLocaleString()}` : ""}
+                      </td>
+                    )}
+                    {showComparison && <td className="px-3 py-1.5" />}
+                  </tr>
+                </tbody>
+              </table>
+            </div>
           </div>
 
-          <div className="rounded-xl border-2 border-primary/20 bg-primary/5 p-4 text-center space-y-1">
-            <p className="text-[10px] text-muted-foreground font-medium">المعادلة المحاسبية</p>
-            <p className="text-sm font-bold text-foreground">
-              الأصول <span className="text-primary">₪{current.totalAssets.toLocaleString()}</span>
-              {" = "}
-              الالتزامات <span className="text-destructive">₪{current.totalLiabilities.toLocaleString()}</span>
-              {" + "}
-              حقوق الملكية <span className="text-warning">₪{current.totalEquity.toLocaleString()}</span>
+          <div className="rounded-sm border border-border bg-muted/20 p-3 text-center">
+            <p className="text-[11px] text-muted-foreground">
+              المعادلة المحاسبية: الأصول ₪{current.totalAssets.toLocaleString()} = الالتزامات ₪{current.totalLiabilities.toLocaleString()} + حقوق الملكية ₪{current.totalEquity.toLocaleString()}
             </p>
           </div>
         </>
