@@ -529,7 +529,7 @@ const ProfitLoss = () => {
   const handleExportExcel = () => {
     const rows = statementLines.filter(l => l.type !== "spacer").map(l => ({
       "البند": l.label,
-      "المبلغ": l.amount,
+      "المبلغ": l.group === "head" ? "" : l.amount,
       ...(showPercentages && current.totalRevenue > 0 ? { "النسبة %": l.type === "item" || l.type === "subtotal" || l.type === "total" || l.type === "grand-total" ? ((l.amount / current.totalRevenue) * 100).toFixed(1) : "" } : {}),
       ...(showComparison && l.compareAmount !== undefined ? { "الفترة السابقة": l.compareAmount } : {}),
     }));
