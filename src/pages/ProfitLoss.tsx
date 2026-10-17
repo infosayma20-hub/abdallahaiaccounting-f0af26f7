@@ -813,7 +813,7 @@ const ProfitLoss = () => {
                 </thead>
                 <tbody>
                   {statementLines.map((line, i) => {
-                    if (line.type === "spacer") return <tr key={i}><td colSpan={5} className="h-2" /></tr>;
+                    if (line.type === "spacer") return <tr key={i}><td colSpan={multiCC ? 1 + ccColumns!.length : 5} className="h-2" /></tr>;
                     const isCollapsed = line.section && collapsedSections.has(line.section);
                     if (line.type === "item" && isCollapsed) return null;
 
