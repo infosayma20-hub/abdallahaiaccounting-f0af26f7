@@ -254,11 +254,9 @@ const ProfitLoss = () => {
     const prevTo = format(new Date(fromDate.getTime() - 86400000), "yyyy-MM-dd");
     return allTxRecords.filter(tx => {
       if (tx.date < prevFrom || tx.date > prevTo) return false;
-      if (costCenterFilter === "all") return true;
-      if (costCenterFilter === "none") return !tx.costCenterId;
-      return tx.costCenterId === costCenterFilter;
+      return matchCC(tx, ccSelected);
     });
-  }, [allTxRecords, dateFrom, dateTo, showComparison, costCenterFilter]);
+  }, [allTxRecords, dateFrom, dateTo, showComparison, ccSelected, matchCC]);
 
   // ── Compute P&L ──
   const computePL = useCallback((txs: TxRecord[]) => {
