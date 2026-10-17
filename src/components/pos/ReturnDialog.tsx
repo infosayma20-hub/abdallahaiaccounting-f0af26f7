@@ -271,7 +271,7 @@ export default function ReturnDialog({
 
   return (
     <Dialog open={open} onOpenChange={(o) => !o && !submitting && onClose()}>
-      <DialogContent className="max-w-3xl max-h-[90vh] overflow-hidden flex flex-col" dir="rtl">
+      <DialogContent className="max-w-3xl max-h-[90vh] overflow-hidden flex flex-col z-[1300]" dir="rtl">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <RotateCcw className="h-5 w-5 text-destructive" />
