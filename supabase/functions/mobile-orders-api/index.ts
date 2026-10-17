@@ -606,6 +606,7 @@ async function handleCreateOrder(req: Request, ownerId: string, environment: "li
     status: initialStatus,
     total,
     branch_name: branch.name,
+    delivery_type: rawDeliveryType,
     message: routing === "pos_direct" ? "تم استلام الطلبية وتحويلها لشاشة الكاشير في الفرع" : "تم استلام الطلبية وهي بانتظار مراجعة الكول سنتر",
   };
   await logWebhook({ ownerId, eventType: "mobile_order", endpoint: "POST /orders", payload, status: 201, response: res, success: true, orderId: inserted.id, reference: body.client_reference_id, durationMs: Date.now() - started });
