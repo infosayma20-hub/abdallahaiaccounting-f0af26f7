@@ -1142,6 +1142,13 @@
       "when": 1792260939983,
       "tag": "0162_stock_count_units_and_extra_barcodes",
       "breakpoints": true
+    },
+    {
+      "idx": 163,
+      "version": "7",
+      "when": 1792261364313,
+      "tag": "0163_stock_count_unit_history_guard",
+      "breakpoints": true
     }
   ]
 }
