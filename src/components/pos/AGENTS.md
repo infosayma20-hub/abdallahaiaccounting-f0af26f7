@@ -1,5 +1,7 @@
 # POS Rules
 
+- Saved POS drafts round-trip through `src/lib/pos/draft-order.ts`: versioned draft-only metadata in existing notes, normal fields authoritative, shared line hydration for history and tables. Why: reopening must restore the whole order without changing posted history or deriving prices from today's catalog.
+
 - Incoming POS order modes resolve through `src/lib/pos/incoming-order-type.ts` for acceptance, restoration, dispatch editing and inbox labels; recognized original metadata wins, legacy pickup keeps its fallback. Why: staging constraints must not change dine-in into takeaway or rewrite posted history.
 
 - POS boot: `initializePOS` fetches tenant/user lookups in one parallel batch (products/rates start immediately), `POSDeviceAuthGuard` mounts POS under the shared `POSBootOverlay` while device checks run (no shift claim until the guard resolves via `posBootLoading`), and the offline pre-cache is deferred 20s. Why: entry used to serialize ~15 round-trips plus the bridge probe.

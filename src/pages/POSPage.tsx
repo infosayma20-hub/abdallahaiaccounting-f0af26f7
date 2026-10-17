@@ -1,4 +1,5 @@
 import { normalizeBarcode } from "@/lib/barcode";
+import { serializeDraftDetails, hydrateDraftDetails, hydrateDraftLine, type SavedDraft } from "@/lib/pos/draft-order";
 import { incomingPOSOrderType, incomingOrderTypeLabel } from "@/lib/pos/incoming-order-type";
 import { playScanSuccessBeep, playScanErrorBeep } from "@/lib/audio-unlock";
 import { parseScaleBarcode, type ScaleFormat } from "@/lib/scale-barcode";
@@ -1285,11 +1286,8 @@ const POSPage = ({ variant = "v1" }: { variant?: "v1" | "v2" } = {}) => {
   // Pre-staging refs (full implementation lives just before handleCompleteOrder,
   // after all state hooks like cartTotals/userId/etc are declared).
   const stagedOrderIdRef = useRef<string | null>(null);
-  // A "معلقة" (draft) order recalled into the cart from InvoiceHistoryDrawer.
-  // The sale is rung up as a fresh order, so the recalled draft MUST be removed
-  // once payment succeeds — otherwise it lingers forever as a phantom معلقة row
-  // duplicating the real invoice.
-  const recalledDraftOrderIdRef = useRef<string | null>(null);
+  // Recalled drafts are tracked per OrderTab.savedOrderId, never globally:
+  // switching tabs must not associate payment with another suspended order.
   const stagedHashRef = useRef<string | null>(null);
   const stagingInFlightRef = useRef<boolean>(false);
   const stageOrderInBackgroundRef = useRef<(() => Promise<void>) | null>(null);
@@ -4240,11 +4238,19 @@ const POSPage = ({ variant = "v1" }: { variant?: "v1" | "v2" } = {}) => {
 
   const handleSaveToTable = async () => {
     if (!userId || !session || cart.length === 0 || !company) return;
-    if (!enforceDeviceGuard()) return;
+    if (!enforceDeviceGuard() || savingToTable) return;
     setSavingToTable(true);
     try {
       // Check if there's already an open order for this table/session
       let existingOrder = null;
+      if (activeOrder.savedOrderId && !activeOrder.tableId) {
+        const { data, error } = await supabase.from("pos_orders")
+          .select("id, customer_name").eq("id", activeOrder.savedOrderId)
+          .eq("user_id", dataOwnerId).eq("state", "draft").maybeSingle();
+        if (error) throw error;
+        if (!data) throw new Error("الطلب المعلق لم يعد متاحًا — أعد فتحه من سجل الفواتير");
+        existingOrder = data;
+      }
       if (activeOrder.tableId) {
         const { data } = await supabase
           .from("pos_orders")
@@ -4280,11 +4286,14 @@ const POSPage = ({ variant = "v1" }: { variant?: "v1" | "v2" } = {}) => {
         await persistOrderLinesWithModifiers(existingOrder.id, cart);
 
         // Update order totals
-        await supabase.from("pos_orders").update({
+        const { error: updateError } = await supabase.from("pos_orders").update({
           subtotal: cartTotals.subtotal,
           total: cartTotals.total,
           tax_amount: cartTotals.tax,
           discount_amount: cartTotals.discount,
+          order_note: activeOrder.orderNote.trim() || null,
+          notes: serializeDraftDetails(activeOrder),
+          delivery_fee: Number(activeOrder.callCenterDeliveryFee || 0),
           customer_name: customerName || null,
           customer_id: activeOrder.customerId || null,
           guest_count: activeOrder.guestCount,
@@ -4300,6 +4309,7 @@ const POSPage = ({ variant = "v1" }: { variant?: "v1" | "v2" } = {}) => {
           discount_reason: managerDiscountMeta?.reason ?? null,
           discount_approved_by: managerDiscountMeta?.managerUserId ?? null,
         } as any).eq("id", existingOrder.id);
+        if (updateError) throw updateError;
       } else {
         // Create new draft order
         const { data: order, error } = await supabase
@@ -4308,6 +4318,9 @@ const POSPage = ({ variant = "v1" }: { variant?: "v1" | "v2" } = {}) => {
             user_id: dataOwnerId,
             company_id: company.id,
             session_id: session.id,
+            order_note: activeOrder.orderNote.trim() || null,
+            notes: serializeDraftDetails(activeOrder),
+            delivery_fee: Number(activeOrder.callCenterDeliveryFee || 0),
             customer_name: customerName || null,
             customer_id: activeOrder.customerId || null,
             subtotal: cartTotals.subtotal,
@@ -4525,98 +4538,45 @@ const POSPage = ({ variant = "v1" }: { variant?: "v1" | "v2" } = {}) => {
     toast.success(`✅ تم إرسال ${tickets.length} تذكرة مطبخ`);
   };
 
-  // Load existing table order into cart
+  // Restore complete draft details; never inherit metadata from the current cart.
   const loadTableOrder = async (tableId: string, tableName: string) => {
-    const { data: order } = await supabase
+    const { data: order, error } = await supabase
       .from("pos_orders")
-      .select("id, guest_count, guest_name, customer_name, subtotal, total, discount_amount, tax_amount")
+      .select("*, contacts:customer_id(phone)")
       .eq("table_id", tableId)
       .in("state", ["draft", "open"] as any)
-      .order("created_at", { ascending: false })
-      .limit(1)
-      .maybeSingle();
-
-    if (!order) return;
-
-    const { data: lines } = await supabase
-      .from("pos_order_lines")
-      .select("*")
-      .eq("order_id", order.id);
-
-    if (!lines || lines.length === 0) return;
-
-    const cartItems: CartItem[] = lines.map((line: any) => ({
-      id: crypto.randomUUID(),
-      product_id: line.product_id,
-      name: line.product_name,
-      qty: line.qty,
-      unit_price: Number(line.unit_price),
-      cost_price: Number(line.cost_price) || 0,
-      discount_pct: Number(line.discount_pct) || 0,
-      tax_rate: Number(line.tax_rate) || 0,
-      unit: line.unit || "قطعة",
-      total: Number(line.total),
-      note: line.notes || "",
-      station_id: products.find((p) => p.id === line.product_id)?.kitchen_station_id || null,
+      .order("created_at", { ascending: false }).limit(1).maybeSingle();
+    if (error || !order) { if (error) toast.error("تعذّر تحميل الطلب"); return; }
+    const { data: lines, error: linesError } = await supabase.from("pos_order_lines")
+      .select("*").eq("order_id", order.id);
+    if (linesError) { toast.error("تعذّر تحميل أصناف الطلب"); return; }
+    if (!lines?.length) return;
+    const { data: mods, error: modsError } = await supabase.from("order_item_modifiers")
+      .select("order_line_id, modifier_group_id, modifier_option_id, group_name, option_name, extra_price")
+      .in("order_line_id", lines.map(line => line.id));
+    if (modsError) { toast.error("تعذّر تحميل إضافات الطلب"); return; }
+    const cartItems = lines.map(line => ({
+      ...hydrateDraftLine({ ...line, modifiers: (mods || []).filter(m => m.order_line_id === line.id).map(m => ({
+        group_id: m.modifier_group_id || "", option_id: m.modifier_option_id || "",
+        group_name: m.group_name || "", option_name: m.option_name, extra_price: Number(m.extra_price) || 0,
+      })) }),
+      station_id: products.find(p => p.id === line.product_id)?.kitchen_station_id || null,
     }));
-
-    // Find or create order tab for this table
+    const details = hydrateDraftDetails(order as SavedDraft);
+    setManagerDiscountMeta(order.discount_approved_by ? {
+      amount: details.orderDiscount, type: details.orderDiscountType,
+      reason: order.discount_reason || "", managerUserId: order.discount_approved_by, managerName: "",
+    } : null);
     const existingTabIdx = orders.findIndex(o => o.tableId === tableId);
+    orderCounter.current += 1;
+    const restored: OrderTab = { ...createNewOrder(orderCounter.current), ...details,
+      name: order.customer_name || tableName, cart: cartItems, tableId, tableName,
+      savedOrderId: order.id, orderTypeChosen: true };
     if (existingTabIdx >= 0) {
-      setOrders(prev => prev.map((o, i) => i === existingTabIdx ? {
-        ...o,
-        name: order.customer_name || tableName,
-        cart: cartItems,
-        customerName: order.customer_name || "",
-        customerId: (order as any).customer_id || null,
-        posCustomerId: (order as any).pos_customer_id || null,
-        orderDiscount: Number(order.discount_amount) || 0,
-        orderDiscountType: "fixed",
-        tableId,
-        tableName,
-        guestCount: (order as any).guest_count || 1,
-        guestName: (order as any).guest_name || "",
-        orderType: (order as any).order_type || "dine_in",
-        orderTypeChosen: true,
-        deliveryAddress: (order as any).delivery_address || "",
-        zoneCode: (order as any).zone_code || "",
-        areaName: (order as any).area_name || "",
-        deliveryStatus: (order as any).delivery_status || "none",
-        captainName: (order as any).assigned_captain_name || "",
-        captainPhone: (order as any).assigned_captain_phone || "",
-        captainVehicle: (order as any).assigned_captain_vehicle || "",
-        savedOrderId: order.id,
-      } : o));
+      setOrders(prev => prev.map((o, i) => i === existingTabIdx ? { ...restored, id: o.id } : o));
       setActiveOrderIndex(existingTabIdx);
     } else {
-      const newOrder: OrderTab = {
-        id: crypto.randomUUID(),
-        name: order.customer_name || tableName,
-        cart: cartItems,
-        customerName: order.customer_name || "",
-        customerId: (order as any).customer_id || null,
-        customerPhone: "",
-        posCustomerId: (order as any).pos_customer_id || null,
-        orderDiscount: Number(order.discount_amount) || 0,
-        orderDiscountType: "fixed",
-        orderNote: "",
-        selectedCartIndex: null,
-        tableId,
-        tableName,
-        guestCount: (order as any).guest_count || 1,
-        guestName: (order as any).guest_name || "",
-        orderType: (order as any).order_type || "dine_in",
-        orderTypeChosen: true,
-        deliveryAddress: (order as any).delivery_address || "",
-        zoneCode: (order as any).zone_code || "",
-        areaName: (order as any).area_name || "",
-        deliveryStatus: (order as any).delivery_status || "none",
-        captainName: (order as any).assigned_captain_name || "",
-        captainPhone: (order as any).assigned_captain_phone || "",
-        captainVehicle: (order as any).assigned_captain_vehicle || "",
-        savedOrderId: order.id,
-      };
-      setOrders(prev => [...prev, newOrder]);
+      setOrders(prev => [...prev, restored]);
       setActiveOrderIndex(orders.length);
     }
   };
@@ -6603,17 +6563,18 @@ const POSPage = ({ variant = "v1" }: { variant?: "v1" | "v2" } = {}) => {
       // 🧹 Remove the recalled "معلقة" draft (if any) — the sale it represented
       // is now a real completed invoice. Guarded on state='draft' so a real
       // invoice can never be deleted by this path.
-      const recalledDraftId = recalledDraftOrderIdRef.current;
+      const recalledDraftId = activeOrder.savedOrderId;
       if (recalledDraftId && recalledDraftId !== orderId) {
-        recalledDraftOrderIdRef.current = null;
         try {
-          await clearOrderLinesWithModifiers(recalledDraftId);
-          await supabase.from("pos_orders").delete().eq("id", recalledDraftId).eq("state", "draft" as any);
+          const { data: draftToRemove } = await supabase.from("pos_orders").select("id")
+            .eq("id", recalledDraftId).eq("user_id", dataOwnerId).eq("state", "draft" as any).maybeSingle();
+          if (draftToRemove) {
+            await clearOrderLinesWithModifiers(recalledDraftId);
+            await supabase.from("pos_orders").delete().eq("id", recalledDraftId).eq("state", "draft" as any);
+          }
         } catch (e) {
           console.warn("[POS] recalled draft cleanup failed:", e);
         }
-      } else {
-        recalledDraftOrderIdRef.current = null;
       }
 
       if (tableName) {
@@ -11460,11 +11421,28 @@ const POSPage = ({ variant = "v1" }: { variant?: "v1" | "v2" } = {}) => {
               setCart(items);
               setRecallBanner({ invoiceId, orderNumber, reason, approvedBy });
             }}
-            onLoadDraftToCart={(items, orderId) => {
-              setCart(items);
-              // Remember the recalled draft so it gets deleted after payment
-              // instead of staying behind as a duplicate "معلقة" invoice.
-              recalledDraftOrderIdRef.current = orderId || null;
+            onLoadDraftToCart={(items, orderId, draft) => {
+              orderCounter.current += 1;
+              const details = hydrateDraftDetails(draft);
+              const restored: OrderTab = { ...createNewOrder(orderCounter.current), ...details,
+                cart: items.map(item => ({ ...item,
+                  station_id: products.find(p => p.id === item.product_id)?.kitchen_station_id || null,
+                })), savedOrderId: orderId, orderTypeChosen: true };
+              // Preserve any other in-progress cart in its own tab.
+              const duplicateIndex = orders.findIndex(o => o.savedOrderId === orderId);
+              if (duplicateIndex >= 0) {
+                setActiveOrderIndex(duplicateIndex);
+              } else if (cart.length === 0) {
+                setOrders(prev => prev.map((o, i) => i === activeOrderIndex ? restored : o));
+              } else {
+                setOrders(prev => [...prev, restored]);
+                setActiveOrderIndex(orders.length);
+              }
+              setRecallBanner(null);
+              setManagerDiscountMeta(draft.discount_approved_by ? {
+                amount: details.orderDiscount, type: details.orderDiscountType,
+                reason: draft.discount_reason || "", managerUserId: draft.discount_approved_by, managerName: "",
+              } : null);
               setShowInvoiceHistory(false);
             }}
           />
