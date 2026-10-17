@@ -1,4 +1,5 @@
 import { normalizeBarcode } from "@/lib/barcode";
+import { incomingPOSOrderType, incomingOrderTypeLabel } from "@/lib/pos/incoming-order-type";
 import { playScanSuccessBeep, playScanErrorBeep } from "@/lib/audio-unlock";
 import { parseScaleBarcode, type ScaleFormat } from "@/lib/scale-barcode";
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
@@ -6690,7 +6691,8 @@ const POSPage = ({ variant = "v1" }: { variant?: "v1" | "v2" } = {}) => {
     const newOrder = createNewOrder(orderCounter.current);
     newOrder.customerName = order.customer_name || "";
     newOrder.customerPhone = order.customer_phone || "";
-    newOrder.orderType = order.delivery_type === "delivery" ? "delivery" : "takeaway";
+    newOrder.orderType = incomingPOSOrderType(order);
+    newOrder.orderTypeChosen = true;
     newOrder.deliveryAddress = order.delivery_address || "";
     newOrder.callCenterOrderId = order.id;
     newOrder.callCenterPaymentMethod = order.payment_method || "cash";
@@ -6701,11 +6703,11 @@ const POSPage = ({ variant = "v1" }: { variant?: "v1" | "v2" } = {}) => {
     newOrder.callCenterSkipWheelsDispatch = !!(order as any).skip_wheels_dispatch;
     const _info: any = (order as any).delivery_info || null;
     const _fee = Number((order as any).delivery_fee || 0);
-    const isDelivery = order.delivery_type === "delivery";
+    const isDelivery = newOrder.orderType === "delivery";
     // App orders always carry delivery_info, so it must NOT imply delivery —
     // an explicit pickup stays «استلام».
     const _place = [_info?.city, _info?.area].filter(Boolean).join(" - ");
-    const deliveryBlock = (isDelivery || (_info && order.delivery_type !== "pickup")) ? [
+    const deliveryBlock = isDelivery ? [
       _place ? `توصيل: ${_place}` : "توصيل",
       _info?.branch_name ? `الفرع: ${_info.branch_name}` : "",
       _fee > 0 ? `رسوم التوصيل: ₪${_fee.toFixed(2)}${_info?.manually_adjusted ? " (معدّل)" : ""}` : "",
@@ -6713,7 +6715,7 @@ const POSPage = ({ variant = "v1" }: { variant?: "v1" | "v2" } = {}) => {
       order.customer_phone ? `جوال: ${order.customer_phone}` : "",
     ].filter(Boolean).join(" | ") : [
       // Takeaway / استلام / سفري — still surface customer info in the note so it prints on the receipt
-      "استلام",
+      incomingOrderTypeLabel(order),
       order.customer_name ? `الزبون: ${order.customer_name}` : "",
       order.customer_phone ? `جوال: ${order.customer_phone}` : "",
     ].filter(Boolean).join(" | ");
@@ -7642,7 +7644,8 @@ const POSPage = ({ variant = "v1" }: { variant?: "v1" | "v2" } = {}) => {
               const newOrder = createNewOrder(orderCounter.current);
               newOrder.customerName = order.customer_name || "";
               newOrder.customerPhone = order.customer_phone || "";
-              newOrder.orderType = order.delivery_type === "delivery" ? "delivery" : "takeaway";
+              newOrder.orderType = incomingPOSOrderType(order);
+              newOrder.orderTypeChosen = true;
               newOrder.deliveryAddress = order.delivery_address || "";
               newOrder.callCenterOrderId = order.id;
               newOrder.callCenterPaymentMethod = order.payment_method || "cash";
@@ -7656,11 +7659,11 @@ const POSPage = ({ variant = "v1" }: { variant?: "v1" | "v2" } = {}) => {
               // a synthetic cart line.
               const _info: any = (order as any).delivery_info || null;
               const _fee = Number((order as any).delivery_fee || 0);
-              const isDelivery = order.delivery_type === "delivery";
+              const isDelivery = newOrder.orderType === "delivery";
               // App orders always carry delivery_info, so it must NOT imply
               // delivery — an explicit pickup stays «استلام».
               const _place = [_info?.city, _info?.area].filter(Boolean).join(" - ");
-              const deliveryBlock = (isDelivery || (_info && order.delivery_type !== "pickup")) ? [
+              const deliveryBlock = isDelivery ? [
                 _place ? `توصيل: ${_place}` : "توصيل",
                 _info?.branch_name ? `الفرع: ${_info.branch_name}` : "",
                 _fee > 0 ? `رسوم التوصيل: ₪${_fee.toFixed(2)}${_info?.manually_adjusted ? " (معدّل)" : ""}` : "",
@@ -7668,7 +7671,7 @@ const POSPage = ({ variant = "v1" }: { variant?: "v1" | "v2" } = {}) => {
                 order.customer_phone ? `جوال: ${order.customer_phone}` : "",
               ].filter(Boolean).join(" | ") : [
                 // Takeaway / استلام — still print customer name + phone on the receipt note
-                "استلام",
+                incomingOrderTypeLabel(order),
                 order.customer_name ? `الزبون: ${order.customer_name}` : "",
                 order.customer_phone ? `جوال: ${order.customer_phone}` : "",
               ].filter(Boolean).join(" | ");
@@ -11673,7 +11676,7 @@ const POSPage = ({ variant = "v1" }: { variant?: "v1" | "v2" } = {}) => {
           const newOrder = createNewOrder(orderCounter.current);
           newOrder.customerName = order.customer_name || "";
           newOrder.customerPhone = order.customer_phone || "";
-          newOrder.orderType = order.delivery_type === "delivery" ? "delivery" : "takeaway";
+          newOrder.orderType = incomingPOSOrderType(order);
           newOrder.orderTypeChosen = true;
           newOrder.deliveryAddress = order.delivery_address || "";
           // Strip the auto-composed delivery prefix so reopening the dispatch

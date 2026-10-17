@@ -27,6 +27,7 @@ const orderSourceLabel = (o: { source_app?: string | null; delivery_info?: any }
   isKioskOrder(o) ? "كيوسك" : isMobileAppOrder(o) ? "تطبيق الجوال" : (o.source_app || "كول سنتر");
 import { extractBaseNote } from "@/lib/order-note-utils";
 import { isEditLockActive } from "@/lib/dispatch-lock";
+import { incomingOrderTypeLabel as orderTypeLabel } from "@/lib/pos/incoming-order-type";
 
 interface CallCenterOrder {
   id: string;
@@ -50,15 +51,6 @@ interface CallCenterOrder {
   editing_started_at?: string | null;
   editing_heartbeat_at?: string | null;
 }
-
-/** نوع الطلب الحقيقي: الطلبات الخارجية تحفظ نوعها الأصلي (صالة/سفري) في delivery_info */
-const orderTypeLabel = (o: { delivery_type: string; delivery_info?: any | null }) => {
-  const t = o.delivery_info?.original_delivery_type || o.delivery_type;
-  if (t === "delivery") return "توصيل";
-  if (t === "dine_in") return "صالة";
-  if (t === "takeaway") return "سفري";
-  return "استلام";
-};
 
 interface OrderEdit {
   id: string;
