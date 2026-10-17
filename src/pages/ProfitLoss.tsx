@@ -859,16 +859,24 @@ const ProfitLoss = () => {
                             )}
                           </div>
                         </td>
-                        <td className="px-4 py-1.5 text-left tabular-nums text-foreground">
-                          {hideAmount ? "" : fmtAmount(line.amount)}
-                        </td>
-                        {showPercentages && <td className="px-3 py-1.5 text-center tabular-nums text-muted-foreground">{hideAmount ? "" : pctVal ? `${pctVal}%` : ""}</td>}
-                        {showComparison && (
+                        {multiCC ? (
+                          ccColumns!.map(col => (
+                            <td key={col.key} className="px-4 py-1.5 text-left tabular-nums text-foreground">
+                              {hideAmount ? "" : fmtAmount(col.map.get(ccLineKey(line)) ?? 0)}
+                            </td>
+                          ))
+                        ) : (
+                          <td className="px-4 py-1.5 text-left tabular-nums text-foreground">
+                            {hideAmount ? "" : fmtAmount(line.amount)}
+                          </td>
+                        )}
+                        {showPercentages && !multiCC && <td className="px-3 py-1.5 text-center tabular-nums text-muted-foreground">{hideAmount ? "" : pctVal ? `${pctVal}%` : ""}</td>}
+                        {showComparison && !multiCC && (
                           <td className="px-4 py-1.5 text-left tabular-nums text-muted-foreground">
                             {line.compareAmount !== undefined ? fmtAmount(line.compareAmount) : ""}
                           </td>
                         )}
-                        {showComparison && (
+                        {showComparison && !multiCC && (
                           <td className="px-3 py-1.5 text-center tabular-nums text-muted-foreground">
                             {change !== null ? (
                               <span className="inline-flex items-center gap-0.5 text-[10.5px]">
