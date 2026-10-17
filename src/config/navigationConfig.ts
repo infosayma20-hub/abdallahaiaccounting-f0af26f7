@@ -2,7 +2,7 @@ import {
   BarChart3, DollarSign, ShoppingCart, ShoppingBag, Monitor, Package,
   Landmark, Building2, Store, Users, Calculator, Settings, FileSpreadsheet,
   Puzzle, ArrowLeftRight, ClipboardList, Plane, Truck, LayoutGrid, Sparkles, Receipt, Shield, UserPlus,
-  Activity, PieChart, Scale, LayoutDashboard, PhoneCall, Bell, Factory, Layers, GraduationCap,
+  MessageCircle, Activity, PieChart, Scale, LayoutDashboard, PhoneCall, Bell, Factory, Layers, GraduationCap,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
@@ -135,6 +135,22 @@ export const navigationSections: NavSection[] = [
               { label: "خط سير المبيعات", path: "/crm/pipeline" },
               { label: "المتابعات والأنشطة", path: "/crm/activities" },
               { label: "ملف العميل 360", path: "/crm/customers" },
+            ],
+          },
+        ],
+      },
+      {
+        id: "wa-agent", label: "وكيل واتساب", description: "مساعد ذكي يستقبل عملاء واتساب ويلخّص طلباتهم", module: "crm", icon: MessageCircle,
+        color: "text-emerald-700", bgColor: "bg-emerald-500/10", path: "/wa-agent/leads",
+        keywords: ["واتساب", "whatsapp", "وكيل", "مساعد", "طلبات", "عملاء محتملين"],
+        groups: [
+          {
+            groupLabel: "وكيل واتساب",
+            children: [
+              { label: "الطلبات", path: "/wa-agent/leads" },
+              { label: "الإعدادات", path: "/wa-agent/settings" },
+              { label: "الرقم", path: "/wa-agent/channel" },
+              { label: "الاستهلاك", path: "/wa-agent/usage" },
             ],
           },
         ],
