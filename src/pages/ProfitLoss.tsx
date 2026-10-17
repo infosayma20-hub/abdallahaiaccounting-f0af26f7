@@ -230,15 +230,19 @@ const ProfitLoss = () => {
     setDateTo(format(to, "yyyy-MM-dd"));
   }, []);
 
-  // Filter transactions by date range
+  // Cost-center matcher: empty selection = all; "none" = transactions without a cost center
+  const matchCC = useCallback((tx: TxRecord, sel: string[]) => {
+    if (sel.length === 0) return true;
+    return sel.some(s => (s === "none" ? !tx.costCenterId : tx.costCenterId === s));
+  }, []);
+
+  // Filter transactions by date range + selected cost centers (union)
   const plTransactions = useMemo(() => {
     return allTxRecords.filter(tx => {
       if (tx.date < dateFrom || tx.date > dateTo) return false;
-      if (costCenterFilter === "all") return true;
-      if (costCenterFilter === "none") return !tx.costCenterId;
-      return tx.costCenterId === costCenterFilter;
+      return matchCC(tx, ccSelected);
     });
-  }, [allTxRecords, dateFrom, dateTo, costCenterFilter]);
+  }, [allTxRecords, dateFrom, dateTo, ccSelected, matchCC]);
 
   // Previous period transactions
   const prevPeriodTxs = useMemo(() => {
