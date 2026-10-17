@@ -511,11 +511,20 @@ const BalanceSheetPage = () => {
         <div className="flex items-center justify-center py-16"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>
       ) : (
         <>
-          <ReportSummary items={[
-            { label: "إجمالي الأصول", value: current.totalAssets, color: "primary", signed: true },
-            { label: "إجمالي الالتزامات", value: current.totalLiabilities, color: "destructive", signed: true },
-            { label: "حقوق الملكية", value: current.totalEquity, color: "warning", signed: true },
-          ]} />
+          {/* Monochrome summary strip — same style as قائمة الدخل */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 border border-border rounded-sm bg-card divide-x divide-x-reverse divide-border">
+            {[
+              { label: "إجمالي الأصول", value: `₪${current.totalAssets.toLocaleString()}` },
+              { label: "إجمالي الالتزامات", value: `₪${current.totalLiabilities.toLocaleString()}` },
+              { label: "حقوق الملكية", value: `₪${current.totalEquity.toLocaleString()}` },
+              { label: "التوازن", value: isBalanced ? "متوازنة" : `فرق ₪${Math.abs(current.totalAssets - current.totalLiabilities - current.totalEquity).toLocaleString()}` },
+            ].map((c, i) => (
+              <div key={i} className="px-4 py-2.5">
+                <p className="text-[10.5px] text-muted-foreground mb-0.5">{c.label}</p>
+                <p className="text-[15px] font-semibold tabular-nums text-foreground">{c.value}</p>
+              </div>
+            ))}
+          </div>
 
           {showComparison && previous && (
             <div className="text-center text-[10px] text-muted-foreground py-1">
