@@ -555,12 +555,14 @@ const ProfitLoss = () => {
   const handleExportExcel = () => {
     const rows = statementLines.filter(l => l.type !== "spacer").map(l => ({
       "البند": l.label,
-      "المبلغ": l.group === "head" ? "" : l.amount,
-      ...(showPercentages && current.totalRevenue > 0 ? { "النسبة %": l.type === "item" || l.type === "subtotal" || l.type === "total" || l.type === "grand-total" ? ((l.amount / current.totalRevenue) * 100).toFixed(1) : "" } : {}),
-      ...(showComparison && l.compareAmount !== undefined ? { "الفترة السابقة": l.compareAmount } : {}),
+      ...(multiCC
+        ? Object.fromEntries(ccColumns!.map(col => [col.name, l.group === "head" ? "" : (col.map.get(ccLineKey(l)) ?? 0)]))
+        : { "المبلغ": l.group === "head" ? "" : l.amount }),
+      ...(showPercentages && !multiCC && current.totalRevenue > 0 ? { "النسبة %": l.type === "item" || l.type === "subtotal" || l.type === "total" || l.type === "grand-total" ? ((l.amount / current.totalRevenue) * 100).toFixed(1) : "" } : {}),
+      ...(showComparison && !multiCC && l.compareAmount !== undefined ? { "الفترة السابقة": l.compareAmount } : {}),
     }));
     const ws = XLSX.utils.json_to_sheet(rows);
-    ws["!cols"] = [{ wch: 35 }, { wch: 18 }, { wch: 12 }, { wch: 18 }];
+    ws["!cols"] = [{ wch: 35 }, ...(multiCC ? ccColumns!.map(() => ({ wch: 16 })) : [{ wch: 18 }]), { wch: 12 }, { wch: 18 }];
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "قائمة الدخل");
     setNextExportBranding({
