@@ -430,7 +430,7 @@ const ProfitLoss = () => {
             if (!showZeroAccounts && child.total === 0) return;
             addLine(`${child.code} - ${child.name}`, child.total, 3 as any, "item", section, child.txs, undefined, child.code);
           });
-          addLine(`إجمالي ${group.name}`, group.total, 2, "item", section, group.txs, undefined, undefined, "total");
+          addLine(`إجمالي حساب ${group.name}`, group.total, 2, "item", section, group.txs, undefined, undefined, "total");
         } else {
           const prevVal = prevEntries?.find(([n]) => n === group.name)?.[1]?.total;
           addLine(group.name, group.total, 2, "item", section, group.txs, prevVal, group.code);
