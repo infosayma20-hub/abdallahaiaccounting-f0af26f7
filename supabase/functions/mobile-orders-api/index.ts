@@ -437,7 +437,9 @@ async function handleCreateOrder(req: Request, ownerId: string, environment: "li
   const total = Math.round((itemsTotal + (deliveryFee || 0)) * 100) / 100;
   const payment = body.payment_method === "card" ? "visa" : body.payment_method;
   const rawDeliveryType = body.delivery?.type || body.delivery_type || "takeaway";
-  // call_center_orders check constraint only allows 'delivery' | 'pickup'
+  // call_center_orders check constraint only allows 'delivery' | 'pickup';
+  // the original requested type (takeaway/pickup/dine_in) is preserved in
+  // delivery_info.original_delivery_type so the cashier sees the real mode.
   const deliveryType = rawDeliveryType === "delivery" ? "delivery" : "pickup";
   const address =
     body.delivery?.address ||
