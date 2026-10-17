@@ -17130,6 +17130,8 @@ export type Database = {
           tax_rate: number
           total: number
           unit: string
+          unit_factor: number | null
+          unit_id: string | null
           unit_price: number
           user_id: string
         }
@@ -17151,6 +17153,8 @@ export type Database = {
           tax_rate?: number
           total?: number
           unit?: string
+          unit_factor?: number | null
+          unit_id?: string | null
           unit_price?: number
           user_id: string
         }
@@ -17172,6 +17176,8 @@ export type Database = {
           tax_rate?: number
           total?: number
           unit?: string
+          unit_factor?: number | null
+          unit_id?: string | null
           unit_price?: number
           user_id?: string
         }
@@ -20612,6 +20618,7 @@ export type Database = {
           is_sale: boolean | null
           notes: string | null
           product_id: string
+          sale_price: number | null
           unit_name: string
           updated_at: string
           user_id: string
@@ -20627,6 +20634,7 @@ export type Database = {
           is_sale?: boolean | null
           notes?: string | null
           product_id: string
+          sale_price?: number | null
           unit_name: string
           updated_at?: string
           user_id: string
@@ -20642,6 +20650,7 @@ export type Database = {
           is_sale?: boolean | null
           notes?: string | null
           product_id?: string
+          sale_price?: number | null
           unit_name?: string
           updated_at?: string
           user_id?: string
@@ -36178,6 +36187,7 @@ export type Database = {
       }
       stock_count_get: { Args: { p_product_id: string }; Returns: Json }
       stock_count_lookup: { Args: { p_code: string }; Returns: Json }
+      stock_count_pack_units: { Args: { p_product_id: string }; Returns: Json }
       stock_count_report_unknown: {
         Args: { p_code: string; p_note?: string }
         Returns: string
@@ -36194,6 +36204,17 @@ export type Database = {
       stock_count_set_image: {
         Args: { p_image_url: string; p_product_id: string }
         Returns: undefined
+      }
+      stock_count_set_pack_unit: {
+        Args: {
+          p_barcode: string
+          p_factor: number
+          p_name: string
+          p_price: number
+          p_product_id: string
+          p_unit_id: string
+        }
+        Returns: Json
       }
       stock_count_submit: {
         Args: {

@@ -4,7 +4,6 @@ Subdirectories may have their own `AGENTS.md` (e.g. `src/components/pos/`, `src/
 
 - User-facing text uses only “يونيفاي”/“UNIFY”; keep legacy `amwali` identifiers only where renaming breaks storage, routes, DB objects or links.
 - Session bootstrap: RPC `get_my_bootstrap()` feeds `useBootstrap` (React Query + sessionStorage + one realtime channel); all role/permission/owner/subscription hooks read from it — never add per-hook fetches for those. Why: one startup request.
-- Employee hot-drink sales use the dedicated atomic RPC and `[EMPLOYEE_HOT_DRINK]` line marker; first two drinks per POS business day are half price, later ones full price, marked lines bypass stock. Why: auditable and race-safe.
 - Attendance rules (Asia/Hebron, 06:00 business-day start, gap/grace/tolerance/cap defaults) live only in DB function `attendance_departure_rules()`; `recompute_attendance_day`, `hr_backfill_attendance` and the UI read from it. Why: one source of truth.
 - HR attendance edits never mutate raw `attendance_events`; only RPC `hr_save_attendance_day` (overrides, break diffs, gap dismissals, recompute, audit in one transaction). Why: edits survive new punches and stay auditable.
 - Camera scanning uses shared `POSBarcodeScanner` (native detector or local `public/zxing/` ponyfill); inputs normalize via `src/lib/barcode.ts`; RPCs match via `_barcode_variants()`. Why: fast offline scans.
@@ -25,5 +24,5 @@ Subdirectories may have their own `AGENTS.md` (e.g. `src/components/pos/`, `src/
 - Journal voucher edits never soft-delete posted lines: RPC `reverse_voucher_transactions` mirrors them on their original date, then new lines post. Why: audit trail.
 - Unified invoice creation keeps returns in `returns`/`return_items` via `save_return_command_v1`; managed documents use the same RPC for edits and cancellation, independent of tenant pilot flags. Why: never mix invoice posting with returns or bypass managed-write guards.
 - Statement type filtering lives in `transactionTypeFilter`; POS refund GL lines are document-linked in `transactionLinkage`. Why: returns must not masquerade as invoices or independently editable journal entries.
-- POS return modals use scoped overlay/content/menu layers via `return-dialog.css` and optional `DialogContent.overlayClassName`; all refund selects remain portalled with explicit RTL. Why: invoice-history layers must not intercept refund controls, while other dialogs retain their defaults.
 - WhatsApp AI agent (wa_* tables): tenant-scoped by owner_id via is_team_member; messages/usage/edge_logs are written only by service_role edge functions, and channel tokens live only as a Vault reference (token_secret_id), never plain text. Why: one isolated agent per owner.
+- Pack units: `product_units` (factor, sale_price, barcode); trigger `tg_pos_line_unit_factor` freezes `pos_order_lines.unit_factor` from the line's unit name; stock moves `qty × unit_factor`. Why: insert paths unchanged; NULL=1 keeps history.

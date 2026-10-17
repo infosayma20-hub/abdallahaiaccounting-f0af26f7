@@ -10,11 +10,13 @@ import { Card, CardContent } from "@/components/ui/card";
 import ManagerHeader from "@/components/employee/manager/ManagerHeader";
 import ProductUnitSelect from "@/components/inventory/ProductUnitSelect";
 import StockCountBarcodes from "@/components/employee/StockCountBarcodes";
+import StockCountPackUnits from "@/components/employee/StockCountPackUnits";
+import { toBaseQty, type PackUnit } from "@/lib/inventory/pack-units";
 import POSBarcodeScanner from "@/components/pos/POSBarcodeScanner";
 import { normalizeBarcode } from "@/lib/barcode";
 
 type Ctx = { branch_name: string | null; warehouse_id: string | null; warehouse_name: string | null };
-type Product = { id: string; name: string; sell_price: number | null; barcode: string | null; unit: string | null; image_url: string | null; system_qty: number; pending_qty: number | null };
+type Product = { id: string; name: string; sell_price: number | null; barcode: string | null; unit: string | null; image_url: string | null; system_qty: number; pending_qty: number | null; scanned_pack?: { id: string; name: string; factor: number } | null };
 
 /**
  * جرد المخزون للموظف: مسح الباركود/QR ثم تعديل اختياري للاسم وسعر البيع والكمية.
@@ -47,8 +49,11 @@ export default function EmployeeStockCountTab({ onBack }: { onBack: () => void }
   const [newImg, setNewImg] = useState<{ blob: Blob; preview: string } | null>(null);
   const [imgBusy, setImgBusy] = useState(false);
   const [creating, setCreating] = useState(false);
-  const [scanTarget, setScanTarget] = useState<"lookup" | "extra" | "barcode">("lookup");
+  const [scanTarget, setScanTarget] = useState<"lookup" | "extra" | "barcode" | "pack">("lookup");
   const [barcodeScan, setBarcodeScan] = useState<string | null>(null);
+  const [packScan, setPackScan] = useState<string | null>(null);
+  const [packs, setPacks] = useState<PackUnit[]>([]);
+  const [countPack, setCountPack] = useState(""); // "" = العدّ بالوحدة الأساسية
   const newFileRef = useRef<HTMLInputElement>(null);
   const editFileRef = useRef<HTMLInputElement>(null);
   const nameInputRef = useRef<HTMLInputElement>(null);
@@ -138,6 +143,9 @@ export default function EmployeeStockCountTab({ onBack }: { onBack: () => void }
     resetNew(null);
     const p = data as any as Product;
     setProduct(p);
+    setPacks([]);
+    setCountPack(p.scanned_pack?.id || "");
+    if (p.scanned_pack) toast.message(`باركود ${p.scanned_pack.name} = ${p.scanned_pack.factor} ${p.unit ?? ""}`);
     setUnit(p.unit ?? "قطعة");
     setName("");
     setPrice("");
@@ -174,6 +182,7 @@ export default function EmployeeStockCountTab({ onBack }: { onBack: () => void }
     if (!data) { toast.error("الصنف غير موجود"); return; }
     resetNew(null);
     setProduct(data as Product);
+    setPacks([]); setCountPack("");
     setUnit((data as Product).unit ?? "قطعة");
     setName(""); setPrice(""); setQty(""); setCode("");
   };
@@ -193,13 +202,16 @@ export default function EmployeeStockCountTab({ onBack }: { onBack: () => void }
     if (!product || saving) return;
     const n = name.trim();
     const pr = price.trim() === "" ? null : Number(price);
-    const q = qty.trim() === "" ? null : Number(qty);
+    const rawQ = qty.trim() === "" ? null : Number(qty);
+    const pack = packs.find((x) => x.id === countPack) || null;
+    const q = rawQ === null || !isFinite(rawQ) ? rawQ : toBaseQty(rawQ, pack?.factor);
     if (!n && pr === null && q === null && unit === (product.unit ?? "قطعة")) { toast.message("لم تُدخل أي تعديل"); return; }
     if ((pr !== null && (!isFinite(pr) || pr < 0)) || (q !== null && (!isFinite(q) || q < 0))) { toast.error("أدخل رقمًا صحيحًا"); return; }
     setSaving(true);
     const { error } = await supabase.rpc("stock_count_submit_v2", {
       p_product_id: product.id, p_unit: unit, p_name: n || null, p_sell_price: pr, p_counted_qty: q,
-    });
+      p_note: pack && rawQ !== null ? `عدّ ${rawQ} ${pack.name} × ${pack.factor} = ${q} ${product.unit ?? ""}` : null,
+    } as any);
     setSaving(false);
     if (error) { toast.error(error.message); return; }
     toast.success(q !== null ? "تم الحفظ — الكمية أُرسلت للمراجعة" : "تم الحفظ");
@@ -356,6 +368,9 @@ export default function EmployeeStockCountTab({ onBack }: { onBack: () => void }
                       const { data } = await (supabase.rpc as any)("stock_count_get", { p_product_id: product.id });
                       if (data) setProduct((cur) => (cur && cur.id === product.id ? { ...cur, barcode: (data as Product).barcode } : cur));
                     }} />
+                  <StockCountPackUnits key={`pk-${product.id}`} productId={product.id} baseUnit={product.unit ?? "قطعة"} scanned={packScan}
+                    onScanRequest={() => { setPackScan(null); setScanTarget("pack"); setScanOpen(true); }}
+                    onLoaded={(list) => { setPacks(list); setCountPack((cur) => (list.some((x) => x.id === cur) ? cur : "")); }} />
                   <div className="space-y-2">
                     <div className="space-y-1"><Label>وحدة المخزون</Label><ProductUnitSelect key={product.id} value={unit} onChange={setUnit} units={units} disabled={saving} /></div>
                     <div>
@@ -376,8 +391,22 @@ export default function EmployeeStockCountTab({ onBack }: { onBack: () => void }
                     </div>
                     <div className="grid grid-cols-2 gap-2">
                       <div><Label>سعر بيع جديد</Label><Input inputMode="decimal" value={price} placeholder="اختياري" onChange={(e) => setPrice(e.target.value)} /></div>
-                      <div><Label>الكمية المعدودة ({unit})</Label><Input inputMode="decimal" value={qty} disabled={!ctx.warehouse_id} placeholder="اختياري" onChange={(e) => setQty(e.target.value)} /></div>
+                      <div><Label>الكمية المعدودة ({packs.find((x) => x.id === countPack)?.name ?? unit})</Label><Input inputMode="decimal" value={qty} disabled={!ctx.warehouse_id} placeholder="اختياري" onChange={(e) => setQty(e.target.value)} /></div>
                     </div>
+                    {packs.length > 0 && (
+                      <div className="space-y-1">
+                        <div className="text-xs text-muted-foreground">العدّ بـ</div>
+                        <div className="flex flex-wrap gap-1.5">
+                          {[{ id: "", name: product.unit ?? "قطعة", factor: 1 }, ...packs].map((x) => (
+                            <Button key={x.id || "base"} type="button" size="sm" variant={countPack === x.id ? "default" : "outline"} className="h-9"
+                              aria-pressed={countPack === x.id} onClick={() => setCountPack(x.id)}>{x.name}</Button>
+                          ))}
+                        </div>
+                        {countPack && qty.trim() !== "" && isFinite(Number(qty)) && (
+                          <div className="text-xs font-medium">= {toBaseQty(Number(qty), packs.find((x) => x.id === countPack)?.factor)} {product.unit ?? ""} بالمخزون</div>
+                        )}
+                      </div>
+                    )}
                     <p className="text-[11px] text-muted-foreground">الاسم والسعر يتغيّران فورًا في كل الفروع. الكمية تُراجع قبل اعتمادها.</p>
                   </div>
                   <div className="flex gap-2">
@@ -392,7 +421,7 @@ export default function EmployeeStockCountTab({ onBack }: { onBack: () => void }
       </div>
       <input ref={editFileRef} type="file" accept="image/*" capture="environment" className="hidden"
         onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ""; if (f) changeImage(f); }} />
-      <POSBarcodeScanner open={scanOpen} onClose={() => setScanOpen(false)} onScan={(c) => { setScanOpen(false); if (scanTarget === "extra") addCode(c); else if (scanTarget === "barcode") setBarcodeScan(normalizeBarcode(c)); else lookup(c); }} />
+      <POSBarcodeScanner open={scanOpen} onClose={() => setScanOpen(false)} onScan={(c) => { setScanOpen(false); if (scanTarget === "extra") addCode(c); else if (scanTarget === "barcode") setBarcodeScan(normalizeBarcode(c)); else if (scanTarget === "pack") setPackScan(normalizeBarcode(c)); else lookup(c); }} />
     </div>
   );
 }

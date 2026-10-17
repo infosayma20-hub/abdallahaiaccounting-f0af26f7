@@ -46,7 +46,7 @@ interface ProductRow {
   min_quantity: number;
 }
 
-interface UnitRow { id?: string; unit_name: string; conversion_factor: number; is_sale: boolean; is_purchase: boolean; is_default: boolean; is_active: boolean; barcode?: string; notes?: string; }
+interface UnitRow { id?: string; unit_name: string; conversion_factor: number; is_sale: boolean; is_purchase: boolean; is_default: boolean; is_active: boolean; barcode?: string; notes?: string; sale_price?: number | null; }
 interface BarcodeRow { id?: string; barcode: string; unit_id?: string | null; description?: string; is_default: boolean; }
 interface PriceTierRow { id?: string; tier_name: string; price: number; min_price?: number | null; max_price?: number | null; currency: string; min_qty: number; is_active: boolean; }
 interface WarehouseSettingRow { id?: string; warehouse_id: string; opening_qty: number; min_qty: number; reorder_qty: number; max_qty?: number | null; is_default: boolean; }
@@ -413,6 +413,8 @@ export default function ProductEditPage() {
 
       if (units.length) {
         const { error } = await supabase.from("product_units" as any).insert(units.map(u => ({
+          ...(u.id ? { id: u.id } : {}),
+          sale_price: u.sale_price ?? null,
           product_id: pid, user_id: ownerId,
           unit_name: u.unit_name, conversion_factor: Number(u.conversion_factor) || 1,
           is_sale: !!u.is_sale, is_purchase: !!u.is_purchase,
@@ -688,6 +690,8 @@ export default function ProductEditPage() {
                   <TableRow>
                     <TableHead>الوحدة</TableHead>
                     <TableHead>معامل التحويل</TableHead>
+                    <TableHead>سعر البيع</TableHead>
+                    <TableHead>باركود الوحدة</TableHead>
                     <TableHead>للبيع</TableHead>
                     <TableHead>للشراء</TableHead>
                     <TableHead>افتراضية</TableHead>
@@ -700,6 +704,8 @@ export default function ProductEditPage() {
                     <TableRow key={i}>
                       <TableCell><Input value={u.unit_name} onChange={e => { const c = [...units]; c[i].unit_name = e.target.value; setUnits(c); setDirty(true); }} placeholder="كرتونة" /></TableCell>
                       <TableCell><Input type="number" step="0.001" value={u.conversion_factor} onChange={e => { const c = [...units]; c[i].conversion_factor = parseFloat(e.target.value) || 0; setUnits(c); setDirty(true); }} /></TableCell>
+                      <TableCell><Input type="number" step="0.01" value={u.sale_price ?? ""} onChange={e => { const c = [...units]; c[i].sale_price = e.target.value === "" ? null : parseFloat(e.target.value); setUnits(c); setDirty(true); }} /></TableCell>
+                      <TableCell><Input dir="ltr" value={u.barcode ?? ""} onChange={e => { const c = [...units]; c[i].barcode = e.target.value; setUnits(c); setDirty(true); }} /></TableCell>
                       <TableCell><Checkbox checked={u.is_sale} onCheckedChange={v => { const c = [...units]; c[i].is_sale = !!v; setUnits(c); setDirty(true); }} /></TableCell>
                       <TableCell><Checkbox checked={u.is_purchase} onCheckedChange={v => { const c = [...units]; c[i].is_purchase = !!v; setUnits(c); setDirty(true); }} /></TableCell>
                       <TableCell><Checkbox checked={u.is_default} onCheckedChange={v => { const c = units.map((x, j) => ({ ...x, is_default: j === i ? !!v : false })); setUnits(c); setDirty(true); }} /></TableCell>

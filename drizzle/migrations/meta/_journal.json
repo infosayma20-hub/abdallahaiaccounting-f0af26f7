@@ -1170,6 +1170,13 @@
       "when": 1792262081686,
       "tag": "0166_pos_tax_contact_lookup_correct_column",
       "breakpoints": true
+    },
+    {
+      "idx": 167,
+      "version": "7",
+      "when": 1792263350000,
+      "tag": "0167_product_pack_units_with_barcodes",
+      "breakpoints": true
     }
   ]
 }
