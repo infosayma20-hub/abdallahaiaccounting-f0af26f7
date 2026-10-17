@@ -35208,6 +35208,17 @@ export type Database = {
         Returns: Json
       }
       pos_link_loyalty_contact: { Args: { _card_code: string }; Returns: Json }
+      pos_manager_discount_order_v1: {
+        Args: {
+          p_amount: number
+          p_manager_user_id: string
+          p_order_id: string
+          p_reason: string
+          p_session_id: string
+          p_user_id: string
+        }
+        Returns: Json
+      }
       pos_mark_item_delivered: {
         Args: { _by_name?: string; _line_id: string }
         Returns: undefined

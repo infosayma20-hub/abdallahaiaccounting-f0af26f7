@@ -1121,6 +1121,13 @@
       "when": 1792236672808,
       "tag": "0159_migration",
       "breakpoints": true
+    },
+    {
+      "idx": 160,
+      "version": "7",
+      "when": 1792256488728,
+      "tag": "0160_pos_manager_discount_order_v1",
+      "breakpoints": true
     }
   ]
 }
