@@ -182,7 +182,7 @@ export default function AppOrdersInboxPanel({ open, onClose, dataOwnerId, onCoun
                   {o.customer_phone && <span className="flex items-center gap-1"><Phone className="h-3 w-3" />{o.customer_phone}</span>}
                   <span className="flex items-center gap-1">
                     {o.delivery_type === "delivery" ? <Truck className="h-3 w-3" /> : <ShoppingBag className="h-3 w-3" />}
-                    {o.delivery_type === "delivery" ? "توصيل" : "استلام"}
+                    {orderTypeLabel(o)}
                   </span>
                   <span className="flex items-center gap-1">
                     {o.payment_method === "visa" ? <CreditCard className="h-3 w-3" /> : <Banknote className="h-3 w-3" />}
