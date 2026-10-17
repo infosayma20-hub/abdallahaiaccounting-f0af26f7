@@ -1,4 +1,5 @@
 import { normalizeBarcode } from "@/lib/barcode";
+import { packAsProduct, type PackUnit } from "@/lib/inventory/pack-units";
 import { serializeDraftDetails, hydrateDraftDetails, hydrateDraftLine, type SavedDraft } from "@/lib/pos/draft-order";
 import { incomingPOSOrderType, incomingOrderTypeLabel } from "@/lib/pos/incoming-order-type";
 import { playScanSuccessBeep, playScanErrorBeep } from "@/lib/audio-unlock";
