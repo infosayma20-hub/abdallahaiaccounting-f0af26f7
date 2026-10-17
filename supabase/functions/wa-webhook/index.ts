@@ -253,7 +253,7 @@ async function handleSummary(sb: SupabaseClient, ownerId: string, convId: string
         });
       } else {
         const text = [
-          `${lead.urgent ? "🔴 مستعجل — " : ""}طلب جديد من واتساب`,
+          `${lead.urgent ? "[مستعجل] " : ""}طلب جديد من واتساب`,
           `المسار: ${v(track?.label || lead.track_key)}`,
           `الاسم: ${v(lead.name)} | الشركة: ${v(lead.company)} | المدينة: ${v(lead.city)}`,
           `الرقم: ${v(lead.phone_given)} | أفضل وقت: ${v(lead.best_time)}`,
