@@ -752,7 +752,7 @@ function ShiftDetail({ session, studyDone, onStudyDone, onRefresh }: { session: 
       )}
       {!loading && (
       <>
-      {canAct(correctionAccess, "add_sale") && <div className="flex justify-start"><ShiftAddSaleDialog sessionId={session.id} ownerId={session.user_id} businessDate={session.business_date || session.opened_at.slice(0,10)} cashBoxId={session.cash_box_id || null} onDone={() => { setReloadKey(k => k+1); onRefresh?.(); }} /></div>}
+      {session.user_id && canAct(correctionAccess, "add_sale") && <div className="flex justify-start"><ShiftAddSaleDialog sessionId={session.id} ownerId={session.user_id} businessDate={session.business_date || session.opened_at.slice(0,10)} cashBoxId={session.cash_box_id || null} onDone={() => { setReloadKey(k => k+1); onRefresh?.(); }} /></div>}
       {session.state !== "open" && (
         <StudyDoneBar sessionId={session.id} doneAt={studyDone}
           onChange={(v) => { onStudyDone(v); setReloadKey(k => k + 1); }} />
