@@ -149,7 +149,10 @@ const ProfitLoss = () => {
   const [drillDownAccount, setDrillDownAccount] = useState<{ label: string; txs: TxRecord[] } | null>(null);
   const [detailLevel, setDetailLevel] = useState(2);
   const [costCenters, setCostCenters] = useState<Array<{ id: string; name: string }>>([]);
-  const [costCenterFilter, setCostCenterFilter] = useState<string>("all");
+  // Multi-select cost centers: [] = الكل (عمود واحد)، "none" = بدون مركز تكلفة.
+  // اختيار مركزين أو أكثر يعرض عمودًا مستقلًا لكل مركز في القائمة.
+  const [ccSelected, setCcSelected] = useState<string[]>([]);
+  const [ccOpen, setCcOpen] = useState(false);
 
   // Resolve the actual data owner (team owner) so employees/cashiers see the company books
   const [dataOwnerId, setDataOwnerId] = useState<string | null>(null);
