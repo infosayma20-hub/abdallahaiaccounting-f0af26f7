@@ -4563,6 +4563,10 @@ const POSPage = ({ variant = "v1" }: { variant?: "v1" | "v2" } = {}) => {
       station_id: products.find(p => p.id === line.product_id)?.kitchen_station_id || null,
     }));
     const details = hydrateDraftDetails(order as SavedDraft);
+    setManagerDiscountMeta(order.discount_approved_by ? {
+      amount: details.orderDiscount, type: details.orderDiscountType,
+      reason: order.discount_reason || "", managerUserId: order.discount_approved_by, managerName: "",
+    } : null);
     const existingTabIdx = orders.findIndex(o => o.tableId === tableId);
     orderCounter.current += 1;
     const restored: OrderTab = { ...createNewOrder(orderCounter.current), ...details,
@@ -11435,6 +11439,10 @@ const POSPage = ({ variant = "v1" }: { variant?: "v1" | "v2" } = {}) => {
                 setActiveOrderIndex(orders.length);
               }
               setRecallBanner(null);
+              setManagerDiscountMeta(draft.discount_approved_by ? {
+                amount: details.orderDiscount, type: details.orderDiscountType,
+                reason: draft.discount_reason || "", managerUserId: draft.discount_approved_by, managerName: "",
+              } : null);
               setShowInvoiceHistory(false);
             }}
           />
