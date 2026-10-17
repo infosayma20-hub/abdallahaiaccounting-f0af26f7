@@ -485,3 +485,25 @@ export function openPrintWindow(html: string) {
   const win = window.open(url, "_blank");
   if (win) win.onload = () => { /* view only */ };
 }
+
+/** Opens the browser print dialog directly (hidden iframe), no web preview tab. */
+export function printHtmlDirect(html: string) {
+  const iframe = document.createElement("iframe");
+  iframe.setAttribute("aria-hidden", "true");
+  Object.assign(iframe.style, { position: "fixed", right: "0", bottom: "0", width: "0", height: "0", border: "0" });
+  document.body.appendChild(iframe);
+  const cleanup = () => setTimeout(() => iframe.remove(), 1000);
+  iframe.onload = async () => {
+    const w = iframe.contentWindow;
+    if (!w) return cleanup();
+    try { await (w.document as any).fonts?.ready; } catch { /* ignore */ }
+    const imgs = Array.from(w.document.images);
+    await Promise.all(imgs.map(img => img.complete ? null : new Promise(r => { img.onload = img.onerror = r; })));
+    setTimeout(() => {
+      w.focus();
+      w.addEventListener("afterprint", cleanup, { once: true });
+      w.print();
+    }, 150);
+  };
+  iframe.srcdoc = html;
+}
