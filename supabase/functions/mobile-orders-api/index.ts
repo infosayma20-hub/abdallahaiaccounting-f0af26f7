@@ -523,6 +523,7 @@ async function handleCreateOrder(req: Request, ownerId: string, environment: "li
         source: body.source || "malaky_app",
         order_number: body.client_reference_id,
         client_reference_id: body.client_reference_id,
+        original_delivery_type: rawDeliveryType,
         branch_external_id: branchExt,
         customer_external_id: ext(body.customer?.external_id),
         city: body.delivery?.city || null,
