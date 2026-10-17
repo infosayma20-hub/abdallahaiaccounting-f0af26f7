@@ -3595,7 +3595,7 @@ const POSPage = ({ variant = "v1" }: { variant?: "v1" | "v2" } = {}) => {
     }
 
     setCart((prev) => {
-      const existing = prev.findIndex((item) => item.product_id === product.id && (!item.modifiers || item.modifiers.length === 0));
+      const existing = prev.findIndex((item) => item.product_id === product.id && item.unit === product.unit && item.name === product.name && (!item.modifiers || item.modifiers.length === 0));
       if (existing >= 0) {
         const updated = [...prev];
         updated[existing] = {
@@ -3714,6 +3714,38 @@ const POSPage = ({ variant = "v1" }: { variant?: "v1" | "v2" } = {}) => {
     return () => { cancelled = true; };
   }, []);
 
+  // ── وحدات التعبئة (كرتونة = N قطعة) بباركود وسعر خاص؛ نسخة محلية للعمل بدون إنترنت ──
+  const packBarcodeMapRef = useRef<Record<string, PackUnit>>({});
+  useEffect(() => {
+    let cancelled = false;
+    const CACHE_KEY = "unify:pos:pack-barcodes:v1";
+    try {
+      const cached = localStorage.getItem(CACHE_KEY);
+      if (cached) packBarcodeMapRef.current = JSON.parse(cached) || {};
+    } catch { /* ignore */ }
+    (async () => {
+      const map: Record<string, PackUnit> = {};
+      const PAGE = 1000;
+      for (let from = 0; ; from += PAGE) {
+        const { data, error } = await (supabase as any)
+          .from("product_units").select("id,product_id,unit_name,conversion_factor,sale_price,barcode,is_active,is_sale")
+          .not("barcode", "is", null).order("id").range(from, from + PAGE - 1);
+        if (error || cancelled) return;
+        (data || []).forEach((r: any) => {
+          const k = normalizeBarcode(r.barcode).toLowerCase();
+          const f = Number(r.conversion_factor);
+          if (k && r.product_id && r.is_active !== false && r.is_sale !== false && f > 0 && f !== 1)
+            map[k] = { id: r.id, product_id: r.product_id, name: String(r.unit_name || "").trim(), factor: f, price: r.sale_price === null ? null : Number(r.sale_price), barcode: r.barcode };
+        });
+        if (!data || data.length < PAGE) break;
+      }
+      if (cancelled) return;
+      packBarcodeMapRef.current = map;
+      try { localStorage.setItem(CACHE_KEY, JSON.stringify(map)); } catch { /* ignore */ }
+    })();
+    return () => { cancelled = true; };
+  }, []);
+
   /** مطابقة دقيقة: الباركود الأساسي، ثم SKU، ثم الباركودات الإضافية للصنف. */
   const findProductByCode = useCallback((rawCode: string) => {
     const lc = normalizeBarcode(rawCode).toLowerCase();
@@ -3730,6 +3762,18 @@ const POSPage = ({ variant = "v1" }: { variant?: "v1" | "v2" } = {}) => {
   const handleBarcodeScan = useCallback((rawCode: string) => {
     const code = normalizeBarcode(rawCode);
     if (!code) return;
+    const pack = packBarcodeMapRef.current[code.toLowerCase()];
+    const packBase = pack ? products.find((p) => p.id === pack.product_id) : undefined;
+    if (pack && packBase && packBase.is_pos_available) {
+      // الكرتونة سطر مستقل بسعرها؛ الخادم يخصم من المخزون (الكمية × عدد القطع) حسب اسم الوحدة
+      const asPack = packAsProduct(packBase, pack);
+      addToCartDirect(asPack);
+      playScanSuccessBeep();
+      setSearchQuery("");
+      setDebouncedSearch("");
+      toast.success(`✅ ${asPack.name} (${pack.factor} ${packBase.unit || ""})`, { duration: 1500 });
+      return;
+    }
     const matched = findProductByCode(code);
     if (!matched && tryScaleBarcode(code)) { playScanSuccessBeep(); return; }
     if (!matched) {
@@ -3751,7 +3795,7 @@ const POSPage = ({ variant = "v1" }: { variant?: "v1" | "v2" } = {}) => {
     setSearchQuery("");
     setDebouncedSearch("");
     toast.success(`✅ ${matched.name}`, { duration: 1500 });
-  }, [findProductByCode, tryScaleBarcode, addToCart]);
+  }, [findProductByCode, tryScaleBarcode, addToCart, addToCartDirect, products]);
 
   // ── Global USB scanner capture: مسح الباركود من أي مكان بالشاشة ──
   // الماسح بيبعت أحرف سريعة متتالية (<60ms بينها) ويختم بـ Enter.
