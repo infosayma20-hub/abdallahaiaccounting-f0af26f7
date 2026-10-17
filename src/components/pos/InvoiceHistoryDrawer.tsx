@@ -4,7 +4,7 @@ import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   X, Search, Printer, RotateCcw, Ban, Clock, User, Eye,
-  ChevronLeft, AlertTriangle, Lock, FileText, ShoppingCart, ArrowRightLeft, Trash2, ShieldCheck,
+  ChevronLeft, AlertTriangle, Lock, FileText, ShoppingCart, ArrowRightLeft, Trash2, ShieldCheck, Percent,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -15,6 +15,7 @@ import { format, startOfDay, endOfDay, subDays, startOfWeek, startOfMonth } from
 import ManagerOverrideDialog from "./ManagerOverrideDialog";
 import ReturnDialog from "./ReturnDialog";
 import PaymentAdjustmentDialog from "./PaymentAdjustmentDialog";
+import ManagerDiscountDialog from "./ManagerDiscountDialog";
 import ManagerHistoryUnlockDialog from "./ManagerHistoryUnlockDialog";
 import ChangePaymentMethodDialog from "./ChangePaymentMethodDialog";
 import { usePOSManagerMode } from "@/hooks/usePOSManagerMode";
@@ -302,6 +303,7 @@ export default function InvoiceHistoryDrawer({
 
   // Payment adjustment (partial refund without item return) — manager-mode only
   const [showAdjustment, setShowAdjustment] = useState(false);
+  const [showDiscount, setShowDiscount] = useState(false);
 
   // Transfer flow
   const [showTransferDialog, setShowTransferDialog] = useState(false);
@@ -1917,7 +1919,21 @@ export default function InvoiceHistoryDrawer({
                     title="استرداد جزئي بعد الدفع (مثلاً تعديل سعر) — يخفّض الإجمالي ويسجّل قيد استرداد"
                   >
                     <RotateCcw className="h-3.5 w-3.5" />
-                    تعديل دفعة / استرداد جزئي
+                     تعديل دفعة / استرداد جزئي
+                  </Button>
+                )}
+                {/* خصم على الفاتورة بعد الدفع — وضع المدير فقط */}
+                {managerMode.active && selectedOrder.state === "paid" && !selectedOrder.is_return && !isTransferredOut(selectedOrder) && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="gap-1.5 text-xs"
+                    style={{ borderColor: "#0D1B2E", color: "#0D1B2E" }}
+                    onClick={() => setShowDiscount(true)}
+                    title="خصم على فاتورة مدفوعة — قيد خصم مسموح مقابل حساب الدفع، بدون حذف القيد الأصلي"
+                  >
+                    <Percent className="h-3.5 w-3.5" />
+                    خصم على الفاتورة
                   </Button>
                 )}
               </div>
@@ -2180,6 +2196,22 @@ export default function InvoiceHistoryDrawer({
           managerName={managerMode.managerName}
           exchangeRates={exchangeRates}
           onSuccess={() => { fetchOrders(); setSelectedOrder({ ...selectedOrder, total: selectedOrder.total }); }}
+        />
+      )}
+
+      {/* ══════ MANAGER DISCOUNT DIALOG (Manager Mode only) ══════ */}
+      {selectedOrder && showDiscount && sessionId && (
+        <ManagerDiscountDialog
+          open={showDiscount}
+          onClose={() => setShowDiscount(false)}
+          orderId={selectedOrder.id}
+          orderNumber={selectedOrder.order_number}
+          orderTotal={selectedOrder.total}
+          sessionId={sessionId}
+          dataOwnerId={dataOwnerId}
+          managerUserId={managerMode.managerUserId}
+          managerName={managerMode.managerName}
+          onSuccess={() => { fetchOrders(); setSelectedOrder({ ...selectedOrder }); }}
         />
       )}
     </>
