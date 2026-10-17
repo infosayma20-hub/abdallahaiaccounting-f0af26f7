@@ -15,7 +15,7 @@ import { format, startOfDay, endOfDay, subDays, startOfWeek, startOfMonth } from
 import ManagerOverrideDialog from "./ManagerOverrideDialog";
 import ReturnDialog from "./ReturnDialog";
 import PaymentAdjustmentDialog from "./PaymentAdjustmentDialog";
-import ManagerDiscountDialog from "./ManagerDiscountDialog";
+import PostPaymentDiscountDialog from "./PostPaymentDiscountDialog";
 import ManagerHistoryUnlockDialog from "./ManagerHistoryUnlockDialog";
 import ChangePaymentMethodDialog from "./ChangePaymentMethodDialog";
 import { usePOSManagerMode } from "@/hooks/usePOSManagerMode";
