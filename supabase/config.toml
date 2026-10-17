@@ -46,3 +46,6 @@ project_id = "omwuyscprzexgmxgittp"
 
 [functions.cloud-backup]
     verify_jwt = false
+
+[functions.wa-webhook]
+    verify_jwt = false
