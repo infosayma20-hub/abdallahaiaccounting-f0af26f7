@@ -205,7 +205,7 @@ const PendingOrdersPanel = ({ dataOwnerId, branchId, sessionId, enabled, onAccep
               ? `📱 طلبية جديدة من التطبيق: ${newest.customer_name}`
               : `📞 طلب جديد من الكول سنتر: ${newest.customer_name}`, {
           duration: 10000,
-          description: `${orderSourceLabel(newest)} • ${newest.delivery_type === "delivery" ? "توصيل" : "استلام"} • ₪${newest.total}`,
+          description: `${orderSourceLabel(newest)} • ${orderTypeLabel(newest)} • ₪${newest.total}`,
           action: {
             label: "عرض",
             onClick: () => setOpen(true),
@@ -616,7 +616,7 @@ const PendingOrdersPanel = ({ dataOwnerId, branchId, sessionId, enabled, onAccep
                           {order.delivery_type === "delivery" ? (
                             <><Truck className="h-2.5 w-2.5 ml-0.5" /> توصيل</>
                           ) : (
-                            <><ShoppingBag className="h-2.5 w-2.5 ml-0.5" /> استلام</>
+                            <><ShoppingBag className="h-2.5 w-2.5 ml-0.5" /> {orderTypeLabel(order)}</>
                           )}
                         </Badge>
                       </div>
