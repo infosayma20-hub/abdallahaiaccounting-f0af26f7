@@ -474,53 +474,74 @@ const ProfitLoss = () => {
     if (detailLevel >= 2 && (revenueByAccount.size >= 1 || showZeroAccounts)) {
       buildSubAccountLines(revenueByAccount, addLine, "revenue");
     } else {
-      addLine("إيرادات المبيعات", current.salesData.total, 2, "item", "revenue", current.salesData.txs, previous?.salesData.total, "4100");
+      addLine("إيرادات المبيعات", cur.salesData.total, 2, "item", "revenue", cur.salesData.txs, prev?.salesData.total, "4100");
     }
-    if (current.salesDiscountData.total > 0) addLine("(-) خصم مسموح به", -current.salesDiscountData.total, 2, "item", "revenue", current.salesDiscountData.txs);
-    if (current.salesReturnData.total > 0) addLine("(-) مردود مبيعات", -current.salesReturnData.total, 2, "item", "revenue", current.salesReturnData.txs);
-    addLine("إجمالي الإيرادات", current.totalRevenue, 1, "subtotal", "revenue", undefined, previous?.totalRevenue);
+    if (cur.salesDiscountData.total > 0) addLine("(-) خصم مسموح به", -cur.salesDiscountData.total, 2, "item", "revenue", cur.salesDiscountData.txs);
+    if (cur.salesReturnData.total > 0) addLine("(-) مردود مبيعات", -cur.salesReturnData.total, 2, "item", "revenue", cur.salesReturnData.txs);
+    addLine("إجمالي الإيرادات", cur.totalRevenue, 1, "subtotal", "revenue", undefined, prev?.totalRevenue);
 
     lines.push({ label: "", amount: 0, level: 0, type: "spacer" });
 
     // COGS
     addLine("تكلفة المبيعات", 0, 0, "header", "cogs");
-    if (periodicEnabled || current.openingInventoryData.total > 0) {
-      addLine("بضاعة أول المدة", current.openingInventoryData.total, 2, "item", "cogs", current.openingInventoryData.txs, previous?.openingInventoryData.total, "5101");
+    if (periodicEnabled || cur.openingInventoryData.total > 0) {
+      addLine("بضاعة أول المدة", cur.openingInventoryData.total, 2, "item", "cogs", cur.openingInventoryData.txs, prev?.openingInventoryData.total, "5101");
     }
-    addLine("المشتريات", current.purchasesData.total, 2, "item", "cogs", current.purchasesData.txs, previous?.purchasesData.total, "5110");
-    if (current.purchaseDiscountData.total > 0) addLine("(-) خصم مكتسب", -current.purchaseDiscountData.total, 2, "item", "cogs", current.purchaseDiscountData.txs);
-    if (current.purchaseReturnData.total > 0) addLine("(-) مردود مشتريات", -current.purchaseReturnData.total, 2, "item", "cogs", current.purchaseReturnData.txs);
-    if (periodicEnabled || current.closingInventoryData.total > 0) {
-      addLine("(-) بضاعة آخر المدة", -current.closingInventoryData.total, 2, "item", "cogs", current.closingInventoryData.txs, previous ? -previous.closingInventoryData.total : undefined, "5102");
+    addLine("المشتريات", cur.purchasesData.total, 2, "item", "cogs", cur.purchasesData.txs, prev?.purchasesData.total, "5110");
+    if (cur.purchaseDiscountData.total > 0) addLine("(-) خصم مكتسب", -cur.purchaseDiscountData.total, 2, "item", "cogs", cur.purchaseDiscountData.txs);
+    if (cur.purchaseReturnData.total > 0) addLine("(-) مردود مشتريات", -cur.purchaseReturnData.total, 2, "item", "cogs", cur.purchaseReturnData.txs);
+    if (periodicEnabled || cur.closingInventoryData.total > 0) {
+      addLine("(-) بضاعة آخر المدة", -cur.closingInventoryData.total, 2, "item", "cogs", cur.closingInventoryData.txs, prev ? -prev.closingInventoryData.total : undefined, "5102");
     }
-    addLine("إجمالي تكلفة المبيعات", current.totalCOGS, 1, "subtotal", "cogs", undefined, previous?.totalCOGS);
+    addLine("إجمالي تكلفة المبيعات", cur.totalCOGS, 1, "subtotal", "cogs", undefined, prev?.totalCOGS);
 
     lines.push({ label: "", amount: 0, level: 0, type: "spacer" });
-    addLine("مجمل الربح", current.grossProfit, 0, "total", undefined, undefined, previous?.grossProfit);
+    addLine("مجمل الربح", cur.grossProfit, 0, "total", undefined, undefined, prev?.grossProfit);
     lines.push({ label: "", amount: 0, level: 0, type: "spacer" });
 
     // Operating Expenses
     addLine("المصروفات التشغيلية", 0, 0, "header", "opex");
-    buildSubAccountLines(expenseByAccount, addLine, "opex", previous?.expenseEntries);
-    addLine("إجمالي المصروفات التشغيلية", current.totalOpExpenses, 1, "subtotal", "opex", undefined, previous?.totalOpExpenses);
+    buildSubAccountLines(expenseByAccount, addLine, "opex", prev?.expenseEntries);
+    addLine("إجمالي المصروفات التشغيلية", cur.totalOpExpenses, 1, "subtotal", "opex", undefined, prev?.totalOpExpenses);
 
     lines.push({ label: "", amount: 0, level: 0, type: "spacer" });
-    addLine("الربح التشغيلي", current.operatingProfit, 0, "total", undefined, undefined, previous?.operatingProfit);
+    addLine("الربح التشغيلي", cur.operatingProfit, 0, "total", undefined, undefined, prev?.operatingProfit);
     lines.push({ label: "", amount: 0, level: 0, type: "spacer" });
 
     // Other
-    if (current.otherIncome.total > 0 || current.otherExpenses.total > 0) {
+    if (cur.otherIncome.total > 0 || cur.otherExpenses.total > 0) {
       addLine("إيرادات ومصروفات أخرى", 0, 0, "header", "other");
-      if (current.otherIncome.total > 0) addLine("إيرادات أخرى", current.otherIncome.total, 2, "item", "other", current.otherIncome.txs);
-      if (current.otherExpenses.total > 0) addLine("مصروفات أخرى", -current.otherExpenses.total, 2, "item", "other", current.otherExpenses.txs);
-      addLine("صافي البنود الأخرى", current.netOther, 1, "subtotal", "other", undefined, previous?.netOther);
+      if (cur.otherIncome.total > 0) addLine("إيرادات أخرى", cur.otherIncome.total, 2, "item", "other", cur.otherIncome.txs);
+      if (cur.otherExpenses.total > 0) addLine("مصروفات أخرى", -cur.otherExpenses.total, 2, "item", "other", cur.otherExpenses.txs);
+      addLine("صافي البنود الأخرى", cur.netOther, 1, "subtotal", "other", undefined, prev?.netOther);
       lines.push({ label: "", amount: 0, level: 0, type: "spacer" });
     }
 
-    addLine("صافي الربح / (الخسارة)", current.netProfit, 0, "grand-total", undefined, undefined, previous?.netProfit);
+    addLine("صافي الربح / (الخسارة)", cur.netProfit, 0, "grand-total", undefined, undefined, prev?.netProfit);
 
     return lines;
-  }, [current, previous, showZeroAccounts, detailLevel, buildSubAccountLines, allAccounts, accountMap, periodicEnabled]);
+  }, [showZeroAccounts, detailLevel, buildSubAccountLines, allAccounts, accountMap, periodicEnabled]);
+
+  const statementLines = useMemo(() => buildStatementLines(current, previous), [buildStatementLines, current, previous]);
+
+  // Per-cost-center columns: when 2+ centers are selected, each gets its own column
+  const ccLineKey = (l: StatementLine) => `${l.type}|${l.section || ""}|${l.code || ""}|${l.label}`;
+  const ccColumns = useMemo(() => {
+    if (ccSelected.length < 2) return null;
+    return ccSelected.map(sel => {
+      const txs = allTxRecords.filter(tx => tx.date >= dateFrom && tx.date <= dateTo && matchCC(tx, [sel]));
+      const pl = computePL(txs);
+      const map = new Map<string, number>();
+      buildStatementLines(pl, null).forEach(l => map.set(ccLineKey(l), l.amount));
+      return {
+        key: sel,
+        name: sel === "none" ? "بدون مركز تكلفة" : (costCenters.find(c => c.id === sel)?.name || sel),
+        map,
+      };
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ccSelected, allTxRecords, dateFrom, dateTo, matchCC, computePL, buildStatementLines, costCenters]);
+  const multiCC = !!ccColumns;
 
   const toggleSection = (section: string) => {
     setCollapsedSections(prev => {
