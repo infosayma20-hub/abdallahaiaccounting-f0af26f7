@@ -51,6 +51,15 @@ interface CallCenterOrder {
   editing_heartbeat_at?: string | null;
 }
 
+/** نوع الطلب الحقيقي: الطلبات الخارجية تحفظ نوعها الأصلي (صالة/سفري) في delivery_info */
+const orderTypeLabel = (o: { delivery_type: string; delivery_info?: any | null }) => {
+  const t = o.delivery_info?.original_delivery_type || o.delivery_type;
+  if (t === "delivery") return "توصيل";
+  if (t === "dine_in") return "صالة";
+  if (t === "takeaway") return "سفري";
+  return "استلام";
+};
+
 interface OrderEdit {
   id: string;
   call_center_order_id: string;
