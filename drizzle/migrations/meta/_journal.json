@@ -1156,6 +1156,13 @@
       "when": 1792261759198,
       "tag": "0164_pos_shift_complete_sales_invoice",
       "breakpoints": true
+    },
+    {
+      "idx": 165,
+      "version": "7",
+      "when": 1792261967112,
+      "tag": "0165_shift_sale_inventory_and_kitchen_guards",
+      "breakpoints": true
     }
   ]
 }
