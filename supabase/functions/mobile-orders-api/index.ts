@@ -493,7 +493,7 @@ async function handleCreateOrder(req: Request, ownerId: string, environment: "li
       items_count: items.length,
       total,
       payment_method: payment,
-      delivery_type: deliveryType,
+      delivery_type: rawDeliveryType,
       message: isTestKey
         ? "مفتاح تجريبي: الطلبية صالحة — لم يتم حفظها في النظام"
         : "الطلبية صالحة — لم يتم حفظها (وضع الفحص)",
