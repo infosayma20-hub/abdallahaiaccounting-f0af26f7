@@ -1,162 +1,417 @@
-import { useState } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { useEffect, useState } from "react";
+import { Percent, ShieldCheck, AlertCircle, Hash, Tag } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { verifyManagerCredentials, getCurrentUserManagerIdentity } from "@/lib/pos/manager-verify";
 import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
-import { Percent, Lock } from "lucide-react";
+import { discountWithinLimit, readCashierDiscountPermission } from "@/lib/pos/cashier-discount";
+import type { PosV2Tokens } from "@/components/pos/v2/posV2Theme";
+
+/**
+ * خصم على الفاتورة بإذن مدير الفرع.
+ *
+ * - يتحقق من بيانات المدير عبر throwaway client (لا يلمس جلسة الكاشير).
+ * - يقرأ الحد الأقصى المسموح به للنسبة من إعدادات التيرمنال.
+ * - يُرجع للنداء الأصلي: نوع/قيمة الخصم + بيانات المدير + السبب.
+ * - لا يحفظ أي شيء بقاعدة البيانات هنا — الحفظ المحاسبي يتم في POSPage
+ *   عبر تحديث pos_orders + إدراج في pos_order_discounts بعد إتمام الدفع.
+ */
+export interface ManagerDiscountApproved {
+  amount: number;
+  type: "fixed" | "percent";
+  reason: string;
+  managerUserId: string;
+  managerName: string;
+  authorizationKind?: "cashier" | "manager";
+}
 
 interface Props {
   open: boolean;
   onClose: () => void;
-  orderId: string;
-  orderNumber: string | null;
-  orderTotal: number;
-  sessionId: string;
-  dataOwnerId: string;
-  managerUserId: string | null;
-  managerName: string | null;
-  onSuccess: () => void;
+  onApproved: (data: ManagerDiscountApproved) => void;
+  branchId?: string | null;
+  terminalId?: string | null;
+  companyId?: string | null;
+  sessionId?: string | null;
+  cashierName?: string;
+  /** قيمة الفاتورة الحالية لعرض ما يعادل النسبة بالقيمة (₪). */
+  orderSubtotal: number;
+  /** ثيم واجهة POS v2 التجريبية — عند تمريره تُرسم النافذة بألوان الشاشة الجديدة. */
+  v2Theme?: PosV2Tokens | null;
+  cashierPermissionOwner?: string | null;
 }
 
-/**
- * ManagerDiscountDialog
- * خصم على فاتورة مدفوعة بوضع المدير (بعد الدفع).
- * يسجّل قيد تسوية: مدين حساب الخصم المسموح / دائن نفس حساب الدفعة الأصلي،
- * ويخفّض إجمالي الفاتورة ومبلغ الدفعة — بدون حذف أي قيد مرحّل.
- */
 export default function ManagerDiscountDialog({
-  open, onClose, orderId, orderNumber, orderTotal,
-  sessionId, dataOwnerId, managerUserId, managerName, onSuccess,
+  open,
+  onClose,
+  onApproved,
+  branchId,
+  terminalId,
+  companyId,
+  sessionId,
+  cashierName,
+  orderSubtotal,
+  v2Theme,
+  cashierPermissionOwner,
 }: Props) {
-  const [mode, setMode] = useState<"fixed" | "percent">("fixed");
-  const [value, setValue] = useState<string>("");
-  const [reason, setReason] = useState<string>("");
-  const [submitting, setSubmitting] = useState(false);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [type, setType] = useState<"fixed" | "percent">("percent");
+  const [amount, setAmount] = useState<string>("");
+  const [reason, setReason] = useState("");
+  const [maxPct, setMaxPct] = useState<number>(100);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  // إذا كان الكاشير الحالي نفسه مديرًا مخوّلًا على الفرع، يعتمد باسمه مباشرة.
+  const [selfManager, setSelfManager] = useState<Awaited<ReturnType<typeof getCurrentUserManagerIdentity>>>(null);
+  const [useOtherManager, setUseOtherManager] = useState(false);
+  const [cashierIdentity, setCashierIdentity] = useState<Awaited<ReturnType<typeof readCashierDiscountPermission>>>(null);
+  const [identityLoading, setIdentityLoading] = useState(false);
 
-  const num = Number(value);
-  const discountAmount = mode === "percent"
-    ? Math.round(orderTotal * (num / 100) * 100) / 100
-    : Math.round(num * 100) / 100;
+  useEffect(() => {
+    setCashierIdentity(null);
+    if (!open || !cashierPermissionOwner) return;
+    let alive = true;
+    setIdentityLoading(true);
+    readCashierDiscountPermission(cashierPermissionOwner).then(identity => {
+      if (alive) setCashierIdentity(identity);
+    }).catch(() => { if (alive) setCashierIdentity(null); }).finally(() => {
+      if (alive) setIdentityLoading(false);
+    });
+    return () => { alive = false; };
+  }, [open, cashierPermissionOwner]);
 
-  const handleSubmit = async () => {
-    if (!num || num <= 0) {
-      toast.error("أدخل قيمة خصم صحيحة");
+  useEffect(() => {
+    if (!open) return;
+    setUseOtherManager(false);
+    let alive = true;
+    setSelfManager(null);
+    getCurrentUserManagerIdentity(branchId).then(r => { if (alive) setSelfManager(r); });
+    return () => { alive = false; };
+  }, [open, branchId, cashierPermissionOwner]);
+  const selfMode = !!selfManager && !useOtherManager;
+  const cashierMode = !!cashierIdentity;
+  const effectiveMaxPct = cashierMode ? cashierIdentity?.maxPercent ?? 0 : maxPct;
+
+  useEffect(() => {
+    if (!open) return;
+    setEmail("");
+    setPassword("");
+    setType("percent");
+    setAmount("");
+    setReason("");
+    setError("");
+    // اقرأ الحد الأقصى المسموح به للنسبة من التيرمنال (إن وُجد).
+    (async () => {
+      if (!terminalId) return;
+      try {
+        const { data } = await supabase
+          .from("pos_terminals" as any)
+          .select("max_manager_discount_percent")
+          .eq("id", terminalId)
+          .maybeSingle();
+        // الحد الأقصى دائماً 100% للسماح بتعويض كامل للزبون
+        setMaxPct(100);
+      } catch {
+        setMaxPct(100);
+      }
+    })();
+  }, [open, terminalId]);
+
+  // أنماط مضمنة لثيم POS v2 (لا تؤثر على الشاشة القديمة).
+  const v2 = v2Theme || null;
+  const v2FieldStyle: React.CSSProperties | undefined = v2
+    ? { background: v2.input, color: v2.text, borderColor: v2.border }
+    : undefined;
+  const v2MutedStyle: React.CSSProperties | undefined = v2 ? { color: v2.muted } : undefined;
+
+  const numericAmount = Number(amount) || 0;
+  const equivalentValue =
+    type === "percent"
+      ? Math.max(0, (orderSubtotal * numericAmount) / 100)
+      : numericAmount;
+
+  const handleApprove = async () => {
+    if (loading || identityLoading) return;
+    setError("");
+    if (numericAmount <= 0) {
+      setError("أدخل قيمة الخصم");
       return;
     }
-    if (mode === "percent" && num >= 100) {
-      toast.error("نسبة الخصم يجب أن تكون أقل من 100%");
+    if (!discountWithinLimit(numericAmount, type, orderSubtotal, effectiveMaxPct)) {
+      setError(`الحد الأقصى للخصم ${effectiveMaxPct}% من قيمة الفاتورة`);
       return;
     }
-    if (discountAmount <= 0 || discountAmount >= orderTotal) {
-      toast.error("قيمة الخصم يجب أن تكون أقل من إجمالي الفاتورة");
+    if (type === "fixed" && orderSubtotal > 0 && numericAmount > orderSubtotal) {
+      setError("لا يمكن أن يتجاوز الخصم قيمة الفاتورة");
       return;
     }
-    if (reason.trim().length < 3) {
-      toast.error("اذكر سبب الخصم");
+    if (!reason.trim() || reason.trim().length < 3) {
+      setError("أدخل سبباً واضحاً للخصم");
       return;
     }
-    if (!managerUserId) {
-      toast.error("وضع المدير غير مفعّل");
+
+    setLoading(true);
+    if (cashierMode && cashierPermissionOwner) {
+      try {
+        const identity = await readCashierDiscountPermission(cashierPermissionOwner);
+        if (!identity) { setError("لم تعد صلاحية الخصم متاحة؛ راجع المدير"); return; }
+        if (!discountWithinLimit(numericAmount, type, orderSubtotal, identity.maxPercent)) {
+          setError(`الحد الأقصى للخصم ${identity.maxPercent}% من قيمة الفاتورة`); return;
+        }
+        const { error: auditError } = await (supabase.from("pos_sensitive_actions_log" as any) as any).insert({
+          company_id: cashierPermissionOwner, action: "cashier_discount_approved", session_id: sessionId || null,
+          notes: `خصم كاشير — ${identity.name} | ${reason.trim()}`,
+          metadata: { cashier_user_id: identity.userId, discount_type: type, discount_value: numericAmount, reason: reason.trim(), branch_id: branchId || null },
+        });
+        if (auditError) throw auditError;
+        onApproved({ amount: numericAmount, type, reason: reason.trim(), managerUserId: identity.userId, managerName: identity.name, authorizationKind: "cashier" });
+      } catch { setError("تعذر التحقق من الصلاحية وتوثيق الخصم؛ حاول مرة أخرى"); }
+      finally { setLoading(false); }
       return;
     }
-    setSubmitting(true);
-    try {
-      const { data, error } = await (supabase as any).rpc("pos_manager_discount_order_v1", {
-        p_order_id: orderId,
-        p_user_id: dataOwnerId,
-        p_session_id: sessionId,
-        p_amount: discountAmount,
-        p_reason: reason.trim(),
-        p_manager_user_id: managerUserId,
-      });
-      if (error) throw error;
-      if (data && data.success === false) {
-        toast.error(data.error || "فشل تنفيذ الخصم");
+    const res = selfMode && selfManager
+      ? ({ ok: true as const, ...selfManager })
+      : await verifyManagerCredentials(email, password);
+    if (res.ok !== true) {
+      setError((res as { reason: string }).reason);
+      setLoading(false);
+      return;
+    }
+    if (!res.isAdmin && branchId) {
+      if (!res.branchIds.includes(branchId)) {
+        setError("هذا المدير غير مخوّل على فرع هذا الجهاز");
+        setLoading(false);
         return;
       }
-      toast.success(`تم خصم ${discountAmount.toFixed(2)} ₪ — الإجمالي الجديد ${Number(data?.new_total ?? orderTotal - discountAmount).toFixed(2)} ₪ (اعتمده ${managerName || "المدير"})`);
-      setValue(""); setReason(""); setMode("fixed");
-      onSuccess();
-      onClose();
-    } catch (e: any) {
-      toast.error(e?.message || "خطأ غير متوقع");
-    } finally {
-      setSubmitting(false);
     }
+
+    // سجل تدقيق خفيف — السجل المحاسبي الرسمي يُدرج في POSPage بعد الدفع.
+    try {
+      await (supabase.from("pos_sensitive_actions_log" as any) as any).insert({
+        company_id: companyId,
+        action: "manager_discount_approved",
+        manager_user_id: res.managerUserId,
+        session_id: sessionId || null,
+        notes:
+          `خصم مدير — كاشير: ${cashierName || "—"} | نوع: ${type} | قيمة: ${numericAmount} | السبب: ${reason.trim()}`,
+        metadata: {
+          manager_name: res.managerName,
+          discount_type: type,
+          discount_value: numericAmount,
+          equivalent_amount: Math.round(equivalentValue * 100) / 100,
+          reason: reason.trim(),
+          branch_id: branchId || null,
+          terminal_id: terminalId || null,
+        },
+      });
+    } catch {
+      /* non-fatal */
+    }
+
+    setLoading(false);
+    onApproved({
+      amount: numericAmount,
+      type,
+      reason: reason.trim(),
+      managerUserId: res.managerUserId,
+      managerName: res.managerName,
+    });
   };
 
   return (
-    <Dialog open={open} onOpenChange={v => !v && onClose()}>
-      <DialogContent dir="rtl" className="max-w-md z-[1200]" style={{ fontFamily: "Tajawal, sans-serif" }}>
+    <Dialog open={open} onOpenChange={v => { if (!v) onClose(); }}>
+      <DialogContent
+        className="max-w-md z-[1200]"
+        dir="rtl"
+        style={v2 ? { background: v2.surface, color: v2.text, borderColor: v2.border } : undefined}
+      >
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2 text-base">
-            <Percent className="h-4 w-4 text-primary" />
-            خصم على الفاتورة بعد الدفع
+          <DialogTitle className="flex items-center gap-2" style={v2 ? { color: v2.text } : undefined}>
+            <Tag className="h-5 w-5" style={v2 ? { color: v2.accent } : { color: "#F59E0B" }} />
+            {cashierMode ? "خصم على الفاتورة" : "خصم بإذن مدير الفرع"}
           </DialogTitle>
         </DialogHeader>
-
-        <div className="space-y-3 py-1">
-          <div className="rounded-lg bg-primary/5 border border-primary/20 p-2 text-[11px] text-foreground flex items-start gap-1.5">
-            <Lock className="h-3.5 w-3.5 mt-0.5 shrink-0" />
-            <span>
-              عملية تحت <b>وضع المدير</b> ({managerName || "—"}). يُسجَّل قيد خصم مسموح مقابل حساب الدفع الأصلي، وينخفض إجمالي الفاتورة والكاش المتوقع تلقائيًا. القيد الأصلي <b>لا يُحذف</b>.
-            </span>
-          </div>
+        <div className="py-2 space-y-4">
+          <p className="text-[11px] text-muted-foreground leading-relaxed" style={v2MutedStyle}>
+            هذا الخصم يُسجَّل محاسبياً كحساب مستقل (Contra-Revenue) ويُدرج في سجل
+            التدقيق. الحد الأقصى المسموح به للنسبة: {effectiveMaxPct}%.
+          </p>
 
           <div className="grid grid-cols-2 gap-2">
-            <div className="rounded-md border bg-muted/30 p-2 text-xs">
-              <div className="text-[10px] text-muted-foreground">رقم الفاتورة</div>
-              <div className="font-mono">{orderNumber || "—"}</div>
-            </div>
-            <div className="rounded-md border bg-muted/30 p-2 text-xs">
-              <div className="text-[10px] text-muted-foreground">الإجمالي الحالي</div>
-              <div className="font-mono">₪ {orderTotal.toFixed(2)}</div>
-            </div>
+            <button
+              type="button"
+              onClick={() => setType("percent")}
+              className={`h-10 rounded-md border text-sm flex items-center justify-center gap-1.5 transition ${
+                type === "percent"
+                  ? "bg-amber-500 text-white border-amber-500"
+                  : "bg-background border-input hover:bg-accent"
+              }`}
+              style={v2
+                ? type === "percent"
+                  ? { background: v2.accent, color: v2.onAccent, borderColor: v2.accent }
+                  : { background: v2.input, color: v2.text, borderColor: v2.border }
+                : undefined}
+            >
+              <Percent className="h-3.5 w-3.5" />
+              نسبة %
+            </button>
+            <button
+              type="button"
+              onClick={() => setType("fixed")}
+              className={`h-10 rounded-md border text-sm flex items-center justify-center gap-1.5 transition ${
+                type === "fixed"
+                  ? "bg-amber-500 text-white border-amber-500"
+                  : "bg-background border-input hover:bg-accent"
+              }`}
+              style={v2
+                ? type === "fixed"
+                  ? { background: v2.accent, color: v2.onAccent, borderColor: v2.accent }
+                  : { background: v2.input, color: v2.text, borderColor: v2.border }
+                : undefined}
+            >
+              <Hash className="h-3.5 w-3.5" />
+              قيمة ₪
+            </button>
           </div>
 
-          <div className="grid grid-cols-2 gap-2">
-            <div className="space-y-1">
-              <Label className="text-xs">نوع الخصم</Label>
-              <select value={mode} onChange={e => setMode(e.target.value as any)}
-                className="w-full h-9 rounded-lg border border-border bg-background px-2 text-xs">
-                <option value="fixed">مبلغ ثابت ₪</option>
-                <option value="percent">نسبة مئوية %</option>
-              </select>
+          <div>
+            <label className="text-xs font-medium text-muted-foreground mb-1 block" style={v2MutedStyle}>
+              {type === "percent" ? `قيمة الخصم (%) — حد أقصى ${effectiveMaxPct}%` : "قيمة الخصم (₪)"}
+            </label>
+            <Input
+              type="number"
+              inputMode="decimal"
+              min={0}
+              step={type === "percent" ? 1 : 0.5}
+              value={amount}
+              onChange={e => { setAmount(e.target.value); setError(""); }}
+              placeholder="0"
+              className="h-11 text-base tabular-nums"
+              dir="ltr"
+              style={v2FieldStyle}
+            />
+            {numericAmount > 0 && orderSubtotal > 0 && (
+              <p className="text-[11px] text-muted-foreground mt-1 tabular-nums" dir="ltr" style={v2MutedStyle}>
+                ≈ ₪{equivalentValue.toFixed(2)}
+              </p>
+            )}
+          </div>
+
+          <div>
+            <label className="text-xs font-medium text-muted-foreground mb-1 block" style={v2MutedStyle}>
+              سبب الخصم <span className="text-destructive">*</span>
+            </label>
+            <Textarea
+              value={reason}
+              onChange={e => { setReason(e.target.value); setError(""); }}
+              placeholder="مثلاً: مجاملة زبون دائم / تعويض عن تأخر"
+              className="min-h-[60px] text-sm"
+              rows={2}
+              style={v2FieldStyle}
+            />
+          </div>
+
+          {identityLoading ? <p className="text-xs text-muted-foreground">جاري التحقق من صلاحيتك…</p> : cashierMode ? (
+            <p className="text-xs text-muted-foreground">{identityLoading ? "جاري التحقق من صلاحيتك…" : cashierIdentity ? `اعتماد باسم الكاشير: ${cashierIdentity.name}` : "صلاحية الخصم غير متاحة؛ راجع المدير"}</p>
+          ) : selfMode ? (
+            <div
+              className="pt-2 border-t border-border/60 space-y-2"
+              style={v2 ? { borderColor: v2.border } : undefined}
+            >
+              <p className="text-xs flex items-center gap-1.5" style={v2 ? { color: v2.text } : undefined}>
+                <ShieldCheck className="h-4 w-4" style={v2 ? { color: v2.accent } : { color: "#F59E0B" }} />
+                سيُعتمد الخصم باسمك كمدير: <b>{selfManager?.managerName}</b>
+              </p>
+              <button
+                type="button"
+                className="text-[11px] underline text-muted-foreground"
+                style={v2MutedStyle}
+                onClick={() => setUseOtherManager(true)}
+              >
+                اعتماد بحساب مدير آخر
+              </button>
             </div>
-            <div className="space-y-1">
-              <Label className="text-xs">{mode === "percent" ? "النسبة %" : "المبلغ ₪"}</Label>
+          ) : (
+          <div
+            className="pt-2 border-t border-border/60 space-y-3"
+            style={v2 ? { borderColor: v2.border } : undefined}
+          >
+            <p className="text-[11px] font-medium text-muted-foreground" style={v2MutedStyle}>
+              تحقق المدير
+            </p>
+            <div>
               <Input
-                type="number" step="0.01" min="0"
-                max={mode === "percent" ? 99.99 : orderTotal}
-                value={value} onChange={e => setValue(e.target.value)}
-                placeholder="0.00" className="h-10 text-base font-mono" autoFocus
+                type="email"
+                value={email}
+                onChange={e => { setEmail(e.target.value); setError(""); }}
+                placeholder="بريد المدير"
+                className="h-10 text-sm"
+                dir="ltr"
+                style={v2FieldStyle}
+              />
+            </div>
+            <div>
+              <Input
+                type="password"
+                value={password}
+                onChange={e => { setPassword(e.target.value); setError(""); }}
+                placeholder="كلمة المرور"
+                className="h-10 text-sm"
+                dir="ltr"
+                onKeyDown={e => e.key === "Enter" && handleApprove()}
+                style={v2FieldStyle}
               />
             </div>
           </div>
-
-          {discountAmount > 0 && discountAmount < orderTotal && (
-            <div className="rounded-md bg-muted/40 border p-2 text-xs flex items-center justify-between">
-              <span className="text-muted-foreground">الخصم: <b className="font-mono">₪ {discountAmount.toFixed(2)}</b></span>
-              <span className="text-muted-foreground">الإجمالي بعد الخصم: <b className="font-mono">₪ {(orderTotal - discountAmount).toFixed(2)}</b></span>
-            </div>
           )}
 
-          <div className="space-y-1">
-            <Label className="text-xs text-destructive">سبب الخصم *</Label>
-            <Textarea
-              value={reason} onChange={e => setReason(e.target.value)}
-              rows={2} placeholder="مثال: خصم زبون دائم بعد الدفع بموافقة الإدارة"
-            />
-          </div>
+          {error && (
+            <div
+              className="flex items-center gap-2 p-2.5 rounded-lg bg-destructive/10 text-destructive text-xs"
+              style={v2 ? { background: v2.warnBg, color: v2.warnText } : undefined}
+            >
+              <AlertCircle className="h-4 w-4 shrink-0" />
+              {error}
+            </div>
+          )}
         </div>
-
         <DialogFooter className="gap-2">
-          <Button variant="outline" onClick={onClose} disabled={submitting}>إلغاء</Button>
-          <Button onClick={handleSubmit} disabled={submitting}>
-            {submitting ? "جارٍ التنفيذ..." : "تنفيذ الخصم"}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={onClose}
+            disabled={loading}
+            style={v2 ? { background: "transparent", color: v2.text, borderColor: v2.border } : undefined}
+          >
+            إلغاء
+          </Button>
+          <Button
+            size="sm"
+            onClick={handleApprove}
+            disabled={loading || identityLoading || numericAmount <= 0 || (cashierMode ? !cashierIdentity : !selfMode && (!email.trim() || !password.trim()))}
+            className="bg-amber-500 hover:bg-amber-600 text-white"
+            style={v2 ? { background: v2.accent, color: v2.onAccent } : undefined}
+          >
+            {loading ? (
+              <span className="flex items-center gap-1.5">
+                <span className="h-3 w-3 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                جاري التحقق...
+              </span>
+            ) : (
+              <span className="flex items-center gap-1.5">
+                <ShieldCheck className="h-4 w-4" />
+                اعتماد الخصم
+              </span>
+            )}
           </Button>
         </DialogFooter>
       </DialogContent>
