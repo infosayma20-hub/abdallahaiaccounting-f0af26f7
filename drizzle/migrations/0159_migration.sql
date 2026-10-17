@@ -1,0 +1,1 @@
+UPDATE public.company_settings SET invoice_header_layout = 'logo_center' WHERE id = '740244d7-4bd7-4dbd-8565-f8e1061d64f7';
