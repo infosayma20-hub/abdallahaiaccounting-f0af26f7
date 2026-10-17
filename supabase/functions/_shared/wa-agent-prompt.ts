@@ -1,4 +1,4 @@
-// Builds the Arabic system prompt for the WhatsApp AI agent from wa_agent_profiles.
+// MIRROR of src/lib/wa/agentPrompt.ts — keep both identical (test enforces it).
 export interface WaTrack {
   key: string;
   label: string;
