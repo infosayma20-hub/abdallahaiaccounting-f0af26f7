@@ -14,7 +14,7 @@ it("uses the existing inventory unit without changing it on load", () => {
   const change = vi.fn();
   render(<ProductUnitSelect value="كيلو" onChange={change} units={["حبة"]} />);
   expect(change).not.toHaveBeenCalled();
-  fireEvent.click(screen.getByRole("button", { name: "حبة", exact: true }));
+  fireEvent.click(screen.getByRole("button", { name: /^حبة$/ }));
   expect(change).toHaveBeenCalledWith("حبة");
 });
 it("adds a custom unit to the product selection", () => {
