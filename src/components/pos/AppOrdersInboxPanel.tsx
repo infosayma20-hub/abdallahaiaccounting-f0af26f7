@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
+import { incomingOrderTypeLabel as orderTypeLabel } from "@/lib/pos/incoming-order-type";
 import { Smartphone, Send, XCircle, RefreshCw, User, Phone, Truck, ShoppingBag, MapPin, StickyNote, Banknote, CreditCard } from "lucide-react";
 
 interface AppOrder {
@@ -26,15 +27,6 @@ interface AppOrder {
   client_reference_id?: string | null;
   delivery_info?: any | null;
 }
-
-/** نوع الطلب الحقيقي: الطلبات الخارجية تحفظ نوعها الأصلي (صالة/سفري) في delivery_info */
-const orderTypeLabel = (o: { delivery_type: string; delivery_info?: any | null }) => {
-  const t = o.delivery_info?.original_delivery_type || o.delivery_type;
-  if (t === "delivery") return "توصيل";
-  if (t === "dine_in") return "صالة";
-  if (t === "takeaway") return "سفري";
-  return "استلام";
-};
 
 interface Branch { id: string; name: string }
 
