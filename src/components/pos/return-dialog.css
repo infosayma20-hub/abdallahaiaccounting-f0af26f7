@@ -1,0 +1,14 @@
+.pos-return-overlay {
+  z-index: 1290;
+  background: hsl(var(--background) / 0.8);
+  pointer-events: auto;
+}
+
+/* Invoice detail's transparent overlays must not disable the active refund modal. */
+body:has(.pos-v2-invoice-detail) [data-dialog-overlay="true"].pos-return-overlay {
+  background: hsl(var(--background) / 0.8);
+  pointer-events: auto;
+}
+
+.pos-return-dialog { z-index: 1300; }
+.pos-return-menu { z-index: 1310; }

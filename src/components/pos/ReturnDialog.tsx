@@ -11,6 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { RotateCcw, AlertTriangle, Package, Plus, Minus } from "lucide-react";
+import "./return-dialog.css";
 
 interface OrderLine {
   id: string;
@@ -271,7 +272,7 @@ export default function ReturnDialog({
 
   return (
     <Dialog open={open} onOpenChange={(o) => !o && !submitting && onClose()}>
-      <DialogContent className="max-w-3xl max-h-[90vh] overflow-hidden flex flex-col z-[1300]" dir="rtl">
+      <DialogContent overlayClassName="pos-return-overlay" className="pos-return-dialog max-w-3xl max-h-[90dvh] overflow-hidden flex flex-col" dir="rtl">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <RotateCcw className="h-5 w-5 text-destructive" />
@@ -282,7 +283,7 @@ export default function ReturnDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="flex-1 overflow-auto space-y-4 px-1">
+        <div className="flex-1 min-h-0 overflow-auto space-y-4 px-1">
           {loading ? (
             <div className="text-center py-12 text-muted-foreground">جارٍ التحميل...</div>
           ) : !hasAvailable ? (
@@ -326,6 +327,7 @@ export default function ReturnDialog({
                           <tr key={l.id} className={`${isSelected ? "bg-primary/5" : ""} ${fullyReturned ? "opacity-50" : ""}`}>
                             <td className="px-2 py-2">
                               <Checkbox
+                                aria-label={`ارتجاع ${l.product_name}`}
                                 checked={isSelected}
                                 onCheckedChange={() => !fullyReturned && toggleLine(l.id)}
                                 disabled={fullyReturned}
@@ -343,6 +345,7 @@ export default function ReturnDialog({
                               <div className="flex items-center gap-1 justify-center">
                                 <Button
                                   variant="outline" size="icon" className="h-7 w-7"
+                                  aria-label={`تقليل كمية ${l.product_name}`}
                                   onClick={() => setQty(l.id, qty - 1, maxAvail)}
                                   disabled={qty <= 0 || fullyReturned}
                                 >
@@ -350,12 +353,14 @@ export default function ReturnDialog({
                                 </Button>
                                 <Input
                                   type="number" value={qty} min={0} max={maxAvail}
+                                  aria-label={`كمية ارتجاع ${l.product_name}`}
                                   className="h-7 w-14 text-center text-sm"
                                   disabled={fullyReturned}
                                   onChange={(e) => setQty(l.id, Number(e.target.value) || 0, maxAvail)}
                                 />
                                 <Button
                                   variant="outline" size="icon" className="h-7 w-7"
+                                  aria-label={`زيادة كمية ${l.product_name}`}
                                   onClick={() => setQty(l.id, qty + 1, maxAvail)}
                                   disabled={qty >= maxAvail || fullyReturned}
                                 >
@@ -388,12 +393,12 @@ export default function ReturnDialog({
               </div>
 
               {/* Refund options */}
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <Label className="text-xs">طريقة الاسترداد</Label>
-                  <Select value={paymentMethod} onValueChange={setPaymentMethod}>
-                    <SelectTrigger className="h-9 mt-1"><SelectValue /></SelectTrigger>
-                    <SelectContent>
+                  <Select dir="rtl" value={paymentMethod} onValueChange={setPaymentMethod}>
+                    <SelectTrigger aria-label="طريقة الاسترداد" className="h-9 mt-1"><SelectValue /></SelectTrigger>
+                    <SelectContent className="pos-return-menu">
                       <SelectItem value="cash">نقدي (من الصندوق)</SelectItem>
                       {origMethod === "card" && <SelectItem value="card">نفس البطاقة (نفس البنك)</SelectItem>}
                       {origMethod && !["cash", "card"].includes(origMethod) && (
@@ -404,9 +409,9 @@ export default function ReturnDialog({
                 </div>
                 <div>
                   <Label className="text-xs">عملة الاسترداد</Label>
-                  <Select value={returnCurrency} onValueChange={setReturnCurrency} disabled={paymentMethod !== "cash"}>
-                    <SelectTrigger className="h-9 mt-1"><SelectValue /></SelectTrigger>
-                    <SelectContent>
+                  <Select dir="rtl" value={returnCurrency} onValueChange={setReturnCurrency} disabled={paymentMethod !== "cash"}>
+                    <SelectTrigger aria-label="عملة الاسترداد" className="h-9 mt-1"><SelectValue /></SelectTrigger>
+                    <SelectContent className="pos-return-menu">
                       {CURRENCIES.map(c => <SelectItem key={c.code} value={c.code}>{c.label}</SelectItem>)}
                     </SelectContent>
                   </Select>
@@ -420,9 +425,9 @@ export default function ReturnDialog({
               {/* Reason */}
               <div>
                 <Label className="text-xs">سبب الارتجاع</Label>
-                <Select value={reason} onValueChange={setReason}>
-                  <SelectTrigger className="h-9 mt-1"><SelectValue placeholder="اختر السبب" /></SelectTrigger>
-                  <SelectContent>
+                <Select dir="rtl" value={reason} onValueChange={setReason}>
+                  <SelectTrigger aria-label="سبب الارتجاع" className="h-9 mt-1"><SelectValue placeholder="اختر السبب" /></SelectTrigger>
+                  <SelectContent className="pos-return-menu">
                     {RETURN_REASONS.map(r => <SelectItem key={r} value={r}>{r}</SelectItem>)}
                   </SelectContent>
                 </Select>
