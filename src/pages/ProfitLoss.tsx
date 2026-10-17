@@ -439,7 +439,7 @@ const ProfitLoss = () => {
     }
   }, [detailLevel, allAccounts, showZeroAccounts]);
 
-  const statementLines = useMemo((): StatementLine[] => {
+  const buildStatementLines = useCallback((cur: ReturnType<typeof computePL>, prev: ReturnType<typeof computePL> | null): StatementLine[] => {
     const lines: StatementLine[] = [];
 
     const addLine = (label: string, amount: number, level: StatementLine["level"], type: StatementLine["type"], section?: string, txs?: TxRecord[], compareAmt?: number, code?: string, group?: "head" | "total") => {
@@ -448,8 +448,8 @@ const ProfitLoss = () => {
     };
 
     // When showZeroAccounts is on, ensure all matching accounts are in the maps
-    let revenueByAccount = current.revenueByAccount;
-    let expenseByAccount = current.expenseByAccount;
+    let revenueByAccount = cur.revenueByAccount;
+    let expenseByAccount = cur.expenseByAccount;
 
     if (showZeroAccounts) {
       const cls = makeClassifier(accountMap);
