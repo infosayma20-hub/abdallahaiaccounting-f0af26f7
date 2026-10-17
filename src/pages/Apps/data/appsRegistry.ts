@@ -62,6 +62,7 @@ export const APPS_VISUAL_META: AppVisualMeta[] = [
   { id: "inventory",       iconColor: PALETTE.blue,   section: "core" },
   { id: "pos",             iconColor: PALETTE.lime,   section: "core" },
   { id: "ai-accountant",   iconColor: PALETTE.navy,   section: "core", isAIFeature: true },
+  { id: "wa-agent",       iconColor: PALETTE.navy,   section: "core", isAIFeature: true },
   { id: "tax",             iconColor: PALETTE.amber,  section: "core" },
   { id: "elite-interviews", iconColor: PALETTE.purpleDark, section: "core", isAIFeature: true },
 

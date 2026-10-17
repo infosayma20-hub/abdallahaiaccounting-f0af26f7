@@ -211,6 +211,7 @@ const CustomerComplaintsPage = lazy(() => import("./pages/CustomerComplaintsPage
 const ComplaintsViewPage = lazy(() => import("./pages/ComplaintsViewPage"));
 const CustomerComplaintFormPage = lazy(() => import("./pages/CustomerComplaintFormPage"));
 const CompensationsPage = lazy(() => import("./pages/CompensationsPage"));
+const WaAgentPage = lazy(() => import("./pages/wa-agent/WaAgentPage"));
 const CompensationFormPage = lazy(() => import("./pages/CompensationFormPage"));
 const CompensationsViewPage = lazy(() => import("./pages/CompensationsViewPage"));
 const POSCustomerDatabasePage = lazy(() => import("./pages/POSCustomerDatabasePage"));
@@ -875,6 +876,16 @@ const App = () => (
                 }
               />
 
+              <Route
+                path="/wa-agent/:tab?"
+                element={
+                  <ProtectedRoute>
+                    <Suspense fallback={<AuthCheckSpinner />}>
+                      <WaAgentPage />
+                    </Suspense>
+                  </ProtectedRoute>
+                }
+              />
               {/* Compensations: standalone RTL shell mirroring customer complaints */}
               <Route
                 path="/compensations"
