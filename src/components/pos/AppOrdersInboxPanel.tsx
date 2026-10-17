@@ -24,7 +24,17 @@ interface AppOrder {
   order_note: string | null;
   created_at: string;
   client_reference_id?: string | null;
+  delivery_info?: any | null;
 }
+
+/** نوع الطلب الحقيقي: الطلبات الخارجية تحفظ نوعها الأصلي (صالة/سفري) في delivery_info */
+const orderTypeLabel = (o: { delivery_type: string; delivery_info?: any | null }) => {
+  const t = o.delivery_info?.original_delivery_type || o.delivery_type;
+  if (t === "delivery") return "توصيل";
+  if (t === "dine_in") return "صالة";
+  if (t === "takeaway") return "سفري";
+  return "استلام";
+};
 
 interface Branch { id: string; name: string }
 
