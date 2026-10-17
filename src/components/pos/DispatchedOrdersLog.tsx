@@ -30,6 +30,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { StockoutAlertsBanner } from "./StockoutAlerts";
+import { incomingOrderType, incomingOrderTypeLabel } from "@/lib/pos/incoming-order-type";
 
 interface DispatchedOrder {
   id: string;
@@ -754,11 +755,11 @@ export default function DispatchedOrdersLog({ open, onClose, dataOwnerId, isAdmi
                       </div>
                       <div className="flex items-center gap-1">
                         {(() => {
-                          const dt = String(order.delivery_type || "").toLowerCase();
+                          const dt = order.delivery_type === "table" ? "table" : incomingOrderType(order);
                           const isDelivery = dt === "delivery";
                           const isDineIn = dt === "dine_in" || dt === "table";
                           const Icon = isDelivery ? Truck : isDineIn ? Utensils : ShoppingBag;
-                          const label = isDelivery ? "توصيل" : isDineIn ? "طاولة" : "استلام";
+                          const label = isDineIn && !order.delivery_info?.original_delivery_type ? "طاولة" : incomingOrderTypeLabel(order);
                           const cls = isDelivery
                             ? "border-orange-500/40 text-orange-700 bg-orange-500/5"
                             : isDineIn
