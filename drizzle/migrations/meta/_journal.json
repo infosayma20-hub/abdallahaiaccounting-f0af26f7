@@ -1100,6 +1100,13 @@
       "when": 1792135259537,
       "tag": "0156_returns_unified_creation_access",
       "breakpoints": true
+    },
+    {
+      "idx": 157,
+      "version": "7",
+      "when": 1792217610408,
+      "tag": "0157_whatsapp_ai_agent_foundation",
+      "breakpoints": true
     }
   ]
 }
