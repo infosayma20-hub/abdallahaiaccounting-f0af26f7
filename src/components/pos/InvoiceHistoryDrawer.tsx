@@ -25,6 +25,7 @@ import type { PrintOrder, PrintItem } from "@/hooks/usePrintBridge";
 import { printReceiptImage, printStationTicketImage, printKitchenTicketsImage } from "@/lib/image-print-service";
 import { getServerNow, initServerClock, isClockSkewed, getClockSkewMs } from "@/lib/pos/server-clock";
 import { usePosLang } from "@/i18n/pos-lang";
+import { hydrateDraftLine, type SavedDraft } from "@/lib/pos/draft-order";
 
 // ── Types ──
 interface InvoiceOrder {
@@ -82,6 +83,9 @@ interface InvoiceLine {
   subtotal: number;
   total: number;
   discount_amount: number;
+  discount_pct?: number;
+  tax_rate?: number;
+  unit?: string;
   notes?: string | null;
   modifiers?: { option_name: string; extra_price?: number }[];
 }
@@ -158,7 +162,7 @@ interface InvoiceHistoryDrawerProps {
   printInvoices?: boolean;
   resendInvoice?: boolean;
   onRecallToCart: (items: CartItem[], invoiceId: string, orderNumber: string, reason: string, approvedBy: string | null) => void;
-  onLoadDraftToCart?: (items: CartItem[], orderId: string) => void;
+  onLoadDraftToCart?: (items: CartItem[], orderId: string, draft: SavedDraft) => void;
   experimentalLayout?: boolean;
 }
 
@@ -627,10 +631,11 @@ export default function InvoiceHistoryDrawer({
     setCcoSourceApp(null);
     try {
       const [linesRes, paymentsRes] = await Promise.all([
-        supabase.from("pos_order_lines").select("id, order_id, product_id, product_name, qty, unit_price, cost_price, subtotal, total, discount_amount, notes").eq("order_id", order.id),
+        supabase.from("pos_order_lines").select("id, order_id, product_id, product_name, qty, unit_price, cost_price, subtotal, total, discount_amount, discount_pct, tax_rate, unit, notes").eq("order_id", order.id),
         supabase.from("pos_payments").select("id, order_id, payment_method, amount, currency, exchange_rate").eq("order_id", order.id),
       ]);
       // Defensive: ensure the lines we got actually belong to this order.
+      if (linesRes.error) throw linesRes.error;
       const safeLines = ((linesRes.data || []) as InvoiceLine[]).filter(
         (l: any) => !l.order_id || l.order_id === order.id
       );
@@ -641,14 +646,17 @@ export default function InvoiceHistoryDrawer({
       try {
         const lineIds = safeLines.map(l => l.id).filter(Boolean);
         if (lineIds.length) {
-          const { data: mods } = await supabase
+          const { data: mods, error: modsError } = await supabase
             .from("order_item_modifiers")
             .select("order_line_id, modifier_group_id, modifier_option_id, group_name, option_name, extra_price")
             .in("order_line_id", lineIds);
+          if (modsError) throw modsError;
           const byLine = new Map<string, DrawerCartModifier[]>();
           for (const m of (mods || []) as any[]) {
             if (!byLine.has(m.order_line_id)) byLine.set(m.order_line_id, []);
-            byLine.get(m.order_line_id)!.push({
+            const lineModifiers = byLine.get(m.order_line_id);
+            if (!lineModifiers) continue;
+            lineModifiers.push({
               group_id: m.modifier_group_id || "",
               group_name: m.group_name || "",
               option_id: m.modifier_option_id || "",
@@ -662,6 +670,7 @@ export default function InvoiceHistoryDrawer({
         }
       } catch (e) {
         console.warn("[InvoiceHistoryDrawer] could not load modifiers for reprint", e);
+        if (order.state === "draft") throw e;
       }
       setOrderLines(safeLines);
       setOrderPayments(safePayments);
@@ -1509,28 +1518,15 @@ export default function InvoiceHistoryDrawer({
                     size="sm"
                     className="gap-1.5 text-xs"
                     style={{ background: "#16A34A", color: "white" }}
-                    onClick={() => {
-                      const items: CartItem[] = orderLines.map(line => ({
-                        id: crypto.randomUUID(),
-                        product_id: line.product_id || null,
-                        name: line.product_name,
-                        qty: line.qty,
-                        unit_price: line.unit_price,
-                        cost_price: 0,
-                        discount_pct: 0,
-                        tax_rate: 0,
-                        unit: "قطعة",
-                        total: line.total,
-                         note: line.notes || "",
-                         modifiers: ((line as any).modifiers || []).map((m: any) => ({
-                           group_id: m.group_id || "",
-                           group_name: m.group_name || "",
-                           option_id: m.option_id || "",
-                           option_name: m.option_name,
-                           extra_price: Number(m.extra_price || 0),
-                         })),
-                      }));
-                      onLoadDraftToCart(items, selectedOrder.id);
+                    disabled={loadingDetail || orderLines.length === 0}
+                    onClick={async () => {
+                      // Fetch the full draft instead of the history list's summary fields.
+                      const { data: draft, error } = await supabase.from("pos_orders")
+                        .select("*, contacts:customer_id(phone)").eq("id", selectedOrder.id)
+                        .eq("user_id", dataOwnerId).eq("state", "draft").maybeSingle();
+                      if (error || !draft) { toast.error("تعذّر تحميل تفاصيل الطلب المعلق"); return; }
+                      const items: CartItem[] = orderLines.map(hydrateDraftLine);
+                      onLoadDraftToCart(items, selectedOrder.id, draft as SavedDraft);
                       setSelectedOrder(null);
                       onClose();
                       toast.success("تم تحميل الطلب المعلق للسلة — يمكنك الدفع الآن");
