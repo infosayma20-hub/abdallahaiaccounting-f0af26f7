@@ -7495,6 +7495,36 @@ export type Database = {
         }
         Relationships: []
       }
+      edge_logs: {
+        Row: {
+          created_at: string
+          fn: string
+          id: string
+          level: string
+          message: string | null
+          owner_id: string | null
+          payload: Json | null
+        }
+        Insert: {
+          created_at?: string
+          fn: string
+          id?: string
+          level?: string
+          message?: string | null
+          owner_id?: string | null
+          payload?: Json | null
+        }
+        Update: {
+          created_at?: string
+          fn?: string
+          id?: string
+          level?: string
+          message?: string | null
+          owner_id?: string | null
+          payload?: Json | null
+        }
+        Relationships: []
+      }
       email_send_log: {
         Row: {
           created_at: string
@@ -29317,6 +29347,347 @@ export type Database = {
             columns: ["workshop_id"]
             isOneToOne: false
             referencedRelation: "workshops"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      wa_agent_profiles: {
+        Row: {
+          agent_name: string | null
+          business_name: string | null
+          created_at: string
+          custom_prompt: string | null
+          forbidden_topics: string | null
+          id: string
+          intro_line: string | null
+          is_active: boolean
+          model: string
+          notify_whatsapp: string | null
+          office_hours: string | null
+          owner_id: string
+          pricing_rule: string | null
+          response_promise: string | null
+          tone: string
+          tracks: Json
+        }
+        Insert: {
+          agent_name?: string | null
+          business_name?: string | null
+          created_at?: string
+          custom_prompt?: string | null
+          forbidden_topics?: string | null
+          id?: string
+          intro_line?: string | null
+          is_active?: boolean
+          model?: string
+          notify_whatsapp?: string | null
+          office_hours?: string | null
+          owner_id: string
+          pricing_rule?: string | null
+          response_promise?: string | null
+          tone?: string
+          tracks?: Json
+        }
+        Update: {
+          agent_name?: string | null
+          business_name?: string | null
+          created_at?: string
+          custom_prompt?: string | null
+          forbidden_topics?: string | null
+          id?: string
+          intro_line?: string | null
+          is_active?: boolean
+          model?: string
+          notify_whatsapp?: string | null
+          office_hours?: string | null
+          owner_id?: string
+          pricing_rule?: string | null
+          response_promise?: string | null
+          tone?: string
+          tracks?: Json
+        }
+        Relationships: []
+      }
+      wa_channels: {
+        Row: {
+          connected_via: string
+          created_at: string
+          display_name: string | null
+          display_phone: string | null
+          id: string
+          owner_id: string
+          phone_number_id: string
+          status: string
+          token_secret_id: string | null
+          waba_id: string | null
+        }
+        Insert: {
+          connected_via?: string
+          created_at?: string
+          display_name?: string | null
+          display_phone?: string | null
+          id?: string
+          owner_id: string
+          phone_number_id: string
+          status?: string
+          token_secret_id?: string | null
+          waba_id?: string | null
+        }
+        Update: {
+          connected_via?: string
+          created_at?: string
+          display_name?: string | null
+          display_phone?: string | null
+          id?: string
+          owner_id?: string
+          phone_number_id?: string
+          status?: string
+          token_secret_id?: string | null
+          waba_id?: string | null
+        }
+        Relationships: []
+      }
+      wa_contacts: {
+        Row: {
+          bsuid: string | null
+          created_at: string
+          id: string
+          linked_contact_id: string | null
+          owner_id: string
+          phone: string | null
+          profile_name: string | null
+          wa_id: string
+        }
+        Insert: {
+          bsuid?: string | null
+          created_at?: string
+          id?: string
+          linked_contact_id?: string | null
+          owner_id: string
+          phone?: string | null
+          profile_name?: string | null
+          wa_id: string
+        }
+        Update: {
+          bsuid?: string | null
+          created_at?: string
+          id?: string
+          linked_contact_id?: string | null
+          owner_id?: string
+          phone?: string | null
+          profile_name?: string | null
+          wa_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wa_contacts_linked_contact_id_fkey"
+            columns: ["linked_contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      wa_conversations: {
+        Row: {
+          channel_id: string
+          contact_id: string
+          created_at: string
+          id: string
+          last_message_at: string | null
+          owner_id: string
+          status: string
+          track_key: string | null
+        }
+        Insert: {
+          channel_id: string
+          contact_id: string
+          created_at?: string
+          id?: string
+          last_message_at?: string | null
+          owner_id: string
+          status?: string
+          track_key?: string | null
+        }
+        Update: {
+          channel_id?: string
+          contact_id?: string
+          created_at?: string
+          id?: string
+          last_message_at?: string | null
+          owner_id?: string
+          status?: string
+          track_key?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wa_conversations_channel_id_fkey"
+            columns: ["channel_id"]
+            isOneToOne: false
+            referencedRelation: "wa_channels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wa_conversations_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "wa_contacts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      wa_leads: {
+        Row: {
+          attachments_count: number
+          best_time: string | null
+          city: string | null
+          company: string | null
+          conversation_id: string | null
+          created_at: string
+          deadline: string | null
+          details: string | null
+          existing_client: boolean | null
+          id: string
+          name: string | null
+          owner_id: string
+          phone_given: string | null
+          questions: string | null
+          status: string
+          track_key: string | null
+          urgent: boolean
+        }
+        Insert: {
+          attachments_count?: number
+          best_time?: string | null
+          city?: string | null
+          company?: string | null
+          conversation_id?: string | null
+          created_at?: string
+          deadline?: string | null
+          details?: string | null
+          existing_client?: boolean | null
+          id?: string
+          name?: string | null
+          owner_id: string
+          phone_given?: string | null
+          questions?: string | null
+          status?: string
+          track_key?: string | null
+          urgent?: boolean
+        }
+        Update: {
+          attachments_count?: number
+          best_time?: string | null
+          city?: string | null
+          company?: string | null
+          conversation_id?: string | null
+          created_at?: string
+          deadline?: string | null
+          details?: string | null
+          existing_client?: boolean | null
+          id?: string
+          name?: string | null
+          owner_id?: string
+          phone_given?: string | null
+          questions?: string | null
+          status?: string
+          track_key?: string | null
+          urgent?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wa_leads_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "wa_conversations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      wa_messages: {
+        Row: {
+          body: string | null
+          conversation_id: string
+          created_at: string
+          direction: string
+          id: string
+          media_id: string | null
+          owner_id: string
+          transcript: string | null
+          type: string
+          wa_message_id: string | null
+        }
+        Insert: {
+          body?: string | null
+          conversation_id: string
+          created_at?: string
+          direction: string
+          id?: string
+          media_id?: string | null
+          owner_id: string
+          transcript?: string | null
+          type?: string
+          wa_message_id?: string | null
+        }
+        Update: {
+          body?: string | null
+          conversation_id?: string
+          created_at?: string
+          direction?: string
+          id?: string
+          media_id?: string | null
+          owner_id?: string
+          transcript?: string | null
+          type?: string
+          wa_message_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wa_messages_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "wa_conversations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      wa_usage: {
+        Row: {
+          conversation_id: string | null
+          created_at: string
+          id: string
+          input_tokens: number
+          messages_out: number
+          output_tokens: number
+          owner_id: string
+          stt_seconds: number
+        }
+        Insert: {
+          conversation_id?: string | null
+          created_at?: string
+          id?: string
+          input_tokens?: number
+          messages_out?: number
+          output_tokens?: number
+          owner_id: string
+          stt_seconds?: number
+        }
+        Update: {
+          conversation_id?: string | null
+          created_at?: string
+          id?: string
+          input_tokens?: number
+          messages_out?: number
+          output_tokens?: number
+          owner_id?: string
+          stt_seconds?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wa_usage_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "wa_conversations"
             referencedColumns: ["id"]
           },
         ]
