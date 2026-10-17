@@ -2201,7 +2201,7 @@ export default function InvoiceHistoryDrawer({
 
       {/* ══════ MANAGER DISCOUNT DIALOG (Manager Mode only) ══════ */}
       {selectedOrder && showDiscount && sessionId && (
-        <ManagerDiscountDialog
+        <PostPaymentDiscountDialog
           open={showDiscount}
           onClose={() => setShowDiscount(false)}
           orderId={selectedOrder.id}
