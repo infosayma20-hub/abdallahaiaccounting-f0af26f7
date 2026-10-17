@@ -47,6 +47,7 @@ interface StatementLine {
   section?: string;
   transactions?: TxRecord[];
   code?: string;
+  group?: "head" | "total";
 }
 
 // ── Constants ──
@@ -360,7 +361,7 @@ const ProfitLoss = () => {
   // Helper: build sub-account lines for a section
   const buildSubAccountLines = useCallback((
     accountDataMap: Map<string, { total: number; txs: TxRecord[]; code: string; name: string }>,
-    addLine: (label: string, amount: number, level: StatementLine["level"], type: StatementLine["type"], section?: string, txs?: TxRecord[], compareAmt?: number, code?: string) => void,
+    addLine: (label: string, amount: number, level: StatementLine["level"], type: StatementLine["type"], section?: string, txs?: TxRecord[], compareAmt?: number, code?: string, group?: "head" | "total") => void,
     section: string,
     prevEntries?: typeof current.expenseEntries,
   ) => {
@@ -418,14 +419,13 @@ const ProfitLoss = () => {
 
       Array.from(parentMap.values()).sort((a, b) => b.total - a.total).forEach(group => {
         if (group.children.length > 0) {
-          // Parent account as header-like item
-          addLine(group.name, group.total, 2, "item", section, group.txs, undefined, group.code);
-          if (detailLevel >= 2) {
-            group.children.sort((a, b) => b.total - a.total).forEach(child => {
-              if (!showZeroAccounts && child.total === 0) return;
-              addLine(`${child.code} - ${child.name}`, child.total, 3 as any, "item", section, child.txs, undefined, child.code);
-            });
-          }
+          // Parent account: group heading (no amount) → children → "إجمالي" row
+          addLine(`${group.code} - ${group.name}`, group.total, 2, "item", section, group.txs, undefined, group.code, "head");
+          group.children.sort((a, b) => b.total - a.total).forEach(child => {
+            if (!showZeroAccounts && child.total === 0) return;
+            addLine(`${child.code} - ${child.name}`, child.total, 3 as any, "item", section, child.txs, undefined, child.code);
+          });
+          addLine(`إجمالي ${group.name}`, group.total, 2, "item", section, group.txs, undefined, undefined, "total");
         } else {
           const prevVal = prevEntries?.find(([n]) => n === group.name)?.[1]?.total;
           addLine(group.name, group.total, 2, "item", section, group.txs, prevVal, group.code);
@@ -437,9 +437,9 @@ const ProfitLoss = () => {
   const statementLines = useMemo((): StatementLine[] => {
     const lines: StatementLine[] = [];
 
-    const addLine = (label: string, amount: number, level: StatementLine["level"], type: StatementLine["type"], section?: string, txs?: TxRecord[], compareAmt?: number, code?: string) => {
+    const addLine = (label: string, amount: number, level: StatementLine["level"], type: StatementLine["type"], section?: string, txs?: TxRecord[], compareAmt?: number, code?: string, group?: "head" | "total") => {
       if (!showZeroAccounts && type === "item" && amount === 0) return;
-      lines.push({ label, amount, level, type, section, transactions: txs, compareAmount: compareAmt, code });
+      lines.push({ label, amount, level, type, section, transactions: txs, compareAmount: compareAmt, code, group });
     };
 
     // When showZeroAccounts is on, ensure all matching accounts are in the maps
@@ -529,7 +529,7 @@ const ProfitLoss = () => {
   const handleExportExcel = () => {
     const rows = statementLines.filter(l => l.type !== "spacer").map(l => ({
       "البند": l.label,
-      "المبلغ": l.amount,
+      "المبلغ": l.group === "head" ? "" : l.amount,
       ...(showPercentages && current.totalRevenue > 0 ? { "النسبة %": l.type === "item" || l.type === "subtotal" || l.type === "total" || l.type === "grand-total" ? ((l.amount / current.totalRevenue) * 100).toFixed(1) : "" } : {}),
       ...(showComparison && l.compareAmount !== undefined ? { "الفترة السابقة": l.compareAmount } : {}),
     }));
@@ -553,13 +553,13 @@ const ProfitLoss = () => {
       const isNeg = l.amount < 0;
       const pctVal = current.totalRevenue > 0 ? ((l.amount / current.totalRevenue) * 100).toFixed(1) + "%" : "";
       const indent = l.level * 16;
-      const isBold = l.type === "subtotal" || l.type === "total" || l.type === "grand-total";
+      const isBold = l.type === "subtotal" || l.type === "total" || l.type === "grand-total" || !!l.group;
       const style = isBold ? 'font-weight:700;' : '';
       const bgStyle = l.type === "grand-total" ? 'background:#F0FDF4;' : l.type === "total" ? 'background:#F8FAFC;' : '';
       return [
         `<span style="padding-right:${indent}px;${style}">${l.label}</span>`,
-        `<span style="${style}${isNeg ? 'color:#DC2626;' : ''}">${l.type === "header" ? "" : fmtAmount(l.amount)}</span>`,
-        ...(showPercentages ? [pctVal] : []),
+        `<span style="${style}${isNeg ? 'color:#DC2626;' : ''}">${l.type === "header" || l.group === "head" ? "" : fmtAmount(l.amount)}</span>`,
+        ...(showPercentages ? [l.group === "head" ? "" : pctVal] : []),
         ...(showComparison && l.compareAmount !== undefined ? [fmtAmount(l.compareAmount)] : showComparison ? [""] : []),
       ];
     });
@@ -762,7 +762,10 @@ const ProfitLoss = () => {
                       line.type === "subtotal" ? "border-t border-border font-semibold text-foreground" :
                       line.type === "total" ? "border-t border-border font-bold text-foreground" :
                       line.type === "grand-total" ? "border-t-2 border-b-2 border-double border-foreground font-bold text-foreground" :
+                      line.group === "head" ? "font-semibold text-foreground bg-muted/30" :
+                      line.group === "total" ? "font-semibold text-foreground border-t border-border" :
                       "hover:bg-muted/20";
+                    const hideAmount = line.type === "header" || line.group === "head";
 
                     return (
                       <tr key={i} className={`${rowCls} transition-colors`}>
@@ -793,9 +796,9 @@ const ProfitLoss = () => {
                           </div>
                         </td>
                         <td className="px-4 py-1.5 text-left tabular-nums text-foreground">
-                          {line.type === "header" ? "" : fmtAmount(line.amount)}
+                          {hideAmount ? "" : fmtAmount(line.amount)}
                         </td>
-                        {showPercentages && <td className="px-3 py-1.5 text-center tabular-nums text-muted-foreground">{line.type === "header" ? "" : pctVal ? `${pctVal}%` : ""}</td>}
+                        {showPercentages && <td className="px-3 py-1.5 text-center tabular-nums text-muted-foreground">{hideAmount ? "" : pctVal ? `${pctVal}%` : ""}</td>}
                         {showComparison && (
                           <td className="px-4 py-1.5 text-left tabular-nums text-muted-foreground">
                             {line.compareAmount !== undefined ? fmtAmount(line.compareAmount) : ""}
