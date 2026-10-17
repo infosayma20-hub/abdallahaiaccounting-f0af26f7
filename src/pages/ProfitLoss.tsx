@@ -149,7 +149,10 @@ const ProfitLoss = () => {
   const [drillDownAccount, setDrillDownAccount] = useState<{ label: string; txs: TxRecord[] } | null>(null);
   const [detailLevel, setDetailLevel] = useState(2);
   const [costCenters, setCostCenters] = useState<Array<{ id: string; name: string }>>([]);
-  const [costCenterFilter, setCostCenterFilter] = useState<string>("all");
+  // Multi-select cost centers: [] = الكل (عمود واحد)، "none" = بدون مركز تكلفة.
+  // اختيار مركزين أو أكثر يعرض عمودًا مستقلًا لكل مركز في القائمة.
+  const [ccSelected, setCcSelected] = useState<string[]>([]);
+  const [ccOpen, setCcOpen] = useState(false);
 
   // Resolve the actual data owner (team owner) so employees/cashiers see the company books
   const [dataOwnerId, setDataOwnerId] = useState<string | null>(null);
@@ -227,15 +230,19 @@ const ProfitLoss = () => {
     setDateTo(format(to, "yyyy-MM-dd"));
   }, []);
 
-  // Filter transactions by date range
+  // Cost-center matcher: empty selection = all; "none" = transactions without a cost center
+  const matchCC = useCallback((tx: TxRecord, sel: string[]) => {
+    if (sel.length === 0) return true;
+    return sel.some(s => (s === "none" ? !tx.costCenterId : tx.costCenterId === s));
+  }, []);
+
+  // Filter transactions by date range + selected cost centers (union)
   const plTransactions = useMemo(() => {
     return allTxRecords.filter(tx => {
       if (tx.date < dateFrom || tx.date > dateTo) return false;
-      if (costCenterFilter === "all") return true;
-      if (costCenterFilter === "none") return !tx.costCenterId;
-      return tx.costCenterId === costCenterFilter;
+      return matchCC(tx, ccSelected);
     });
-  }, [allTxRecords, dateFrom, dateTo, costCenterFilter]);
+  }, [allTxRecords, dateFrom, dateTo, ccSelected, matchCC]);
 
   // Previous period transactions
   const prevPeriodTxs = useMemo(() => {
@@ -247,11 +254,9 @@ const ProfitLoss = () => {
     const prevTo = format(new Date(fromDate.getTime() - 86400000), "yyyy-MM-dd");
     return allTxRecords.filter(tx => {
       if (tx.date < prevFrom || tx.date > prevTo) return false;
-      if (costCenterFilter === "all") return true;
-      if (costCenterFilter === "none") return !tx.costCenterId;
-      return tx.costCenterId === costCenterFilter;
+      return matchCC(tx, ccSelected);
     });
-  }, [allTxRecords, dateFrom, dateTo, showComparison, costCenterFilter]);
+  }, [allTxRecords, dateFrom, dateTo, showComparison, ccSelected, matchCC]);
 
   // ── Compute P&L ──
   const computePL = useCallback((txs: TxRecord[]) => {
@@ -425,7 +430,7 @@ const ProfitLoss = () => {
             if (!showZeroAccounts && child.total === 0) return;
             addLine(`${child.code} - ${child.name}`, child.total, 3 as any, "item", section, child.txs, undefined, child.code);
           });
-          addLine(`إجمالي ${group.name}`, group.total, 2, "item", section, group.txs, undefined, undefined, "total");
+          addLine(`إجمالي حساب ${group.name}`, group.total, 2, "item", section, group.txs, undefined, undefined, "total");
         } else {
           const prevVal = prevEntries?.find(([n]) => n === group.name)?.[1]?.total;
           addLine(group.name, group.total, 2, "item", section, group.txs, prevVal, group.code);
@@ -434,7 +439,7 @@ const ProfitLoss = () => {
     }
   }, [detailLevel, allAccounts, showZeroAccounts]);
 
-  const statementLines = useMemo((): StatementLine[] => {
+  const buildStatementLines = useCallback((cur: ReturnType<typeof computePL>, prev: ReturnType<typeof computePL> | null): StatementLine[] => {
     const lines: StatementLine[] = [];
 
     const addLine = (label: string, amount: number, level: StatementLine["level"], type: StatementLine["type"], section?: string, txs?: TxRecord[], compareAmt?: number, code?: string, group?: "head" | "total") => {
@@ -443,8 +448,8 @@ const ProfitLoss = () => {
     };
 
     // When showZeroAccounts is on, ensure all matching accounts are in the maps
-    let revenueByAccount = current.revenueByAccount;
-    let expenseByAccount = current.expenseByAccount;
+    let revenueByAccount = cur.revenueByAccount;
+    let expenseByAccount = cur.expenseByAccount;
 
     if (showZeroAccounts) {
       const cls = makeClassifier(accountMap);
@@ -469,53 +474,74 @@ const ProfitLoss = () => {
     if (detailLevel >= 2 && (revenueByAccount.size >= 1 || showZeroAccounts)) {
       buildSubAccountLines(revenueByAccount, addLine, "revenue");
     } else {
-      addLine("إيرادات المبيعات", current.salesData.total, 2, "item", "revenue", current.salesData.txs, previous?.salesData.total, "4100");
+      addLine("إيرادات المبيعات", cur.salesData.total, 2, "item", "revenue", cur.salesData.txs, prev?.salesData.total, "4100");
     }
-    if (current.salesDiscountData.total > 0) addLine("(-) خصم مسموح به", -current.salesDiscountData.total, 2, "item", "revenue", current.salesDiscountData.txs);
-    if (current.salesReturnData.total > 0) addLine("(-) مردود مبيعات", -current.salesReturnData.total, 2, "item", "revenue", current.salesReturnData.txs);
-    addLine("إجمالي الإيرادات", current.totalRevenue, 1, "subtotal", "revenue", undefined, previous?.totalRevenue);
+    if (cur.salesDiscountData.total > 0) addLine("(-) خصم مسموح به", -cur.salesDiscountData.total, 2, "item", "revenue", cur.salesDiscountData.txs);
+    if (cur.salesReturnData.total > 0) addLine("(-) مردود مبيعات", -cur.salesReturnData.total, 2, "item", "revenue", cur.salesReturnData.txs);
+    addLine("إجمالي الإيرادات", cur.totalRevenue, 1, "subtotal", "revenue", undefined, prev?.totalRevenue);
 
     lines.push({ label: "", amount: 0, level: 0, type: "spacer" });
 
     // COGS
     addLine("تكلفة المبيعات", 0, 0, "header", "cogs");
-    if (periodicEnabled || current.openingInventoryData.total > 0) {
-      addLine("بضاعة أول المدة", current.openingInventoryData.total, 2, "item", "cogs", current.openingInventoryData.txs, previous?.openingInventoryData.total, "5101");
+    if (periodicEnabled || cur.openingInventoryData.total > 0) {
+      addLine("بضاعة أول المدة", cur.openingInventoryData.total, 2, "item", "cogs", cur.openingInventoryData.txs, prev?.openingInventoryData.total, "5101");
     }
-    addLine("المشتريات", current.purchasesData.total, 2, "item", "cogs", current.purchasesData.txs, previous?.purchasesData.total, "5110");
-    if (current.purchaseDiscountData.total > 0) addLine("(-) خصم مكتسب", -current.purchaseDiscountData.total, 2, "item", "cogs", current.purchaseDiscountData.txs);
-    if (current.purchaseReturnData.total > 0) addLine("(-) مردود مشتريات", -current.purchaseReturnData.total, 2, "item", "cogs", current.purchaseReturnData.txs);
-    if (periodicEnabled || current.closingInventoryData.total > 0) {
-      addLine("(-) بضاعة آخر المدة", -current.closingInventoryData.total, 2, "item", "cogs", current.closingInventoryData.txs, previous ? -previous.closingInventoryData.total : undefined, "5102");
+    addLine("المشتريات", cur.purchasesData.total, 2, "item", "cogs", cur.purchasesData.txs, prev?.purchasesData.total, "5110");
+    if (cur.purchaseDiscountData.total > 0) addLine("(-) خصم مكتسب", -cur.purchaseDiscountData.total, 2, "item", "cogs", cur.purchaseDiscountData.txs);
+    if (cur.purchaseReturnData.total > 0) addLine("(-) مردود مشتريات", -cur.purchaseReturnData.total, 2, "item", "cogs", cur.purchaseReturnData.txs);
+    if (periodicEnabled || cur.closingInventoryData.total > 0) {
+      addLine("(-) بضاعة آخر المدة", -cur.closingInventoryData.total, 2, "item", "cogs", cur.closingInventoryData.txs, prev ? -prev.closingInventoryData.total : undefined, "5102");
     }
-    addLine("إجمالي تكلفة المبيعات", current.totalCOGS, 1, "subtotal", "cogs", undefined, previous?.totalCOGS);
+    addLine("إجمالي تكلفة المبيعات", cur.totalCOGS, 1, "subtotal", "cogs", undefined, prev?.totalCOGS);
 
     lines.push({ label: "", amount: 0, level: 0, type: "spacer" });
-    addLine("مجمل الربح", current.grossProfit, 0, "total", undefined, undefined, previous?.grossProfit);
+    addLine("مجمل الربح", cur.grossProfit, 0, "total", undefined, undefined, prev?.grossProfit);
     lines.push({ label: "", amount: 0, level: 0, type: "spacer" });
 
     // Operating Expenses
     addLine("المصروفات التشغيلية", 0, 0, "header", "opex");
-    buildSubAccountLines(expenseByAccount, addLine, "opex", previous?.expenseEntries);
-    addLine("إجمالي المصروفات التشغيلية", current.totalOpExpenses, 1, "subtotal", "opex", undefined, previous?.totalOpExpenses);
+    buildSubAccountLines(expenseByAccount, addLine, "opex", prev?.expenseEntries);
+    addLine("إجمالي المصروفات التشغيلية", cur.totalOpExpenses, 1, "subtotal", "opex", undefined, prev?.totalOpExpenses);
 
     lines.push({ label: "", amount: 0, level: 0, type: "spacer" });
-    addLine("الربح التشغيلي", current.operatingProfit, 0, "total", undefined, undefined, previous?.operatingProfit);
+    addLine("الربح التشغيلي", cur.operatingProfit, 0, "total", undefined, undefined, prev?.operatingProfit);
     lines.push({ label: "", amount: 0, level: 0, type: "spacer" });
 
     // Other
-    if (current.otherIncome.total > 0 || current.otherExpenses.total > 0) {
+    if (cur.otherIncome.total > 0 || cur.otherExpenses.total > 0) {
       addLine("إيرادات ومصروفات أخرى", 0, 0, "header", "other");
-      if (current.otherIncome.total > 0) addLine("إيرادات أخرى", current.otherIncome.total, 2, "item", "other", current.otherIncome.txs);
-      if (current.otherExpenses.total > 0) addLine("مصروفات أخرى", -current.otherExpenses.total, 2, "item", "other", current.otherExpenses.txs);
-      addLine("صافي البنود الأخرى", current.netOther, 1, "subtotal", "other", undefined, previous?.netOther);
+      if (cur.otherIncome.total > 0) addLine("إيرادات أخرى", cur.otherIncome.total, 2, "item", "other", cur.otherIncome.txs);
+      if (cur.otherExpenses.total > 0) addLine("مصروفات أخرى", -cur.otherExpenses.total, 2, "item", "other", cur.otherExpenses.txs);
+      addLine("صافي البنود الأخرى", cur.netOther, 1, "subtotal", "other", undefined, prev?.netOther);
       lines.push({ label: "", amount: 0, level: 0, type: "spacer" });
     }
 
-    addLine("صافي الربح / (الخسارة)", current.netProfit, 0, "grand-total", undefined, undefined, previous?.netProfit);
+    addLine("صافي الربح / (الخسارة)", cur.netProfit, 0, "grand-total", undefined, undefined, prev?.netProfit);
 
     return lines;
-  }, [current, previous, showZeroAccounts, detailLevel, buildSubAccountLines, allAccounts, accountMap, periodicEnabled]);
+  }, [showZeroAccounts, detailLevel, buildSubAccountLines, allAccounts, accountMap, periodicEnabled]);
+
+  const statementLines = useMemo(() => buildStatementLines(current, previous), [buildStatementLines, current, previous]);
+
+  // Per-cost-center columns: when 2+ centers are selected, each gets its own column
+  const ccLineKey = (l: StatementLine) => `${l.type}|${l.section || ""}|${l.code || ""}|${l.label}`;
+  const ccColumns = useMemo(() => {
+    if (ccSelected.length < 2) return null;
+    return ccSelected.map(sel => {
+      const txs = allTxRecords.filter(tx => tx.date >= dateFrom && tx.date <= dateTo && matchCC(tx, [sel]));
+      const pl = computePL(txs);
+      const map = new Map<string, number>();
+      buildStatementLines(pl, null).forEach(l => map.set(ccLineKey(l), l.amount));
+      return {
+        key: sel,
+        name: sel === "none" ? "بدون مركز تكلفة" : (costCenters.find(c => c.id === sel)?.name || sel),
+        map,
+      };
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ccSelected, allTxRecords, dateFrom, dateTo, matchCC, computePL, buildStatementLines, costCenters]);
+  const multiCC = !!ccColumns;
 
   const toggleSection = (section: string) => {
     setCollapsedSections(prev => {
@@ -529,12 +555,14 @@ const ProfitLoss = () => {
   const handleExportExcel = () => {
     const rows = statementLines.filter(l => l.type !== "spacer").map(l => ({
       "البند": l.label,
-      "المبلغ": l.group === "head" ? "" : l.amount,
-      ...(showPercentages && current.totalRevenue > 0 ? { "النسبة %": l.type === "item" || l.type === "subtotal" || l.type === "total" || l.type === "grand-total" ? ((l.amount / current.totalRevenue) * 100).toFixed(1) : "" } : {}),
-      ...(showComparison && l.compareAmount !== undefined ? { "الفترة السابقة": l.compareAmount } : {}),
+      ...(multiCC
+        ? Object.fromEntries(ccColumns!.map(col => [col.name, l.group === "head" ? "" : (col.map.get(ccLineKey(l)) ?? 0)]))
+        : { "المبلغ": l.group === "head" ? "" : l.amount }),
+      ...(showPercentages && !multiCC && current.totalRevenue > 0 ? { "النسبة %": l.type === "item" || l.type === "subtotal" || l.type === "total" || l.type === "grand-total" ? ((l.amount / current.totalRevenue) * 100).toFixed(1) : "" } : {}),
+      ...(showComparison && !multiCC && l.compareAmount !== undefined ? { "الفترة السابقة": l.compareAmount } : {}),
     }));
     const ws = XLSX.utils.json_to_sheet(rows);
-    ws["!cols"] = [{ wch: 35 }, { wch: 18 }, { wch: 12 }, { wch: 18 }];
+    ws["!cols"] = [{ wch: 35 }, ...(multiCC ? ccColumns!.map(() => ({ wch: 16 })) : [{ wch: 18 }]), { wch: 12 }, { wch: 18 }];
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "قائمة الدخل");
     setNextExportBranding({
@@ -548,7 +576,7 @@ const ProfitLoss = () => {
   // ── Export PDF ──
   const handleExportPDF = () => {
     const rows = statementLines.filter(l => l.type !== "spacer" && l.type !== "header");
-    const tableHeaders = ["البند", "المبلغ", ...(showPercentages ? ["%"] : []), ...(showComparison ? ["الفترة السابقة"] : [])];
+    const tableHeaders = ["البند", ...(multiCC ? ccColumns!.map(c => c.name) : ["المبلغ"]), ...(showPercentages && !multiCC ? ["%"] : []), ...(showComparison && !multiCC ? ["الفترة السابقة"] : [])];
     const tableRows = rows.map(l => {
       const isNeg = l.amount < 0;
       const pctVal = current.totalRevenue > 0 ? ((l.amount / current.totalRevenue) * 100).toFixed(1) + "%" : "";
@@ -556,11 +584,17 @@ const ProfitLoss = () => {
       const isBold = l.type === "subtotal" || l.type === "total" || l.type === "grand-total" || !!l.group;
       const style = isBold ? 'font-weight:700;' : '';
       const bgStyle = l.type === "grand-total" ? 'background:#F0FDF4;' : l.type === "total" ? 'background:#F8FAFC;' : '';
+      const amountCells = multiCC
+        ? ccColumns!.map(col => {
+            const v = col.map.get(ccLineKey(l)) ?? 0;
+            return `<span style="${style}${v < 0 ? 'color:#DC2626;' : ''}">${l.group === "head" ? "" : fmtAmount(v)}</span>`;
+          })
+        : [`<span style="${style}${isNeg ? 'color:#DC2626;' : ''}">${l.type === "header" || l.group === "head" ? "" : fmtAmount(l.amount)}</span>`];
       return [
         `<span style="padding-right:${indent}px;${style}">${l.label}</span>`,
-        `<span style="${style}${isNeg ? 'color:#DC2626;' : ''}">${l.type === "header" || l.group === "head" ? "" : fmtAmount(l.amount)}</span>`,
-        ...(showPercentages ? [l.group === "head" ? "" : pctVal] : []),
-        ...(showComparison && l.compareAmount !== undefined ? [fmtAmount(l.compareAmount)] : showComparison ? [""] : []),
+        ...amountCells,
+        ...(showPercentages && !multiCC ? [l.group === "head" ? "" : pctVal] : []),
+        ...(showComparison && !multiCC && l.compareAmount !== undefined ? [fmtAmount(l.compareAmount)] : showComparison && !multiCC ? [""] : []),
       ];
     });
 
@@ -689,19 +723,51 @@ const ProfitLoss = () => {
             ))}
           </div>
           {costCenters.length > 0 && (
-            <div className="flex items-center gap-1.5 mr-4">
+            <div className="relative flex items-center gap-1.5 mr-4">
               <span className="text-muted-foreground text-[10px]">الفرع / مركز التكلفة:</span>
-              <select
-                value={costCenterFilter}
-                onChange={(e) => setCostCenterFilter(e.target.value)}
-                className="h-7 rounded-md border border-input bg-background px-2 text-[11px]"
+              <button
+                type="button"
+                onClick={() => setCcOpen(v => !v)}
+                className="h-7 rounded-md border border-input bg-background px-2 text-[11px] flex items-center gap-1.5 min-w-[120px] justify-between"
               >
-                <option value="all">الكل</option>
-                <option value="none">بدون مركز تكلفة</option>
-                {costCenters.map(cc => (
-                  <option key={cc.id} value={cc.id}>{cc.name}</option>
-                ))}
-              </select>
+                <span>
+                  {ccSelected.length === 0
+                    ? "الكل"
+                    : ccSelected.length === 1
+                      ? (ccSelected[0] === "none" ? "بدون مركز تكلفة" : costCenters.find(c => c.id === ccSelected[0])?.name || "مركز واحد")
+                      : `${ccSelected.length} مراكز (عمود لكل مركز)`}
+                </span>
+                <ChevronDown className="h-3 w-3 text-muted-foreground" />
+              </button>
+              {ccOpen && (
+                <>
+                  <div className="fixed inset-0 z-40" onClick={() => setCcOpen(false)} />
+                  <div className="absolute top-8 right-0 z-50 w-56 rounded-md border border-border bg-card shadow-lg p-2 space-y-1.5">
+                    <label className="flex items-center gap-1.5 cursor-pointer text-[11px]">
+                      <Checkbox checked={ccSelected.length === 0} onCheckedChange={() => setCcSelected([])} />
+                      <span className="font-medium">الكل (عمود واحد)</span>
+                    </label>
+                    <div className="border-t border-border/60 my-1" />
+                    <label className="flex items-center gap-1.5 cursor-pointer text-[11px]">
+                      <Checkbox
+                        checked={ccSelected.includes("none")}
+                        onCheckedChange={(v) => setCcSelected(prev => v ? [...prev, "none"] : prev.filter(k => k !== "none"))}
+                      />
+                      <span>بدون مركز تكلفة</span>
+                    </label>
+                    {costCenters.map(cc => (
+                      <label key={cc.id} className="flex items-center gap-1.5 cursor-pointer text-[11px]">
+                        <Checkbox
+                          checked={ccSelected.includes(cc.id)}
+                          onCheckedChange={(v) => setCcSelected(prev => v ? [...prev, cc.id] : prev.filter(k => k !== cc.id))}
+                        />
+                        <span>{cc.name}</span>
+                      </label>
+                    ))}
+                    <p className="text-[10px] text-muted-foreground border-t border-border/60 pt-1.5">اختر مركزين أو أكثر ليظهر عمود مستقل لكل مركز</p>
+                  </div>
+                </>
+              )}
             </div>
           )}
         </div>
@@ -740,16 +806,22 @@ const ProfitLoss = () => {
               <table className="w-full text-[12.5px]">
                 <thead>
                   <tr className="border-b border-border bg-muted/40">
-                    <th className="px-4 py-2 text-right font-semibold text-foreground text-[11.5px] uppercase tracking-wide" style={{ width: "55%" }}>البند</th>
-                    <th className="px-4 py-2 text-left font-semibold text-foreground text-[11.5px] uppercase tracking-wide">المبلغ</th>
-                    {showPercentages && <th className="px-3 py-2 text-center font-semibold text-foreground text-[11.5px] uppercase tracking-wide w-16">%</th>}
-                    {showComparison && <th className="px-4 py-2 text-left font-semibold text-foreground text-[11.5px] uppercase tracking-wide">السابقة</th>}
-                    {showComparison && <th className="px-3 py-2 text-center font-semibold text-foreground text-[11.5px] uppercase tracking-wide w-20">التغير</th>}
+                    <th className="px-4 py-2 text-right font-semibold text-foreground text-[11.5px] uppercase tracking-wide" style={multiCC ? undefined : { width: "55%" }}>البند</th>
+                    {multiCC ? (
+                      ccColumns!.map(col => (
+                        <th key={col.key} className="px-4 py-2 text-left font-semibold text-foreground text-[11.5px] uppercase tracking-wide whitespace-nowrap">{col.name}</th>
+                      ))
+                    ) : (
+                      <th className="px-4 py-2 text-left font-semibold text-foreground text-[11.5px] uppercase tracking-wide">المبلغ</th>
+                    )}
+                    {showPercentages && !multiCC && <th className="px-3 py-2 text-center font-semibold text-foreground text-[11.5px] uppercase tracking-wide w-16">%</th>}
+                    {showComparison && !multiCC && <th className="px-4 py-2 text-left font-semibold text-foreground text-[11.5px] uppercase tracking-wide">السابقة</th>}
+                    {showComparison && !multiCC && <th className="px-3 py-2 text-center font-semibold text-foreground text-[11.5px] uppercase tracking-wide w-20">التغير</th>}
                   </tr>
                 </thead>
                 <tbody>
                   {statementLines.map((line, i) => {
-                    if (line.type === "spacer") return <tr key={i}><td colSpan={5} className="h-2" /></tr>;
+                    if (line.type === "spacer") return <tr key={i}><td colSpan={multiCC ? 1 + ccColumns!.length : 5} className="h-2" /></tr>;
                     const isCollapsed = line.section && collapsedSections.has(line.section);
                     if (line.type === "item" && isCollapsed) return null;
 
@@ -795,16 +867,24 @@ const ProfitLoss = () => {
                             )}
                           </div>
                         </td>
-                        <td className="px-4 py-1.5 text-left tabular-nums text-foreground">
-                          {hideAmount ? "" : fmtAmount(line.amount)}
-                        </td>
-                        {showPercentages && <td className="px-3 py-1.5 text-center tabular-nums text-muted-foreground">{hideAmount ? "" : pctVal ? `${pctVal}%` : ""}</td>}
-                        {showComparison && (
+                        {multiCC ? (
+                          ccColumns!.map(col => (
+                            <td key={col.key} className="px-4 py-1.5 text-left tabular-nums text-foreground">
+                              {hideAmount ? "" : fmtAmount(col.map.get(ccLineKey(line)) ?? 0)}
+                            </td>
+                          ))
+                        ) : (
+                          <td className="px-4 py-1.5 text-left tabular-nums text-foreground">
+                            {hideAmount ? "" : fmtAmount(line.amount)}
+                          </td>
+                        )}
+                        {showPercentages && !multiCC && <td className="px-3 py-1.5 text-center tabular-nums text-muted-foreground">{hideAmount ? "" : pctVal ? `${pctVal}%` : ""}</td>}
+                        {showComparison && !multiCC && (
                           <td className="px-4 py-1.5 text-left tabular-nums text-muted-foreground">
                             {line.compareAmount !== undefined ? fmtAmount(line.compareAmount) : ""}
                           </td>
                         )}
-                        {showComparison && (
+                        {showComparison && !multiCC && (
                           <td className="px-3 py-1.5 text-center tabular-nums text-muted-foreground">
                             {change !== null ? (
                               <span className="inline-flex items-center gap-0.5 text-[10.5px]">
